@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
+import { CURRENCIES } from "@/lib/currencies";
 import {
   createBooking,
   deleteBooking,
@@ -25,11 +26,6 @@ const BOOKING_TYPES: BookingType[] = [
 ];
 
 const BOOKING_STATUSES: BookingStatus[] = ["booked", "paid", "cancelled"];
-
-const CURRENCIES = [
-  "ILS", "USD", "EUR", "GBP", "CHF", "JPY", "CNY", "THB",
-  "VND", "KRW", "SGD", "AUD", "NZD", "INR",
-];
 
 type Details = Record<string, string>;
 

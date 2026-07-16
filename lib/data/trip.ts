@@ -20,6 +20,18 @@ export async function getActiveTrip(): Promise<Trip | null> {
   return data;
 }
 
+/** All members of the trip (owners see everyone via members_owner_all). */
+export async function listMembers(tripId: string): Promise<Member[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("members")
+    .select("*")
+    .eq("trip_id", tripId)
+    .order("display_name");
+  return data ?? [];
+}
+
 export async function getCurrentMember(): Promise<Member | null> {
   if (cachedMember) return cachedMember;
   const supabase = getSupabase();

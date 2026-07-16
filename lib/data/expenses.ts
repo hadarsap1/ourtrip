@@ -1,7 +1,8 @@
 import { getSupabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/format";
 import { getActiveTrip, getCurrentMember } from "@/lib/data/trip";
-import type { Booking, BudgetCategory } from "@/lib/types";
+import type { TablesUpdate } from "@/lib/database.types";
+import type { Booking, BudgetCategory, Expense } from "@/lib/types";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -22,12 +23,26 @@ export async function listCategories(
 }
 
 /**
- * On-demand ILS rate for a linked expense. The scheduled daily FX fetch into
- * fx_rates is Sprint 3; until then: open.er-api.com → Frankfurter → last
- * known rate in fx_rates (DECISIONS #7 provider order).
+ * ILS rate for a given day (DECISIONS #7 order): the day's cached rate in
+ * fx_rates (populated daily by the fx-daily Edge Function) → live providers
+ * (open.er-api.com, then Frankfurter) → last known cached rate.
  */
-export async function getRateToIls(currency: string): Promise<number | null> {
+export async function getRateToIls(
+  currency: string,
+  day: string = todayISO()
+): Promise<number | null> {
   if (currency === "ILS") return 1;
+
+  const cached = getSupabase();
+  if (cached) {
+    const { data } = await cached
+      .from("fx_rates")
+      .select("rate_to_ils")
+      .eq("day", day)
+      .eq("currency", currency)
+      .maybeSingle();
+    if (data) return data.rate_to_ils;
+  }
 
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/ILS");
@@ -65,6 +80,89 @@ export async function getRateToIls(currency: string): Promise<number | null> {
     if (data) return data.rate_to_ils;
   }
   return null;
+}
+
+export async function updateCategoryPlanned(
+  categoryId: string,
+  plannedAmount: number
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("budget_categories")
+    .update({ planned_amount: plannedAmount })
+    .eq("id", categoryId);
+  if (error) throw new Error(error.message);
+}
+
+// ---------- expenses ----------
+
+export async function listExpenses(tripId: string): Promise<Expense[]> {
+  const { data, error } = await requireClient()
+    .from("expenses")
+    .select("*")
+    .eq("trip_id", tripId)
+    .order("spent_on", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Fast entry: converts at the spent_on day's rate. Throws "fx" when the
+ *  currency can't be converted (UI shows a specific Hebrew message). */
+export async function createExpense(input: {
+  categoryId: string;
+  amount: number;
+  currency: string;
+  description?: string | null;
+  spentOn?: string;
+}): Promise<void> {
+  const supabase = requireClient();
+  const [trip, member] = await Promise.all([
+    getActiveTrip(),
+    getCurrentMember(),
+  ]);
+  if (!trip || !member) throw new Error("missing expense context");
+
+  const spentOn = input.spentOn ?? todayISO();
+  const rate = await getRateToIls(input.currency, spentOn);
+  if (rate == null) throw new Error("fx");
+
+  const { error } = await supabase.from("expenses").insert({
+    trip_id: trip.id,
+    category_id: input.categoryId,
+    amount: input.amount,
+    currency: input.currency,
+    amount_ils: Math.round(input.amount * rate * 100) / 100,
+    description: input.description?.trim() || null,
+    spent_on: spentOn,
+    created_by: member.id,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Re-converts when amount/currency/date changed. */
+export async function updateExpense(
+  id: string,
+  patch: Pick<TablesUpdate<"expenses">, "category_id" | "description"> & {
+    amount: number;
+    currency: string;
+    spent_on: string;
+  }
+): Promise<void> {
+  const rate = await getRateToIls(patch.currency, patch.spent_on);
+  if (rate == null) throw new Error("fx");
+  const { error } = await requireClient()
+    .from("expenses")
+    .update({
+      ...patch,
+      amount_ils: Math.round(patch.amount * rate * 100) / 100,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  const { error } = await requireClient().from("expenses").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 /** Creates the budget expense linked to a booking. Throws "fx" when the

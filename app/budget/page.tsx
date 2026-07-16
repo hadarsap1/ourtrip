@@ -1,11 +1,5 @@
-import { PlaceholderScreen } from "@/components/PlaceholderScreen";
-import { strings } from "@/lib/strings";
+import { BudgetScreen } from "@/components/budget/BudgetScreen";
 
 export default function BudgetPage() {
-  return (
-    <PlaceholderScreen
-      title={strings.nav.budget}
-      note={strings.placeholders.budget}
-    />
-  );
+  return <BudgetScreen />;
 }
