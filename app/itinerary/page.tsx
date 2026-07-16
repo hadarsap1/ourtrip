@@ -1,11 +1,5 @@
-import { PlaceholderScreen } from "@/components/PlaceholderScreen";
-import { strings } from "@/lib/strings";
+import { ItineraryScreen } from "@/components/itinerary/ItineraryScreen";
 
 export default function ItineraryPage() {
-  return (
-    <PlaceholderScreen
-      title={strings.nav.itinerary}
-      note={strings.placeholders.itinerary}
-    />
-  );
+  return <ItineraryScreen />;
 }
