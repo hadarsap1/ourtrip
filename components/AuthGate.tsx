@@ -1,0 +1,74 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { getSupabase } from "@/lib/supabase";
+import { strings } from "@/lib/strings";
+
+type GateState = "loading" | "allowed" | "rejected";
+
+// Client-side routing gate only — real security is RLS in the database.
+export function AuthGate({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<GateState>("loading");
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Bypass cases need no async check: the login page itself, and local dev
+  // before the Supabase env is wired up (shell should still render).
+  const bypass = pathname === "/login" || !getSupabase();
+
+  useEffect(() => {
+    if (bypass) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (!data.session) {
+        router.replace("/login");
+        return;
+      }
+
+      // Link auth user ↔ seeded member row; null role = not allowed.
+      const { data: role } = await supabase.rpc("link_member_to_auth_user");
+      if (cancelled) return;
+
+      if (!role) {
+        await supabase.auth.signOut();
+        setState("rejected");
+        return;
+      }
+
+      setState("allowed");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bypass, pathname, router]);
+
+  if (bypass) {
+    return <>{children}</>;
+  }
+
+  if (state === "rejected") {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-16 text-center">
+        <h1 className="mb-2 text-2xl font-bold">
+          {strings.auth.notAllowedTitle}
+        </h1>
+        <p className="text-slate-500">{strings.auth.notAllowedBody}</p>
+      </div>
+    );
+  }
+
+  if (state === "loading") {
+    return null;
+  }
+
+  return <>{children}</>;
+}
