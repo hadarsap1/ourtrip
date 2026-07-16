@@ -1,11 +1,5 @@
-import { PlaceholderScreen } from "@/components/PlaceholderScreen";
-import { strings } from "@/lib/strings";
+import { DocumentsScreen } from "@/components/documents/DocumentsScreen";
 
 export default function DocumentsPage() {
-  return (
-    <PlaceholderScreen
-      title={strings.nav.documents}
-      note={strings.placeholders.documents}
-    />
-  );
+  return <DocumentsScreen />;
 }

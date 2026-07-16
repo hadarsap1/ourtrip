@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { CURRENCIES } from "@/lib/currencies";
 import {
-  createExpense,
+  createExpenseOrQueue,
   deleteExpense,
   updateExpense,
 } from "@/lib/data/expenses";
@@ -91,22 +91,28 @@ function ExpenseForm({
     setSaving(true);
     try {
       if (isNew) {
-        await createExpense({
+        const result = await createExpenseOrQueue({
           categoryId: catId,
           amount: value,
           currency,
           description,
           spentOn,
         });
-      } else {
-        await updateExpense(expense.id, {
-          category_id: catId,
-          amount: value,
-          currency,
-          description: description.trim() || null,
-          spent_on: spentOn,
-        });
+        rememberCurrency(currency);
+        onDone(
+          result === "queued"
+            ? strings.budget.expenseQueued
+            : strings.budget.expenseSaved
+        );
+        return;
       }
+      await updateExpense(expense.id, {
+        category_id: catId,
+        amount: value,
+        currency,
+        description: description.trim() || null,
+        spent_on: spentOn,
+      });
       rememberCurrency(currency);
       onDone(strings.budget.expenseSaved);
     } catch (e) {

@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
 import { BottomNav } from "@/components/BottomNav";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
 import { strings } from "@/lib/strings";
 
@@ -43,6 +44,7 @@ export default function RootLayout({
           <AuthGate>{children}</AuthGate>
         </main>
         <BottomNav />
+        <OfflineSync />
         <RegisterSW />
       </body>
     </html>

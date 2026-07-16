@@ -1,8 +1,8 @@
 // OurTrip service worker — Sprint 1: app-shell cache only.
 // Later sprints add IndexedDB-backed data caching and a pending-writes queue.
 
-const CACHE_NAME = "ourtrip-shell-v2";
-const SHELL_URLS = ["/", "/itinerary", "/budget", "/documents", "/more", "/checklists", "/manifest.webmanifest"];
+const CACHE_NAME = "ourtrip-shell-v3";
+const SHELL_URLS = ["/", "/itinerary", "/budget", "/documents", "/more", "/checklists", "/emergency", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

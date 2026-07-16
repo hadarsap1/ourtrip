@@ -139,6 +139,45 @@ export async function createExpense(input: {
   if (error) throw new Error(error.message);
 }
 
+function isConnectivityError(e: unknown): boolean {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  const message = e instanceof Error ? e.message.toLowerCase() : "";
+  return message.includes("fetch") || message.includes("network");
+}
+
+/**
+ * Fast-entry path: tries to save, and when the failure looks like lost
+ * connectivity (incl. "fx" — offline means no rate source is reachable)
+ * queues the expense for replay on reconnect. Genuine online errors
+ * (validation, RLS, FX provider outage) still throw.
+ */
+export async function createExpenseOrQueue(input: {
+  categoryId: string;
+  amount: number;
+  currency: string;
+  description?: string | null;
+  spentOn?: string;
+}): Promise<"saved" | "queued"> {
+  try {
+    await createExpense(input);
+    return "saved";
+  } catch (e) {
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    if (isConnectivityError(e) || (offline && e instanceof Error && e.message === "fx")) {
+      const { enqueueExpense } = await import("@/lib/offline/queue");
+      await enqueueExpense({
+        categoryId: input.categoryId,
+        amount: input.amount,
+        currency: input.currency,
+        description: input.description?.trim() || null,
+        spentOn: input.spentOn ?? todayISO(),
+      });
+      return "queued";
+    }
+    throw e;
+  }
+}
+
 /** Re-converts when amount/currency/date changed. */
 export async function updateExpense(
   id: string,

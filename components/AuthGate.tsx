@@ -34,8 +34,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
 
       // Link auth user ↔ seeded member row; null role = not allowed.
-      const { data: role } = await supabase.rpc("link_member_to_auth_user");
+      const { data: role, error } = await supabase.rpc("link_member_to_auth_user");
       if (cancelled) return;
+
+      if (error) {
+        // Network failure (offline etc.) — can't verify. A locally stored
+        // session is enough to render the shell: real security is RLS, and
+        // the offline-critical screens must open with no connectivity.
+        setState("allowed");
+        return;
+      }
 
       if (!role) {
         await supabase.auth.signOut();
