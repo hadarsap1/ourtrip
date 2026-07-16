@@ -7,6 +7,8 @@ export type ItineraryItem = Tables<"itinerary_items">;
 export type Booking = Tables<"bookings">;
 export type BudgetCategory = Tables<"budget_categories">;
 export type Expense = Tables<"expenses">;
+export type Document = Tables<"documents">;
+export type EmergencyInfo = Tables<"emergency_info">;
 export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
 

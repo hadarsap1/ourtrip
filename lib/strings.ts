@@ -16,6 +16,63 @@ export const strings = {
   today: {
     emptyTitle: "עוד אין מה להציג",
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
+    noDay: "אין יום מתוכנן במסלול להיום",
+    bookingsToday: "הזמנות להיום",
+    quickExpense: "הוספת הוצאה",
+    quickItinerary: "למסלול",
+    snapshotFrom: "עדכני לתאריך",
+  },
+
+  documents: {
+    upload: "העלאת מסמך",
+    edit: "עריכת מסמך",
+    searchPlaceholder: "חיפוש מסמך…",
+    tags: {
+      passport: "דרכונים",
+      insurance: "ביטוח",
+      vaccine: "חיסונים",
+      visa: "ויזות",
+      other: "אחר",
+    } as Record<string, string>,
+    allTags: "הכל",
+    docTitle: "שם המסמך",
+    tag: "תגית",
+    notes: "הערות",
+    file: "קובץ",
+    uploading: "מעלה…",
+    empty: "עוד אין מסמכים בכספת",
+    noResults: "לא נמצאו מסמכים",
+    deleteConfirm: "למחוק את המסמך? גם העותק במכשיר יימחק",
+    open: "פתיחת מסמך",
+    openFailed: "אין עותק שמור של המסמך במכשיר",
+    offlineToggle: "זמין ללא אינטרנט",
+    offlineSaved: "המסמך נשמר במכשיר",
+    offlineRemoved: "העותק הוסר מהמכשיר",
+  },
+
+  emergency: {
+    title: "חירום",
+    sos: "SOS",
+    numbers: "מספרי חירום",
+    police: "משטרה",
+    ambulance: "אמבולנס",
+    fire: "מכבי אש",
+    embassy: "שגרירות ישראל",
+    phone: "טלפון",
+    address: "כתובת",
+    insurance: "ביטוח נסיעות",
+    insuranceCompany: "חברת ביטוח",
+    insurancePolicy: "מס׳ פוליסה",
+    insurancePhone: "מוקד חירום של הביטוח",
+    hotel: "המלון הנוכחי",
+    hotelName: "שם המלון",
+    medical: "מידע רפואי",
+    editTitle: "עריכת דף חירום",
+    emptyPage: "עוד לא הוזן מידע חירום למדינה הזו",
+    noCountries: "אין עדיין מדינות — הוסיפו ימים עם מדינה במסלול או צרו דף חדש",
+    addCountry: "מדינה חדשה",
+    countryCode: "קוד מדינה (2 אותיות, למשל JP)",
+    saved: "דף החירום נשמר",
   },
 
   placeholders: {
@@ -43,6 +100,7 @@ export const strings = {
     description: "תיאור (לא חובה)",
     date: "תאריך",
     expenseSaved: "ההוצאה נשמרה",
+    expenseQueued: "אין חיבור — ההוצאה תסונכרן אוטומטית כשיהיה אינטרנט",
     deleteExpenseConfirm: "למחוק את ההוצאה?",
     recentExpenses: "הוצאות אחרונות",
     emptyExpenses: "עוד אין הוצאות",
@@ -77,6 +135,7 @@ export const strings = {
 
   more: {
     menuChecklists: "רשימות",
+    menuEmergency: "דף חירום",
   },
 
   common: {
@@ -186,5 +245,7 @@ export const strings = {
 
   offline: {
     banner: "אין חיבור לאינטרנט — חלק מהמסכים לא זמינים",
+    synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
+    fromCache: "מוצג מהעותק השמור במכשיר",
   },
 } as const;

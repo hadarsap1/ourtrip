@@ -53,3 +53,25 @@ RLS covering this sprint's features (all pre-existing from Sprint 1, no new poli
 Notes:
 - **Accepted risk**: `fx-daily` is deployed with `verify_jwt=false` so pg_cron can invoke it without embedding a key in SQL. The function takes no input, only upserts today's public FX rates (idempotent), and exposes no data — worst case an anonymous caller triggers a redundant refresh. Revisit in the Sprint 8 security pass.
 - Client FX lookups read `fx_rates` (that day's rate) first, then live providers, then last known rate — clients never write rates (RLS enforced, verified above).
+
+## 2026-07-16 — Sprint 4: documents vault + kid-role denial
+
+Environment: migration `sprint4_documents_bucket` applied (repo file `00005_...`).
+
+RLS covering this sprint's features: `documents_owner_all` (pre-existing, 00001) + 4 new owner-only `documents_*` policies on `storage.objects` for the `documents` bucket.
+
+Kid-role check ran with a probe kid member resolved through the REAL auth path kid devices will use from Sprint 6 (`authenticated` role + JWT `member_id` claim → `current_member_id()`), against a DB containing a probe document + storage object:
+
+| Check | Method | Result |
+|---|---|---|
+| Kid identity resolves (`current_member_role()` = 'kid') — the denial below is a policy denial, not an auth failure | SQL role emulation + `request.jwt.claims` | ✅ PASS |
+| Kid sees 0 rows in `documents` (probe row existed) | same session | ✅ PASS |
+| Kid sees 0 objects in `documents` storage bucket (probe object existed) | same session | ✅ PASS |
+| Kid sees 0 rows in `expenses` / `bookings` (CLAUDE.md rule #2 scope) | same session | ✅ PASS |
+| `documents` bucket private, 4 owner-only storage policies | migration + `pg_policies` | ✅ PASS |
+
+Notes:
+- Probe rows (document, storage object, kid member) deleted after the test.
+- Guest-role documents denial follows from the same structure (no guest policy exists on `documents` → deny-by-default); explicit guest-session check joins the Sprint 7 pass when guest auth exists end-to-end.
+- Offline copies of documents live in IndexedDB on the owner's device only, stored after an RLS-authorized signed-URL download; they never bypass server policies.
+- AuthGate change: on a *network-failing* role check with a locally stored session, the shell now renders (offline requirement). This is a client-side gate only — every data read/write remains RLS-enforced server-side; a revoked user with a stale session sees empty screens, not data.
