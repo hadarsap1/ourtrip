@@ -142,6 +142,8 @@ export const strings = {
     menuPhotos: "תמונות",
     menuPocket: "דמי כיס",
     menuKids: "ילדים ומכשירים",
+    menuGuests: "אורחים",
+    menuMessages: "הקיר המשפחתי",
   },
 
   weather: {
@@ -305,6 +307,49 @@ export const strings = {
     photos: "תמונות",
     pocket: "דמי כיס",
     phrasebook: "שיחון",
+    messages: "הודעות",
+  },
+
+  guestNav: {
+    photos: "תמונות",
+    journal: "יומן",
+    map: "מפה",
+    messages: "הודעות",
+  },
+
+  wall: {
+    title: "הקיר המשפחתי",
+    placeholder: "כותבים משהו למשפחה…",
+    send: "שליחה",
+    empty: "עוד אין הודעות — כתבו את הראשונה!",
+    me: "אני",
+  },
+
+  guests: {
+    title: "אורחים",
+    invite: "הזמנת אורח/ת",
+    email: "אימייל",
+    name: "שם",
+    send: "שליחת הזמנה",
+    emailed: "ההזמנה נשלחה במייל",
+    linkReady: "הקישור מוכן — שלחו אותו לאורח (למשל בוואטסאפ)",
+    copyLink: "העתקת הקישור",
+    copied: "הקישור הועתק",
+    empty: "עוד לא הוזמנו אורחים",
+    active: "פעיל/ה",
+    revoked: "הוסר/ה",
+    revoke: "הסרת גישה",
+    revokeConfirm: "להסיר את הגישה של האורח/ת? אפשר להזמין שוב בכל שלב",
+    reinvite: "הזמנה מחדש",
+  },
+
+  guestHome: {
+    welcome: "ברוכים הבאים לפורטל הטיול!",
+    subtitle: "כאן רואים תמונות, יומן מסע ומפה של איפה שכבר היינו",
+    tilePhotos: "תמונות",
+    tileJournal: "יומן מסע",
+    tileMap: "איפה היינו",
+    tileWall: "הקיר המשפחתי",
   },
 
   kidLogin: {

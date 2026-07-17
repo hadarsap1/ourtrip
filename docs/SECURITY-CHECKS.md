@@ -111,3 +111,22 @@ Notes:
 - Kid auth users (`kid-<member_id>@kids.ourtrip.app`) are created by the service role with confirmed emails; no email is ever sent. A stranger who somehow signed in with email/password would have no `members` row → zero rows everywhere (deny-by-default) and an AuthGate rejection.
 - Journal: `journal_before_write` trigger keeps kid writes from ever setting `shared_with_guests` (same rule as photos).
 - `photos` bucket: family (owner+kid) select/insert; update/delete owner-only. Guests never read the bucket directly — Sprint 7 serves approved+shared photos via signed URLs only.
+
+## 2026-07-17 — Sprint 7: guest role live
+
+Environment: migrations `sprint7_guests` (00008) + `sprint7_guest_policy_fix` (00009) applied; Edge Functions `guest-invite` + `guest-photos` deployed (`verify_jwt=true`; invite additionally owner-gated in-function). All checks ran with a probe guest against MIXED probe content (shared/unshared/pending variants); probes deleted afterwards.
+
+| Check | Method | Result |
+|---|---|---|
+| Guest sees exactly: 1 of 3 photos (only approved+shared), 1 of 2 journal entries (only shared), 1 of 2 itinerary items (only done+shared) + its day | SQL role emulation, guest claims | ✅ PASS |
+| Guest sees 0 rows in documents, bookings, expenses, budget_categories, checklists, pocket_money, and ALL storage objects | same session | ✅ PASS |
+| Revocation immediate: after `revoked_at` set, same guest session sees 0 rows in every table incl. trips and messages | same claims, post-revoke | ✅ PASS |
+| Revoked guest cannot write to the wall | INSERT → 42501 RLS violation | ✅ PASS |
+| Active guest wall access: message INSERT as self + SELECT feed + member display names | live insert/select | ✅ PASS |
+| Realtime publication includes `messages` (kid⇄guest live wall); subscribers authorized via the SELECT policies | `pg_publication_tables` | ✅ PASS |
+| **Recursion bug caught & fixed pre-release**: 00008's day↔item guest policies caused `42P17 infinite recursion`, breaking itinerary reads for all roles; 00009 reroutes cross-table checks through SECURITY DEFINER helpers | probe failure → hotfix → matrix re-run green | ✅ FIXED |
+
+Notes:
+- Non-allowlisted magic link: links are only ever generated for allowlisted emails (owner-gated function). If a non-allowlisted account signs in anyway, it has no `members` row → AuthGate rejects with the Hebrew error and RLS returns zero rows (deny-by-default; same proof as the Sprint 1/4 checks).
+- Guest photo bytes flow only through `guest-photos`: rows are selected under the CALLER's own JWT (RLS decides what exists), service role only signs URLs for those rows.
+- `guest-invite` never escalates an existing owner/kid member to guest (email collision check), and re-inviting clears `revoked_at` intentionally (documented owner action).

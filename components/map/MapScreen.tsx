@@ -19,6 +19,7 @@ import {
 import { loadGoogleMaps } from "@/lib/places";
 import { formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
 import type {
   ItineraryDay,
   ItineraryItem,
@@ -31,6 +32,8 @@ import { CarCard } from "./CarCard";
 type Mode = "view" | "addPin" | "draw";
 
 export function MapScreen() {
+  const { member } = useMember();
+  const isGuest = member?.role === "guest";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -311,8 +314,8 @@ export function MapScreen() {
         />
       )}
 
-      {/* mode controls */}
-      {mapReady && (
+      {/* mode controls (family only — guests get a read-only map) */}
+      {mapReady && !isGuest && (
         <div className="flex flex-wrap gap-2 text-sm font-semibold">
           {mode === "view" && (
             <>
@@ -370,7 +373,7 @@ export function MapScreen() {
       )}
 
       {/* where's the car */}
-      {trip && <CarCard trip={trip} onToast={showToast} />}
+      {trip && !isGuest && <CarCard trip={trip} onToast={showToast} />}
 
       {/* custom pins list */}
       {customPins.length > 0 && (

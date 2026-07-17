@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { isKidDevice } from "@/lib/data/kids";
+import { countUnread, subscribeMessages } from "@/lib/data/messages";
+import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 
 // Kid tablet variant: bigger touch targets, kid-relevant destinations only
 // (cosmetic — kids are locked out of owner data by RLS regardless).
+// Phrasebook stays reachable from the kid home tile.
 const kidTabs = [
   { href: "/", label: strings.nav.today, emoji: "🏠" },
   { href: "/journal", label: strings.kidNav.journal, emoji: "📖" },
   { href: "/photos", label: strings.kidNav.photos, emoji: "📷" },
+  { href: "/messages", label: strings.kidNav.messages, emoji: "💬" },
   { href: "/pocket", label: strings.kidNav.pocket, emoji: "🪙" },
-  { href: "/phrasebook", label: strings.kidNav.phrasebook, emoji: "💬" },
+];
+
+// Guest portal: only shared content + the family wall.
+const guestTabs = [
+  { href: "/", label: strings.nav.today, emoji: "🏠" },
+  { href: "/photos", label: strings.guestNav.photos, emoji: "📷" },
+  { href: "/journal", label: strings.guestNav.journal, emoji: "📖" },
+  { href: "/map", label: strings.guestNav.map, emoji: "🗺️" },
+  { href: "/messages", label: strings.guestNav.messages, emoji: "💬" },
 ];
 
 const tabs = [
@@ -77,18 +90,45 @@ const tabs = [
 export function BottomNav() {
   const pathname = usePathname();
   const { member } = useMember();
-  const isKid = member ? member.role === "kid" : isKidDevice();
+  const role = member?.role ?? (isKidDevice() ? "kid" : "owner");
+  const [unread, setUnread] = useState(0);
+
+  // unread wall badge for kid/guest tabs; clears when the wall marks reads
+  useEffect(() => {
+    if (!member || member.role === "owner") return;
+    let cancelled = false;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+
+    const refreshBadge = async () => {
+      const trip = await getActiveTrip();
+      if (!trip || cancelled) return;
+      const count = await countUnread(trip.id, member.id).catch(() => 0);
+      if (!cancelled) setUnread(count);
+    };
+
+    void refreshBadge();
+    const unsubscribe = subscribeMessages(() => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => void refreshBadge(), 500);
+    });
+    return () => {
+      cancelled = true;
+      if (debounce) clearTimeout(debounce);
+      unsubscribe();
+    };
+  }, [member, pathname]);
 
   if (pathname === "/kid-login" || pathname === "/login") return null;
 
-  if (isKid) {
+  if (role !== "owner") {
+    const roleTabs = role === "kid" ? kidTabs : guestTabs;
     return (
       <nav
         className="fixed bottom-0 inset-x-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
         aria-label={strings.appName}
       >
         <ul className="flex justify-around">
-          {kidTabs.map((tab) => {
+          {roleTabs.map((tab) => {
             const active =
               tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
             return (
@@ -99,8 +139,13 @@ export function BottomNav() {
                     active ? "text-teal-600 font-bold" : "text-slate-500"
                   }`}
                 >
-                  <span className="text-2xl" aria-hidden="true">
+                  <span className="relative text-2xl" aria-hidden="true">
                     {tab.emoji}
+                    {tab.href === "/messages" && unread > 0 && (
+                      <span className="absolute -left-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                        {unread > 9 ? "9+" : unread}
+                      </span>
+                    )}
                   </span>
                   {tab.label}
                 </Link>

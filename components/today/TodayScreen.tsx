@@ -67,6 +67,42 @@ export function TodayScreen() {
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
 
+  // ---------- guest portal home ----------
+  if (member?.role === "guest") {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 px-4 pt-8 pb-8">
+        <h1 className="text-2xl font-bold">{strings.guestHome.welcome}</h1>
+        <p className="text-sm text-slate-500">{strings.guestHome.subtitle}</p>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <Link href="/photos" className="rounded-2xl bg-white p-6 shadow-sm">
+            <span className="block text-4xl" aria-hidden="true">📷</span>
+            <span className="mt-2 block font-semibold text-slate-700">
+              {strings.guestHome.tilePhotos}
+            </span>
+          </Link>
+          <Link href="/journal" className="rounded-2xl bg-white p-6 shadow-sm">
+            <span className="block text-4xl" aria-hidden="true">📖</span>
+            <span className="mt-2 block font-semibold text-slate-700">
+              {strings.guestHome.tileJournal}
+            </span>
+          </Link>
+          <Link href="/map" className="rounded-2xl bg-white p-6 shadow-sm">
+            <span className="block text-4xl" aria-hidden="true">🗺️</span>
+            <span className="mt-2 block font-semibold text-slate-700">
+              {strings.guestHome.tileMap}
+            </span>
+          </Link>
+          <Link href="/messages" className="rounded-2xl bg-white p-6 shadow-sm">
+            <span className="block text-4xl" aria-hidden="true">💬</span>
+            <span className="mt-2 block font-semibold text-slate-700">
+              {strings.guestHome.tileWall}
+            </span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // ---------- kid home variant (SPEC 2.1) ----------
   if (member?.role === "kid") {
     return (

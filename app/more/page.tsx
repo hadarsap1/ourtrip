@@ -75,10 +75,32 @@ export default function MorePage() {
         </li>
         <li>
           <Link
+            href="/messages"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            💬 {strings.more.menuMessages}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/kids"
             className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
           >
             🧒 {strings.more.menuKids}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/guests"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            ✉️ {strings.more.menuGuests}
             <span className="text-slate-300" aria-hidden="true">
               ‹
             </span>
