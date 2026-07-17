@@ -9,6 +9,28 @@ export default function MorePage() {
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <li>
           <Link
+            href="/map"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            🗺️ {strings.more.menuMap}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/phrasebook"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            💬 {strings.more.menuPhrasebook}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/checklists"
             className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
           >
