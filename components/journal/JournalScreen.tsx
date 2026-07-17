@@ -111,6 +111,7 @@ export function JournalScreen() {
   }
 
   const isOwner = member?.role === "owner";
+  const showAuthor = member?.role !== "kid"; // owners + guests see who wrote
   const memberName = (id: string) =>
     members.find((m) => m.id === id)?.display_name ?? "";
 
@@ -118,7 +119,8 @@ export function JournalScreen() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.journal.title}</h1>
 
-      {/* composer with the daily prompt */}
+      {/* composer with the daily prompt (guests read only) */}
+      {member?.role !== "guest" && (
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <p className="mb-2 text-lg font-bold text-amber-900">
           ✏️ {strings.journal.prompt}
@@ -166,6 +168,7 @@ export function JournalScreen() {
           {strings.journal.publish}
         </button>
       </section>
+      )}
 
       {entries.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
@@ -181,7 +184,7 @@ export function JournalScreen() {
               <div className="flex items-baseline justify-between gap-2 text-xs text-slate-400">
                 <span>
                   {formatDate(entry.entry_date)}
-                  {isOwner && ` · ${memberName(entry.author_id)}`}
+                  {showAuthor && ` · ${memberName(entry.author_id)}`}
                   {entry.location_name && ` · 📍 ${entry.location_name}`}
                 </span>
                 {entry.mood && <span className="text-lg">{entry.mood}</span>}

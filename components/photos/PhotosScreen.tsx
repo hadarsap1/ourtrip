@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
+import { listGuestPhotos, type GuestPhoto } from "@/lib/data/guests";
 import {
   approvePhoto,
   deletePhoto,
@@ -12,11 +13,94 @@ import {
   uploadPhoto,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
+import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
 
 export function PhotosScreen() {
+  const { member } = useMember();
+  if (member?.role === "guest") return <GuestPhotosView />;
+  return <FamilyPhotosView />;
+}
+
+// Guest portal: approved+shared photos only, grouped by day (Sprint 7).
+// Rows and URLs both come from the guest-photos Edge Function.
+function GuestPhotosView() {
+  const [photos, setPhotos] = useState<GuestPhoto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listGuestPhotos()
+      .then((p) => {
+        if (!cancelled) setPhotos(p);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8">
+        <p className="text-center text-slate-500">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  const byDay = new Map<string, GuestPhoto[]>();
+  for (const photo of photos) {
+    const list = byDay.get(photo.taken_on) ?? [];
+    list.push(photo);
+    byDay.set(photo.taken_on, list);
+  }
+
+  return (
+    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
+      <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
+      {photos.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          {strings.photos.empty}
+        </p>
+      ) : (
+        [...byDay.entries()].map(([day, dayPhotos]) => (
+          <section key={day}>
+            <h2 className="mb-2 text-sm font-semibold text-slate-500">
+              {formatDate(day)}
+            </h2>
+            <ul className="grid grid-cols-2 gap-2">
+              {dayPhotos.map((photo) => (
+                <li
+                  key={photo.id}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                  {photo.url && (
+                    // eslint-disable-next-line @next/next/no-img-element -- signed URL
+                    <img
+                      src={photo.url}
+                      alt={photo.caption ?? ""}
+                      className="aspect-square w-full object-cover"
+                    />
+                  )}
+                  {photo.caption && (
+                    <p className="p-2 text-xs text-slate-600">{photo.caption}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      )}
+    </div>
+  );
+}
+
+function FamilyPhotosView() {
   const { member } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [photos, setPhotos] = useState<PhotoWithUrl[]>([]);
