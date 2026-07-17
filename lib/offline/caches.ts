@@ -5,11 +5,61 @@
 import {
   getOfflineDB,
   type EmergencySnapshot,
+  type MapSnapshot,
   type OfflineDocument,
+  type PhrasebookSnapshot,
   type TodaySnapshot,
 } from "./db";
 
 const TODAY_KEY = "today";
+
+// ---------- phrasebook (per generated language) ----------
+
+export async function savePhrasebookSnapshot(
+  snapshot: Omit<PhrasebookSnapshot, "savedAt">
+): Promise<void> {
+  const dbp = getOfflineDB();
+  if (!dbp) return;
+  const db = await dbp;
+  await db.put("phrasebook", { ...snapshot, savedAt: new Date().toISOString() });
+}
+
+export async function readPhrasebookSnapshot(
+  language: string
+): Promise<PhrasebookSnapshot | null> {
+  const dbp = getOfflineDB();
+  if (!dbp) return null;
+  const db = await dbp;
+  return (await db.get("phrasebook", language)) ?? null;
+}
+
+export async function listPhrasebookLanguages(): Promise<string[]> {
+  const dbp = getOfflineDB();
+  if (!dbp) return [];
+  const db = await dbp;
+  return (await db.getAllKeys("phrasebook")) as string[];
+}
+
+// ---------- today's static map snapshot ----------
+
+export async function saveMapSnapshot(blob: Blob, date: string): Promise<void> {
+  const dbp = getOfflineDB();
+  if (!dbp) return;
+  const db = await dbp;
+  await db.put("map_snapshot", {
+    key: TODAY_KEY,
+    blob,
+    date,
+    savedAt: new Date().toISOString(),
+  });
+}
+
+export async function readMapSnapshot(): Promise<MapSnapshot | null> {
+  const dbp = getOfflineDB();
+  if (!dbp) return null;
+  const db = await dbp;
+  return (await db.get("map_snapshot", TODAY_KEY)) ?? null;
+}
 
 // ---------- today's itinerary ----------
 

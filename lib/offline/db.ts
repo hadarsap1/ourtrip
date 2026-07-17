@@ -41,31 +41,53 @@ export type PendingWrite = {
   createdAt: string;
 };
 
+export type PhrasebookSnapshot = {
+  language: string;
+  entries: {
+    id: string;
+    category: string;
+    phrase_he: string;
+    phrase_local: string;
+    phonetic_he: string | null;
+  }[];
+  savedAt: string;
+};
+
+export type MapSnapshot = {
+  key: string; // constant "today"
+  blob: Blob;
+  date: string;
+  savedAt: string;
+};
+
 interface OurTripDB extends DBSchema {
   documents_offline: { key: string; value: OfflineDocument };
   today_itinerary: { key: string; value: TodaySnapshot };
   emergency_pages: { key: string; value: EmergencySnapshot };
-  phrasebook: {
-    key: string;
-    value: { language: string; entries: unknown[]; savedAt: string };
-  };
+  phrasebook: { key: string; value: PhrasebookSnapshot };
   pending_writes: { key: number; value: PendingWrite };
+  map_snapshot: { key: string; value: MapSnapshot };
 }
 
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 1, {
-    upgrade(db) {
-      db.createObjectStore("documents_offline", { keyPath: "id" });
-      db.createObjectStore("today_itinerary");
-      db.createObjectStore("emergency_pages", { keyPath: "countryCode" });
-      db.createObjectStore("phrasebook", { keyPath: "language" });
-      db.createObjectStore("pending_writes", {
-        keyPath: "id",
-        autoIncrement: true,
-      });
+  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 2, {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        db.createObjectStore("documents_offline", { keyPath: "id" });
+        db.createObjectStore("today_itinerary");
+        db.createObjectStore("emergency_pages", { keyPath: "countryCode" });
+        db.createObjectStore("phrasebook", { keyPath: "language" });
+        db.createObjectStore("pending_writes", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore("map_snapshot", { keyPath: "key" });
+      }
     },
   });
   return dbPromise;

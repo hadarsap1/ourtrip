@@ -9,6 +9,9 @@ export type BudgetCategory = Tables<"budget_categories">;
 export type Expense = Tables<"expenses">;
 export type Document = Tables<"documents">;
 export type EmergencyInfo = Tables<"emergency_info">;
+export type MapPin = Tables<"map_pins">;
+export type SavedRoute = Tables<"routes">;
+export type PhrasebookEntry = Tables<"phrasebook_entries">;
 export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
 

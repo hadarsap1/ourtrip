@@ -15,6 +15,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { WeatherLine } from "@/components/WeatherLine";
 import { formatDate, formatTime, formatWeekday } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import type { Booking, ItemStatus, ItineraryDay, ItineraryItem } from "@/lib/types";
@@ -80,6 +81,18 @@ export function DayCard({
           {day.location_name && (
             <span className="mr-2 text-sm text-teal-700">
               {day.location_name}
+            </span>
+          )}
+          {day.lat != null && day.lng != null && (
+            <span className="mr-2">
+              <WeatherLine
+                date={day.date}
+                lat={day.lat}
+                lng={day.lng}
+                hasOutdoor={items.some(
+                  (i) => i.is_outdoor && i.status !== "cancelled"
+                )}
+              />
             </span>
           )}
         </span>

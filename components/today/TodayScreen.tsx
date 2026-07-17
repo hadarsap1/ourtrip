@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getTodayMapSnapshotUrl } from "@/lib/data/map";
 import { loadToday, type TodayData } from "@/lib/data/today";
+import {
+  describeWeather,
+  getDayWeather,
+  type DayWeather,
+} from "@/lib/data/weather";
 import { formatDate, formatMoney, formatTime, formatWeekday } from "@/lib/format";
 import { strings } from "@/lib/strings";
 
@@ -21,6 +27,8 @@ export function TodayScreen() {
     fromCache: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [weather, setWeather] = useState<DayWeather | null>(null);
+  const [mapUrl, setMapUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,6 +36,19 @@ export function TodayScreen() {
       if (cancelled) return;
       setResult(r);
       setLoading(false);
+      if (!r) return;
+      // weather for today's location (Open-Meteo, cached)
+      const day = r.data.day;
+      if (day?.lat != null && day.lng != null) {
+        void getDayWeather(r.data.date, day.lat, day.lng).then((w) => {
+          if (!cancelled) setWeather(w);
+        });
+      }
+      // mini-map: static snapshot of today's item area, cached offline
+      void getTodayMapSnapshotUrl(r.data.items).then((url) => {
+        if (!cancelled) setMapUrl(url);
+        else if (url) URL.revokeObjectURL(url);
+      });
     });
     return () => {
       cancelled = true;
@@ -84,6 +105,51 @@ export function TodayScreen() {
         </section>
       ) : (
         <>
+          {/* rain alert: >50% chance + outdoor items today (Sprint 5) */}
+          {weather &&
+            weather.precipitationChance > 50 &&
+            activeItems.some((i) => i.is_outdoor) && (
+              <p className="rounded-xl bg-amber-100 px-3 py-2.5 text-center text-sm font-semibold text-amber-800">
+                ⚠️ {strings.weather.rainAlert} ({weather.precipitationChance}%)
+              </p>
+            )}
+
+          {/* weather for today's location */}
+          {weather && (
+            <section className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <span className="flex items-center gap-2">
+                <span className="text-2xl" aria-hidden="true">
+                  {describeWeather(weather.weatherCode).icon}
+                </span>
+                <span className="text-sm font-medium text-slate-700">
+                  {describeWeather(weather.weatherCode).label}
+                </span>
+              </span>
+              <span className="text-end">
+                <span className="block text-lg font-bold text-slate-800" dir="ltr">
+                  {weather.tempMin}–{weather.tempMax}°
+                </span>
+                {weather.precipitationChance > 0 && (
+                  <span className="text-xs text-slate-400" dir="ltr">
+                    💧{weather.precipitationChance}% {""}
+                  </span>
+                )}
+              </span>
+            </section>
+          )}
+
+          {/* mini-map of today's area (static snapshot, cached offline) */}
+          {mapUrl && (
+            <Link href="/map" className="block overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element -- blob/object URL snapshot */}
+              <img
+                src={mapUrl}
+                alt={strings.more.menuMap}
+                className="h-40 w-full object-cover"
+              />
+            </Link>
+          )}
+
           {/* today's items, time order */}
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             {activeItems.length === 0 ? (
