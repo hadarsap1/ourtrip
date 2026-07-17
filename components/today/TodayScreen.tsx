@@ -11,6 +11,7 @@ import {
 } from "@/lib/data/weather";
 import { formatDate, formatMoney, formatTime, formatWeekday } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
 
 const BOOKING_ICON: Record<string, string> = {
   flight: "✈️",
@@ -62,8 +63,101 @@ export function TodayScreen() {
     year: "numeric",
   }).format(new Date());
 
+  const { member } = useMember();
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
+
+  // ---------- kid home variant (SPEC 2.1) ----------
+  if (member?.role === "kid") {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8">
+        <header className="flex items-start justify-between">
+          <h1 className="text-3xl font-bold">
+            {strings.kidHome.hello} {member.display_name}! 👋
+          </h1>
+          <Link
+            href="/emergency"
+            aria-label={strings.emergency.title}
+            className="rounded-2xl bg-rose-600 px-3 py-2 text-sm font-bold text-white shadow"
+          >
+            🆘 {strings.emergency.sos}
+          </Link>
+        </header>
+
+        <section className="rounded-2xl bg-teal-600 p-4 text-white shadow">
+          <p className="text-sm font-medium opacity-80">
+            {strings.kidHome.whereToday}
+          </p>
+          <p className="mt-1 text-2xl font-bold">
+            📍 {data?.day?.location_name ?? strings.kidHome.noLocation}
+          </p>
+          {weather && (
+            <p className="mt-1 text-lg" dir="ltr">
+              {describeWeather(weather.weatherCode).icon} {weather.tempMin}–
+              {weather.tempMax}°
+            </p>
+          )}
+        </section>
+
+        {activeItems.length > 0 && (
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <ul className="divide-y divide-slate-100">
+              {activeItems.map((item) => (
+                <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
+                  <span className="w-14 shrink-0 text-sm font-bold tabular-nums text-teal-700" dir="ltr">
+                    {item.start_time ? formatTime(item.start_time) : "—"}
+                  </span>
+                  <span
+                    className={`text-lg font-medium ${
+                      item.status === "done"
+                        ? "text-slate-400 line-through"
+                        : "text-slate-800"
+                    }`}
+                  >
+                    {item.title}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* daily journal prompt */}
+        <Link
+          href="/journal"
+          className="block rounded-2xl bg-amber-100 p-4 shadow-sm"
+        >
+          <p className="text-lg font-bold text-amber-900">
+            ✏️ {strings.kidHome.journalPrompt}
+          </p>
+          <p className="mt-0.5 text-sm font-semibold text-amber-700">
+            {strings.kidHome.journalCta} ←
+          </p>
+        </Link>
+
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <Link href="/photos" className="rounded-2xl bg-white p-4 shadow-sm">
+            <span className="block text-3xl" aria-hidden="true">📷</span>
+            <span className="mt-1 block text-sm font-semibold text-slate-700">
+              {strings.kidHome.tilePhotos}
+            </span>
+          </Link>
+          <Link href="/pocket" className="rounded-2xl bg-white p-4 shadow-sm">
+            <span className="block text-3xl" aria-hidden="true">🪙</span>
+            <span className="mt-1 block text-sm font-semibold text-slate-700">
+              {strings.kidHome.tilePocket}
+            </span>
+          </Link>
+          <Link href="/phrasebook" className="rounded-2xl bg-white p-4 shadow-sm">
+            <span className="block text-3xl" aria-hidden="true">💬</span>
+            <span className="mt-1 block text-sm font-semibold text-slate-700">
+              {strings.kidHome.tilePhrasebook}
+            </span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8">
