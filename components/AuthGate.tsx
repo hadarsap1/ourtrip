@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { needsKidUnlock } from "@/lib/data/kids";
 import { getSupabase } from "@/lib/supabase";
 import { strings } from "@/lib/strings";
 
@@ -13,9 +14,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Bypass cases need no async check: the login page itself, and local dev
-  // before the Supabase env is wired up (shell should still render).
-  const bypass = pathname === "/login" || !getSupabase();
+  // Bypass cases need no async check: the login pages themselves, and local
+  // dev before the Supabase env is wired up (shell should still render).
+  const bypass =
+    pathname === "/login" || pathname === "/kid-login" || !getSupabase();
 
   useEffect(() => {
     if (bypass) return;
@@ -25,6 +27,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     (async () => {
+      // Kid device on a cold start: PIN gate first (server-verified,
+      // rate-limited in kid-auth), regardless of any stored session.
+      if (needsKidUnlock()) {
+        router.replace("/kid-login");
+        return;
+      }
+
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
 

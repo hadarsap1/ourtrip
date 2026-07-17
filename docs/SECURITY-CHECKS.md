@@ -92,3 +92,22 @@ Notes:
 - The function's write path runs with the service role only AFTER the caller's own JWT resolves to `role='owner'` via `current_member_role()` — the same RLS helper the policies use. Kids (Sprint 6) will read phrasebook entries but cannot trigger generation.
 - `fx-daily` remains the only `verify_jwt=false` function (accepted risk, logged in Sprint 3).
 - Weather (Open-Meteo) and Static Maps snapshots contain no personal data; FX/weather caches are device-local.
+
+## 2026-07-17 — Sprint 6: kid role live
+
+Environment: migration `sprint6_kids` applied (repo file `00007_...`), Edge Function `kid-auth` v1 deployed. All checks ran with a probe kid member through the production auth path (`authenticated` + resolved member), probes deleted afterwards.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid role-access matrix: 0 rows in `budget_categories`, `expenses`, `documents`, `bookings`, and `documents`/`booking-files` storage objects; trip row visible (positive control) | SQL role emulation, kid claims | ✅ PASS |
+| Kid INSERT of a photo with client-sent `status='approved'`, `shared_with_guests=true` landed as `pending`/`false`/`approved_by=null` | live insert through kid RLS + `photos_enforce_kid_rules` trigger | ✅ PASS |
+| Kid UPDATE trying to flip `status`/`shared_with_guests` on own photo: caption updated, both flags frozen | live update through `photos_guard_update` trigger | ✅ PASS |
+| Device registration: one-time code redeemed once (row marked used), previous devices auto-revoked | `kid-auth` register probe → 200 with device token | ✅ PASS |
+| PIN rate limiting: wrong PINs count down 4→1, 5th wrong PIN → HTTP 423 with `locked_until` (+15 min); **correct** PIN while locked → still 423 | 6 sequential `kid-auth` unlock probes | ✅ PASS |
+| PIN unlock happy path (session minting) | blocked on project auth config: `signInWithPassword` → "Email logins are disabled" | ⚠️ PENDING — enable the Email provider (Authentication → Sign In/Up); signups can stay off (admin API creates kid users). Re-test = bind the real tablet. |
+
+Notes:
+- `kid-auth` is deployed `verify_jwt=false` **by design**: register/unlock happen before any JWT exists. Actual auth = one-time registration code (15 min TTL, sha256-stored) + 256-bit device token (sha256-stored; doubles as the kid auth-user password, rotated on every rebind) + PIN (PBKDF2-100k, server-side rate limit). `create-registration` additionally requires an owner JWT in-function.
+- Kid auth users (`kid-<member_id>@kids.ourtrip.app`) are created by the service role with confirmed emails; no email is ever sent. A stranger who somehow signed in with email/password would have no `members` row → zero rows everywhere (deny-by-default) and an AuthGate rejection.
+- Journal: `journal_before_write` trigger keeps kid writes from ever setting `shared_with_guests` (same rule as photos).
+- `photos` bucket: family (owner+kid) select/insert; update/delete owner-only. Guests never read the bucket directly — Sprint 7 serves approved+shared photos via signed URLs only.

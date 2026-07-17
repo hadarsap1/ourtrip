@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { strings } from "@/lib/strings";
@@ -31,6 +32,12 @@ export default function LoginPage() {
         {strings.auth.signIn}
       </button>
       {error && <p className="mt-6 text-sm text-red-600">{error}</p>}
+      <Link
+        href="/kid-login"
+        className="mt-10 text-sm text-slate-400 underline"
+      >
+        {strings.kidLogin.title}
+      </Link>
     </div>
   );
 }

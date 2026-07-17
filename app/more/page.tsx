@@ -31,10 +31,54 @@ export default function MorePage() {
         </li>
         <li>
           <Link
+            href="/journal"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            📖 {strings.more.menuJournal}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/photos"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            📷 {strings.more.menuPhotos}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/pocket"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            🪙 {strings.more.menuPocket}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/checklists"
             className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
           >
             {strings.more.menuChecklists}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/kids"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            🧒 {strings.more.menuKids}
             <span className="text-slate-300" aria-hidden="true">
               ‹
             </span>

@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isKidDevice } from "@/lib/data/kids";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
+
+// Kid tablet variant: bigger touch targets, kid-relevant destinations only
+// (cosmetic — kids are locked out of owner data by RLS regardless).
+const kidTabs = [
+  { href: "/", label: strings.nav.today, emoji: "🏠" },
+  { href: "/journal", label: strings.kidNav.journal, emoji: "📖" },
+  { href: "/photos", label: strings.kidNav.photos, emoji: "📷" },
+  { href: "/pocket", label: strings.kidNav.pocket, emoji: "🪙" },
+  { href: "/phrasebook", label: strings.kidNav.phrasebook, emoji: "💬" },
+];
 
 const tabs = [
   {
@@ -64,6 +76,41 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { member } = useMember();
+  const isKid = member ? member.role === "kid" : isKidDevice();
+
+  if (pathname === "/kid-login" || pathname === "/login") return null;
+
+  if (isKid) {
+    return (
+      <nav
+        className="fixed bottom-0 inset-x-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+        aria-label={strings.appName}
+      >
+        <ul className="flex justify-around">
+          {kidTabs.map((tab) => {
+            const active =
+              tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+            return (
+              <li key={tab.href} className="flex-1">
+                <Link
+                  href={tab.href}
+                  className={`flex flex-col items-center gap-0.5 py-2 text-xs ${
+                    active ? "text-teal-600 font-bold" : "text-slate-500"
+                  }`}
+                >
+                  <span className="text-2xl" aria-hidden="true">
+                    {tab.emoji}
+                  </span>
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    );
+  }
 
   return (
     <nav

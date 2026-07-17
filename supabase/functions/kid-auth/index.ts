@@ -1,0 +1,305 @@
+// Kid device auth (SPEC 2.9, ROADMAP Sprint 6). Three actions:
+//
+//   create-registration  (owner JWT required — checked in-function)
+//     owner picks a kid member + PIN → one-time 6-char code, 15 min expiry
+//   register             (unauthenticated by design: the tablet has no JWT yet)
+//     code → binds the device: (re)sets the kid's auth-user password to a
+//     fresh 256-bit device token, revokes previous devices, returns the token
+//   unlock               (unauthenticated by design: PIN gate happens here)
+//     device_token + PIN → server-side PIN check with lockout (5 wrong PINs
+//     → 15 min lock, persisted in kid_devices) → real Supabase session via
+//     signInWithPassword, so refresh/realtime/storage all work normally
+//
+// Deployed with verify_jwt=false because register/unlock are pre-auth by
+// nature; security comes from the one-time code, the 256-bit device token,
+// and the rate-limited PIN (documented in docs/SECURITY-CHECKS.md).
+
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L
+const CODE_TTL_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
+const PBKDF2_ITERATIONS = 100_000;
+
+const encoder = new TextEncoder();
+
+function toHex(bytes: Uint8Array): string {
+  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function fromHex(hex: string): Uint8Array {
+  return new Uint8Array(hex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return toHex(new Uint8Array(digest));
+}
+
+async function derivePin(pin: string, salt: Uint8Array): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(pin),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    key,
+    256
+  );
+  return toHex(new Uint8Array(bits));
+}
+
+async function hashPin(pin: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return `${toHex(salt)}:${await derivePin(pin, salt)}`;
+}
+
+async function verifyPin(pin: string, stored: string): Promise<boolean> {
+  const [saltHex, expected] = stored.split(":");
+  if (!saltHex || !expected) return false;
+  const actual = await derivePin(pin, fromHex(saltHex));
+  // constant-time compare
+  if (actual.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < actual.length; i++) {
+    diff |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+function randomCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
+}
+
+function kidEmail(memberId: string): string {
+  return `kid-${memberId}@kids.ourtrip.app`;
+}
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+Deno.serve(async (req) => {
+  let body: Record<string, string>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ ok: false, error: "bad request" }, 400);
+  }
+
+  const service = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  // ---------- create-registration (owner only) ----------
+  if (body.action === "create-registration") {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const caller = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const [{ data: role }, { data: callerId }] = await Promise.all([
+      caller.rpc("current_member_role"),
+      caller.rpc("current_member_id"),
+    ]);
+    if (role !== "owner" || !callerId) {
+      return json({ ok: false, error: "forbidden" }, 403);
+    }
+
+    const pin = body.pin ?? "";
+    if (!/^\d{4,6}$/.test(pin)) {
+      return json({ ok: false, error: "bad pin" }, 400);
+    }
+
+    // the kid must belong to the same trip as the calling owner
+    const { data: kid } = await service
+      .from("members")
+      .select("id, trip_id, role, display_name")
+      .eq("id", body.member_id ?? "")
+      .maybeSingle();
+    const { data: owner } = await service
+      .from("members")
+      .select("trip_id")
+      .eq("id", callerId)
+      .maybeSingle();
+    if (!kid || kid.role !== "kid" || !owner || kid.trip_id !== owner.trip_id) {
+      return json({ ok: false, error: "bad member" }, 400);
+    }
+
+    const code = randomCode();
+    const { error } = await service.from("kid_device_registrations").insert({
+      member_id: kid.id,
+      code_hash: await sha256Hex(code),
+      pin_hash: await hashPin(pin),
+      created_by: callerId,
+      expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
+    });
+    if (error) return json({ ok: false, error: error.message }, 500);
+
+    return json({ ok: true, code, expires_in_minutes: CODE_TTL_MS / 60000 });
+  }
+
+  // ---------- register (tablet redeems a code) ----------
+  if (body.action === "register") {
+    const code = (body.code ?? "").trim().toUpperCase();
+    if (code.length < 6) return json({ ok: false, error: "bad code" }, 400);
+
+    const { data: registration } = await service
+      .from("kid_device_registrations")
+      .select("*")
+      .eq("code_hash", await sha256Hex(code))
+      .is("used_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (!registration) return json({ ok: false, error: "invalid code" }, 401);
+
+    const { data: member } = await service
+      .from("members")
+      .select("id, display_name, auth_user_id")
+      .eq("id", registration.member_id)
+      .single();
+    if (!member) return json({ ok: false, error: "member missing" }, 500);
+
+    const deviceToken = toHex(crypto.getRandomValues(new Uint8Array(32)));
+    const email = kidEmail(member.id);
+
+    // bind: the kid's auth-user password IS the device token. Rebinding a
+    // new device rotates the password, which invalidates the old device.
+    if (member.auth_user_id) {
+      const { error } = await service.auth.admin.updateUserById(
+        member.auth_user_id,
+        { password: deviceToken }
+      );
+      if (error) return json({ ok: false, error: error.message }, 500);
+    } else {
+      const { data: created, error } = await service.auth.admin.createUser({
+        email,
+        password: deviceToken,
+        email_confirm: true,
+      });
+      if (error || !created.user) {
+        return json({ ok: false, error: error?.message ?? "createUser failed" }, 500);
+      }
+      const { error: linkError } = await service
+        .from("members")
+        .update({ auth_user_id: created.user.id })
+        .eq("id", member.id);
+      if (linkError) return json({ ok: false, error: linkError.message }, 500);
+    }
+
+    // one active device per kid: revoke previous bindings
+    await service
+      .from("kid_devices")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("member_id", member.id)
+      .is("revoked_at", null);
+
+    const { error: deviceError } = await service.from("kid_devices").insert({
+      member_id: member.id,
+      device_token_hash: await sha256Hex(deviceToken),
+      pin_hash: registration.pin_hash,
+      approved_by: registration.created_by,
+    });
+    if (deviceError) return json({ ok: false, error: deviceError.message }, 500);
+
+    await service
+      .from("kid_device_registrations")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", registration.id);
+
+    return json({
+      ok: true,
+      device_token: deviceToken,
+      member: { id: member.id, display_name: member.display_name },
+    });
+  }
+
+  // ---------- unlock (PIN → session) ----------
+  if (body.action === "unlock") {
+    const deviceToken = body.device_token ?? "";
+    const pin = body.pin ?? "";
+    if (!deviceToken || !pin) return json({ ok: false, error: "bad request" }, 400);
+
+    const { data: device } = await service
+      .from("kid_devices")
+      .select("*")
+      .eq("device_token_hash", await sha256Hex(deviceToken))
+      .is("revoked_at", null)
+      .maybeSingle();
+    if (!device) return json({ ok: false, error: "unknown device" }, 401);
+
+    if (device.locked_until && new Date(device.locked_until) > new Date()) {
+      return json(
+        { ok: false, error: "locked", locked_until: device.locked_until },
+        423
+      );
+    }
+
+    const pinOk = await verifyPin(pin, device.pin_hash);
+    if (!pinOk) {
+      const attempts = device.failed_attempts + 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        const lockedUntil = new Date(
+          Date.now() + LOCK_MINUTES * 60 * 1000
+        ).toISOString();
+        await service
+          .from("kid_devices")
+          .update({ failed_attempts: 0, locked_until: lockedUntil })
+          .eq("id", device.id);
+        return json({ ok: false, error: "locked", locked_until: lockedUntil }, 423);
+      }
+      await service
+        .from("kid_devices")
+        .update({ failed_attempts: attempts })
+        .eq("id", device.id);
+      return json(
+        { ok: false, error: "wrong pin", attempts_left: MAX_ATTEMPTS - attempts },
+        401
+      );
+    }
+
+    await service
+      .from("kid_devices")
+      .update({ failed_attempts: 0, locked_until: null })
+      .eq("id", device.id);
+
+    const { data: member } = await service
+      .from("members")
+      .select("id, display_name")
+      .eq("id", device.member_id)
+      .single();
+    if (!member) return json({ ok: false, error: "member missing" }, 500);
+
+    const anon = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { auth: { persistSession: false } }
+    );
+    const { data: signIn, error: signInError } = await anon.auth.signInWithPassword({
+      email: kidEmail(member.id),
+      password: deviceToken,
+    });
+    if (signInError || !signIn.session) {
+      return json({ ok: false, error: signInError?.message ?? "sign-in failed" }, 500);
+    }
+
+    return json({
+      ok: true,
+      access_token: signIn.session.access_token,
+      refresh_token: signIn.session.refresh_token,
+      member: { id: member.id, display_name: member.display_name },
+    });
+  }
+
+  return json({ ok: false, error: "unknown action" }, 400);
+});
