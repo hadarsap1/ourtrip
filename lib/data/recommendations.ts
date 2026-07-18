@@ -28,6 +28,7 @@ export type RecommendParams = {
   lng?: number | null;
   area_name?: string | null;
   country_code?: string | null;
+  categories?: string[] | null;
 };
 
 /** Invokes the owner-gated Edge Function (Anthropic + Places). Usually a few
@@ -41,6 +42,7 @@ export async function fetchRecommendations(
       lng: params.lng ?? null,
       area_name: params.area_name ?? null,
       country_code: params.country_code ?? null,
+      categories: params.categories ?? null,
     },
   });
   const timeout = new Promise<never>((_, reject) =>

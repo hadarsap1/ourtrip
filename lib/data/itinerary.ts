@@ -25,6 +25,16 @@ export async function createDay(
 ): Promise<void> {
   const { error } = await requireClient().from("itinerary_days").insert(day);
   if (error) throw new Error(error.code === "23505" ? "duplicate_date" : error.message);
+  autofillEmergencyFor(day.trip_id, day.country_code ?? null);
+}
+
+/** Adding a country to the route auto-generates its emergency page (SPEC 2.12).
+ *  Fire-and-forget so it never blocks or fails the itinerary edit. */
+function autofillEmergencyFor(tripId: string, countryCode: string | null): void {
+  if (!countryCode) return;
+  void import("@/lib/data/emergency")
+    .then((m) => m.ensureEmergencyForCountry(tripId, countryCode))
+    .catch(() => {});
 }
 
 export async function updateDay(
@@ -36,6 +46,14 @@ export async function updateDay(
     .update(patch)
     .eq("id", id);
   if (error) throw new Error(error.code === "23505" ? "duplicate_date" : error.message);
+  if (patch.country_code) {
+    const code = patch.country_code;
+    void import("@/lib/data/trip").then((m) =>
+      m.getActiveTrip().then((t) => {
+        if (t) autofillEmergencyFor(t.id, code);
+      })
+    );
+  }
 }
 
 /** Deletes a day together with its items (FK restricts otherwise). */

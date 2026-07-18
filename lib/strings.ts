@@ -100,6 +100,10 @@ export const strings = {
     addCountry: "מדינה חדשה",
     countryCode: "קוד מדינה (2 אותיות, למשל JP)",
     saved: "דף החירום נשמר",
+    autofill: "מילוי אוטומטי",
+    autofilling: "ממלא מספרי חירום ושגרירות…",
+    autofilled: "מספרי החירום והשגרירות מולאו — בדקו והוסיפו ביטוח ומלון",
+    autofillHint: "מספרי החירום ושגרירות ישראל מתמלאים אוטומטית כשמוסיפים מדינה למסלול",
   },
 
   placeholders: {
@@ -225,6 +229,9 @@ export const strings = {
   recommend: {
     title: "מה בסביבה",
     subtitle: "המלצות ידידותיות לילדים בסביבה — מסעדות, אטרקציות וטיפים",
+    filterTitle: "מה מחפשים?",
+    filterAll: "הכל",
+    filterLabels: ["מסעדות", "אטרקציות", "פארקים", "מוזיאונים", "חנויות", "טיפים"] as string[],
     useLocation: "מהמיקום הנוכחי",
     useDay: "לפי יום במסלול",
     pickDay: "בחירת יום",

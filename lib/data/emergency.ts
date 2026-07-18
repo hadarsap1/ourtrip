@@ -86,6 +86,36 @@ export async function upsertEmergencyPage(
   if (error) throw new Error(error.message);
 }
 
+/** Auto-fills the country-knowable fields (emergency numbers + Israeli embassy)
+ *  via the owner-gated Edge Function; leaves the owner's manual fields intact. */
+export async function autofillEmergency(countryCode: string): Promise<void> {
+  const { data, error } = await requireClient().functions.invoke(
+    "emergency-autofill",
+    { body: { country_code: countryCode } }
+  );
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error ?? "autofill failed");
+}
+
+/** Fire-and-forget: when a country enters the route, generate its emergency
+ *  page if one doesn't exist yet. Owner-only server-side; safe to over-call. */
+export async function ensureEmergencyForCountry(
+  tripId: string,
+  countryCode: string
+): Promise<void> {
+  if (!tripId || !/^[A-Za-z]{2}$/.test(countryCode)) return;
+  const supabase = getSupabase();
+  if (!supabase) return;
+  const { data } = await supabase
+    .from("emergency_info")
+    .select("country_code")
+    .eq("trip_id", tripId)
+    .eq("country_code", countryCode.toUpperCase())
+    .maybeSingle();
+  if (data) return; // already has a page — don't auto-run
+  await autofillEmergency(countryCode.toUpperCase()).catch(() => {});
+}
+
 /** Country of today's itinerary day — the default emergency page. */
 export async function getTodayCountryCode(tripId: string): Promise<string | null> {
   try {

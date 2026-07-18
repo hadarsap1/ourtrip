@@ -36,33 +36,34 @@ type Candidate = {
   place_id: string | null;
 };
 
-// Tool input schema Claude must fill. Standard JSON Schema (tool input),
-// so nullable union types are fine.
-const INPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    recommendations: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          candidate_index: { type: ["integer", "null"] },
-          title: { type: "string" },
-          category: {
-            type: "string",
-            enum: ["מסעדה", "אטרקציה", "פארק", "מוזיאון", "חנות", "טיפ"],
+const ALL_CATEGORIES = ["מסעדה", "אטרקציה", "פארק", "מוזיאון", "חנות", "טיפ"];
+
+// Tool input schema Claude must fill. The category enum is narrowed to the
+// requested filter so results only ever contain the selected types.
+function buildSchema(categories: string[]) {
+  return {
+    type: "object",
+    properties: {
+      recommendations: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            candidate_index: { type: ["integer", "null"] },
+            title: { type: "string" },
+            category: { type: "string", enum: categories },
+            description: { type: "string" },
+            location_name: { type: "string" },
+            lat: { type: ["number", "null"] },
+            lng: { type: ["number", "null"] },
           },
-          description: { type: "string" },
-          location_name: { type: "string" },
-          lat: { type: ["number", "null"] },
-          lng: { type: ["number", "null"] },
+          required: ["title", "category", "description", "location_name"],
         },
-        required: ["title", "category", "description", "location_name"],
       },
     },
-  },
-  required: ["recommendations"],
-} as const;
+    required: ["recommendations"],
+  };
+}
 
 /** Google Places Nearby Search for kid-relevant candidates around a point. */
 async function fetchPlaces(
@@ -118,6 +119,7 @@ Deno.serve(async (req) => {
     lng?: number;
     area_name?: string;
     country_code?: string;
+    categories?: string[];
   };
   try {
     body = await req.json();
@@ -131,6 +133,14 @@ Deno.serve(async (req) => {
   if (lat === null && !areaName) {
     return json({ ok: false, error: "location required" }, 400);
   }
+
+  // category filter: only these types are returned; empty → all
+  const requested = Array.isArray(body.categories)
+    ? body.categories.filter(
+        (c): c is string => typeof c === "string" && ALL_CATEGORIES.includes(c)
+      )
+    : [];
+  const allowedCats = requested.length > 0 ? requested : ALL_CATEGORIES;
 
   // owner gate (caller's own JWT + RLS helper)
   const caller = createClient(
@@ -184,7 +194,7 @@ Deno.serve(async (req) => {
         {
           name: "emit_recommendations",
           description: "Return the curated kid-friendly recommendations.",
-          input_schema: INPUT_SCHEMA,
+          input_schema: buildSchema(allowedCats),
         },
       ],
       tool_choice: { type: "tool", name: "emit_recommendations" },
@@ -193,9 +203,14 @@ Deno.serve(async (req) => {
           role: "user",
           content:
             `A Hebrew-speaking family (two parents + two early-elementary kids) is ` +
-            `near: ${whereText}. Recommend kid-friendly things nearby: restaurants ` +
-            `(kids menu / relaxed), attractions, parks, museums, plus a couple of ` +
-            `practical local tips.\n\n${candidateBlock}\n\n` +
+            `near: ${whereText}. Recommend kid-friendly things nearby.\n\n` +
+            (requested.length > 0
+              ? `IMPORTANT: only recommend places in these categories: ` +
+                `${allowedCats.join(", ")}. Every item's category MUST be one of ` +
+                `these. Produce 6-8 items, all within these categories.\n\n`
+              : `Cover restaurants (kids menu / relaxed), attractions, parks, ` +
+                `museums, plus a couple of practical local tips.\n\n`) +
+            `${candidateBlock}\n\n` +
             `Write ALL of title, category, description and location_name in Hebrew. ` +
             `In description (1-2 sentences) say what it is and why it suits young ` +
             `kids. Keep it warm and concrete. Call emit_recommendations with the list.`,
