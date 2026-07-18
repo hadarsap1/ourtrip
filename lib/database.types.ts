@@ -569,6 +569,54 @@ export type Database = {
           },
         ]
       }
+      kid_device_registrations: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          member_id: string
+          pin_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          member_id: string
+          pin_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          member_id?: string
+          pin_hash?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kid_device_registrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kid_device_registrations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kid_devices: {
         Row: {
           approved_by: string
@@ -986,6 +1034,41 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          member_id: string
+          p256dh: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          member_id: string
+          p256dh: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          member_id?: string
+          p256dh?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routes: {
         Row: {
           color: string | null
@@ -1044,6 +1127,72 @@ export type Database = {
           },
         ]
       }
+      saved_recommendations: {
+        Row: {
+          category: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          location_name: string | null
+          maps_url: string | null
+          place_id: string | null
+          title: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location_name?: string | null
+          maps_url?: string | null
+          place_id?: string | null
+          title: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location_name?: string | null
+          maps_url?: string | null
+          place_id?: string | null
+          title?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_recommendations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_recommendations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           base_currency: string
@@ -1084,6 +1233,13 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["member_role"]
       }
+      day_has_guest_visible_item: {
+        Args: { p_day_id: string }
+        Returns: boolean
+      }
+      day_trip_id: { Args: { p_day_id: string }; Returns: string }
+      is_active_guest_of: { Args: { p_trip_id: string }; Returns: boolean }
+      is_kid_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_owner_of: { Args: { p_trip_id: string }; Returns: boolean }
       link_member_to_auth_user: {
         Args: never

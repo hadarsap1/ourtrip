@@ -9,6 +9,17 @@ export default function MorePage() {
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <li>
           <Link
+            href="/recommend"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            ✨ {strings.more.menuRecommend}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/map"
             className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
           >
@@ -101,6 +112,17 @@ export default function MorePage() {
             className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
           >
             ✉️ {strings.more.menuGuests}
+            <span className="text-slate-300" aria-hidden="true">
+              ‹
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/notifications"
+            className="flex items-center justify-between px-4 py-3.5 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            🔔 {strings.more.menuNotifications}
             <span className="text-slate-300" aria-hidden="true">
               ‹
             </span>
