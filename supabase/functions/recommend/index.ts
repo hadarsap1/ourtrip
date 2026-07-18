@@ -13,10 +13,18 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Browser calls this cross-origin (Vercel → *.supabase.co), so every response
+// — including the CORS preflight — must carry these headers.
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...CORS },
   });
 }
 
@@ -101,6 +109,10 @@ function mapsUrl(
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS });
+  }
+
   let body: {
     lat?: number;
     lng?: number;
@@ -164,8 +176,10 @@ Deno.serve(async (req) => {
   let response;
   try {
     response = await anthropic.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: 4000,
+      // Haiku 4.5: fast (a few seconds vs. ~40s on Opus) and plenty capable
+      // for kid-friendly local picks — the previous Opus latency read as a hang.
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 2500,
       tools: [
         {
           name: "emit_recommendations",

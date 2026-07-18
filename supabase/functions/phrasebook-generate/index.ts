@@ -49,8 +49,18 @@ const INPUT_SCHEMA = {
   required: ["entries"],
 } as const;
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
-  const jsonHeaders = { "content-type": "application/json" };
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS });
+  }
+
+  const jsonHeaders = { "content-type": "application/json", ...CORS };
 
   let body: { language?: string; country_code?: string };
   try {
@@ -118,7 +128,9 @@ Deno.serve(async (req) => {
   let response;
   try {
     response = await anthropic.messages.create({
-      model: "claude-opus-4-8",
+      // Haiku 4.5: fast enough that a 40-55 phrase book returns in seconds
+      // rather than the minute-plus Opus took (which read as a hang).
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 16000,
       tools: [
         {
