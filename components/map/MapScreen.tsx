@@ -28,6 +28,7 @@ import type {
   Trip,
 } from "@/lib/types";
 import { CarCard } from "./CarCard";
+import { ImportRouteSheet } from "./ImportRouteSheet";
 
 type Mode = "view" | "addPin" | "draw";
 
@@ -55,6 +56,7 @@ export function MapScreen() {
   const [drawCount, setDrawCount] = useState(0);
   const [pinAt, setPinAt] = useState<{ lat: number; lng: number } | null>(null);
   const [routeNameOpen, setRouteNameOpen] = useState(false);
+  const [importingRoute, setImportingRoute] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -333,6 +335,13 @@ export function MapScreen() {
               >
                 ✏️ {strings.map.drawRoute}
               </button>
+              <button
+                type="button"
+                onClick={() => setImportingRoute(true)}
+                className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+              >
+                ⤓ {strings.map.importRoute}
+              </button>
             </>
           )}
           {mode === "addPin" && (
@@ -477,6 +486,18 @@ export function MapScreen() {
               () => createRoute({ tripId: trip.id, name, path: points, color }),
               strings.map.routeSaved
             );
+          }}
+        />
+      )}
+
+      {/* import route from a spreadsheet */}
+      {importingRoute && trip && (
+        <ImportRouteSheet
+          tripId={trip.id}
+          onClose={() => setImportingRoute(false)}
+          onDone={(message) => {
+            setImportingRoute(false);
+            void refresh(trip.id).then(() => showToast(message));
           }}
         />
       )}

@@ -63,13 +63,14 @@ export function RecommendScreen() {
       try {
         const recs = await fetchRecommendations(params);
         setResults(recs);
-      } catch {
-        showToast(s.error);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "";
+        showToast(msg === "not_configured" ? s.notConfigured : s.error);
       } finally {
         setLoading(false);
       }
     },
-    [s.error, showToast]
+    [s.error, s.notConfigured, showToast]
   );
 
   const fromLocation = useCallback(() => {

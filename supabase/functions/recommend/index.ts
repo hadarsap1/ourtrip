@@ -6,6 +6,9 @@
 // knowledge-only answer from the coordinates + area name — the feature never
 // blocks. Results are ephemeral: the client saves the ones it wants into the
 // itinerary or the maybe-list (saved_recommendations).
+//
+// Structured output uses the tool-use pattern (forced tool_choice): it is
+// supported across SDK/model versions, unlike the newer output_config format.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -25,7 +28,9 @@ type Candidate = {
   place_id: string | null;
 };
 
-const SCHEMA = {
+// Tool input schema Claude must fill. Standard JSON Schema (tool input),
+// so nullable union types are fine.
+const INPUT_SCHEMA = {
   type: "object",
   properties: {
     recommendations: {
@@ -44,21 +49,11 @@ const SCHEMA = {
           lat: { type: ["number", "null"] },
           lng: { type: ["number", "null"] },
         },
-        required: [
-          "candidate_index",
-          "title",
-          "category",
-          "description",
-          "location_name",
-          "lat",
-          "lng",
-        ],
-        additionalProperties: false,
+        required: ["title", "category", "description", "location_name"],
       },
     },
   },
   required: ["recommendations"],
-  additionalProperties: false,
 } as const;
 
 /** Google Places Nearby Search for kid-relevant candidates around a point. */
@@ -134,6 +129,12 @@ Deno.serve(async (req) => {
   const { data: role } = await caller.rpc("current_member_role");
   if (role !== "owner") return json({ ok: false, error: "forbidden" }, 403);
 
+  // clear, specific error when the AI key isn't configured, so the UI can say
+  // so instead of a generic failure
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) {
+    return json({ ok: false, error: "not_configured" }, 503);
+  }
+
   // real nearby candidates (best-effort)
   const placesKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
   const candidates =
@@ -160,56 +161,60 @@ Deno.serve(async (req) => {
         `candidate_index to null for every item and fill lat/lng if you are ` +
         `confident, otherwise null.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-opus-4-8",
-    max_tokens: 4000,
-    output_config: { format: { type: "json_schema", schema: SCHEMA } },
-    messages: [
-      {
-        role: "user",
-        content:
-          `A Hebrew-speaking family (two parents + two early-elementary kids) is ` +
-          `near: ${whereText}. Recommend kid-friendly things nearby: restaurants ` +
-          `(kids menu / relaxed), attractions, parks, museums, plus a couple of ` +
-          `practical local tips.\n\n${candidateBlock}\n\n` +
-          `Write ALL of title, category, description and location_name in Hebrew. ` +
-          `In description (1-2 sentences) say what it is and why it suits young ` +
-          `kids. Keep it warm and concrete.`,
-      },
-    ],
-  });
-
-  if (response.stop_reason === "refusal") {
-    return json({ ok: false, error: "generation refused" }, 502);
-  }
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    return json({ ok: false, error: "empty response" }, 502);
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-opus-4-8",
+      max_tokens: 4000,
+      tools: [
+        {
+          name: "emit_recommendations",
+          description: "Return the curated kid-friendly recommendations.",
+          input_schema: INPUT_SCHEMA,
+        },
+      ],
+      tool_choice: { type: "tool", name: "emit_recommendations" },
+      messages: [
+        {
+          role: "user",
+          content:
+            `A Hebrew-speaking family (two parents + two early-elementary kids) is ` +
+            `near: ${whereText}. Recommend kid-friendly things nearby: restaurants ` +
+            `(kids menu / relaxed), attractions, parks, museums, plus a couple of ` +
+            `practical local tips.\n\n${candidateBlock}\n\n` +
+            `Write ALL of title, category, description and location_name in Hebrew. ` +
+            `In description (1-2 sentences) say what it is and why it suits young ` +
+            `kids. Keep it warm and concrete. Call emit_recommendations with the list.`,
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("recommend: anthropic call failed:", (err as Error).message);
+    return json({ ok: false, error: "ai_failed" }, 502);
   }
 
   type Raw = {
-    candidate_index: number | null;
+    candidate_index?: number | null;
     title: string;
     category: string;
     description: string;
     location_name: string;
-    lat: number | null;
-    lng: number | null;
+    lat?: number | null;
+    lng?: number | null;
   };
-  let raw: Raw[];
-  try {
-    raw = (JSON.parse(textBlock.text) as { recommendations: Raw[] }).recommendations;
-  } catch {
-    return json({ ok: false, error: "unparseable output" }, 502);
+  const toolUse = response.content.find((b) => b.type === "tool_use");
+  if (!toolUse || toolUse.type !== "tool_use") {
+    return json({ ok: false, error: "no output" }, 502);
   }
+  const raw = ((toolUse.input as { recommendations?: Raw[] }).recommendations) ?? [];
 
   const recommendations = raw.map((r) => {
     const c =
-      r.candidate_index !== null && candidates[r.candidate_index]
+      r.candidate_index != null && candidates[r.candidate_index]
         ? candidates[r.candidate_index]
         : null;
-    const rLat = c?.lat ?? r.lat;
-    const rLng = c?.lng ?? r.lng;
+    const rLat = c?.lat ?? r.lat ?? null;
+    const rLng = c?.lng ?? r.lng ?? null;
     const placeId = c?.place_id ?? null;
     return {
       title: r.title,
@@ -224,5 +229,9 @@ Deno.serve(async (req) => {
     };
   });
 
-  return json({ ok: true, recommendations, source: candidates.length > 0 ? "places+claude" : "claude" });
+  return json({
+    ok: true,
+    recommendations,
+    source: candidates.length > 0 ? "places+claude" : "claude",
+  });
 });
