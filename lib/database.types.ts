@@ -204,6 +204,7 @@ export type Database = {
           file_path: string
           id: string
           notes: string | null
+          shared_with_kids: boolean
           tag: string
           title: string
           trip_id: string
@@ -214,6 +215,7 @@ export type Database = {
           file_path: string
           id?: string
           notes?: string | null
+          shared_with_kids?: boolean
           tag: string
           title: string
           trip_id: string
@@ -224,6 +226,7 @@ export type Database = {
           file_path?: string
           id?: string
           notes?: string | null
+          shared_with_kids?: boolean
           tag?: string
           title?: string
           trip_id?: string

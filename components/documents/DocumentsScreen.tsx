@@ -10,12 +10,16 @@ import {
   makeAvailableOffline,
   openDocument,
   removeOfflineDocument,
+  setDocumentSharedWithKids,
 } from "@/lib/data/documents";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
 import type { Document, Trip } from "@/lib/types";
 import { DocumentFormSheet } from "./DocumentFormSheet";
 
 export function DocumentsScreen() {
+  const { member } = useMember();
+  const isKid = member?.role === "kid";
   const [trip, setTrip] = useState<Trip | null>(null);
   const [docs, setDocs] = useState<Document[]>([]);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
@@ -102,6 +106,24 @@ export function DocumentsScreen() {
     if (!opened) showToast(strings.documents.openFailed);
   }
 
+  async function toggleShareWithKids(doc: Document) {
+    try {
+      await setDocumentSharedWithKids(doc.id, !doc.shared_with_kids);
+      setDocs((prev) =>
+        prev.map((d) =>
+          d.id === doc.id ? { ...d, shared_with_kids: !doc.shared_with_kids } : d
+        )
+      );
+      showToast(
+        doc.shared_with_kids
+          ? strings.documents.unsharedWithKids
+          : strings.documents.sharedWithKids
+      );
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
@@ -122,6 +144,9 @@ export function DocumentsScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
+      {isKid && (
+        <h1 className="text-2xl font-bold">{strings.documents.kidTitle}</h1>
+      )}
       <input
         type="search"
         value={search}
@@ -156,7 +181,11 @@ export function DocumentsScreen() {
 
       {visible.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          {docs.length === 0 ? strings.documents.empty : strings.documents.noResults}
+          {docs.length === 0
+            ? isKid
+              ? strings.documents.kidEmpty
+              : strings.documents.empty
+            : strings.documents.noResults}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -170,10 +199,15 @@ export function DocumentsScreen() {
               >
                 <button
                   type="button"
-                  onClick={() => setForm({ doc })}
+                  onClick={() => (isKid ? void handleOpen(doc) : setForm({ doc }))}
                   className="min-w-0 flex-1 text-start"
                 >
                   <span className="block truncate font-medium text-slate-800">
+                    {doc.shared_with_kids && (
+                      <span className="mr-1" aria-label={strings.documents.sharedBadge}>
+                        🧒
+                      </span>
+                    )}
                     {doc.title}
                   </span>
                   <span className="text-xs text-slate-400">
@@ -181,6 +215,23 @@ export function DocumentsScreen() {
                     {doc.notes ? ` · ${doc.notes}` : ""}
                   </span>
                 </button>
+                {!isKid && (
+                  <button
+                    type="button"
+                    onClick={() => void toggleShareWithKids(doc)}
+                    aria-label={strings.documents.shareWithKids}
+                    aria-pressed={doc.shared_with_kids}
+                    className={`rounded-full p-2 ${
+                      doc.shared_with_kids
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    <span className="block h-4 w-4 text-center text-sm leading-4" aria-hidden="true">
+                      🧒
+                    </span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void toggleOffline(doc)}
@@ -215,15 +266,17 @@ export function DocumentsScreen() {
         </ul>
       )}
 
-      <button
-        type="button"
-        onClick={() => setForm({ doc: null })}
-        className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
-      >
-        {strings.documents.upload}
-      </button>
+      {!isKid && (
+        <button
+          type="button"
+          onClick={() => setForm({ doc: null })}
+          className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+        >
+          {strings.documents.upload}
+        </button>
+      )}
 
-      {trip && (
+      {trip && !isKid && (
         <DocumentFormSheet
           open={form !== null}
           tripId={trip.id}

@@ -70,6 +70,18 @@ export async function updateDocument(
   if (error) throw new Error(error.message);
 }
 
+/** Owner opts a single document in/out of kid visibility (B1). */
+export async function setDocumentSharedWithKids(
+  id: string,
+  shared: boolean
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("documents")
+    .update({ shared_with_kids: shared })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 /** Removes row, storage object, and any offline copy. */
 export async function deleteDocument(doc: Document): Promise<void> {
   const supabase = requireClient();

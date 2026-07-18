@@ -171,7 +171,7 @@ export function TodayScreen() {
           </p>
         </Link>
 
-        <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="grid grid-cols-2 gap-2 text-center">
           <Link href="/photos" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">📷</span>
             <span className="mt-1 block text-sm font-semibold text-slate-700">
@@ -188,6 +188,12 @@ export function TodayScreen() {
             <span className="block text-3xl" aria-hidden="true">💬</span>
             <span className="mt-1 block text-sm font-semibold text-slate-700">
               {strings.kidHome.tilePhrasebook}
+            </span>
+          </Link>
+          <Link href="/documents" className="rounded-2xl bg-white p-4 shadow-sm">
+            <span className="block text-3xl" aria-hidden="true">📄</span>
+            <span className="mt-1 block text-sm font-semibold text-slate-700">
+              {strings.kidHome.tileDocuments}
             </span>
           </Link>
         </div>

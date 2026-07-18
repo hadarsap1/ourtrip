@@ -29,8 +29,12 @@ export async function parseSheet(file: File): Promise<SheetRows> {
     defval: "",
   });
   return rows
-    .map((r) => r.map((c) => (c == null ? "" : String(c).trim())))
-    .filter((r) => r.some((c) => c !== ""));
+    .map((r) => {
+      const cells = r.map((c) => (c == null ? "" : String(c).trim()));
+      while (cells.length > 0 && cells[cells.length - 1] === "") cells.pop();
+      return cells;
+    })
+    .filter((r) => r.length > 0);
 }
 
 const HEADER_WORDS = [

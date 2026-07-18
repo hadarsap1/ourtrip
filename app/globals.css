@@ -16,3 +16,22 @@ body {
   color: var(--foreground);
   font-family: var(--font-heebo), system-ui, sans-serif;
 }
+
+/* Memory-book "Save as PDF": hide app chrome + anything marked .no-print,
+   let the printable content flow across pages. */
+@media print {
+  nav,
+  .offline-banner,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  main {
+    padding-bottom: 0 !important;
+  }
+  .print-page-break {
+    break-inside: avoid;
+  }
+}

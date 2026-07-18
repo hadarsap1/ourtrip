@@ -48,6 +48,12 @@ export const strings = {
     offlineToggle: "זמין ללא אינטרנט",
     offlineSaved: "המסמך נשמר במכשיר",
     offlineRemoved: "העותק הוסר מהמכשיר",
+    shareWithKids: "שיתוף עם הילדים",
+    sharedWithKids: "המסמך משותף עם הילדים",
+    unsharedWithKids: "המסמך כבר לא משותף עם הילדים",
+    sharedBadge: "משותף עם הילדים",
+    kidTitle: "המסמכים שלנו",
+    kidEmpty: "אין עדיין מסמכים משותפים",
   },
 
   emergency: {
@@ -159,6 +165,21 @@ export const strings = {
     menuRecommend: "מה בסביבה",
     menuNotifications: "התראות",
     menuLinks: "קישורים שמורים",
+    menuMemoryBook: "ספר זיכרונות",
+  },
+
+  memoryBook: {
+    title: "ספר זיכרונות",
+    subtitle: "יומן המסע והתמונות המאושרות — מוכן להדפסה או לשמירה כ-PDF",
+    print: "הדפסה / שמירה כ-PDF",
+    hint: "בחלון ההדפסה בוחרים ״יעד: שמירה כ-PDF״ כדי לשמור את הספר במכשיר",
+    empty: "עוד אין תוכן לספר — כותבים ביומן ומאשרים תמונות",
+    coverPrefix: "ספר הזיכרונות של",
+    journalTitle: "יומן המסע",
+    albumTitle: "אלבום התמונות",
+    stats: "רשומות יומן ותמונות",
+    ownersOnly: "התכונה זמינה להורים בלבד",
+    loading: "מכינים את הספר…",
   },
 
   links: {
@@ -471,6 +492,7 @@ export const strings = {
     tilePhotos: "התמונות שלנו",
     tilePocket: "דמי הכיס שלי",
     tilePhrasebook: "שיחון",
+    tileDocuments: "המסמכים שלנו",
   },
 
   journal: {
