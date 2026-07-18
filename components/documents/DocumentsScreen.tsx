@@ -5,16 +5,26 @@ import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   DOCUMENT_TAGS,
+  decryptDocument,
   listDocuments,
   listOfflineDocumentIds,
   makeAvailableOffline,
   openDocument,
+  protectDocument,
   removeOfflineDocument,
   setDocumentSharedWithKids,
+  unprotectDocument,
 } from "@/lib/data/documents";
+import {
+  getVaultKey,
+  hasDocPin,
+  isVaultUnlocked,
+  lockVault,
+} from "@/lib/data/docPin";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Document, Trip } from "@/lib/types";
+import { DocPinSheet } from "./DocPinSheet";
 import { DocumentFormSheet } from "./DocumentFormSheet";
 
 export function DocumentsScreen() {
@@ -29,6 +39,13 @@ export function DocumentsScreen() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [form, setForm] = useState<{ doc: Document | null } | null>(null);
+
+  // Documents PIN / vault state
+  const [pinExists, setPinExists] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinSheet, setPinSheet] = useState<{ mode: "set" | "enter" } | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; mime: string } | null>(null);
+  const pendingRef = useRef<((key: CryptoKey) => void) | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -57,6 +74,10 @@ export function DocumentsScreen() {
       setTrip(activeTrip);
       try {
         await refresh(activeTrip.id);
+        if (!cancelled) {
+          setPinExists(await hasDocPin(activeTrip.id));
+          setUnlocked(isVaultUnlocked(activeTrip.id));
+        }
       } catch {
         if (!cancelled) showToast(strings.common.error);
       } finally {
@@ -122,6 +143,59 @@ export function DocumentsScreen() {
     } catch {
       showToast(strings.common.error);
     }
+  }
+
+  // Runs an action with the vault key, prompting for the PIN first if locked.
+  function withKey(action: (key: CryptoKey) => void) {
+    if (!trip) return;
+    const key = getVaultKey(trip.id);
+    if (key) {
+      action(key);
+      return;
+    }
+    pendingRef.current = action;
+    setPinSheet({ mode: pinExists ? "enter" : "set" });
+  }
+
+  async function runDoc(fn: () => Promise<void>, message: string) {
+    if (!trip) return;
+    try {
+      await fn();
+      await refresh(trip.id);
+      showToast(message);
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
+  function toggleLock(doc: Document) {
+    withKey((key) =>
+      void runDoc(
+        () =>
+          doc.pin_protected
+            ? unprotectDocument(doc, key)
+            : protectDocument(doc, key),
+        doc.pin_protected ? strings.documents.unlocked : strings.documents.locked
+      )
+    );
+  }
+
+  function openDoc(doc: Document) {
+    if (!doc.pin_protected) {
+      void handleOpen(doc);
+      return;
+    }
+    showToast(strings.documents.unlocking);
+    withKey((key) =>
+      void (async () => {
+        const blob = await decryptDocument(doc, key);
+        if (!blob) {
+          showToast(strings.documents.openFailed);
+          return;
+        }
+        setViewer({ url: URL.createObjectURL(blob), mime: blob.type });
+      })()
+    );
   }
 
   if (loading) {
@@ -203,6 +277,11 @@ export function DocumentsScreen() {
                   className="min-w-0 flex-1 text-start"
                 >
                   <span className="block truncate font-medium text-slate-800">
+                    {doc.pin_protected && (
+                      <span className="mr-1" aria-label={strings.documents.lockedBadge}>
+                        🔒
+                      </span>
+                    )}
                     {doc.shared_with_kids && (
                       <span className="mr-1" aria-label={strings.documents.sharedBadge}>
                         🧒
@@ -216,6 +295,23 @@ export function DocumentsScreen() {
                   </span>
                 </button>
                 {!isKid && (
+                  <button
+                    type="button"
+                    onClick={() => toggleLock(doc)}
+                    aria-label={strings.documents.lock}
+                    aria-pressed={doc.pin_protected}
+                    className={`rounded-full p-2 ${
+                      doc.pin_protected
+                        ? "bg-rose-100 text-rose-700"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    <span className="block h-4 w-4 text-center text-sm leading-4" aria-hidden="true">
+                      {doc.pin_protected ? "🔒" : "🔓"}
+                    </span>
+                  </button>
+                )}
+                {!isKid && !doc.pin_protected && (
                   <button
                     type="button"
                     onClick={() => void toggleShareWithKids(doc)}
@@ -252,7 +348,7 @@ export function DocumentsScreen() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleOpen(doc)}
+                  onClick={() => openDoc(doc)}
                   aria-label={strings.documents.open}
                   className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"
                 >
@@ -276,6 +372,19 @@ export function DocumentsScreen() {
         </button>
       )}
 
+      {!isKid && pinExists && unlocked && (
+        <button
+          type="button"
+          onClick={() => {
+            lockVault();
+            setUnlocked(false);
+          }}
+          className="w-full text-center text-sm font-medium text-slate-400"
+        >
+          🔒 {strings.documents.lockNow}
+        </button>
+      )}
+
       {trip && !isKid && (
         <DocumentFormSheet
           open={form !== null}
@@ -288,6 +397,55 @@ export function DocumentsScreen() {
           }}
           onError={() => showToast(strings.common.error)}
         />
+      )}
+
+      {trip && pinSheet && (
+        <DocPinSheet
+          mode={pinSheet.mode}
+          tripId={trip.id}
+          onClose={() => {
+            pendingRef.current = null;
+            setPinSheet(null);
+          }}
+          onUnlocked={() => {
+            setPinSheet(null);
+            setPinExists(true);
+            setUnlocked(true);
+            const key = trip ? getVaultKey(trip.id) : null;
+            const action = pendingRef.current;
+            pendingRef.current = null;
+            if (key && action) action(key);
+          }}
+        />
+      )}
+
+      {viewer && (
+        <div className="fixed inset-0 z-[80] flex flex-col bg-black/90">
+          <div className="flex justify-end p-3">
+            <button
+              type="button"
+              onClick={() => {
+                URL.revokeObjectURL(viewer.url);
+                setViewer(null);
+              }}
+              className="rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-slate-800"
+            >
+              {strings.documents.viewerClose}
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto p-2">
+            {viewer.mime.startsWith("image/") ? (
+              // eslint-disable-next-line @next/next/no-img-element -- decrypted blob URL
+              <img
+                src={viewer.url}
+                alt=""
+                className="mx-auto max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <iframe src={viewer.url} title="document" className="h-full w-full rounded-lg bg-white" />
+            )}
+          </div>
+        </div>
       )}
 
       <Toast message={toast} />
