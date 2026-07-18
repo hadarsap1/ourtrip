@@ -14,7 +14,7 @@ import {
 } from "@/lib/data/recommendations";
 import { getActiveTrip } from "@/lib/data/trip";
 import { formatShortDate, todayISO } from "@/lib/format";
-import { categoryIcon } from "@/lib/recommendCategories";
+import { categoryIcon, RECOMMEND_CATEGORIES } from "@/lib/recommendCategories";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { ItineraryDay, SavedRecommendation, Trip } from "@/lib/types";
@@ -29,6 +29,16 @@ export function RecommendScreen() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [dayFor, setDayFor] = useState<Recommendation | null>(null);
+  const [cats, setCats] = useState<Set<string>>(new Set()); // empty = all
+
+  const toggleCat = useCallback((cat: string) => {
+    setCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }, []);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -61,7 +71,10 @@ export function RecommendScreen() {
       setLoading(true);
       setResults(null);
       try {
-        const recs = await fetchRecommendations(params);
+        const recs = await fetchRecommendations({
+          ...params,
+          categories: cats.size > 0 ? [...cats] : null,
+        });
         setResults(recs);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
@@ -70,7 +83,7 @@ export function RecommendScreen() {
         setLoading(false);
       }
     },
-    [s.error, s.notConfigured, showToast]
+    [cats, s.error, s.notConfigured, showToast]
   );
 
   const fromLocation = useCallback(() => {
@@ -175,6 +188,35 @@ export function RecommendScreen() {
         <h1 className="text-2xl font-bold">{s.title}</h1>
         <p className="mt-1 text-sm text-slate-500">{s.subtitle}</p>
       </header>
+
+      {/* category filter */}
+      <div>
+        <p className="mb-1.5 text-sm font-semibold text-slate-500">{s.filterTitle}</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setCats(new Set())}
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+              cats.size === 0 ? "bg-teal-600 text-white" : "bg-white text-slate-600 shadow-sm"
+            }`}
+          >
+            {s.filterAll}
+          </button>
+          {RECOMMEND_CATEGORIES.map((cat, i) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => toggleCat(cat)}
+              aria-pressed={cats.has(cat)}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+                cats.has(cat) ? "bg-teal-600 text-white" : "bg-white text-slate-600 shadow-sm"
+              }`}
+            >
+              {categoryIcon(cat)} {s.filterLabels[i]}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* triggers */}
       <div className="space-y-2">

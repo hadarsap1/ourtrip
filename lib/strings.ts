@@ -225,6 +225,9 @@ export const strings = {
   recommend: {
     title: "מה בסביבה",
     subtitle: "המלצות ידידותיות לילדים בסביבה — מסעדות, אטרקציות וטיפים",
+    filterTitle: "מה מחפשים?",
+    filterAll: "הכל",
+    filterLabels: ["מסעדות", "אטרקציות", "פארקים", "מוזיאונים", "חנויות", "טיפים"] as string[],
     useLocation: "מהמיקום הנוכחי",
     useDay: "לפי יום במסלול",
     pickDay: "בחירת יום",
