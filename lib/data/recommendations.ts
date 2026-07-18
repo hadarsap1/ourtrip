@@ -30,11 +30,12 @@ export type RecommendParams = {
   country_code?: string | null;
 };
 
-/** Invokes the owner-gated Edge Function (Anthropic + Places). Takes ~10-30s. */
+/** Invokes the owner-gated Edge Function (Anthropic + Places). Usually a few
+ *  seconds; a hard timeout guards against ever spinning forever. */
 export async function fetchRecommendations(
   params: RecommendParams
 ): Promise<Recommendation[]> {
-  const { data, error } = await requireClient().functions.invoke("recommend", {
+  const invoke = requireClient().functions.invoke("recommend", {
     body: {
       lat: params.lat ?? null,
       lng: params.lng ?? null,
@@ -42,6 +43,10 @@ export async function fetchRecommendations(
       country_code: params.country_code ?? null,
     },
   });
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), 45000)
+  );
+  const { data, error } = await Promise.race([invoke, timeout]);
   if (error) throw new Error(error.message);
   if (!data?.ok) throw new Error(data?.error ?? "recommend failed");
   return (data.recommendations ?? []) as Recommendation[];
