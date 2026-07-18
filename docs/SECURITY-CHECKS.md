@@ -160,3 +160,30 @@ Notes:
 - The `messages_notify` / `photos_notify_pending` triggers use `pg_net` fire-and-forget: if `push-send` errors (e.g. VAPID unset), the originating INSERT still commits — messaging/photos never regress on a push failure.
 - **⚠️ PENDING — VAPID secrets**: push delivery needs `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set as `push-send` function secrets, and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in Vercel env, before any notification is actually sent. Until then `push-send` returns 500 harmlessly. Android install-and-receive + iOS installed-only receive are re-tested on the real devices once keys are set (same "verify on real hardware" posture as the Sprint 6 PIN-unlock item). The install-instructions screen (`/notifications`) covers the iOS 16.4+ home-screen requirement.
 - `recommend` degrades gracefully: with no `GOOGLE_MAPS_API_KEY` it returns a Claude-only answer (no `place_id`); with the key it curates real Google Places candidates. Either way results are ephemeral until the owner saves them — the maybe-list (`saved_recommendations`) and the itinerary are the only persisted sinks.
+
+## 2026-07-18 — Post-launch: kid-shared documents + document lock
+
+Environment: migrations `documents_share_with_kids` (repo `00014_...`) + `document_pin` (repo `00015_...`) applied. Two new document-sharing surfaces, both verified with probe rows inside rolled-back transactions.
+
+### B1 — share a specific document with kids
+New: `documents.shared_with_kids` flag; `documents_kid_select` policy; SECURITY DEFINER `document_shared_with_current_kid(text)` + `documents_kid_read` storage policy on the `documents` bucket. Kids have **no** INSERT/UPDATE/DELETE policy on `documents` — read-only (CLAUDE.md rule #2).
+
+| Check | Method | Result |
+|---|---|---|
+| Kid sees only shared documents (1 of 2 probes: a shared boarding pass, not the private passport) | SQL role emulation, kid claims | ✅ PASS |
+| Kid storage read authorized for the shared path only (`document_shared_with_current_kid` → true for bp.pdf, false for pp.pdf) | same session | ✅ PASS |
+| Kid cannot flip `shared_with_kids` (no write policy → deny-by-default) | policy set | ✅ PASS |
+
+### Document lock — end-to-end encryption (Documents PIN)
+New: `documents.pin_protected` + `enc_mime`; `document_pin(trip_id, salt, verifier_iv, verifier_ct)` table with owner-only `document_pin_owner_all` policy. Locked files are AES-GCM encrypted client-side (key = PBKDF2-210k of the family Documents PIN) **before upload** — the `documents` bucket holds only ciphertext; opening decrypts in-browser. `docCrypto` is unit-tested (round-trip, wrong-PIN rejection, verifier).
+
+| Check | Method | Result |
+|---|---|---|
+| `document_pin` owner-only: owner sees the row (1), kid sees 0 | SQL role emulation | ✅ PASS |
+| anon/guest see 0 (deny-by-default, no non-owner policy) | policy set | ✅ PASS |
+| Locked documents are never kid-shared (locking clears `shared_with_kids`; share toggle hidden for locked docs) | `protectDocument` + UI | ✅ PASS |
+
+Notes:
+- **Threat model**: defeats the "found/lost device" case fully — a locked passport is unreadable online or offline without the PIN, and the server never holds plaintext. **Accepted residual risk**: the salt + verifier are readable by an owner session, so an attacker who steals a live owner session could offline-brute-force a short numeric PIN (PBKDF2-210k slows it, but 6 digits is GPU-crackable). Mitigation: the UI allows 6–12 digit PINs — a longer PIN raises the cost. Inherent to short-PIN E2E, documented for the owner.
+- **Forgotten PIN = unrecoverable** by design (owner chose full E2E over recoverability); the set-PIN flow warns and requires acknowledgement.
+- `ANTHROPIC_API_KEY` is now configured — `recommend` + `phrasebook-generate` verified live (tool-use call returns structured output). The one-off `recommend-diag` probe function has been neutralized (inert 410 stub, `verify_jwt=true`).
