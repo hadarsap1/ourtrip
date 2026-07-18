@@ -14,22 +14,10 @@ import {
 } from "@/lib/data/recommendations";
 import { getActiveTrip } from "@/lib/data/trip";
 import { formatShortDate, todayISO } from "@/lib/format";
+import { categoryIcon } from "@/lib/recommendCategories";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { ItineraryDay, SavedRecommendation, Trip } from "@/lib/types";
-
-const CATEGORY_ICON: Record<string, string> = {
-  מסעדה: "🍽️",
-  אטרקציה: "🎡",
-  פארק: "🌳",
-  מוזיאון: "🏛️",
-  חנות: "🛍️",
-  טיפ: "💡",
-};
-
-function icon(category: string | null): string {
-  return (category && CATEGORY_ICON[category]) || "📍";
-}
 
 export function RecommendScreen() {
   const s = strings.recommend;
@@ -239,7 +227,7 @@ export function RecommendScreen() {
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
             >
               <div className="flex items-start gap-2">
-                <span className="text-2xl" aria-hidden="true">{icon(rec.category)}</span>
+                <span className="text-2xl" aria-hidden="true">{categoryIcon(rec.category)}</span>
                 <div className="flex-1">
                   <h3 className="font-semibold text-slate-800">{rec.title}</h3>
                   {rec.location_name && (
@@ -297,7 +285,7 @@ export function RecommendScreen() {
               >
                 <div className="flex-1">
                   <p className="font-medium text-slate-800">
-                    {icon(r.category)} {r.title}
+                    {categoryIcon(r.category)} {r.title}
                   </p>
                   {r.description && (
                     <p className="text-xs text-slate-500">{r.description}</p>

@@ -105,11 +105,15 @@ async function handleWallMessage(messageId: string): Promise<number> {
 async function handlePendingPhoto(photoId: string): Promise<number> {
   const { data: photo } = await service
     .from("photos")
-    .select("id, trip_id, status")
+    .select("id, trip_id, status, uploaded_by")
     .eq("id", photoId)
     .maybeSingle();
   if (!photo || photo.status !== "pending") return 0;
-  return pushToMembers(await ownerIds(photo.trip_id), {
+  // don't ping the uploader about approving their own upload
+  const owners = (await ownerIds(photo.trip_id)).filter(
+    (id) => id !== photo.uploaded_by
+  );
+  return pushToMembers(owners, {
     title: "תמונה חדשה ממתינה לאישור 📷",
     body: "יש תמונה חדשה מהילדים — אפשר לאשר ולשתף",
     url: "/photos",
