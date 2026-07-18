@@ -15,6 +15,7 @@ export type PhrasebookEntry = Tables<"phrasebook_entries">;
 export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
 export type SavedRecommendation = Tables<"saved_recommendations">;
+export type SavedLink = Tables<"saved_links">;
 
 export type ItemStatus = Enums<"item_status">;
 export type BookingType = Enums<"booking_type">;

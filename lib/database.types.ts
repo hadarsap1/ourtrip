@@ -1127,6 +1127,60 @@ export type Database = {
           },
         ]
       }
+      saved_links: {
+        Row: {
+          area: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          title: string
+          trip_id: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          area?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          title: string
+          trip_id: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          area?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          title?: string
+          trip_id?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_links_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_recommendations: {
         Row: {
           category: string | null

@@ -99,6 +99,55 @@ export async function listChecklistItems(
   return data;
 }
 
+/**
+ * Bulk import: appends labels as items, either to an existing list or into a
+ * freshly created one. Returns the target list id and how many were added.
+ */
+export async function importIntoChecklist(opts: {
+  tripId: string;
+  targetListId: string | null; // null → create a new list
+  newTitle: string | null;
+  fallbackTitle: string;
+  labels: string[];
+}): Promise<{ listId: string; count: number }> {
+  const supabase = requireClient();
+  let listId = opts.targetListId;
+  let startOrder = 0;
+
+  if (!listId) {
+    const { data, error } = await supabase
+      .from("checklists")
+      .insert({
+        trip_id: opts.tripId,
+        title: (opts.newTitle ?? "").trim() || opts.fallbackTitle,
+        is_template: false,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    listId = data.id;
+  } else {
+    const { count } = await supabase
+      .from("checklist_items")
+      .select("*", { count: "exact", head: true })
+      .eq("checklist_id", listId);
+    startOrder = count ?? 0;
+  }
+
+  const rows = opts.labels
+    .map((label, i) => ({
+      checklist_id: listId as string,
+      label: label.trim(),
+      sort_order: startOrder + i,
+    }))
+    .filter((r) => r.label !== "");
+  if (rows.length > 0) {
+    const { error } = await supabase.from("checklist_items").insert(rows);
+    if (error) throw new Error(error.message);
+  }
+  return { listId: listId as string, count: rows.length };
+}
+
 export async function addChecklistItem(
   checklistId: string,
   label: string,

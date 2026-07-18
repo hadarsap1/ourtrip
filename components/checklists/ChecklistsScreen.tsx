@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/checklists";
 import { strings } from "@/lib/strings";
 import type { Checklist, ChecklistItem, Member, Trip } from "@/lib/types";
+import { ImportChecklistSheet } from "./ImportChecklistSheet";
 import { ItemEditSheet } from "./ItemEditSheet";
 import { ListFormSheet } from "./ListFormSheet";
 
@@ -29,6 +30,7 @@ export function ChecklistsScreen() {
   const [listForm, setListForm] = useState<{ rename: Checklist | null } | null>(null);
   const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null);
   const [newItemLabel, setNewItemLabel] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -361,13 +363,22 @@ export function ChecklistsScreen() {
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={() => setListForm({ rename: null })}
-        className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
-      >
-        {strings.checklists.addList}
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setListForm({ rename: null })}
+          className="flex-1 rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+        >
+          {strings.checklists.addList}
+        </button>
+        <button
+          type="button"
+          onClick={() => setImporting(true)}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-600 shadow-sm"
+        >
+          ⤓ {strings.checklists.importList}
+        </button>
+      </div>
 
       <ListFormSheet
         open={listForm !== null}
@@ -379,6 +390,18 @@ export function ChecklistsScreen() {
         }}
         tripId={trip?.id ?? ""}
       />
+
+      {importing && trip && (
+        <ImportChecklistSheet
+          tripId={trip.id}
+          lists={lists}
+          onClose={() => setImporting(false)}
+          onDone={(message) => {
+            setImporting(false);
+            void refresh(trip.id).then(() => showToast(message));
+          }}
+        />
+      )}
 
       <Toast message={toast} />
     </div>
