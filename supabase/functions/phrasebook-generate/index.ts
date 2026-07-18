@@ -3,6 +3,9 @@
 // Deployed with verify_jwt=true; additionally the function verifies the
 // caller resolves to an OWNER member before doing anything (kids get
 // read-only phrasebook access in Sprint 6; generation stays owner-only).
+//
+// Structured output uses the tool-use pattern (forced tool_choice): robust
+// across SDK/model versions, unlike the newer output_config format.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -14,7 +17,7 @@ type Entry = {
   phonetic_he: string;
 };
 
-const ENTRY_SCHEMA = {
+const INPUT_SCHEMA = {
   type: "object",
   properties: {
     entries: {
@@ -40,12 +43,10 @@ const ENTRY_SCHEMA = {
           phonetic_he: { type: "string" },
         },
         required: ["category", "phrase_he", "phrase_local", "phonetic_he"],
-        additionalProperties: false,
       },
     },
   },
   required: ["entries"],
-  additionalProperties: false,
 } as const;
 
 Deno.serve(async (req) => {
@@ -84,6 +85,14 @@ Deno.serve(async (req) => {
     });
   }
 
+  // clear, specific error when the AI key isn't configured
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) {
+    return new Response(JSON.stringify({ ok: false, error: "not_configured" }), {
+      status: 503,
+      headers: jsonHeaders,
+    });
+  }
+
   const service = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -106,55 +115,56 @@ Deno.serve(async (req) => {
   const languageName = new Intl.DisplayNames(["en"], { type: "language" })
     .of(language) ?? language;
 
-  const response = await anthropic.messages.create({
-    model: "claude-opus-4-8",
-    max_tokens: 16000,
-    output_config: { format: { type: "json_schema", schema: ENTRY_SCHEMA } },
-    messages: [
-      {
-        role: "user",
-        content:
-          `Create a practical travel phrasebook for a Hebrew-speaking family ` +
-          `(two parents, two young kids) visiting a country where ${languageName} ` +
-          `("${language}") is spoken. Produce 40-55 short, genuinely useful phrases ` +
-          `covering all of these Hebrew categories: ברכות, נימוסים, כיוונים והתמצאות, ` +
-          `אוכל ומסעדות, קניות וכסף, תחבורה, חירום ובריאות, עם ילדים.\n\n` +
-          `For each phrase provide:\n` +
-          `- phrase_he: the phrase in natural Hebrew\n` +
-          `- phrase_local: the phrase in ${languageName}, in the native script\n` +
-          `- phonetic_he: pronunciation transliterated into Hebrew letters, ` +
-          `readable aloud by a Hebrew speaker with no knowledge of ${languageName}\n\n` +
-          `Include child-relevant needs (bathroom, allergies, "where is the ` +
-          `playground", kids menu) and emergency basics (help, doctor, police, ` +
-          `pharmacy). Keep phrases short and speakable.`,
-      },
-    ],
-  });
-
-  if (response.stop_reason === "refusal") {
-    return new Response(JSON.stringify({ ok: false, error: "generation refused" }), {
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-opus-4-8",
+      max_tokens: 16000,
+      tools: [
+        {
+          name: "emit_phrasebook",
+          description: "Return the full phrasebook.",
+          input_schema: INPUT_SCHEMA,
+        },
+      ],
+      tool_choice: { type: "tool", name: "emit_phrasebook" },
+      messages: [
+        {
+          role: "user",
+          content:
+            `Create a practical travel phrasebook for a Hebrew-speaking family ` +
+            `(two parents, two young kids) visiting a country where ${languageName} ` +
+            `("${language}") is spoken. Produce 40-55 short, genuinely useful phrases ` +
+            `covering all of these Hebrew categories: ברכות, נימוסים, כיוונים והתמצאות, ` +
+            `אוכל ומסעדות, קניות וכסף, תחבורה, חירום ובריאות, עם ילדים.\n\n` +
+            `For each phrase provide:\n` +
+            `- phrase_he: the phrase in natural Hebrew\n` +
+            `- phrase_local: the phrase in ${languageName}, in the native script\n` +
+            `- phonetic_he: pronunciation transliterated into Hebrew letters, ` +
+            `readable aloud by a Hebrew speaker with no knowledge of ${languageName}\n\n` +
+            `Include child-relevant needs (bathroom, allergies, "where is the ` +
+            `playground", kids menu) and emergency basics (help, doctor, police, ` +
+            `pharmacy). Keep phrases short and speakable. Call emit_phrasebook with ` +
+            `the entries.`,
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("phrasebook: anthropic call failed:", (err as Error).message);
+    return new Response(JSON.stringify({ ok: false, error: "ai_failed" }), {
       status: 502,
       headers: jsonHeaders,
     });
   }
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
+  const toolUse = response.content.find((b) => b.type === "tool_use");
+  if (!toolUse || toolUse.type !== "tool_use") {
     return new Response(JSON.stringify({ ok: false, error: "empty response" }), {
       status: 502,
       headers: jsonHeaders,
     });
   }
-
-  let entries: Entry[];
-  try {
-    entries = (JSON.parse(textBlock.text) as { entries: Entry[] }).entries;
-  } catch {
-    return new Response(JSON.stringify({ ok: false, error: "unparseable output" }), {
-      status: 502,
-      headers: jsonHeaders,
-    });
-  }
+  const entries = ((toolUse.input as { entries?: Entry[] }).entries) ?? [];
   if (!Array.isArray(entries) || entries.length === 0) {
     return new Response(JSON.stringify({ ok: false, error: "no entries" }), {
       status: 502,

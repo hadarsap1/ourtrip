@@ -78,8 +78,13 @@ export function PhrasebookScreen() {
       setSelected(language);
       await loadEntries(tripId, language);
       showToast(strings.phrasebook.generated);
-    } catch {
-      showToast(strings.phrasebook.generateFailed);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      showToast(
+        msg === "not_configured"
+          ? strings.phrasebook.notConfigured
+          : strings.phrasebook.generateFailed
+      );
     } finally {
       setGenerating(false);
     }
