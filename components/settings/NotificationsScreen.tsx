@@ -73,8 +73,9 @@ export function NotificationsScreen() {
         </ul>
       </section>
 
-      {/* control */}
-      {state === "unsupported" && iosNeedsInstall ? (
+      {/* control — iOS-before-install always shows the install steps first,
+          since Web Push can't work until the PWA is on the home screen */}
+      {iosNeedsInstall ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <h2 className="mb-3 font-semibold text-amber-800">{s.iosTitle}</h2>
           <ol className="space-y-2 text-sm text-amber-900">
@@ -116,20 +117,6 @@ export function NotificationsScreen() {
           {busy ? s.working : s.enable}
         </button>
       ) : null}
-
-      {/* iOS installed but push still needs enabling: falls through to the
-          default button above once state resolves to "default". */}
-      {iosNeedsInstall && state !== "unsupported" && (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <h2 className="mb-3 font-semibold text-amber-800">{s.iosTitle}</h2>
-          <ol className="space-y-2 text-sm text-amber-900">
-            <li className="flex gap-2"><span className="font-bold">1.</span>{s.iosStep1}</li>
-            <li className="flex gap-2"><span className="font-bold">2.</span>{s.iosStep2}</li>
-            <li className="flex gap-2"><span className="font-bold">3.</span>{s.iosStep3}</li>
-            <li className="flex gap-2"><span className="font-bold">4.</span>{s.iosStep4}</li>
-          </ol>
-        </section>
-      )}
 
       <Toast message={toast} />
     </div>

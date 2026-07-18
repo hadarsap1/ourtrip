@@ -139,7 +139,7 @@ export async function createExpense(input: {
   if (error) throw new Error(error.message);
 }
 
-function isConnectivityError(e: unknown): boolean {
+export function isConnectivityError(e: unknown): boolean {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
   const message = e instanceof Error ? e.message.toLowerCase() : "";
   return message.includes("fetch") || message.includes("network");

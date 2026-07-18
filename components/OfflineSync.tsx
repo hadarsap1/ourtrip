@@ -13,21 +13,37 @@ export function OfflineSync() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
+    const flash = (text: string) => {
+      setMessage(text);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setMessage(null), 4000);
+    };
+
     const sync = () => {
       if (!navigator.onLine) return;
-      void replayPendingWrites().then((replayed) => {
-        if (replayed > 0) {
-          setMessage(strings.offline.synced);
-          if (timer) clearTimeout(timer);
-          timer = setTimeout(() => setMessage(null), 4000);
-        }
+      void replayPendingWrites().then(({ replayed, dropped }) => {
+        // A dropped entry couldn't be saved at all (e.g. its category was
+        // removed) — tell the family so they can re-enter it, rather than
+        // letting it vanish or block the queue.
+        if (dropped > 0) flash(strings.offline.syncFailed);
+        else if (replayed > 0) flash(strings.offline.synced);
       });
+    };
+
+    // Re-fire when the app regains focus/visibility too: some mobile browsers
+    // don't emit the "online" event reliably when connectivity returns.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") sync();
     };
 
     sync();
     window.addEventListener("online", sync);
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener("online", sync);
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", onVisible);
       if (timer) clearTimeout(timer);
     };
   }, []);

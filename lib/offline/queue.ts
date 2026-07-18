@@ -17,22 +17,29 @@ export async function enqueueExpense(
   });
 }
 
+export type ReplayResult = { replayed: number; dropped: number };
+
 /**
- * Replays queued writes in order, deleting each on success. Stops at the
- * first failure (still offline / server error) and retries on the next
- * trigger. Returns how many writes were replayed.
+ * Replays queued writes, deleting each on success. A failure is classified:
+ * a *transient* failure (connectivity lost mid-replay) leaves the entry queued
+ * for the next trigger; a *permanent* failure (deleted category, RLS denial,
+ * un-convertible currency — the write can never succeed as-is) is dropped so it
+ * cannot block everything queued behind it (head-of-line blocking). We never
+ * `break`, so one bad entry never strands the rest. `dropped` lets the caller
+ * warn the family that some offline entries could not be saved.
  */
-export async function replayPendingWrites(): Promise<number> {
+export async function replayPendingWrites(): Promise<ReplayResult> {
   const dbp = getOfflineDB();
-  if (!dbp) return 0;
+  if (!dbp) return { replayed: 0, dropped: 0 };
   const db = await dbp;
   const entries = await db.getAll("pending_writes");
-  if (entries.length === 0) return 0;
+  if (entries.length === 0) return { replayed: 0, dropped: 0 };
 
   // dynamic import breaks the module cycle (expenses → queue → expenses)
-  const { createExpense } = await import("@/lib/data/expenses");
+  const { createExpense, isConnectivityError } = await import("@/lib/data/expenses");
 
   let replayed = 0;
+  let dropped = 0;
   for (const entry of entries) {
     try {
       if (entry.kind === "expense") {
@@ -46,9 +53,14 @@ export async function replayPendingWrites(): Promise<number> {
       }
       await db.delete("pending_writes", entry.id!);
       replayed++;
-    } catch {
-      break;
+    } catch (e) {
+      // Transient (network dropped again) → keep it queued, try the rest.
+      // Permanent → quarantine so it can't block later writes forever.
+      if (!isConnectivityError(e)) {
+        await db.delete("pending_writes", entry.id!);
+        dropped++;
+      }
     }
   }
-  return replayed;
+  return { replayed, dropped };
 }

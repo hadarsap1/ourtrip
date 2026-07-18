@@ -26,6 +26,7 @@ export default function LoginPage() {
       <h1 className="mb-2 text-3xl font-bold">{strings.appName}</h1>
       <p className="mb-10 text-slate-500">{strings.appDescription}</p>
       <button
+        type="button"
         onClick={signIn}
         className="rounded-full bg-teal-600 px-8 py-3 font-semibold text-white shadow-sm active:bg-teal-700"
       >
