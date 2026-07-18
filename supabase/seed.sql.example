@@ -29,5 +29,31 @@ from trips t,
      ) as v(key, label_he)
 where t.is_active;
 
+-- Full-day family dry-run checklist (Sprint 8) — a reusable template the
+-- family runs once before departure to shake out the whole app end-to-end.
+-- Instantiate it from the checklists screen (keeps source_template_id).
+with tpl as (
+  insert into checklists (trip_id, title, is_template)
+  select t.id, 'יום ניסיון משפחתי לפני הטיול', true from trips t where t.is_active
+  returning id
+)
+insert into checklist_items (checklist_id, label, sort_order)
+select tpl.id, v.label, v.ord
+from tpl,
+     (values
+       ('לארוז את תיק היום ולבדוק שכל המשפחה יודעת מה בפנים', 0),
+       ('להעביר את הטלפון למצב טיסה ולוודא שמסלול היום נטען לא מקוון', 1),
+       ('לפתוח מסמך מסומן לצפייה לא מקוונת (דרכון/ביטוח) בלי אינטרנט', 2),
+       ('לפתוח את דף החירום של מדינת היום במצב לא מקוון', 3),
+       ('לפתוח את השיחון ולעבור למצב "הצג למקומי"', 4),
+       ('לרשום הוצאה לדוגמה במטבע זר ולראות המרה לשקלים', 5),
+       ('לבדוק כניסת ילד/ה בטאבלט עם קוד PIN אחרי הפעלה מחדש', 6),
+       ('הילדים מעלים תמונה — ההורים מאשרים ומשתפים לאורחים', 7),
+       ('לשמור פין "איפה החניה" ולנווט אליו חזרה', 8),
+       ('להפעיל התראות (Web Push) בטלפון של כל הורה', 9),
+       ('אורח פותח את הפורטל ורואה רק תוכן משותף', 10),
+       ('לשלוח הודעה בקיר המשפחתי ולוודא שהיא מגיעה לכולם', 11)
+     ) as v(label, ord);
+
 -- NOTE: members.auth_user_id stays null until each owner's first Google login;
 -- the login callback links auth.users.id to the members row by email.

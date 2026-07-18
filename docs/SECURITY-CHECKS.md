@@ -130,3 +130,33 @@ Notes:
 - Non-allowlisted magic link: links are only ever generated for allowlisted emails (owner-gated function). If a non-allowlisted account signs in anyway, it has no `members` row → AuthGate rejects with the Hebrew error and RLS returns zero rows (deny-by-default; same proof as the Sprint 1/4 checks).
 - Guest photo bytes flow only through `guest-photos`: rows are selected under the CALLER's own JWT (RLS decides what exists), service role only signs URLs for those rows.
 - `guest-invite` never escalates an existing owner/kid member to guest (email collision check), and re-inviting clears `revoked_at` intentionally (documented owner action).
+
+## 2026-07-18 — Sprint 8: recommendations + notifications + hardening
+
+Environment: migrations `sprint8_push_backup` (repo `00010_...`) + `sprint8_recommendations` (repo `00011_...`) applied; Edge Functions `push-send`, `backup-weekly` (both `verify_jwt=false`) and `recommend` (`verify_jwt=true`, owner-gated in-function) deployed. New tables: `push_subscriptions`, `saved_recommendations`. New bucket: `backups` (private). Cron: `push-daily` (05:00 UTC), `backup-weekly` (Sun 03:00 UTC).
+
+New RLS: `push_subscriptions_self_all` (self only), `saved_recommendations_owner_all` (owner only), `backups_owner_select` on `storage.objects` (owner-only read; no client write policy → service-role writes only). All checks ran with probe rows through the production auth path (`authenticated` + resolved `member_id` claim; anon via `set local role anon`), each inside a transaction rolled back afterwards — no probes persist.
+
+Sprint 8 role-access matrix (new surfaces):
+
+| Role | `saved_recommendations` | `push_subscriptions` | `backups` storage | Result |
+|---|---|---|---|---|
+| owner | sees rows (1 probe) | sees **own** only (owner's 1, not kid's) | sees objects (1 real backup) | ✅ PASS |
+| kid | **0** | sees **own** only (1), owner's row **0** | **0** | ✅ PASS |
+| guest | **0** | **0** | **0** | ✅ PASS |
+| anon | **0** | **0** | **0** | ✅ PASS |
+
+| Check | Method | Result |
+|---|---|---|
+| Kid cannot register a push subscription under another member's `member_id` (WITH CHECK) | live insert as kid with owner's `member_id` → `42501` RLS violation, no row | ✅ PASS |
+| `recommend` rejects a non-owner caller | in-function `current_member_role()` gate → 403 `forbidden` (same pattern proven for `phrasebook-generate` in Sprint 5) | ✅ PASS |
+| Weekly backup writes to the private bucket | invoked `backup-weekly` via `pg_net`; `backup-2026-07-18-06-07-50.json` (32 KB, 26 tables) appeared in `backups` | ✅ PASS |
+| No new RLS gaps | `get_advisors(security)` — neither new table flagged (RLS enabled + policies present); only the pre-existing accepted `SECURITY DEFINER` helper WARNs (Sprint 1) + standard `pg_net`/auth items remain | ✅ PASS |
+
+Cumulative deny-by-default for the core sensitive tables (`documents`, `bookings`, `expenses`, `budget_categories`, `pocket_money`, `checklists`) against kid/guest/anon was proven in the Sprint 4/6/7 logs and is unchanged by this sprint (no policy on those tables was touched).
+
+Notes:
+- **Accepted risk (revisited from Sprint 3)**: `push-send` and `backup-weekly` are `verify_jwt=false` so `pg_cron`/`pg_net` and the message/photo AFTER-INSERT triggers can invoke them without embedding a key in SQL. Neither returns data. `backup-weekly` only writes an idempotent-per-second snapshot to a private, owner-only bucket. `push-send` loads all content server-side from the id it is handed and only ever pushes to legitimately-subscribed devices, so a forged call can at most **re-notify real content** to the real recipients — it cannot exfiltrate or target arbitrary endpoints. `recommend` stays owner-gated (`verify_jwt=true` + in-function role check) because it spends the Anthropic key.
+- The `messages_notify` / `photos_notify_pending` triggers use `pg_net` fire-and-forget: if `push-send` errors (e.g. VAPID unset), the originating INSERT still commits — messaging/photos never regress on a push failure.
+- **⚠️ PENDING — VAPID secrets**: push delivery needs `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set as `push-send` function secrets, and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in Vercel env, before any notification is actually sent. Until then `push-send` returns 500 harmlessly. Android install-and-receive + iOS installed-only receive are re-tested on the real devices once keys are set (same "verify on real hardware" posture as the Sprint 6 PIN-unlock item). The install-instructions screen (`/notifications`) covers the iOS 16.4+ home-screen requirement.
+- `recommend` degrades gracefully: with no `GOOGLE_MAPS_API_KEY` it returns a Claude-only answer (no `place_id`); with the key it curates real Google Places candidates. Either way results are ephemeral until the owner saves them — the maybe-list (`saved_recommendations`) and the itinerary are the only persisted sinks.

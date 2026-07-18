@@ -1,0 +1,117 @@
+import { getSupabase } from "@/lib/supabase";
+import { getCurrentMember } from "@/lib/data/trip";
+import type { SavedRecommendation } from "@/lib/types";
+
+function requireClient() {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error("supabase not configured");
+  return supabase;
+}
+
+// A recommendation as returned by the `recommend` Edge Function (ephemeral,
+// not yet persisted). Shares fields with saved_recommendations so a saved row
+// and a fresh suggestion render through the same card.
+export type Recommendation = {
+  title: string;
+  category: string | null;
+  description: string | null;
+  location_name: string | null;
+  lat: number | null;
+  lng: number | null;
+  place_id: string | null;
+  country_code: string | null;
+  maps_url: string | null;
+};
+
+export type RecommendParams = {
+  lat?: number | null;
+  lng?: number | null;
+  area_name?: string | null;
+  country_code?: string | null;
+};
+
+/** Invokes the owner-gated Edge Function (Anthropic + Places). Takes ~10-30s. */
+export async function fetchRecommendations(
+  params: RecommendParams
+): Promise<Recommendation[]> {
+  const { data, error } = await requireClient().functions.invoke("recommend", {
+    body: {
+      lat: params.lat ?? null,
+      lng: params.lng ?? null,
+      area_name: params.area_name ?? null,
+      country_code: params.country_code ?? null,
+    },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error ?? "recommend failed");
+  return (data.recommendations ?? []) as Recommendation[];
+}
+
+export async function listSavedRecommendations(
+  tripId: string
+): Promise<SavedRecommendation[]> {
+  const { data, error } = await requireClient()
+    .from("saved_recommendations")
+    .select("*")
+    .eq("trip_id", tripId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Parks a recommendation on the maybe-list. */
+export async function saveRecommendation(
+  tripId: string,
+  rec: Recommendation
+): Promise<void> {
+  const member = await getCurrentMember();
+  const { error } = await requireClient().from("saved_recommendations").insert({
+    trip_id: tripId,
+    title: rec.title,
+    category: rec.category,
+    description: rec.description,
+    location_name: rec.location_name,
+    lat: rec.lat,
+    lng: rec.lng,
+    place_id: rec.place_id,
+    country_code: rec.country_code,
+    maps_url: rec.maps_url,
+    created_by: member?.id ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSavedRecommendation(id: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("saved_recommendations")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** One-tap "save into the itinerary": appends an item to a day (SPEC 2.8). */
+export async function addRecommendationToDay(
+  dayId: string,
+  rec: Recommendation
+): Promise<void> {
+  const supabase = requireClient();
+  const { data: existing } = await supabase
+    .from("itinerary_items")
+    .select("sort_order")
+    .eq("day_id", dayId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const { error } = await supabase.from("itinerary_items").insert({
+    day_id: dayId,
+    title: rec.title,
+    location_name: rec.location_name,
+    lat: rec.lat,
+    lng: rec.lng,
+    place_id: rec.place_id,
+    notes: rec.description,
+    sort_order: nextOrder,
+  });
+  if (error) throw new Error(error.message);
+}
