@@ -198,12 +198,50 @@ export type Database = {
           },
         ]
       }
+      document_pin: {
+        Row: {
+          created_at: string
+          salt: string
+          trip_id: string
+          updated_at: string
+          verifier_ct: string
+          verifier_iv: string
+        }
+        Insert: {
+          created_at?: string
+          salt: string
+          trip_id: string
+          updated_at?: string
+          verifier_ct: string
+          verifier_iv: string
+        }
+        Update: {
+          created_at?: string
+          salt?: string
+          trip_id?: string
+          updated_at?: string
+          verifier_ct?: string
+          verifier_iv?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pin_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
+          enc_mime: string | null
           file_path: string
           id: string
           notes: string | null
+          pin_protected: boolean
+          shared_with_kids: boolean
           tag: string
           title: string
           trip_id: string
@@ -211,9 +249,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          enc_mime?: string | null
           file_path: string
           id?: string
           notes?: string | null
+          pin_protected?: boolean
+          shared_with_kids?: boolean
           tag: string
           title: string
           trip_id: string
@@ -221,9 +262,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          enc_mime?: string | null
           file_path?: string
           id?: string
           notes?: string | null
+          pin_protected?: boolean
+          shared_with_kids?: boolean
           tag?: string
           title?: string
           trip_id?: string

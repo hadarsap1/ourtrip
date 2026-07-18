@@ -21,7 +21,7 @@ export function OfflineBanner() {
 
   if (!offline) return null;
   return (
-    <div className="sticky top-0 z-50 bg-amber-500 px-4 py-2 text-center text-sm font-medium text-white">
+    <div className="offline-banner sticky top-0 z-50 bg-amber-500 px-4 py-2 text-center text-sm font-medium text-white">
       {strings.offline.banner}
     </div>
   );

@@ -140,7 +140,15 @@ export async function createExpense(input: {
 }
 
 export function isConnectivityError(e: unknown): boolean {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  // Only trust navigator.onLine when it's actually a boolean (it's undefined
+  // in Node/SSR, where treating it as "offline" would misclassify errors).
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.onLine === "boolean" &&
+    !navigator.onLine
+  ) {
+    return true;
+  }
   const message = e instanceof Error ? e.message.toLowerCase() : "";
   return message.includes("fetch") || message.includes("network");
 }

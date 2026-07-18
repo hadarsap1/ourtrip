@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { decryptBlob, encryptBlob } from "@/lib/docCrypto";
 import {
   readOfflineDocument,
   removeOfflineDocument,
@@ -68,6 +69,96 @@ export async function updateDocument(
     .update(patch)
     .eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/** Owner opts a single document in/out of kid visibility (B1). */
+export async function setDocumentSharedWithKids(
+  id: string,
+  shared: boolean
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("documents")
+    .update({ shared_with_kids: shared })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+// ---------- end-to-end lock (Documents PIN) ----------
+
+/** Downloads whatever is stored at a document's path (ciphertext for a locked
+ *  document, plaintext otherwise). Online: signed URL; offline: cached copy. */
+async function fetchBytes(doc: Document): Promise<Blob | null> {
+  if (typeof navigator !== "undefined" && navigator.onLine) {
+    try {
+      const url = await getDocumentUrl(doc.file_path);
+      const res = await fetch(url);
+      if (res.ok) return await res.blob();
+    } catch {
+      // fall through to the offline copy
+    }
+  }
+  const offline = await readOfflineDocument(doc.id);
+  return offline ? offline.blob : null;
+}
+
+/**
+ * Locks a document: encrypts the stored file in place under the vault key and
+ * flips pin_protected. A locked document is never kid-shared (kids don't have
+ * the PIN), so sharing is cleared. The bucket then holds only ciphertext.
+ */
+export async function protectDocument(doc: Document, key: CryptoKey): Promise<void> {
+  const supabase = requireClient();
+  const plain = await fetchBytes(doc);
+  if (!plain) throw new Error("source unavailable");
+  const container = await encryptBlob(key, plain);
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(doc.file_path, container, { upsert: true, contentType: "application/octet-stream" });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { error } = await supabase
+    .from("documents")
+    .update({
+      pin_protected: true,
+      enc_mime: plain.type || "application/octet-stream",
+      shared_with_kids: false,
+    })
+    .eq("id", doc.id);
+  if (error) throw new Error(error.message);
+  await removeOfflineDocument(doc.id); // stale plaintext copy
+}
+
+/** Unlocks a document: decrypts the stored file back to plaintext in place. */
+export async function unprotectDocument(doc: Document, key: CryptoKey): Promise<void> {
+  const supabase = requireClient();
+  const container = await fetchBytes(doc);
+  if (!container) throw new Error("source unavailable");
+  const plain = await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream");
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(doc.file_path, plain, { upsert: true, contentType: plain.type || undefined });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { error } = await supabase
+    .from("documents")
+    .update({ pin_protected: false, enc_mime: null })
+    .eq("id", doc.id);
+  if (error) throw new Error(error.message);
+  await removeOfflineDocument(doc.id);
+}
+
+/** Decrypts a locked document to a viewable plaintext blob (wrong key → null). */
+export async function decryptDocument(
+  doc: Document,
+  key: CryptoKey
+): Promise<Blob | null> {
+  const container = await fetchBytes(doc);
+  if (!container) return null;
+  try {
+    return await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream");
+  } catch {
+    return null; // wrong key / corrupt
+  }
 }
 
 /** Removes row, storage object, and any offline copy. */
