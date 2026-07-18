@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
+  autofillEmergency,
   countryName,
   getTodayCountryCode,
   listCountryOptions,
@@ -11,6 +12,7 @@ import {
   type EmergencyContent,
   type EmergencyPage,
 } from "@/lib/data/emergency";
+import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 import type { Trip } from "@/lib/types";
 import { EmergencyEditSheet } from "./EmergencyEditSheet";
@@ -49,6 +51,9 @@ export function EmergencyScreen() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ countryCode: string | null } | null>(null);
+  const [autofilling, setAutofilling] = useState(false);
+  const { member } = useMember();
+  const isOwner = !member || member.role === "owner";
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -67,6 +72,23 @@ export function EmergencyScreen() {
     setCountryOptions(options);
     return nextPages;
   }, []);
+
+  const runAutofill = useCallback(
+    async (code: string) => {
+      if (!trip || autofilling) return;
+      setAutofilling(true);
+      try {
+        await autofillEmergency(code);
+        await refresh(trip.id);
+        showToast(strings.emergency.autofilled);
+      } catch {
+        showToast(strings.common.error);
+      } finally {
+        setAutofilling(false);
+      }
+    },
+    [trip, autofilling, refresh, showToast]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -171,9 +193,22 @@ export function EmergencyScreen() {
       {selected && (
         <>
           {!page || Object.keys(content).length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-rose-200 bg-white p-8 text-center text-sm text-slate-500">
-              {strings.emergency.emptyPage}
-            </p>
+            <div className="space-y-3 rounded-2xl border border-dashed border-rose-200 bg-white p-6 text-center">
+              <p className="text-sm text-slate-500">{strings.emergency.emptyPage}</p>
+              {isOwner && trip && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void runAutofill(selected)}
+                    disabled={autofilling}
+                    className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow-sm disabled:opacity-50"
+                  >
+                    ✨ {autofilling ? strings.emergency.autofilling : strings.emergency.autofill}
+                  </button>
+                  <p className="text-xs text-slate-400">{strings.emergency.autofillHint}</p>
+                </>
+              )}
+            </div>
           ) : (
             <div className="space-y-4">
               {(content.police || content.ambulance || content.fire) && (
