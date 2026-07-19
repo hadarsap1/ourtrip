@@ -576,6 +576,13 @@ export const strings = {
     empty: "עוד לא יובאו תמונות מ-Google Photos",
     deleteConfirm: "להסיר את התמונה מהאפליקציה? (המקור נשאר ב-Google Photos)",
     cancel: "ביטול",
+    shareToggle: "שיתוף עם אורחים",
+    attachToPin: "שיוך למקום במפה",
+    attachTitle: "בחירת מקום במפה",
+    attachNone: "עדיין אין מקומות (סימונים) במפה",
+    detach: "ביטול שיוך",
+    attached: "משויך למפה",
+    onMap: "מופיע במפה 📷",
   },
 
   pocket: {
