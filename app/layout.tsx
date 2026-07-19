@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d9488",
+  themeColor: "#0e7c6b",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+      <body className="min-h-full flex flex-col bg-paper text-ink">
         <OfflineBanner />
         <main className="flex-1 pb-20">
           <AuthGate>{children}</AuthGate>

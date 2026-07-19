@@ -191,6 +191,9 @@ export const strings = {
     menuNotifications: "התראות",
     menuLinks: "קישורים שמורים",
     menuMemoryBook: "ספר זיכרונות",
+    groupExplore: "בסביבה",
+    groupMemories: "זיכרונות",
+    groupFamily: "משפחה וניהול",
   },
 
   memoryBook: {

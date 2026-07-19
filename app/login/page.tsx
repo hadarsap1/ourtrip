@@ -22,20 +22,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center px-4 pt-24 text-center">
-      <h1 className="mb-2 text-3xl font-bold">{strings.appName}</h1>
-      <p className="mb-10 text-slate-500">{strings.appDescription}</p>
+    <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-5 pb-16">
+      <div className="ot-postcard mb-8 p-7 text-center">
+        <p className="relative z-10 text-5xl" aria-hidden="true">🧳</p>
+        <h1 className="relative z-10 mt-3 text-3xl font-bold">{strings.appName}</h1>
+        <p className="relative z-10 mt-1 text-white/80">{strings.appDescription}</p>
+      </div>
       <button
         type="button"
         onClick={signIn}
-        className="rounded-full bg-teal-600 px-8 py-3 font-semibold text-white shadow-sm active:bg-teal-700"
+        className="rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-white shadow-sm active:bg-sea-deep"
       >
         {strings.auth.signIn}
       </button>
-      {error && <p className="mt-6 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-5 text-center text-sm text-rose-600">{error}</p>
+      )}
       <Link
         href="/kid-login"
-        className="mt-10 text-sm text-slate-400 underline"
+        className="mt-8 text-center text-sm text-ink-soft underline"
       >
         {strings.kidLogin.title}
       </Link>

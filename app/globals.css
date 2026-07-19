@@ -1,8 +1,30 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   OurTrip design system — "Paper · Sea · Sun"
+   A family round-the-world trip journal. Warm ivory paper instead of cold
+   grey; deep teal "sea" as the brand; marigold "sun" as a sparing accent.
+   Tokens below generate Tailwind utilities (bg-sea, text-sun, border-line …).
+--------------------------------------------------------------------------- */
+@theme {
+  --color-paper: #fbf7ef;
+  --color-paper-deep: #f3ead9;
+  --color-ink: #22312e;
+  --color-ink-soft: #6b756e;
+  --color-sea: #0e7c6b;
+  --color-sea-deep: #0b5f54;
+  --color-sea-tint: #e3efeb;
+  --color-sun: #d9931e;
+  --color-sun-tint: #fbedcf;
+  --color-line: #ece3d3;
+
+  --radius-stamp: 1.5rem;
+  --shadow-card: 0 1px 2px rgba(34, 49, 46, 0.05), 0 10px 26px -14px rgba(34, 49, 46, 0.18);
+}
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #fbf7ef;
+  --foreground: #22312e;
 }
 
 @theme inline {
@@ -15,6 +37,53 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-heebo), system-ui, sans-serif;
+}
+
+/* Reusable primitives. Plain CSS (not @apply) so they stay robust regardless of
+   utility ordering, and can be dropped onto any screen for a consistent look. */
+.ot-card {
+  border-radius: var(--radius-stamp);
+  border: 1px solid var(--color-line);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+/* Small colored label that sits above a section title — a travel-log "eyebrow". */
+.ot-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-sun);
+}
+
+/* The signature postcard band: a soft sea gradient with a faint horizon line. */
+.ot-postcard {
+  border-radius: var(--radius-stamp);
+  background:
+    linear-gradient(135deg, var(--color-sea) 0%, var(--color-sea-deep) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+.ot-postcard::after {
+  /* faint dashed "route" arc, evoking a map path */
+  content: "";
+  position: absolute;
+  inset-block-start: -40%;
+  inset-inline-start: -10%;
+  width: 70%;
+  height: 160%;
+  border-radius: 9999px;
+  border: 2px dashed rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+
+/* Thin dashed divider echoing a stitched map route. */
+.ot-route-divider {
+  height: 0;
+  border: 0;
+  border-top: 1.5px dashed var(--color-line);
 }
 
 /* Memory-book "Save as PDF": hide app chrome + anything marked .no-print,
