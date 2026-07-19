@@ -1,11 +1,15 @@
 // Sprint 8 — "מה בסביבה" local recommendations (SPEC 2.8). Owner-gated
 // (deployed verify_jwt=true; additionally re-checks role='owner' in-function,
-// same pattern as phrasebook-generate). Google Places supplies real nearby
-// candidates when GOOGLE_MAPS_API_KEY is set; Claude curates + describes them
-// in Hebrew with a kid-friendly bias. With no Places key it degrades to a
-// knowledge-only answer from the coordinates + area name — the feature never
-// blocks. Results are ephemeral: the client saves the ones it wants into the
-// itinerary or the maybe-list (saved_recommendations).
+// same pattern as phrasebook-generate).
+//
+// Recommendations are GROUNDED in real places so the model never invents
+// business names: Google Places when GOOGLE_MAPS_API_KEY is set, otherwise
+// keyless OpenStreetMap (Overpass API). Claude only curates + describes the
+// real candidates in Hebrew with a kid-friendly bias. If no candidates are
+// found at all it gives generic area guidance (no invented names). Coordinates
+// are reverse-geocoded (keyless) so the model knows the actual city. Results
+// are ephemeral: the client saves what it wants into the itinerary or the
+// maybe-list (saved_recommendations).
 //
 // Structured output uses the tool-use pattern (forced tool_choice): it is
 // supported across SDK/model versions, unlike the newer output_config format.
@@ -90,6 +94,52 @@ async function reverseGeocode(
     return { area: area ?? null, countryCode };
   } catch {
     return { area: null, countryCode: null };
+  }
+}
+
+/** Real nearby POIs from OpenStreetMap via the Overpass API — keyless, global.
+ *  Used to ground recommendations in places that actually exist (so the model
+ *  curates instead of inventing business names) when no Google Places key is
+ *  set. Best-effort: returns [] on any error/timeout. */
+async function fetchOsmPlaces(lat: number, lng: number): Promise<Candidate[]> {
+  const q =
+    `[out:json][timeout:20];(` +
+    `node["amenity"~"^(restaurant|cafe|fast_food|ice_cream)$"](around:2500,${lat},${lng});` +
+    `node["tourism"~"^(attraction|museum|zoo|theme_park|aquarium|viewpoint)$"](around:2500,${lat},${lng});` +
+    `node["leisure"~"^(park|playground|water_park)$"](around:2500,${lat},${lng});` +
+    `);out center 50;`;
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "OurTrip/1.0 (family trip planner)",
+      },
+      body: "data=" + encodeURIComponent(q),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const out: Candidate[] = [];
+    for (const el of data.elements ?? []) {
+      const tags = el.tags ?? {};
+      const name = tags.name ?? tags["name:he"] ?? tags["name:en"];
+      if (!name) continue;
+      const street = tags["addr:street"];
+      const hn = tags["addr:housenumber"];
+      const kind = tags.amenity ?? tags.tourism ?? tags.leisure ?? "";
+      const address = street ? `${street}${hn ? " " + hn : ""}` : kind;
+      out.push({
+        name,
+        address,
+        lat: el.lat ?? el.center?.lat ?? null,
+        lng: el.lon ?? el.center?.lon ?? null,
+        place_id: null,
+      });
+      if (out.length >= 40) break;
+    }
+    return out;
+  } catch {
+    return [];
   }
 }
 
@@ -196,12 +246,15 @@ Deno.serve(async (req) => {
     if (!resolvedCC && geo.countryCode) resolvedCC = geo.countryCode;
   }
 
-  // real nearby candidates (best-effort)
+  // Real nearby candidates (best-effort): Google Places if a key is set,
+  // otherwise keyless OpenStreetMap. Either way the model curates REAL places
+  // instead of recalling business names from memory (which it invents).
   const placesKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
-  const candidates =
-    placesKey && lat !== null && lng !== null
-      ? await fetchPlaces(placesKey, lat, lng)
-      : [];
+  let candidates: Candidate[] = [];
+  if (lat !== null && lng !== null) {
+    candidates = placesKey ? await fetchPlaces(placesKey, lat, lng) : [];
+    if (candidates.length === 0) candidates = await fetchOsmPlaces(lat, lng);
+  }
 
   const anthropic = new Anthropic(); // ANTHROPIC_API_KEY from function secrets
   const whereText =
@@ -211,19 +264,19 @@ Deno.serve(async (req) => {
 
   const candidateBlock =
     candidates.length > 0
-      ? `Here are real nearby places from Google Places (index — name — address):\n` +
+      ? `Here are real, verified nearby places (index — name — address):\n` +
         candidates.map((c, i) => `${i}. ${c.name} — ${c.address}`).join("\n") +
         `\n\nChoose the 6-8 best of these for a family with two young kids. ` +
         `Set candidate_index to the number of the place you chose and copy its ` +
         `name into title. You MAY also add up to 2 general tips (category "טיפ", ` +
         `candidate_index null).`
-      : `No live place list is available. From your own knowledge, suggest 6-8 ` +
-        `real, specific, currently-known family spots that are IN or immediately ` +
-        `around ${resolvedArea || "this exact location"} — the place at the ` +
-        `coordinates above. Do NOT substitute a famous tourist city elsewhere in ` +
-        `the country; if you are not confident about this specific area, prefer ` +
-        `general nearby options over inventing landmarks. Set candidate_index to ` +
-        `null for every item and fill lat/lng only if you are confident, else null.`;
+      : `No verified place list is available for ${resolvedArea || "this location"}. ` +
+        `Do NOT invent specific business names — made-up restaurants/shops are worse ` +
+        `than none. Instead give practical, GENERIC family guidance for this exact ` +
+        `area (e.g. "look for a neighbourhood park", "a mall food court is an easy ` +
+        `kid meal", well-known national chains that are genuinely widespread here), ` +
+        `plus a couple of local tips (category "טיפ"). Only name a specific place if ` +
+        `you are certain it exists there. Set candidate_index to null for every item.`;
 
   let response;
   try {
@@ -279,7 +332,19 @@ Deno.serve(async (req) => {
   }
   const raw = ((toolUse.input as { recommendations?: Raw[] }).recommendations) ?? [];
 
-  const recommendations = raw.map((r) => {
+  // Hard anti-hallucination guard: when we DID supply a real candidate list,
+  // every non-tip item must map to one of those candidates. Drop anything the
+  // model added on its own (that's where invented business names come from).
+  const grounded =
+    candidates.length > 0
+      ? raw.filter(
+          (r) =>
+            r.category === "טיפ" ||
+            (r.candidate_index != null && !!candidates[r.candidate_index])
+        )
+      : raw;
+
+  const recommendations = grounded.map((r) => {
     const c =
       r.candidate_index != null && candidates[r.candidate_index]
         ? candidates[r.candidate_index]
@@ -303,6 +368,11 @@ Deno.serve(async (req) => {
   return json({
     ok: true,
     recommendations,
-    source: candidates.length > 0 ? "places+claude" : "claude",
+    source:
+      candidates.length > 0
+        ? placesKey
+          ? "google+claude"
+          : "osm+claude"
+        : "claude",
   });
 });
