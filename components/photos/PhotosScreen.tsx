@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
+import { GooglePhotosSection } from "./GooglePhotosSection";
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -213,6 +214,13 @@ function FamilyPhotosView() {
         className="hidden"
         onChange={(e) => void handleUpload(e.target.files?.[0] ?? null)}
       />
+
+      {/* Google Photos: owner imports, family (owner + kids) views */}
+      {trip && (
+        <div className="border-t border-slate-200 pt-4">
+          <GooglePhotosSection tripId={trip.id} isOwner={isOwner} />
+        </div>
+      )}
 
       {/* owner approval queue (kid uploads land here — DECISIONS #4) */}
       {isOwner && pending.length > 0 && (
