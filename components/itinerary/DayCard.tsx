@@ -27,7 +27,7 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
 };
 
 const STATUS_CLASS: Record<ItemStatus, string> = {
-  planned: "bg-slate-100 text-slate-600",
+  planned: "bg-paper-deep text-ink-soft",
   done: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-rose-100 text-rose-600",
 };
@@ -68,18 +68,18 @@ export function DayCard({
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
       <button
         type="button"
         onClick={onEditDay}
-        className="flex w-full items-baseline justify-between gap-2 bg-teal-50 px-4 py-3 text-start"
+        className="flex w-full items-baseline justify-between gap-2 bg-sea-tint px-4 py-3 text-start"
       >
         <span>
-          <span className="font-bold text-teal-800">
+          <span className="font-bold text-sea">
             {formatWeekday(day.date)} {formatDate(day.date)}
           </span>
           {day.location_name && (
-            <span className="mr-2 text-sm text-teal-700">
+            <span className="mr-2 text-sm text-sea">
               {day.location_name}
             </span>
           )}
@@ -97,14 +97,14 @@ export function DayCard({
           )}
         </span>
         {day.country_code && (
-          <span className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-teal-700">
+          <span className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-sea">
             {day.country_code}
           </span>
         )}
       </button>
 
       {items.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-slate-400">
+        <p className="px-4 py-3 text-sm text-ink-soft">
           {strings.itinerary.emptyDayItems}
         </p>
       ) : (
@@ -117,7 +117,7 @@ export function DayCard({
             items={items.map((i) => i.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {items.map((item) => (
                 <SortableItem
                   key={item.id}
@@ -139,7 +139,7 @@ export function DayCard({
       <button
         type="button"
         onClick={onAddItem}
-        className="w-full border-t border-slate-100 py-2.5 text-sm font-semibold text-teal-600 hover:bg-teal-50"
+        className="w-full border-t border-line py-2.5 text-sm font-semibold text-sea hover:bg-sea-tint"
       >
         + {strings.itinerary.addItem}
       </button>
@@ -182,7 +182,7 @@ function SortableItem({
         {...attributes}
         {...listeners}
         aria-label={strings.itinerary.dragHandle}
-        className="cursor-grab touch-none p-1.5 text-slate-300 active:cursor-grabbing"
+        className="cursor-grab touch-none p-1.5 text-line active:cursor-grabbing"
       >
         <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
           <circle cx="7" cy="4" r="1.5" />
@@ -201,7 +201,7 @@ function SortableItem({
       >
         <span className="flex items-baseline gap-2">
           {item.start_time && (
-            <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-500" dir="ltr">
+            <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-soft" dir="ltr">
               {formatTime(item.start_time)}
               {item.end_time ? `–${formatTime(item.end_time)}` : ""}
             </span>
@@ -209,15 +209,15 @@ function SortableItem({
           <span
             className={`truncate font-medium ${
               item.status === "cancelled"
-                ? "text-slate-400 line-through"
-                : "text-slate-800"
+                ? "text-ink-soft line-through"
+                : "text-ink"
             }`}
           >
             {item.title}
           </span>
         </span>
         {(item.location_name || hasBooking || item.is_outdoor) && (
-          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
+          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-soft">
             {item.location_name && (
               <span className="truncate">{item.location_name}</span>
             )}
@@ -231,7 +231,7 @@ function SortableItem({
         type="button"
         onClick={onMove}
         aria-label={strings.itinerary.moveItem}
-        className="p-1.5 text-slate-400 hover:text-teal-600"
+        className="p-1.5 text-ink-soft hover:text-sea"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

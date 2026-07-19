@@ -78,7 +78,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <h1 className="mb-2 text-2xl font-bold">
           {strings.auth.notAllowedTitle}
         </h1>
-        <p className="text-slate-500">{strings.auth.notAllowedBody}</p>
+        <p className="text-ink-soft">{strings.auth.notAllowedBody}</p>
       </div>
     );
   }

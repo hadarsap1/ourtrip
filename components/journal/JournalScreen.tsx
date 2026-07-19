@@ -105,7 +105,7 @@ export function JournalScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -130,7 +130,7 @@ export function JournalScreen() {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={strings.journal.placeholder}
-          className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+          className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-base focus:border-sea focus:outline-none"
         />
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex gap-1" role="radiogroup" aria-label={strings.journal.mood}>
@@ -149,7 +149,7 @@ export function JournalScreen() {
               </button>
             ))}
           </div>
-          <label className={`cursor-pointer rounded-xl px-2.5 py-2 text-sm font-semibold ${photo ? "bg-teal-100 text-teal-700" : "bg-white text-slate-600"}`}>
+          <label className={`cursor-pointer rounded-xl px-2.5 py-2 text-sm font-semibold ${photo ? "bg-sea-tint text-sea" : "bg-white text-ink-soft"}`}>
             📷 {photo ? "✓" : strings.journal.addPhoto}
             <input
               type="file"
@@ -163,7 +163,7 @@ export function JournalScreen() {
           type="button"
           onClick={() => void handlePublish()}
           disabled={saving || !body.trim()}
-          className="mt-3 w-full rounded-xl bg-teal-600 py-3 font-bold text-white hover:bg-teal-700 disabled:opacity-50"
+          className="mt-3 w-full rounded-xl bg-sea py-3 font-bold text-white hover:bg-sea-deep disabled:opacity-50"
         >
           {strings.journal.publish}
         </button>
@@ -171,7 +171,7 @@ export function JournalScreen() {
       )}
 
       {entries.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.journal.empty}
         </p>
       ) : (
@@ -179,9 +179,9 @@ export function JournalScreen() {
           {entries.map((entry) => (
             <li
               key={entry.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-line bg-white p-4 shadow-sm"
             >
-              <div className="flex items-baseline justify-between gap-2 text-xs text-slate-400">
+              <div className="flex items-baseline justify-between gap-2 text-xs text-ink-soft">
                 <span>
                   {formatDate(entry.entry_date)}
                   {showAuthor && ` · ${memberName(entry.author_id)}`}
@@ -189,10 +189,10 @@ export function JournalScreen() {
                 </span>
                 {entry.mood && <span className="text-lg">{entry.mood}</span>}
               </div>
-              <p className="mt-1.5 whitespace-pre-wrap text-slate-800">{entry.body}</p>
+              <p className="mt-1.5 whitespace-pre-wrap text-ink">{entry.body}</p>
               <div className="mt-2 flex items-center justify-between text-xs font-semibold">
                 {isOwner ? (
-                  <label className="flex items-center gap-1.5 text-slate-500">
+                  <label className="flex items-center gap-1.5 text-ink-soft">
                     <input
                       type="checkbox"
                       checked={entry.shared_with_guests}
@@ -214,7 +214,7 @@ export function JournalScreen() {
                     {strings.journal.shareToggle}
                   </label>
                 ) : entry.shared_with_guests ? (
-                  <span className="text-teal-600">
+                  <span className="text-sea">
                     {strings.journal.sharedWithGuests}
                   </span>
                 ) : (

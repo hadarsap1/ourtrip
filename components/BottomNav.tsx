@@ -124,10 +124,10 @@ export function BottomNav() {
     const roleTabs = role === "kid" ? kidTabs : guestTabs;
     return (
       <nav
-        className="fixed bottom-0 inset-x-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+        className="fixed bottom-0 inset-x-0 z-50 border-t border-line bg-paper/90 backdrop-blur pb-[env(safe-area-inset-bottom)]"
         aria-label={strings.appName}
       >
-        <ul className="flex justify-around">
+        <ul className="flex justify-around px-1 pt-1.5">
           {roleTabs.map((tab) => {
             const active =
               tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -135,8 +135,11 @@ export function BottomNav() {
               <li key={tab.href} className="flex-1">
                 <Link
                   href={tab.href}
-                  className={`flex flex-col items-center gap-0.5 py-2 text-xs ${
-                    active ? "text-teal-600 font-bold" : "text-slate-500"
+                  aria-current={active ? "page" : undefined}
+                  className={`mx-auto flex w-fit flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-xs transition-colors ${
+                    active
+                      ? "bg-sun-tint font-bold text-sea-deep"
+                      : "text-ink-soft"
                   }`}
                 >
                   <span className="relative text-2xl" aria-hidden="true">
@@ -159,10 +162,10 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 inset-x-0 z-50 border-t border-line bg-paper/90 backdrop-blur pb-[env(safe-area-inset-bottom)]"
       aria-label={strings.appName}
     >
-      <ul className="flex justify-around">
+      <ul className="flex justify-around px-1 pt-1.5">
         {tabs.map((tab) => {
           const active =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -170,8 +173,11 @@ export function BottomNav() {
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
-                className={`flex flex-col items-center gap-0.5 py-2 text-xs ${
-                  active ? "text-teal-600 font-semibold" : "text-slate-500"
+                aria-current={active ? "page" : undefined}
+                className={`mx-auto flex w-fit flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-xs transition-colors ${
+                  active
+                    ? "bg-sun-tint font-semibold text-sea-deep"
+                    : "text-ink-soft"
                 }`}
               >
                 <svg

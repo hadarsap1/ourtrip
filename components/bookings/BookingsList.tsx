@@ -37,7 +37,7 @@ export function BookingsList({
   return (
     <div className="space-y-3 pb-8">
       {bookings.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.bookings.empty}
         </p>
       )}
@@ -53,7 +53,7 @@ export function BookingsList({
       <button
         type="button"
         onClick={onAdd}
-        className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+        className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
       >
         {strings.bookings.add}
       </button>
@@ -88,7 +88,7 @@ function BookingCard({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
       <button
         type="button"
         onClick={onEdit}
@@ -97,10 +97,10 @@ function BookingCard({
         <span className="flex min-w-0 items-baseline gap-2">
           <span aria-hidden="true">{TYPE_ICON[booking.type]}</span>
           <span className="min-w-0">
-            <span className="block truncate font-semibold text-slate-800">
+            <span className="block truncate font-semibold text-ink">
               {booking.title}
             </span>
-            <span className="block text-xs text-slate-500">
+            <span className="block text-xs text-ink-soft">
               {strings.bookings.types[booking.type]}
               {booking.start_date && (
                 <>
@@ -129,20 +129,20 @@ function BookingCard({
             {strings.bookings.statuses[booking.status]}
           </span>
           {booking.cost != null && (
-            <span className="text-sm font-semibold text-slate-700" dir="ltr">
+            <span className="text-sm font-semibold text-ink" dir="ltr">
               {formatMoney(booking.cost, booking.currency ?? "ILS")}
             </span>
           )}
         </span>
       </button>
 
-      <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-2 text-xs font-semibold">
+      <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2 text-xs font-semibold">
         {booking.file_path && (
           <button
             type="button"
             onClick={() => void openFile()}
             disabled={opening}
-            className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+            className="rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line disabled:opacity-50"
           >
             📄 {strings.bookings.openFile}
           </button>
@@ -152,7 +152,7 @@ function BookingCard({
             href={booking.link_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-slate-700 hover:bg-slate-200"
+            className="rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line"
           >
             🔗 {strings.bookings.openLink}
           </a>
@@ -160,7 +160,7 @@ function BookingCard({
         <button
           type="button"
           onClick={onAddToDay}
-          className="rounded-lg bg-teal-50 px-2.5 py-1.5 text-teal-700 hover:bg-teal-100"
+          className="rounded-lg bg-sea-tint px-2.5 py-1.5 text-sea hover:bg-sea-tint"
         >
           📅 {strings.bookings.addToDay}
         </button>

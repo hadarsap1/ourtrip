@@ -20,19 +20,19 @@ export function DayPickerSheet({
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={title}>
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-line">
         {days.map((day) => (
           <li key={day.id}>
             <button
               type="button"
               onClick={() => onPick(day)}
-              className="flex w-full items-baseline justify-between gap-2 py-3 text-start hover:bg-slate-50"
+              className="flex w-full items-baseline justify-between gap-2 py-3 text-start hover:bg-paper-deep"
             >
-              <span className="font-medium text-slate-800">
+              <span className="font-medium text-ink">
                 {formatWeekday(day.date)} {formatDate(day.date)}
               </span>
               {day.location_name && (
-                <span className="truncate text-sm text-slate-500">
+                <span className="truncate text-sm text-ink-soft">
                   {day.location_name}
                 </span>
               )}

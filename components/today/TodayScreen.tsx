@@ -72,29 +72,29 @@ export function TodayScreen() {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 pt-8 pb-8">
         <h1 className="text-2xl font-bold">{strings.guestHome.welcome}</h1>
-        <p className="text-sm text-slate-500">{strings.guestHome.subtitle}</p>
+        <p className="text-sm text-ink-soft">{strings.guestHome.subtitle}</p>
         <div className="grid grid-cols-2 gap-2 text-center">
           <Link href="/photos" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">📷</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tilePhotos}
             </span>
           </Link>
           <Link href="/journal" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">📖</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tileJournal}
             </span>
           </Link>
           <Link href="/map" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">🗺️</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tileMap}
             </span>
           </Link>
           <Link href="/messages" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">💬</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tileWall}
             </span>
           </Link>
@@ -120,7 +120,7 @@ export function TodayScreen() {
           </Link>
         </header>
 
-        <section className="rounded-2xl bg-teal-600 p-4 text-white shadow">
+        <section className="rounded-2xl bg-sea p-4 text-white shadow">
           <p className="text-sm font-medium opacity-80">
             {strings.kidHome.whereToday}
           </p>
@@ -136,18 +136,18 @@ export function TodayScreen() {
         </section>
 
         {activeItems.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <ul className="divide-y divide-slate-100">
+          <section className="rounded-2xl border border-line bg-white shadow-sm">
+            <ul className="divide-y divide-line">
               {activeItems.map((item) => (
                 <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
-                  <span className="w-14 shrink-0 text-sm font-bold tabular-nums text-teal-700" dir="ltr">
+                  <span className="w-14 shrink-0 text-sm font-bold tabular-nums text-sea" dir="ltr">
                     {item.start_time ? formatTime(item.start_time) : "—"}
                   </span>
                   <span
                     className={`text-lg font-medium ${
                       item.status === "done"
-                        ? "text-slate-400 line-through"
-                        : "text-slate-800"
+                        ? "text-ink-soft line-through"
+                        : "text-ink"
                     }`}
                   >
                     {item.title}
@@ -174,25 +174,25 @@ export function TodayScreen() {
         <div className="grid grid-cols-2 gap-2 text-center">
           <Link href="/photos" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">📷</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tilePhotos}
             </span>
           </Link>
           <Link href="/pocket" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">🪙</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tilePocket}
             </span>
           </Link>
           <Link href="/phrasebook" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">💬</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tilePhrasebook}
             </span>
           </Link>
           <Link href="/documents" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">📄</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tileDocuments}
             </span>
           </Link>
@@ -203,39 +203,41 @@ export function TodayScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8">
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{strings.nav.today}</h1>
-          <p className="text-sm text-slate-500">{headerDate}</p>
-          {data?.day?.location_name && (
-            <p className="mt-0.5 text-sm font-semibold text-teal-700">
-              📍 {data.day.location_name}
-            </p>
-          )}
+      {/* signature "postcard" header: greeting + date + where we are today */}
+      <header className="ot-postcard flex items-start justify-between gap-3 p-5">
+        <div className="relative z-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-white/70">
+            {strings.nav.today}
+          </p>
+          <p className="mt-1 text-lg font-semibold text-white/90">{headerDate}</p>
+          <p className="mt-2 text-2xl font-bold leading-tight">
+            📍 {data?.day?.location_name ?? strings.kidHome.noLocation}
+          </p>
         </div>
         {/* one-tap emergency access (Sprint 4) */}
         <Link
           href="/emergency"
           aria-label={strings.emergency.title}
-          className="rounded-2xl bg-rose-600 px-3 py-2 text-sm font-bold text-white shadow hover:bg-rose-700"
+          className="relative z-10 shrink-0 rounded-2xl bg-white/15 px-3 py-2 text-sm font-bold text-white ring-1 ring-white/30 backdrop-blur active:bg-white/25"
         >
           🆘 {strings.emergency.sos}
         </Link>
       </header>
 
       {result?.fromCache && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">
+        <p className="rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun">
           {strings.offline.fromCache}
           {data && ` · ${strings.today.snapshotFrom} ${formatDate(data.date)}`}
         </p>
       )}
 
       {loading ? (
-        <p className="pt-4 text-center text-slate-500">{strings.common.loading}</p>
+        <p className="pt-4 text-center text-ink-soft">{strings.common.loading}</p>
       ) : !data || !data.day ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <section className="ot-card p-8 text-center">
+          <p className="mb-3 text-4xl" aria-hidden="true">🧭</p>
           <h2 className="mb-2 text-lg font-semibold">{strings.today.emptyTitle}</h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-soft">
             {data && !data.day ? strings.today.noDay : strings.today.emptyBody}
           </p>
         </section>
@@ -252,21 +254,21 @@ export function TodayScreen() {
 
           {/* weather for today's location */}
           {weather && (
-            <section className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <section className="ot-card flex items-center justify-between px-4 py-3">
               <span className="flex items-center gap-2">
                 <span className="text-2xl" aria-hidden="true">
                   {describeWeather(weather.weatherCode).icon}
                 </span>
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-ink">
                   {describeWeather(weather.weatherCode).label}
                 </span>
               </span>
               <span className="text-end">
-                <span className="block text-lg font-bold text-slate-800" dir="ltr">
+                <span className="block text-lg font-bold text-ink" dir="ltr">
                   {weather.tempMin}–{weather.tempMax}°
                 </span>
                 {weather.precipitationChance > 0 && (
-                  <span className="text-xs text-slate-400" dir="ltr">
+                  <span className="text-xs text-ink-soft" dir="ltr">
                     💧{weather.precipitationChance}% {""}
                   </span>
                 )}
@@ -276,7 +278,7 @@ export function TodayScreen() {
 
           {/* mini-map of today's area (static snapshot, cached offline) */}
           {mapUrl && (
-            <Link href="/map" className="block overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+            <Link href="/map" className="block overflow-hidden rounded-[var(--radius-stamp)] border border-line shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element -- blob/object URL snapshot */}
               <img
                 src={mapUrl}
@@ -287,62 +289,65 @@ export function TodayScreen() {
           )}
 
           {/* today's items, time order */}
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {activeItems.length === 0 ? (
-              <p className="px-4 py-4 text-sm text-slate-400">
-                {strings.itinerary.emptyDayItems}
-              </p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {activeItems.map((item) => (
-                  <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
-                    <span
-                      className="w-14 shrink-0 text-sm font-bold tabular-nums text-teal-700"
-                      dir="ltr"
-                    >
-                      {item.start_time ? formatTime(item.start_time) : "—"}
-                    </span>
-                    <span className="min-w-0">
+          <section>
+            <p className="ot-kicker mb-1.5 px-1">{strings.today.quickItinerary}</p>
+            <div className="ot-card overflow-hidden">
+              {activeItems.length === 0 ? (
+                <p className="px-4 py-4 text-sm text-ink-soft">
+                  {strings.itinerary.emptyDayItems}
+                </p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {activeItems.map((item) => (
+                    <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
                       <span
-                        className={`block font-medium ${
-                          item.status === "done"
-                            ? "text-slate-400 line-through"
-                            : "text-slate-800"
-                        }`}
+                        className="w-14 shrink-0 text-sm font-bold tabular-nums text-sea"
+                        dir="ltr"
                       >
-                        {item.title}
+                        {item.start_time ? formatTime(item.start_time) : "—"}
                       </span>
-                      {item.location_name && (
-                        <span className="text-xs text-slate-400">
-                          {item.location_name}
+                      <span className="min-w-0">
+                        <span
+                          className={`block font-medium ${
+                            item.status === "done"
+                              ? "text-ink-soft line-through"
+                              : "text-ink"
+                          }`}
+                        >
+                          {item.title}
                         </span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                        {item.location_name && (
+                          <span className="text-xs text-ink-soft">
+                            {item.location_name}
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </section>
 
           {/* today's bookings (tonight's hotel etc.) */}
           {data.bookings.length > 0 && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              <h2 className="mb-1 px-1 text-sm font-semibold text-slate-500">
+            <section className="ot-card p-3">
+              <h2 className="ot-kicker mb-1 px-1">
                 {strings.today.bookingsToday}
               </h2>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {data.bookings.map((booking) => (
                   <li
                     key={booking.id}
                     className="flex items-baseline justify-between gap-2 px-1 py-2"
                   >
-                    <span className="min-w-0 truncate text-sm font-medium text-slate-800">
+                    <span className="min-w-0 truncate text-sm font-medium text-ink">
                       <span aria-hidden="true">
                         {BOOKING_ICON[booking.type] ?? "📌"}
                       </span>{" "}
                       {booking.title}
                     </span>
-                    <span className="shrink-0 text-xs text-slate-500" dir="ltr">
+                    <span className="shrink-0 text-xs text-ink-soft" dir="ltr">
                       {booking.confirmation_code ??
                         (booking.cost != null
                           ? formatMoney(booking.cost, booking.currency ?? "ILS")
@@ -355,12 +360,12 @@ export function TodayScreen() {
           )}
 
           {data.day.notes && (
-            <p className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
+            <p className="rounded-[var(--radius-stamp)] bg-sea-tint px-4 py-3 text-sm text-sea-deep">
               {data.day.notes}
             </p>
           )}
 
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-ink-soft">
             {formatWeekday(data.date)} {formatDate(data.date)}
             {data.day.country_code ? ` · ${data.day.country_code}` : ""}
           </p>
@@ -368,16 +373,16 @@ export function TodayScreen() {
       )}
 
       {/* quick actions (SPEC 2.1) */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 pt-1">
         <Link
           href="/budget"
-          className="rounded-2xl bg-teal-600 py-3 text-center font-semibold text-white shadow hover:bg-teal-700"
+          className="rounded-2xl bg-sea py-3 text-center font-semibold text-white shadow-sm active:bg-sea-deep"
         >
           {strings.today.quickExpense}
         </Link>
         <Link
           href="/itinerary"
-          className="rounded-2xl border border-teal-600 py-3 text-center font-semibold text-teal-700 hover:bg-teal-50"
+          className="rounded-2xl border border-sea/30 bg-white py-3 text-center font-semibold text-sea active:bg-sea-tint"
         >
           {strings.today.quickItinerary}
         </Link>

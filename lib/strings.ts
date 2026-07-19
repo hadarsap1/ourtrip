@@ -3,7 +3,7 @@
 
 export const strings = {
   appName: "OurTrip",
-  appDescription: "מרכז הפיקוד של הטיול המשפחתי",
+  appDescription: "הטיול המשפחתי שלנו מסביב לעולם",
 
   nav: {
     today: "היום",
@@ -191,6 +191,9 @@ export const strings = {
     menuNotifications: "התראות",
     menuLinks: "קישורים שמורים",
     menuMemoryBook: "ספר זיכרונות",
+    groupExplore: "בסביבה",
+    groupMemories: "זיכרונות",
+    groupFamily: "משפחה וניהול",
   },
 
   memoryBook: {

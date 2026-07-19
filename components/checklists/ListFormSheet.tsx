@@ -67,7 +67,7 @@ function ListForm({
         <div>
           <label
             htmlFor="list-title"
-            className="mb-1 block text-sm font-medium text-slate-600"
+            className="mb-1 block text-sm font-medium text-ink-soft"
           >
             {strings.checklists.listName}
           </label>
@@ -78,12 +78,12 @@ function ListForm({
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           />
         </div>
 
         {!rename && (
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+          <label className="flex items-center gap-2 text-sm font-medium text-ink-soft">
             <input
               type="checkbox"
               checked={isTemplate}
@@ -96,7 +96,7 @@ function ListForm({
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>

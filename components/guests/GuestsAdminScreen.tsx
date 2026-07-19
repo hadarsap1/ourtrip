@@ -57,7 +57,7 @@ export function GuestsAdminScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -67,7 +67,7 @@ export function GuestsAdminScreen() {
       <h1 className="text-2xl font-bold">{strings.guests.title}</h1>
 
       {allowlist.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
           {strings.guests.empty}
         </p>
       ) : (
@@ -77,10 +77,10 @@ export function GuestsAdminScreen() {
             return (
               <li
                 key={row.email}
-                className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 shadow-sm"
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-medium text-slate-800" dir="ltr">
+                  <span className="block truncate font-medium text-ink" dir="ltr">
                     {row.email}
                   </span>
                   <span
@@ -89,7 +89,7 @@ export function GuestsAdminScreen() {
                     }`}
                   >
                     {revoked ? strings.guests.revoked : strings.guests.active}
-                    <span className="mr-1 font-normal text-slate-400">
+                    <span className="mr-1 font-normal text-ink-soft">
                       · {formatDate(row.created_at.slice(0, 10))}
                     </span>
                   </span>
@@ -117,7 +117,7 @@ export function GuestsAdminScreen() {
       <button
         type="button"
         onClick={() => setInviteOpen(true)}
-        className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+        className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
       >
         ✉️ {strings.guests.invite}
       </button>
@@ -166,10 +166,10 @@ function InviteSheet({
     <Sheet open onClose={onClose} title={strings.guests.invite}>
       {result ? (
         <div className="space-y-4">
-          <p className="text-center text-sm font-medium text-slate-600">
+          <p className="text-center text-sm font-medium text-ink-soft">
             {result.emailed ? strings.guests.emailed : strings.guests.linkReady}
           </p>
-          <p className="break-all rounded-xl bg-slate-50 p-3 text-xs text-slate-500" dir="ltr">
+          <p className="break-all rounded-xl bg-paper-deep p-3 text-xs text-ink-soft" dir="ltr">
             {result.link}
           </p>
           <button
@@ -180,14 +180,14 @@ function InviteSheet({
                 .then(() => onToast(strings.guests.copied))
                 .catch(() => {});
             }}
-            className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-white"
           >
             📋 {strings.guests.copyLink}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-xl border border-slate-300 py-3 font-semibold text-slate-600"
+            className="w-full rounded-xl border border-line py-3 font-semibold text-ink-soft"
           >
             {strings.common.close}
           </button>
@@ -195,7 +195,7 @@ function InviteSheet({
       ) : (
         <form onSubmit={(e) => void handleInvite(e)} className="space-y-4">
           <div>
-            <label htmlFor="guest-name" className="mb-1 block text-sm font-medium text-slate-600">
+            <label htmlFor="guest-name" className="mb-1 block text-sm font-medium text-ink-soft">
               {strings.guests.name}
             </label>
             <input
@@ -205,11 +205,11 @@ function InviteSheet({
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+              className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
             />
           </div>
           <div>
-            <label htmlFor="guest-email" className="mb-1 block text-sm font-medium text-slate-600">
+            <label htmlFor="guest-email" className="mb-1 block text-sm font-medium text-ink-soft">
               {strings.guests.email}
             </label>
             <input
@@ -218,14 +218,14 @@ function InviteSheet({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+              className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
               dir="ltr"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
           >
             {strings.guests.send}
           </button>

@@ -174,7 +174,7 @@ export function RecommendScreen() {
   if (memberLoading) return null;
   if (member && member.role !== "owner") {
     return (
-      <div className="mx-auto max-w-lg px-4 pt-10 text-center text-slate-500">
+      <div className="mx-auto max-w-lg px-4 pt-10 text-center text-ink-soft">
         {s.ownersOnly}
       </div>
     );
@@ -186,18 +186,18 @@ export function RecommendScreen() {
     <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
       <header>
         <h1 className="text-2xl font-bold">{s.title}</h1>
-        <p className="mt-1 text-sm text-slate-500">{s.subtitle}</p>
+        <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>
       </header>
 
       {/* category filter */}
       <div>
-        <p className="mb-1.5 text-sm font-semibold text-slate-500">{s.filterTitle}</p>
+        <p className="mb-1.5 text-sm font-semibold text-ink-soft">{s.filterTitle}</p>
         <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
             onClick={() => setCats(new Set())}
             className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-              cats.size === 0 ? "bg-teal-600 text-white" : "bg-white text-slate-600 shadow-sm"
+              cats.size === 0 ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
             }`}
           >
             {s.filterAll}
@@ -209,7 +209,7 @@ export function RecommendScreen() {
               onClick={() => toggleCat(cat)}
               aria-pressed={cats.has(cat)}
               className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                cats.has(cat) ? "bg-teal-600 text-white" : "bg-white text-slate-600 shadow-sm"
+                cats.has(cat) ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
               }`}
             >
               {categoryIcon(cat)} {s.filterLabels[i]}
@@ -224,28 +224,28 @@ export function RecommendScreen() {
           type="button"
           onClick={fromLocation}
           disabled={loading}
-          className="w-full rounded-2xl bg-teal-600 py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
+          className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
         >
           📍 {s.useLocation}
         </button>
         {daysWithPlace.length > 0 && (
-          <details className="rounded-2xl border border-slate-200 bg-white">
-            <summary className="cursor-pointer list-none px-4 py-3 font-medium text-slate-700">
+          <details className="rounded-2xl border border-line bg-white">
+            <summary className="cursor-pointer list-none px-4 py-3 font-medium text-ink">
               🗓️ {s.useDay}
             </summary>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {daysWithPlace.map((d) => (
                 <li key={d.id}>
                   <button
                     type="button"
                     onClick={() => fromDay(d)}
                     disabled={loading}
-                    className="flex w-full items-center justify-between px-4 py-3 text-right text-sm hover:bg-slate-50 disabled:opacity-50"
+                    className="flex w-full items-center justify-between px-4 py-3 text-right text-sm hover:bg-paper-deep disabled:opacity-50"
                   >
-                    <span className="font-medium text-slate-700">
+                    <span className="font-medium text-ink">
                       {d.location_name || formatShortDate(d.date)}
                     </span>
-                    <span className="text-xs text-slate-400">{formatShortDate(d.date)}</span>
+                    <span className="text-xs text-ink-soft">{formatShortDate(d.date)}</span>
                   </button>
                 </li>
               ))}
@@ -255,44 +255,44 @@ export function RecommendScreen() {
       </div>
 
       {loading && (
-        <p className="py-6 text-center text-sm text-slate-500">{s.finding}</p>
+        <p className="py-6 text-center text-sm text-ink-soft">{s.finding}</p>
       )}
 
       {/* results */}
       {results && results.length === 0 && !loading && (
-        <p className="py-6 text-center text-sm text-slate-500">{s.empty}</p>
+        <p className="py-6 text-center text-sm text-ink-soft">{s.empty}</p>
       )}
       {results && results.length > 0 && (
         <ul className="space-y-3">
           {results.map((rec, i) => (
             <li
               key={`${rec.title}-${i}`}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-line bg-white p-4 shadow-sm"
             >
               <div className="flex items-start gap-2">
                 <span className="text-2xl" aria-hidden="true">{categoryIcon(rec.category)}</span>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800">{rec.title}</h3>
+                  <h3 className="font-semibold text-ink">{rec.title}</h3>
                   {rec.location_name && (
-                    <p className="text-xs text-slate-400">{rec.location_name}</p>
+                    <p className="text-xs text-ink-soft">{rec.location_name}</p>
                   )}
                 </div>
               </div>
               {rec.description && (
-                <p className="mt-2 text-sm text-slate-600">{rec.description}</p>
+                <p className="mt-2 text-sm text-ink-soft">{rec.description}</p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => (days.length ? setDayFor(rec) : showToast(s.noDays))}
-                  className="rounded-xl bg-teal-600 px-3 py-1.5 text-sm font-medium text-white"
+                  className="rounded-xl bg-sea px-3 py-1.5 text-sm font-medium text-white"
                 >
                   + {s.addToItinerary}
                 </button>
                 <button
                   type="button"
                   onClick={() => onSaveMaybe(rec)}
-                  className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600"
+                  className="rounded-xl border border-line px-3 py-1.5 text-sm font-medium text-ink-soft"
                 >
                   ☆ {s.saveMaybe}
                 </button>
@@ -301,7 +301,7 @@ export function RecommendScreen() {
                     href={rec.maps_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600"
+                    className="rounded-xl border border-line px-3 py-1.5 text-sm font-medium text-ink-soft"
                   >
                     🗺️ {s.openInMaps}
                   </a>
@@ -314,24 +314,24 @@ export function RecommendScreen() {
 
       {/* maybe-list */}
       <section>
-        <h2 className="mb-2 mt-2 text-sm font-semibold text-slate-700">
+        <h2 className="mb-2 mt-2 text-sm font-semibold text-ink">
           ☆ {s.maybeListTitle}
         </h2>
         {saved.length === 0 ? (
-          <p className="text-sm text-slate-400">{s.maybeEmpty}</p>
+          <p className="text-sm text-ink-soft">{s.maybeEmpty}</p>
         ) : (
           <ul className="space-y-2">
             {saved.map((r) => (
               <li
                 key={r.id}
-                className="flex items-start justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-3"
+                className="flex items-start justify-between gap-2 rounded-2xl border border-line bg-white p-3"
               >
                 <div className="flex-1">
-                  <p className="font-medium text-slate-800">
+                  <p className="font-medium text-ink">
                     {categoryIcon(r.category)} {r.title}
                   </p>
                   {r.description && (
-                    <p className="text-xs text-slate-500">{r.description}</p>
+                    <p className="text-xs text-ink-soft">{r.description}</p>
                   )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
@@ -351,7 +351,7 @@ export function RecommendScreen() {
                           maps_url: r.maps_url,
                         })
                       }
-                      className="text-xs font-medium text-teal-600"
+                      className="text-xs font-medium text-sea"
                     >
                       + {s.addToItinerary}
                     </button>
@@ -373,7 +373,7 @@ export function RecommendScreen() {
       {/* day picker for "add to itinerary" */}
       <Sheet open={dayFor !== null} onClose={() => setDayFor(null)} title={s.addDayPrompt}>
         {days.length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-500">{s.noDays}</p>
+          <p className="py-4 text-center text-sm text-ink-soft">{s.noDays}</p>
         ) : (
           <ul className="space-y-1">
             {days.map((d) => (
@@ -381,12 +381,12 @@ export function RecommendScreen() {
                 <button
                   type="button"
                   onClick={() => onAddToDay(d)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-right hover:bg-slate-50"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-right hover:bg-paper-deep"
                 >
-                  <span className="font-medium text-slate-700">
+                  <span className="font-medium text-ink">
                     {d.location_name || formatShortDate(d.date)}
                   </span>
-                  <span className="text-xs text-slate-400">{formatShortDate(d.date)}</span>
+                  <span className="text-xs text-ink-soft">{formatShortDate(d.date)}</span>
                 </button>
               </li>
             ))}

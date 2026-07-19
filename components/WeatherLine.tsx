@@ -34,7 +34,7 @@ export function WeatherLine({
   const rainWarning = hasOutdoor && weather.precipitationChance > 50;
 
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+    <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
       <span aria-hidden="true">{icon}</span>
       <span dir="ltr">
         {weather.tempMin}–{weather.tempMax}°

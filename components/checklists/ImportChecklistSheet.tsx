@@ -56,15 +56,15 @@ export function ImportChecklistSheet({
   }
 
   const field =
-    "w-full rounded-xl border border-slate-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none";
+    "w-full rounded-xl border border-line px-3 py-2 text-base focus:border-sea focus:outline-none";
 
   return (
     <Sheet open onClose={onClose} title={s.importTitle}>
       <form className="space-y-3" onSubmit={submit}>
-        <p className="text-sm text-slate-500">{s.importHint}</p>
+        <p className="text-sm text-ink-soft">{s.importHint}</p>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-slate-600">
+          <span className="mb-1 block text-sm font-medium text-ink-soft">
             {s.importTargetExisting}
           </span>
           <select
@@ -95,7 +95,7 @@ export function ImportChecklistSheet({
           type="file"
           accept=".xlsx,.xls,.csv,.txt"
           required
-          className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-teal-700"
+          className="block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
         />
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -103,7 +103,7 @@ export function ImportChecklistSheet({
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
         >
           {busy ? strings.common.loading : s.importDo}
         </button>

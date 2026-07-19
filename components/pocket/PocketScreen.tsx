@@ -73,7 +73,7 @@ export function PocketScreen() {
   if (loading || !member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -90,7 +90,7 @@ export function PocketScreen() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.pocket.title}</h1>
       {isOwner && (
-        <p className="text-xs text-slate-400">{strings.pocket.infoNote}</p>
+        <p className="text-xs text-ink-soft">{strings.pocket.infoNote}</p>
       )}
 
       {shownKids.map((kid) => {
@@ -104,17 +104,17 @@ export function PocketScreen() {
         return (
           <section
             key={kid.id}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-line bg-white p-4 shadow-sm"
           >
             <div className="flex items-baseline justify-between">
-              <h2 className="text-lg font-bold text-slate-800">
+              <h2 className="text-lg font-bold text-ink">
                 🪙 {isOwner ? kid.display_name : strings.pocket.allowance}
               </h2>
               {isOwner && (
                 <button
                   type="button"
                   onClick={() => setAllowanceFor(kid)}
-                  className="text-xs font-semibold text-teal-600"
+                  className="text-xs font-semibold text-sea"
                 >
                   {strings.pocket.setAllowance}
                 </button>
@@ -122,25 +122,25 @@ export function PocketScreen() {
             </div>
 
             {allowance === null ? (
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-ink-soft">
                 {strings.pocket.noAllowance}
               </p>
             ) : (
               <>
                 <div className="mt-2 flex items-baseline justify-between text-sm">
-                  <span className="text-slate-500">
+                  <span className="text-ink-soft">
                     {strings.pocket.spent}{" "}
                     <strong dir="ltr">{formatMoney(spent, "ILS")}</strong>
                   </span>
-                  <span className="text-lg font-bold text-teal-700" dir="ltr">
+                  <span className="text-lg font-bold text-sea" dir="ltr">
                     {strings.pocket.left} {formatMoney(left ?? 0, "ILS")}
                   </span>
                 </div>
                 {/* fun progress visual */}
-                <div className="mt-2 h-4 overflow-hidden rounded-full bg-slate-100">
+                <div className="mt-2 h-4 overflow-hidden rounded-full bg-paper-deep">
                   <div
                     className={`flex h-full items-center justify-end rounded-full pe-1 text-[10px] ${
-                      pct >= 90 ? "bg-rose-400" : pct >= 60 ? "bg-amber-400" : "bg-teal-500"
+                      pct >= 90 ? "bg-rose-400" : pct >= 60 ? "bg-amber-400" : "bg-sea"
                     }`}
                     style={{ width: `${Math.max(pct, 8)}%` }}
                   >
@@ -154,24 +154,24 @@ export function PocketScreen() {
               <button
                 type="button"
                 onClick={() => setAddFor(kid.id)}
-                className="mt-3 w-full rounded-xl bg-teal-600 py-3 font-bold text-white hover:bg-teal-700"
+                className="mt-3 w-full rounded-xl bg-sea py-3 font-bold text-white hover:bg-sea-deep"
               >
                 🛍️ {strings.pocket.addExpense}
               </button>
             )}
 
             {kidExpenses.length === 0 ? (
-              <p className="mt-3 text-center text-xs text-slate-400">
+              <p className="mt-3 text-center text-xs text-ink-soft">
                 {strings.pocket.empty}
               </p>
             ) : (
-              <ul className="mt-3 divide-y divide-slate-100">
+              <ul className="mt-3 divide-y divide-line">
                 {kidExpenses.map((expense) => (
                   <li
                     key={expense.id}
                     className="flex items-baseline justify-between gap-2 py-2 text-sm"
                   >
-                    <span className="min-w-0 truncate text-slate-700">
+                    <span className="min-w-0 truncate text-ink">
                       {formatShortDate(expense.spent_on)} ·{" "}
                       {expense.description || "🛍️"}
                     </span>
@@ -259,7 +259,7 @@ function AddPocketExpenseSheet({
         }}
       >
         <div>
-          <label htmlFor="pk-amount" className="mb-1 block text-sm font-medium text-slate-600">
+          <label htmlFor="pk-amount" className="mb-1 block text-sm font-medium text-ink-soft">
             {strings.pocket.howMuch}
           </label>
           <input
@@ -272,12 +272,12 @@ function AddPocketExpenseSheet({
             required
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-2xl font-bold focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-2xl font-bold focus:border-sea focus:outline-none"
             dir="ltr"
           />
         </div>
         <div>
-          <label htmlFor="pk-desc" className="mb-1 block text-sm font-medium text-slate-600">
+          <label htmlFor="pk-desc" className="mb-1 block text-sm font-medium text-ink-soft">
             {strings.pocket.whatBought}
           </label>
           <input
@@ -285,13 +285,13 @@ function AddPocketExpenseSheet({
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           />
         </div>
         <button
           type="submit"
           disabled={!Number.isFinite(value) || value <= 0}
-          className="w-full rounded-xl bg-teal-600 py-3 font-bold text-white hover:bg-teal-700 disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-bold text-white hover:bg-sea-deep disabled:opacity-50"
         >
           {strings.pocket.save}
         </button>
@@ -328,7 +328,7 @@ function AllowanceSheet({
         }}
       >
         <div>
-          <label htmlFor="al-amount" className="mb-1 block text-sm font-medium text-slate-600">
+          <label htmlFor="al-amount" className="mb-1 block text-sm font-medium text-ink-soft">
             {strings.pocket.allowance} (₪)
           </label>
           <input
@@ -341,13 +341,13 @@ function AllowanceSheet({
             required
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-2xl font-bold focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-2xl font-bold focus:border-sea focus:outline-none"
             dir="ltr"
           />
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>

@@ -167,16 +167,16 @@ export function GooglePhotosSection({
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">
+          <h2 className="text-lg font-bold text-ink">
             {strings.googlePhotos.title}
           </h2>
-          <p className="text-xs text-slate-500">{strings.googlePhotos.subtitle}</p>
+          <p className="text-xs text-ink-soft">{strings.googlePhotos.subtitle}</p>
         </div>
         {isOwner && (
           <button
             type="button"
             onClick={() => setSheetOpen(true)}
-            className="shrink-0 rounded-xl bg-slate-800 px-3 py-2 text-sm font-semibold text-white shadow-sm"
+            className="shrink-0 rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white shadow-sm"
           >
             ➕ {strings.googlePhotos.import}
           </button>
@@ -184,15 +184,15 @@ export function GooglePhotosSection({
       </div>
 
       {loading ? (
-        <p className="text-center text-sm text-slate-400">{strings.common.loading}</p>
+        <p className="text-center text-sm text-ink-soft">{strings.common.loading}</p>
       ) : groups.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
           {strings.googlePhotos.empty}
         </p>
       ) : (
         groups.map((group, i) => (
           <div key={`${group.country ?? ""}-${group.area ?? ""}-${i}`}>
-            <h3 className="mb-1.5 px-1 text-sm font-semibold text-slate-500">
+            <h3 className="mb-1.5 px-1 text-sm font-semibold text-ink-soft">
               {group.country || strings.googlePhotos.noGroup}
               {group.area ? ` · ${group.area}` : ""}
             </h3>
@@ -204,7 +204,7 @@ export function GooglePhotosSection({
                     onClick={() =>
                       isOwner ? setActionPhoto(photo) : setLightbox(photo)
                     }
-                    className="block aspect-square w-full overflow-hidden rounded-xl bg-slate-100 shadow-sm"
+                    className="block aspect-square w-full overflow-hidden rounded-xl bg-paper-deep shadow-sm"
                   >
                     {photo.url && (
                       // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -222,7 +222,7 @@ export function GooglePhotosSection({
                       <span className="rounded-full bg-black/55 px-1.5 py-0.5 text-white">📷</span>
                     )}
                     {photo.shared_with_guests && (
-                      <span className="rounded-full bg-teal-600/85 px-1.5 py-0.5 text-white">👥</span>
+                      <span className="rounded-full bg-sea/85 px-1.5 py-0.5 text-white">👥</span>
                     )}
                   </div>
                 </li>
@@ -237,36 +237,36 @@ export function GooglePhotosSection({
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40">
           <div className="w-full max-w-lg space-y-3 rounded-t-3xl bg-white p-4 pb-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-800">
+              <h3 className="text-base font-bold text-ink">
                 {strings.googlePhotos.import}
               </h3>
               <button
                 type="button"
                 onClick={() => !busy && setSheetOpen(false)}
-                className="text-sm font-semibold text-slate-400"
+                className="text-sm font-semibold text-ink-soft"
               >
                 {strings.googlePhotos.cancel}
               </button>
             </div>
 
-            <label className="block text-sm font-medium text-slate-600">
+            <label className="block text-sm font-medium text-ink-soft">
               {strings.googlePhotos.countryLabel}
               <input
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder={strings.googlePhotos.countryPlaceholder}
                 disabled={busy}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm"
               />
             </label>
-            <label className="block text-sm font-medium text-slate-600">
+            <label className="block text-sm font-medium text-ink-soft">
               {strings.googlePhotos.areaLabel}
               <input
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 placeholder={strings.googlePhotos.areaPlaceholder}
                 disabled={busy}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm"
               />
             </label>
 
@@ -274,7 +274,7 @@ export function GooglePhotosSection({
               type="button"
               onClick={() => void runImport()}
               disabled={busy}
-              className="w-full rounded-2xl bg-slate-800 py-3 font-bold text-white shadow disabled:opacity-60"
+              className="w-full rounded-2xl bg-ink py-3 font-bold text-white shadow disabled:opacity-60"
             >
               {phase === "connecting"
                 ? strings.googlePhotos.connecting
@@ -290,7 +290,7 @@ export function GooglePhotosSection({
                 href={pickerUri}
                 target="_blank"
                 rel="noreferrer"
-                className="block text-center text-xs font-semibold text-teal-600 underline"
+                className="block text-center text-xs font-semibold text-sea underline"
               >
                 {strings.googlePhotos.pickingHint}
               </a>
@@ -316,7 +316,7 @@ export function GooglePhotosSection({
                 setActionPhoto(null);
                 setLightbox(p);
               }}
-              className="block w-full overflow-hidden rounded-2xl bg-slate-100"
+              className="block w-full overflow-hidden rounded-2xl bg-paper-deep"
             >
               {actionPhoto.url && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -328,7 +328,7 @@ export function GooglePhotosSection({
               )}
             </button>
 
-            <label className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700">
+            <label className="flex items-center justify-between rounded-xl bg-paper-deep px-3 py-2.5 text-sm font-medium text-ink">
               👥 {strings.googlePhotos.shareToggle}
               <input
                 type="checkbox"
@@ -341,10 +341,10 @@ export function GooglePhotosSection({
             <button
               type="button"
               onClick={() => setAttaching(actionPhoto)}
-              className="flex w-full items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700"
+              className="flex w-full items-center justify-between rounded-xl bg-paper-deep px-3 py-2.5 text-sm font-medium text-ink"
             >
               📷 {strings.googlePhotos.attachToPin}
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-ink-soft">
                 {actionPhoto.map_pin_id
                   ? (pins.find((p) => p.id === actionPhoto.map_pin_id)?.label ??
                     strings.googlePhotos.attached)
@@ -373,7 +373,7 @@ export function GooglePhotosSection({
             className="max-h-[70vh] w-full max-w-lg space-y-2 overflow-y-auto rounded-t-3xl bg-white p-4 pb-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-bold text-slate-800">
+            <h3 className="text-base font-bold text-ink">
               {strings.googlePhotos.attachTitle}
             </h3>
             {attaching.map_pin_id && (
@@ -386,7 +386,7 @@ export function GooglePhotosSection({
               </button>
             )}
             {pins.length === 0 ? (
-              <p className="py-4 text-center text-sm text-slate-400">
+              <p className="py-4 text-center text-sm text-ink-soft">
                 {strings.googlePhotos.attachNone}
               </p>
             ) : (
@@ -397,8 +397,8 @@ export function GooglePhotosSection({
                   onClick={() => void attachToPin(attaching, pin.id)}
                   className={`w-full rounded-xl px-3 py-2.5 text-start text-sm font-medium ${
                     attaching.map_pin_id === pin.id
-                      ? "bg-teal-600 text-white"
-                      : "bg-slate-50 text-slate-700"
+                      ? "bg-sea text-white"
+                      : "bg-paper-deep text-ink"
                   }`}
                 >
                   {pin.kind === "car" ? "🚗" : "📍"} {pin.label}

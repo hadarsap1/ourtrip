@@ -58,7 +58,7 @@ export function DocPinSheet({
   }
 
   const field =
-    "w-full rounded-xl border border-slate-300 px-3 py-2 text-center text-lg tracking-widest focus:border-teal-500 focus:outline-none";
+    "w-full rounded-xl border border-line px-3 py-2 text-center text-lg tracking-widest focus:border-sea focus:outline-none";
 
   return (
     <Sheet
@@ -96,7 +96,7 @@ export function DocPinSheet({
           />
         )}
         {mode === "set" && (
-          <label className="flex items-start gap-2 text-sm text-slate-600">
+          <label className="flex items-start gap-2 text-sm text-ink-soft">
             <input
               type="checkbox"
               checked={ack}
@@ -110,7 +110,7 @@ export function DocPinSheet({
         <button
           type="submit"
           disabled={busy || (mode === "set" && !ack)}
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
         >
           {mode === "set" ? s.pinSave : s.pinUnlock}
         </button>

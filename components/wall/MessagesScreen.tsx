@@ -107,7 +107,7 @@ export function MessagesScreen() {
   if (loading || !member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ export function MessagesScreen() {
 
       <div className="flex-1 space-y-2 overflow-y-auto pb-3">
         {messages.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
             {strings.wall.empty}
           </p>
         ) : (
@@ -134,19 +134,19 @@ export function MessagesScreen() {
                 key={message.id}
                 className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
                   mine
-                    ? "mr-auto bg-teal-600 text-white"
-                    : "ml-auto bg-white text-slate-800"
+                    ? "mr-auto bg-sea text-white"
+                    : "ml-auto bg-white text-ink"
                 }`}
               >
                 <p
                   className={`text-xs font-semibold ${
-                    mine ? "text-teal-100" : "text-teal-700"
+                    mine ? "text-sea-tint" : "text-sea"
                   }`}
                 >
                   {senderName(message.sender_id)}
                   <span
                     className={`mr-1.5 font-normal ${
-                      mine ? "text-teal-200" : "text-slate-400"
+                      mine ? "text-sea-tint" : "text-ink-soft"
                     }`}
                   >
                     {formatShortDate(message.created_at.slice(0, 10))}
@@ -162,19 +162,19 @@ export function MessagesScreen() {
 
       <form
         onSubmit={(e) => void handleSend(e)}
-        className="sticky bottom-20 flex gap-2 bg-slate-50 py-2"
+        className="sticky bottom-20 flex gap-2 bg-paper-deep py-2"
       >
         <input
           type="text"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={strings.wall.placeholder}
-          className="min-w-0 flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base focus:border-teal-500 focus:outline-none"
+          className="min-w-0 flex-1 rounded-2xl border border-line bg-white px-4 py-3 text-base focus:border-sea focus:outline-none"
         />
         <button
           type="submit"
           disabled={sending || !body.trim()}
-          className="shrink-0 rounded-2xl bg-teal-600 px-4 py-3 font-bold text-white disabled:opacity-50"
+          className="shrink-0 rounded-2xl bg-sea px-4 py-3 font-bold text-white disabled:opacity-50"
         >
           {strings.wall.send}
         </button>

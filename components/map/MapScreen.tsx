@@ -357,7 +357,7 @@ export function MapScreen() {
             type="button"
             onClick={() => setDayFilter(null)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-              dayFilter === null ? "bg-teal-600 text-white" : "bg-white text-slate-600 shadow-sm"
+              dayFilter === null ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
             }`}
           >
             {strings.map.dayFilterAll}
@@ -368,7 +368,7 @@ export function MapScreen() {
               type="button"
               onClick={() => setDayFilter(dayFilter === day.id ? null : day.id)}
               className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                dayFilter === day.id ? "bg-teal-600 text-white" : "bg-white text-slate-600 shadow-sm"
+                dayFilter === day.id ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
               }`}
             >
               <span
@@ -383,13 +383,13 @@ export function MapScreen() {
       )}
 
       {noKey ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.map.noKey}
         </p>
       ) : (
         <div
           ref={containerRef}
-          className="h-[45dvh] w-full overflow-hidden rounded-2xl border border-slate-200 shadow-sm"
+          className="h-[45dvh] w-full overflow-hidden rounded-2xl border border-line shadow-sm"
         />
       )}
 
@@ -401,21 +401,21 @@ export function MapScreen() {
               <button
                 type="button"
                 onClick={() => setMode("addPin")}
-                className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+                className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line"
               >
                 📍 {strings.map.addPin}
               </button>
               <button
                 type="button"
                 onClick={startDraw}
-                className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+                className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line"
               >
                 ✏️ {strings.map.drawRoute}
               </button>
               <button
                 type="button"
                 onClick={() => setImportingRoute(true)}
-                className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+                className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line"
               >
                 ⤓ {strings.map.importRoute}
               </button>
@@ -423,11 +423,11 @@ export function MapScreen() {
           )}
           {mode === "addPin" && (
             <span className="flex items-center gap-2">
-              <span className="text-slate-500">{strings.map.pinHint}</span>
+              <span className="text-ink-soft">{strings.map.pinHint}</span>
               <button
                 type="button"
                 onClick={() => setMode("view")}
-                className="rounded-xl border border-slate-300 px-3 py-2 text-slate-600"
+                className="rounded-xl border border-line px-3 py-2 text-ink-soft"
               >
                 {strings.common.cancel}
               </button>
@@ -435,21 +435,21 @@ export function MapScreen() {
           )}
           {mode === "draw" && (
             <span className="flex items-center gap-2">
-              <span className="text-slate-500">
+              <span className="text-ink-soft">
                 {strings.map.drawingHint} ({drawCount})
               </span>
               <button
                 type="button"
                 disabled={drawCount < 2}
                 onClick={() => setRouteNameOpen(true)}
-                className="rounded-xl bg-teal-600 px-3 py-2 text-white disabled:opacity-50"
+                className="rounded-xl bg-sea px-3 py-2 text-white disabled:opacity-50"
               >
                 {strings.map.finishRoute}
               </button>
               <button
                 type="button"
                 onClick={clearDraw}
-                className="rounded-xl border border-slate-300 px-3 py-2 text-slate-600"
+                className="rounded-xl border border-line px-3 py-2 text-ink-soft"
               >
                 {strings.map.cancelDraw}
               </button>
@@ -463,14 +463,14 @@ export function MapScreen() {
 
       {/* custom pins list */}
       {customPins.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <h2 className="mb-1 px-1 text-sm font-semibold text-slate-500">
+        <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+          <h2 className="mb-1 px-1 text-sm font-semibold text-ink-soft">
             {strings.map.addPin}
           </h2>
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {customPins.map((pin) => (
               <li key={pin.id} className="flex items-center justify-between gap-2 px-1 py-2">
-                <span className="min-w-0 truncate text-sm font-medium text-slate-800">
+                <span className="min-w-0 truncate text-sm font-medium text-ink">
                   📍 {pin.label}
                 </span>
                 <span className="flex shrink-0 gap-2 text-xs font-semibold">
@@ -478,7 +478,7 @@ export function MapScreen() {
                     href={navigationUrl(pin.lat, pin.lng)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-lg bg-teal-50 px-2 py-1.5 text-teal-700"
+                    className="rounded-lg bg-sea-tint px-2 py-1.5 text-sea"
                   >
                     {strings.map.navigate}
                   </a>
@@ -501,14 +501,14 @@ export function MapScreen() {
 
       {/* saved routes list */}
       {routes.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <h2 className="mb-1 px-1 text-sm font-semibold text-slate-500">
+        <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+          <h2 className="mb-1 px-1 text-sm font-semibold text-ink-soft">
             {strings.map.routes}
           </h2>
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {routes.map((route) => (
               <li key={route.id} className="flex items-center justify-between gap-2 px-1 py-2">
-                <span className="flex min-w-0 items-center gap-2 truncate text-sm font-medium text-slate-800">
+                <span className="flex min-w-0 items-center gap-2 truncate text-sm font-medium text-ink">
                   <span
                     className="inline-block h-2.5 w-6 rounded-full"
                     style={{ backgroundColor: route.color ?? "#0d9488" }}
@@ -602,7 +602,7 @@ function PinLabelSheet({
         }}
       >
         <div>
-          <label htmlFor="pin-label" className="mb-1 block text-sm font-medium text-slate-600">
+          <label htmlFor="pin-label" className="mb-1 block text-sm font-medium text-ink-soft">
             {strings.map.pinLabel}
           </label>
           <input
@@ -612,12 +612,12 @@ function PinLabelSheet({
             autoFocus
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>
@@ -644,7 +644,7 @@ function RouteNameSheet({
         }}
       >
         <div>
-          <label htmlFor="route-name" className="mb-1 block text-sm font-medium text-slate-600">
+          <label htmlFor="route-name" className="mb-1 block text-sm font-medium text-ink-soft">
             {strings.map.routeName}
           </label>
           <input
@@ -654,12 +654,12 @@ function RouteNameSheet({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>

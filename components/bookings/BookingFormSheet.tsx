@@ -12,9 +12,9 @@ import {
 import { strings } from "@/lib/strings";
 import type { Booking, BookingStatus, BookingType } from "@/lib/types";
 
-const labelClass = "mb-1 block text-sm font-medium text-slate-600";
+const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
 const inputClass =
-  "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none";
+  "w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none";
 
 const BOOKING_TYPES: BookingType[] = [
   "flight",
@@ -393,7 +393,7 @@ function BookingForm({
             type="file"
             accept="application/pdf,image/*"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-slate-600 file:ml-3 file:rounded-lg file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-teal-700"
+            className="block w-full text-sm text-ink-soft file:ml-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
           />
         </div>
 
@@ -414,7 +414,7 @@ function BookingForm({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
           >
             {saving && file
               ? strings.bookings.uploading

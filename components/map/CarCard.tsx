@@ -113,9 +113,9 @@ export function CarCard({
     : null;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-700">
+        <h2 className="text-sm font-semibold text-ink">
           🚗 {strings.map.car}
         </h2>
         {carPin && (
@@ -141,7 +141,7 @@ export function CarCard({
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-ink-soft">
               {strings.map.carSavedAt} {savedAt}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-2 text-sm font-semibold">
@@ -149,7 +149,7 @@ export function CarCard({
                 href={navigationUrl(carPin.lat, carPin.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl bg-teal-600 px-3 py-2 text-white hover:bg-teal-700"
+                className="rounded-xl bg-sea px-3 py-2 text-white hover:bg-sea-deep"
               >
                 {strings.map.carNavigate}
               </a>
@@ -157,7 +157,7 @@ export function CarCard({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy}
-                className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+                className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line disabled:opacity-50"
               >
                 📷 {strings.map.carPhoto}
               </button>
@@ -165,14 +165,14 @@ export function CarCard({
           </div>
         </div>
       ) : (
-        <p className="mt-1 text-sm text-slate-400">{strings.map.carNone}</p>
+        <p className="mt-1 text-sm text-ink-soft">{strings.map.carNone}</p>
       )}
 
       <button
         type="button"
         onClick={() => void handleSave()}
         disabled={busy}
-        className="mt-3 w-full rounded-xl border border-teal-600 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
+        className="mt-3 w-full rounded-xl border border-sea py-2.5 text-sm font-semibold text-sea hover:bg-sea-tint disabled:opacity-50"
       >
         {strings.map.carSave}
       </button>

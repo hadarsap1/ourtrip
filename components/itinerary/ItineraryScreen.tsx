@@ -173,7 +173,7 @@ export function ItineraryScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -181,7 +181,7 @@ export function ItineraryScreen() {
   return (
     <div className="mx-auto max-w-lg px-4 pt-4">
       {/* segmented control: itinerary / bookings */}
-      <div className="mb-4 grid grid-cols-2 rounded-xl bg-slate-200 p-1 text-sm font-semibold">
+      <div className="mb-4 grid grid-cols-2 rounded-xl bg-line p-1 text-sm font-semibold">
         {(
           [
             ["plan", strings.itinerary.tabPlan],
@@ -193,7 +193,7 @@ export function ItineraryScreen() {
             type="button"
             onClick={() => setTab(key)}
             className={`rounded-lg py-2 transition-colors ${
-              tab === key ? "bg-white text-teal-700 shadow" : "text-slate-500"
+              tab === key ? "bg-white text-sea shadow" : "text-ink-soft"
             }`}
           >
             {label}
@@ -204,7 +204,7 @@ export function ItineraryScreen() {
       {tab === "plan" ? (
         <div className="space-y-4 pb-8">
           {days.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+            <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
               {strings.itinerary.emptyDays}
             </p>
           )}
@@ -229,7 +229,7 @@ export function ItineraryScreen() {
           <button
             type="button"
             onClick={() => setDayForm({ day: null })}
-            className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+            className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
           >
             {strings.itinerary.addDay}
           </button>

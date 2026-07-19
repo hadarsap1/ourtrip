@@ -68,7 +68,7 @@ function PlannedForm({
         <div>
           <label
             htmlFor="planned-amount"
-            className="mb-1 block text-sm font-medium text-slate-600"
+            className="mb-1 block text-sm font-medium text-ink-soft"
           >
             {strings.budget.plannedAmount}
           </label>
@@ -81,14 +81,14 @@ function PlannedForm({
             autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-2xl font-bold focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-2xl font-bold focus:border-sea focus:outline-none"
             dir="ltr"
           />
         </div>
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
         >
           {strings.common.save}
         </button>
