@@ -80,10 +80,10 @@ function ExpensePrompt({
   return (
     <Sheet open onClose={onClose} title={strings.bookings.expensePromptTitle}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-soft">
           {strings.bookings.expensePromptBody}
           {booking.cost != null && (
-            <span className="mr-1 font-semibold text-slate-800" dir="ltr">
+            <span className="mr-1 font-semibold text-ink" dir="ltr">
               {formatMoney(booking.cost, booking.currency ?? "ILS")}
             </span>
           )}
@@ -92,7 +92,7 @@ function ExpensePrompt({
         <div>
           <label
             htmlFor="expense-category"
-            className="mb-1 block text-sm font-medium text-slate-600"
+            className="mb-1 block text-sm font-medium text-ink-soft"
           >
             {strings.bookings.expenseCategory}
           </label>
@@ -100,7 +100,7 @@ function ExpensePrompt({
             id="expense-category"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -115,7 +115,7 @@ function ExpensePrompt({
             type="button"
             onClick={() => void handleCreate()}
             disabled={saving || !categoryId}
-            className="flex-1 rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
           >
             {strings.bookings.expenseCreate}
           </button>
@@ -123,7 +123,7 @@ function ExpensePrompt({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+            className="rounded-xl border border-line px-4 py-3 font-semibold text-ink-soft hover:bg-paper-deep"
           >
             {strings.bookings.expenseSkip}
           </button>

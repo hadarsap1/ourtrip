@@ -7,9 +7,9 @@ import { createDay, deleteDay, updateDay } from "@/lib/data/itinerary";
 import { strings } from "@/lib/strings";
 import type { ItineraryDay } from "@/lib/types";
 
-const labelClass = "mb-1 block text-sm font-medium text-slate-600";
+const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
 const inputClass =
-  "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none";
+  "w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none";
 
 export function DayFormSheet({
   open,
@@ -149,7 +149,7 @@ function DayForm({
         <div className="flex gap-2 pt-1">
           <button
             type="submit"
-            className="flex-1 rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
           >
             {strings.common.save}
           </button>

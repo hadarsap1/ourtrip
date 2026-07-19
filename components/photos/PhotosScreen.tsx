@@ -60,7 +60,7 @@ function GuestPhotosView() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -86,21 +86,21 @@ function GuestPhotosView() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
       {isEmpty && (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>
       )}
 
       {[...byDay.entries()].map(([day, dayPhotos]) => (
         <section key={day}>
-          <h2 className="mb-2 text-sm font-semibold text-slate-500">
+          <h2 className="mb-2 text-sm font-semibold text-ink-soft">
             {formatDate(day)}
           </h2>
           <ul className="grid grid-cols-2 gap-2">
             {dayPhotos.map((photo) => (
               <li
                 key={photo.id}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
               >
                 {photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -111,7 +111,7 @@ function GuestPhotosView() {
                   />
                 )}
                 {photo.caption && (
-                  <p className="p-2 text-xs text-slate-600">{photo.caption}</p>
+                  <p className="p-2 text-xs text-ink-soft">{photo.caption}</p>
                 )}
               </li>
             ))}
@@ -120,20 +120,20 @@ function GuestPhotosView() {
       ))}
 
       {googlePhotos.length > 0 && (
-        <div className="space-y-3 border-t border-slate-200 pt-4">
-          <h2 className="text-lg font-bold text-slate-800">
+        <div className="space-y-3 border-t border-line pt-4">
+          <h2 className="text-lg font-bold text-ink">
             {strings.googlePhotos.title}
           </h2>
           {[...byCountry.entries()].map(([countryName, list]) => (
             <section key={countryName}>
-              <h3 className="mb-1.5 px-1 text-sm font-semibold text-slate-500">
+              <h3 className="mb-1.5 px-1 text-sm font-semibold text-ink-soft">
                 {countryName}
               </h3>
               <ul className="grid grid-cols-3 gap-1.5">
                 {list.map((photo) => (
                   <li
                     key={photo.id}
-                    className="aspect-square overflow-hidden rounded-xl bg-slate-100 shadow-sm"
+                    className="aspect-square overflow-hidden rounded-xl bg-paper-deep shadow-sm"
                   >
                     {photo.url && (
                       // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -237,7 +237,7 @@ function FamilyPhotosView() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -256,7 +256,7 @@ function FamilyPhotosView() {
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className="w-full rounded-2xl bg-teal-600 py-3 font-bold text-white shadow hover:bg-teal-700 disabled:opacity-60"
+        className="w-full rounded-2xl bg-sea py-3 font-bold text-white shadow hover:bg-sea-deep disabled:opacity-60"
       >
         📷 {uploading ? strings.photos.uploading : strings.photos.upload}
       </button>
@@ -271,7 +271,7 @@ function FamilyPhotosView() {
 
       {/* Google Photos: owner imports, family (owner + kids) views */}
       {trip && (
-        <div className="border-t border-slate-200 pt-4">
+        <div className="border-t border-line pt-4">
           <GooglePhotosSection tripId={trip.id} isOwner={isOwner} />
         </div>
       )}
@@ -312,7 +312,7 @@ function FamilyPhotosView() {
       )}
 
       {visible.length === 0 && pending.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>
       ) : (
@@ -320,7 +320,7 @@ function FamilyPhotosView() {
           {visible.map((photo) => (
             <li
               key={photo.id}
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
             >
               {photo.url && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -342,7 +342,7 @@ function FamilyPhotosView() {
                   </span>
                 )}
                 {isOwner && photo.status === "approved" && (
-                  <label className="flex items-center gap-1.5 font-semibold text-slate-500">
+                  <label className="flex items-center gap-1.5 font-semibold text-ink-soft">
                     <input
                       type="checkbox"
                       checked={photo.shared_with_guests}
@@ -363,7 +363,7 @@ function FamilyPhotosView() {
                   </label>
                 )}
                 {!isOwner && photo.shared_with_guests && (
-                  <span className="font-semibold text-teal-600">
+                  <span className="font-semibold text-sea">
                     {strings.photos.shared}
                   </span>
                 )}

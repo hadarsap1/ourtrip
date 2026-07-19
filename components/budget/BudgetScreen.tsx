@@ -75,7 +75,7 @@ export function BudgetScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -117,23 +117,23 @@ export function BudgetScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       {/* totals */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
         <div className="flex items-baseline justify-between">
-          <span className="text-sm text-slate-500">{strings.budget.totalSpent}</span>
-          <span className="text-sm text-slate-500">{strings.budget.totalPlanned}</span>
+          <span className="text-sm text-ink-soft">{strings.budget.totalSpent}</span>
+          <span className="text-sm text-ink-soft">{strings.budget.totalPlanned}</span>
         </div>
         <div className="mt-1 flex items-baseline justify-between gap-2">
-          <span className="text-2xl font-bold text-slate-900" dir="ltr">
+          <span className="text-2xl font-bold text-ink" dir="ltr">
             {formatMoney(Math.round(spent), "ILS")}
           </span>
-          <span className="text-lg font-semibold text-slate-400" dir="ltr">
+          <span className="text-lg font-semibold text-ink-soft" dir="ltr">
             {formatMoney(Math.round(planned), "ILS")}
           </span>
         </div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-paper-deep">
           <div
             className={`h-full rounded-full ${
-              planned > 0 && spent > planned ? "bg-rose-500" : "bg-teal-500"
+              planned > 0 && spent > planned ? "bg-rose-500" : "bg-sea"
             }`}
             style={{
               width: `${planned > 0 ? Math.min((spent / planned) * 100, 100) : 0}%`,
@@ -141,42 +141,42 @@ export function BudgetScreen() {
           />
         </div>
         {(burnPerDay !== null || projection !== null) && (
-          <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm">
-            <span className="text-slate-500">
+          <div className="mt-3 flex justify-between border-t border-line pt-3 text-sm">
+            <span className="text-ink-soft">
               {strings.budget.burnRate}{" "}
-              <span className="font-semibold text-slate-800" dir="ltr">
+              <span className="font-semibold text-ink" dir="ltr">
                 {notStarted || burnPerDay === null
                   ? "—"
                   : formatMoney(Math.round(burnPerDay), "ILS")}
               </span>
               {!notStarted && burnPerDay !== null && (
-                <span className="text-xs text-slate-400"> {strings.budget.perDay}</span>
+                <span className="text-xs text-ink-soft"> {strings.budget.perDay}</span>
               )}
             </span>
-            <span className="text-slate-500">
+            <span className="text-ink-soft">
               {strings.budget.projection}{" "}
-              <span className="font-semibold text-slate-800" dir="ltr">
+              <span className="font-semibold text-ink" dir="ltr">
                 {projection === null ? "—" : formatMoney(Math.round(projection), "ILS")}
               </span>
             </span>
           </div>
         )}
         {notStarted && (
-          <p className="mt-1 text-xs text-slate-400">{strings.budget.tripNotStarted}</p>
+          <p className="mt-1 text-xs text-ink-soft">{strings.budget.tripNotStarted}</p>
         )}
       </section>
 
       <button
         type="button"
         onClick={() => setExpenseForm({ expense: null })}
-        className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+        className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
       >
         {strings.budget.addExpense}
       </button>
 
       {/* category bars; tap → edit planned amount */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-slate-500">
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-ink-soft">
           {strings.budget.categories}
         </h2>
         <ul className="space-y-3">
@@ -191,14 +191,14 @@ export function BudgetScreen() {
                   className="block w-full text-start"
                 >
                   <span className="flex items-baseline justify-between text-sm">
-                    <span className="font-medium text-slate-800">{cat.label_he}</span>
-                    <span className={over ? "font-semibold text-rose-600" : "text-slate-500"} dir="ltr">
+                    <span className="font-medium text-ink">{cat.label_he}</span>
+                    <span className={over ? "font-semibold text-rose-600" : "text-ink-soft"} dir="ltr">
                       {formatMoney(Math.round(catSpent), "ILS")} / {formatMoney(Math.round(cat.planned_amount), "ILS")}
                     </span>
                   </span>
-                  <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-paper-deep">
                     <span
-                      className={`block h-full rounded-full ${over ? "bg-rose-500" : "bg-teal-500"}`}
+                      className={`block h-full rounded-full ${over ? "bg-rose-500" : "bg-sea"}`}
                       style={{
                         width: `${
                           cat.planned_amount > 0
@@ -220,14 +220,14 @@ export function BudgetScreen() {
       <ConverterCard />
 
       {/* recent expenses */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-2 text-sm font-semibold text-slate-500">
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-semibold text-ink-soft">
           {strings.budget.recentExpenses}
         </h2>
         {expenses.length === 0 ? (
-          <p className="py-2 text-sm text-slate-400">{strings.budget.emptyExpenses}</p>
+          <p className="py-2 text-sm text-ink-soft">{strings.budget.emptyExpenses}</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {expenses.map((expense) => (
               <li key={expense.id}>
                 <button
@@ -236,20 +236,20 @@ export function BudgetScreen() {
                   className="flex w-full items-baseline justify-between gap-2 py-2.5 text-start"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-slate-800">
+                    <span className="block truncate text-sm font-medium text-ink">
                       {expense.description || categoryLabel(expense.category_id)}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-ink-soft">
                       {formatShortDate(expense.spent_on)} · {categoryLabel(expense.category_id)}
                       {expense.booking_id && <span aria-hidden="true"> · 🎫</span>}
                     </span>
                   </span>
                   <span className="shrink-0 text-end">
-                    <span className="block text-sm font-semibold text-slate-800" dir="ltr">
+                    <span className="block text-sm font-semibold text-ink" dir="ltr">
                       {formatMoney(expense.amount_ils, "ILS")}
                     </span>
                     {expense.currency !== "ILS" && (
-                      <span className="text-xs text-slate-400" dir="ltr">
+                      <span className="text-xs text-ink-soft" dir="ltr">
                         {formatMoney(expense.amount, expense.currency)}
                       </span>
                     )}

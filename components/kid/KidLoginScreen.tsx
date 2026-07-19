@@ -74,7 +74,7 @@ export function KidLoginScreen() {
 
   return (
     <div className="mx-auto flex min-h-[80dvh] max-w-sm flex-col justify-center px-6 py-8">
-      <h1 className="mb-2 text-center text-3xl font-bold text-teal-700">
+      <h1 className="mb-2 text-center text-3xl font-bold text-sea">
         {strings.kidLogin.title}
       </h1>
 
@@ -83,7 +83,7 @@ export function KidLoginScreen() {
           <h2 className="mt-4 text-center text-lg font-semibold">
             {strings.kidLogin.codeTitle}
           </h2>
-          <p className="mb-6 text-center text-sm text-slate-500">
+          <p className="mb-6 text-center text-sm text-ink-soft">
             {strings.kidLogin.codeHint}
           </p>
           <form onSubmit={(e) => void handleRegister(e)} className="space-y-4">
@@ -94,13 +94,13 @@ export function KidLoginScreen() {
               placeholder={strings.kidLogin.codePlaceholder}
               maxLength={8}
               autoFocus
-              className="w-full rounded-2xl border-2 border-slate-300 px-4 py-4 text-center text-2xl font-bold tracking-[0.4em] focus:border-teal-500 focus:outline-none"
+              className="w-full rounded-2xl border-2 border-line px-4 py-4 text-center text-2xl font-bold tracking-[0.4em] focus:border-sea focus:outline-none"
               dir="ltr"
             />
             <button
               type="submit"
               disabled={busy || code.trim().length < 6}
-              className="w-full rounded-2xl bg-teal-600 py-4 text-lg font-bold text-white hover:bg-teal-700 disabled:opacity-50"
+              className="w-full rounded-2xl bg-sea py-4 text-lg font-bold text-white hover:bg-sea-deep disabled:opacity-50"
             >
               {strings.kidLogin.connect}
             </button>
@@ -112,7 +112,7 @@ export function KidLoginScreen() {
             {strings.kidLogin.pinTitle}
             {kidDisplayName() ? ` ${kidDisplayName()}!` : "!"}
           </h2>
-          <p className="mb-4 text-center text-sm text-slate-500">
+          <p className="mb-4 text-center text-sm text-ink-soft">
             {strings.kidLogin.pinHint}
           </p>
 
@@ -122,7 +122,7 @@ export function KidLoginScreen() {
               <span
                 key={i}
                 className={`h-4 w-4 rounded-full ${
-                  i < pin.length ? "bg-teal-600" : "bg-slate-200"
+                  i < pin.length ? "bg-sea" : "bg-line"
                 } ${i >= 4 && pin.length < 5 ? "opacity-40" : ""}`}
               />
             ))}
@@ -136,7 +136,7 @@ export function KidLoginScreen() {
                 type="button"
                 onClick={() => pressDigit(d)}
                 disabled={busy}
-                className="rounded-2xl bg-white py-4 text-2xl font-bold text-slate-800 shadow-sm active:bg-teal-50 disabled:opacity-50"
+                className="rounded-2xl bg-white py-4 text-2xl font-bold text-ink shadow-sm active:bg-sea-tint disabled:opacity-50"
               >
                 {d}
               </button>
@@ -146,7 +146,7 @@ export function KidLoginScreen() {
               onClick={() => setPin("")}
               disabled={busy}
               aria-label={strings.kidLogin.delete}
-              className="rounded-2xl bg-slate-100 py-4 text-lg font-bold text-slate-500"
+              className="rounded-2xl bg-paper-deep py-4 text-lg font-bold text-ink-soft"
             >
               ✕
             </button>
@@ -154,7 +154,7 @@ export function KidLoginScreen() {
               type="button"
               onClick={() => pressDigit("0")}
               disabled={busy}
-              className="rounded-2xl bg-white py-4 text-2xl font-bold text-slate-800 shadow-sm active:bg-teal-50 disabled:opacity-50"
+              className="rounded-2xl bg-white py-4 text-2xl font-bold text-ink shadow-sm active:bg-sea-tint disabled:opacity-50"
             >
               0
             </button>
@@ -162,7 +162,7 @@ export function KidLoginScreen() {
               type="button"
               onClick={() => pin.length >= 4 && void submitPin(pin)}
               disabled={busy || pin.length < 4}
-              className="rounded-2xl bg-teal-600 py-4 text-lg font-bold text-white disabled:opacity-40"
+              className="rounded-2xl bg-sea py-4 text-lg font-bold text-white disabled:opacity-40"
             >
               ✓
             </button>
@@ -178,7 +178,7 @@ export function KidLoginScreen() {
 
       <Link
         href="/login"
-        className="mt-8 text-center text-sm text-slate-400 underline"
+        className="mt-8 text-center text-sm text-ink-soft underline"
       >
         {strings.kidLogin.backToParents}
       </Link>

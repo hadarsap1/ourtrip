@@ -72,29 +72,29 @@ export function TodayScreen() {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 pt-8 pb-8">
         <h1 className="text-2xl font-bold">{strings.guestHome.welcome}</h1>
-        <p className="text-sm text-slate-500">{strings.guestHome.subtitle}</p>
+        <p className="text-sm text-ink-soft">{strings.guestHome.subtitle}</p>
         <div className="grid grid-cols-2 gap-2 text-center">
           <Link href="/photos" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">📷</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tilePhotos}
             </span>
           </Link>
           <Link href="/journal" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">📖</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tileJournal}
             </span>
           </Link>
           <Link href="/map" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">🗺️</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tileMap}
             </span>
           </Link>
           <Link href="/messages" className="rounded-2xl bg-white p-6 shadow-sm">
             <span className="block text-4xl" aria-hidden="true">💬</span>
-            <span className="mt-2 block font-semibold text-slate-700">
+            <span className="mt-2 block font-semibold text-ink">
               {strings.guestHome.tileWall}
             </span>
           </Link>
@@ -120,7 +120,7 @@ export function TodayScreen() {
           </Link>
         </header>
 
-        <section className="rounded-2xl bg-teal-600 p-4 text-white shadow">
+        <section className="rounded-2xl bg-sea p-4 text-white shadow">
           <p className="text-sm font-medium opacity-80">
             {strings.kidHome.whereToday}
           </p>
@@ -136,18 +136,18 @@ export function TodayScreen() {
         </section>
 
         {activeItems.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <ul className="divide-y divide-slate-100">
+          <section className="rounded-2xl border border-line bg-white shadow-sm">
+            <ul className="divide-y divide-line">
               {activeItems.map((item) => (
                 <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
-                  <span className="w-14 shrink-0 text-sm font-bold tabular-nums text-teal-700" dir="ltr">
+                  <span className="w-14 shrink-0 text-sm font-bold tabular-nums text-sea" dir="ltr">
                     {item.start_time ? formatTime(item.start_time) : "—"}
                   </span>
                   <span
                     className={`text-lg font-medium ${
                       item.status === "done"
-                        ? "text-slate-400 line-through"
-                        : "text-slate-800"
+                        ? "text-ink-soft line-through"
+                        : "text-ink"
                     }`}
                   >
                     {item.title}
@@ -174,25 +174,25 @@ export function TodayScreen() {
         <div className="grid grid-cols-2 gap-2 text-center">
           <Link href="/photos" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">📷</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tilePhotos}
             </span>
           </Link>
           <Link href="/pocket" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">🪙</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tilePocket}
             </span>
           </Link>
           <Link href="/phrasebook" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">💬</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tilePhrasebook}
             </span>
           </Link>
           <Link href="/documents" className="rounded-2xl bg-white p-4 shadow-sm">
             <span className="block text-3xl" aria-hidden="true">📄</span>
-            <span className="mt-1 block text-sm font-semibold text-slate-700">
+            <span className="mt-1 block text-sm font-semibold text-ink">
               {strings.kidHome.tileDocuments}
             </span>
           </Link>

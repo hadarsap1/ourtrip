@@ -66,7 +66,7 @@ export function KidsAdminScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export function KidsAdminScreen() {
       <h1 className="text-2xl font-bold">{strings.kids.title}</h1>
 
       {kids.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
           {strings.kids.noKids}
         </p>
       )}
@@ -91,16 +91,16 @@ export function KidsAdminScreen() {
         return (
           <section
             key={kid.id}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-line bg-white p-4 shadow-sm"
           >
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-slate-800">
+              <h2 className="text-lg font-bold text-ink">
                 🧒 {kid.display_name}
               </h2>
               <button
                 type="button"
                 onClick={() => setCodeFor(kid)}
-                className="rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100"
+                className="rounded-xl bg-sea-tint px-3 py-2 text-sm font-semibold text-sea hover:bg-sea-tint"
               >
                 {strings.kids.generateCode}
               </button>
@@ -114,7 +114,7 @@ export function KidsAdminScreen() {
                     }`}
                   >
                     {locked ? "🔒 " + strings.kids.deviceLocked : "✓ " + strings.kids.deviceActive}
-                    <span className="mr-1 font-normal text-slate-400">
+                    <span className="mr-1 font-normal text-ink-soft">
                       · {strings.kids.connectedAt}{" "}
                       {formatDate(device.created_at.slice(0, 10))}
                     </span>
@@ -133,7 +133,7 @@ export function KidsAdminScreen() {
                   </button>
                 </>
               ) : (
-                <span className="text-slate-400">{strings.kids.noDevice}</span>
+                <span className="text-ink-soft">{strings.kids.noDevice}</span>
               )}
             </div>
           </section>
@@ -158,11 +158,11 @@ export function KidsAdminScreen() {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder={strings.kids.kidName}
-          className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+          className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
         />
         <button
           type="submit"
-          className="shrink-0 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
+          className="shrink-0 rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white hover:bg-sea-deep"
         >
           + {strings.kids.addKid}
         </button>
@@ -216,9 +216,9 @@ function GenerateCodeSheet({
     >
       {code ? (
         <div className="space-y-4 text-center">
-          <p className="text-sm text-slate-500">{strings.kids.codeReady}</p>
+          <p className="text-sm text-ink-soft">{strings.kids.codeReady}</p>
           <p
-            className="rounded-2xl bg-teal-50 py-6 text-5xl font-bold tracking-[0.3em] text-teal-700"
+            className="rounded-2xl bg-sea-tint py-6 text-5xl font-bold tracking-[0.3em] text-sea"
             dir="ltr"
           >
             {code}
@@ -226,7 +226,7 @@ function GenerateCodeSheet({
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-white"
           >
             {strings.common.close}
           </button>
@@ -236,7 +236,7 @@ function GenerateCodeSheet({
           <div>
             <label
               htmlFor="kid-pin"
-              className="mb-1 block text-sm font-medium text-slate-600"
+              className="mb-1 block text-sm font-medium text-ink-soft"
             >
               {strings.kids.pinLabel}
             </label>
@@ -250,14 +250,14 @@ function GenerateCodeSheet({
               autoFocus
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-center text-2xl font-bold tracking-[0.4em] focus:border-teal-500 focus:outline-none"
+              className="w-full rounded-xl border border-line px-3 py-2.5 text-center text-2xl font-bold tracking-[0.4em] focus:border-sea focus:outline-none"
               dir="ltr"
             />
           </div>
           <button
             type="submit"
             disabled={busy || !/^\d{4,6}$/.test(pin)}
-            className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-50"
           >
             {strings.kids.generateCode}
           </button>

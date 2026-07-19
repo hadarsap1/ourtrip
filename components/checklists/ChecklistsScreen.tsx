@@ -108,7 +108,7 @@ export function ChecklistsScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -130,7 +130,7 @@ export function ChecklistsScreen() {
           <button
             type="button"
             onClick={() => setOpenListId(null)}
-            className="text-sm font-semibold text-teal-600"
+            className="text-sm font-semibold text-sea"
           >
             ← {strings.checklists.back}
           </button>
@@ -139,7 +139,7 @@ export function ChecklistsScreen() {
               type="button"
               onClick={() => setListForm({ rename: openList })}
               aria-label={strings.checklists.listName}
-              className="p-1 text-slate-400 hover:text-slate-600"
+              className="p-1 text-ink-soft hover:text-ink-soft"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4.5 w-4.5" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
@@ -169,19 +169,19 @@ export function ChecklistsScreen() {
             )}
           </h1>
           {!openList.is_template && listItems.length > 0 && (
-            <span className="text-sm font-semibold text-slate-400" dir="ltr">
+            <span className="text-sm font-semibold text-ink-soft" dir="ltr">
               {checkedCount}/{listItems.length}
             </span>
           )}
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-2xl border border-line bg-white shadow-sm">
           {listItems.length === 0 ? (
-            <p className="px-4 py-4 text-sm text-slate-400">
+            <p className="px-4 py-4 text-sm text-ink-soft">
               {strings.checklists.emptyItems}
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {listItems.map((item) => {
                 const assignee = memberName(item.assigned_to);
                 return (
@@ -198,8 +198,8 @@ export function ChecklistsScreen() {
                       <span
                         className={`min-w-0 truncate ${
                           item.checked
-                            ? "text-slate-400 line-through"
-                            : "text-slate-800"
+                            ? "text-ink-soft line-through"
+                            : "text-ink"
                         }`}
                       >
                         {item.label}
@@ -214,7 +214,7 @@ export function ChecklistsScreen() {
                       type="button"
                       onClick={() => setEditingItem(item)}
                       aria-label={strings.checklists.editItem}
-                      className="p-1.5 text-slate-300 hover:text-slate-500"
+                      className="p-1.5 text-line hover:text-ink-soft"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
@@ -227,7 +227,7 @@ export function ChecklistsScreen() {
           )}
 
           <form
-            className="flex gap-2 border-t border-slate-100 p-3"
+            className="flex gap-2 border-t border-line p-3"
             onSubmit={(e) => {
               e.preventDefault();
               const label = newItemLabel.trim();
@@ -243,11 +243,11 @@ export function ChecklistsScreen() {
               value={newItemLabel}
               onChange={(e) => setNewItemLabel(e.target.value)}
               placeholder={strings.checklists.addItemPlaceholder}
-              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2 text-base focus:border-sea focus:outline-none"
             />
             <button
               type="submit"
-              className="shrink-0 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+              className="shrink-0 rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-white hover:bg-sea-deep"
             >
               {strings.checklists.add}
             </button>
@@ -289,11 +289,11 @@ export function ChecklistsScreen() {
       <h1 className="text-2xl font-bold">{strings.checklists.title}</h1>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold text-ink-soft">
           {strings.checklists.lists}
         </h2>
         {regularLists.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
             {strings.checklists.empty}
           </p>
         ) : (
@@ -306,10 +306,10 @@ export function ChecklistsScreen() {
                   <button
                     type="button"
                     onClick={() => setOpenListId(list.id)}
-                    className="flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-start shadow-sm"
+                    className="flex w-full items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-start shadow-sm"
                   >
-                    <span className="font-semibold text-slate-800">{list.title}</span>
-                    <span className="text-sm font-semibold text-slate-400" dir="ltr">
+                    <span className="font-semibold text-ink">{list.title}</span>
+                    <span className="text-sm font-semibold text-ink-soft" dir="ltr">
                       {checkedCount}/{listItems.length}
                     </span>
                   </button>
@@ -321,26 +321,26 @@ export function ChecklistsScreen() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold text-ink-soft">
           {strings.checklists.templates}
         </h2>
         {templates.length === 0 ? (
-          <p className="text-sm text-slate-400">{strings.checklists.emptyTemplates}</p>
+          <p className="text-sm text-ink-soft">{strings.checklists.emptyTemplates}</p>
         ) : (
           <ul className="space-y-2">
             {templates.map((template) => (
               <li
                 key={template.id}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                className="rounded-2xl border border-line bg-white px-4 py-3 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => setOpenListId(template.id)}
-                    className="min-w-0 flex-1 text-start font-semibold text-slate-800"
+                    className="min-w-0 flex-1 text-start font-semibold text-ink"
                   >
                     {template.title}
-                    <span className="mr-2 text-xs font-normal text-slate-400" dir="ltr">
+                    <span className="mr-2 text-xs font-normal text-ink-soft" dir="ltr">
                       ({itemsOf(template.id).length})
                     </span>
                   </button>
@@ -352,7 +352,7 @@ export function ChecklistsScreen() {
                         strings.checklists.listCreated
                       )
                     }
-                    className="shrink-0 rounded-lg bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
+                    className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-xs font-semibold text-sea hover:bg-sea-tint"
                   >
                     {strings.checklists.useTemplate}
                   </button>
@@ -367,14 +367,14 @@ export function ChecklistsScreen() {
         <button
           type="button"
           onClick={() => setListForm({ rename: null })}
-          className="flex-1 rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+          className="flex-1 rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
         >
           {strings.checklists.addList}
         </button>
         <button
           type="button"
           onClick={() => setImporting(true)}
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-600 shadow-sm"
+          className="rounded-2xl border border-line bg-white px-4 py-3 font-semibold text-ink-soft shadow-sm"
         >
           ⤓ {strings.checklists.importList}
         </button>

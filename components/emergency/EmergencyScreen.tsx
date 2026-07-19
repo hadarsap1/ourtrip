@@ -24,7 +24,7 @@ function TelRow({ label, value }: { label: string; value?: string }) {
       href={`tel:${value.replace(/[^\d+*#]/g, "")}`}
       className="flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-sm"
     >
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-ink">{label}</span>
       <span className="text-lg font-bold text-rose-600" dir="ltr">
         {value}
       </span>
@@ -36,8 +36,8 @@ function InfoRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
     <div className="flex items-baseline justify-between gap-3 px-3 py-2">
-      <span className="shrink-0 text-sm text-slate-500">{label}</span>
-      <span className="text-end text-sm font-medium text-slate-800">{value}</span>
+      <span className="shrink-0 text-sm text-ink-soft">{label}</span>
+      <span className="text-end text-sm font-medium text-ink">{value}</span>
     </div>
   );
 }
@@ -122,7 +122,7 @@ export function EmergencyScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -145,7 +145,7 @@ export function EmergencyScreen() {
           <button
             type="button"
             onClick={() => setEditing({ countryCode: selected })}
-            className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600"
+            className="rounded-xl border border-line px-3 py-1.5 text-sm font-semibold text-ink-soft"
           >
             <span aria-hidden="true">✏️</span> {strings.emergency.editTitle}
           </button>
@@ -159,7 +159,7 @@ export function EmergencyScreen() {
       )}
 
       {allCountries.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.emergency.noCountries}
         </p>
       ) : (
@@ -172,7 +172,7 @@ export function EmergencyScreen() {
               className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === code
                   ? "bg-rose-600 text-white"
-                  : "bg-white text-slate-600 shadow-sm"
+                  : "bg-white text-ink-soft shadow-sm"
               }`}
             >
               {countryName(code)}
@@ -182,7 +182,7 @@ export function EmergencyScreen() {
             <button
               type="button"
               onClick={() => setEditing({ countryCode: null })}
-              className="shrink-0 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-500"
+              className="shrink-0 rounded-full border border-dashed border-line px-3 py-1.5 text-sm font-semibold text-ink-soft"
             >
               + {strings.emergency.addCountry}
             </button>
@@ -194,18 +194,18 @@ export function EmergencyScreen() {
         <>
           {!page || Object.keys(content).length === 0 ? (
             <div className="space-y-3 rounded-2xl border border-dashed border-rose-200 bg-white p-6 text-center">
-              <p className="text-sm text-slate-500">{strings.emergency.emptyPage}</p>
+              <p className="text-sm text-ink-soft">{strings.emergency.emptyPage}</p>
               {isOwner && trip && (
                 <>
                   <button
                     type="button"
                     onClick={() => void runAutofill(selected)}
                     disabled={autofilling}
-                    className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow-sm disabled:opacity-50"
+                    className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm disabled:opacity-50"
                   >
                     ✨ {autofilling ? strings.emergency.autofilling : strings.emergency.autofill}
                   </button>
-                  <p className="text-xs text-slate-400">{strings.emergency.autofillHint}</p>
+                  <p className="text-xs text-ink-soft">{strings.emergency.autofillHint}</p>
                 </>
               )}
             </div>
@@ -225,8 +225,8 @@ export function EmergencyScreen() {
               )}
 
               {(content.embassy_phone || content.embassy_address) && (
-                <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <h2 className="border-b border-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+                <section className="rounded-2xl border border-line bg-white shadow-sm">
+                  <h2 className="border-b border-line px-3 py-2 text-sm font-bold text-ink">
                     {strings.emergency.embassy}
                   </h2>
                   {content.embassy_phone && (
@@ -239,8 +239,8 @@ export function EmergencyScreen() {
               )}
 
               {(content.insurance_company || content.insurance_policy || content.insurance_phone) && (
-                <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <h2 className="border-b border-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+                <section className="rounded-2xl border border-line bg-white shadow-sm">
+                  <h2 className="border-b border-line px-3 py-2 text-sm font-bold text-ink">
                     {strings.emergency.insurance}
                   </h2>
                   {content.insurance_phone && (
@@ -254,8 +254,8 @@ export function EmergencyScreen() {
               )}
 
               {(content.hotel_name || content.hotel_address || content.hotel_phone) && (
-                <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <h2 className="border-b border-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+                <section className="rounded-2xl border border-line bg-white shadow-sm">
+                  <h2 className="border-b border-line px-3 py-2 text-sm font-bold text-ink">
                     {strings.emergency.hotel}
                   </h2>
                   {content.hotel_phone && (
@@ -269,11 +269,11 @@ export function EmergencyScreen() {
               )}
 
               {content.medical_notes && (
-                <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                  <h2 className="mb-1 text-sm font-bold text-slate-700">
+                <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+                  <h2 className="mb-1 text-sm font-bold text-ink">
                     {strings.emergency.medical}
                   </h2>
-                  <p className="whitespace-pre-wrap text-sm text-slate-700">
+                  <p className="whitespace-pre-wrap text-sm text-ink">
                     {content.medical_notes}
                   </p>
                 </section>

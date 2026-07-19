@@ -125,22 +125,22 @@ export function PlaceAutocomplete({
         onChange={(e) => handleInput(e.target.value)}
         placeholder={strings.places.searchPlaceholder}
         autoComplete="off"
-        className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+        className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
       />
       {predictions.length > 0 && (
-        <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+        <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-xl border border-line bg-white shadow-lg">
           {predictions.map((p) => (
             <li key={p.place_id}>
               <button
                 type="button"
                 onClick={() => handlePick(p)}
-                className="block w-full px-3 py-2.5 text-start text-sm hover:bg-slate-50"
+                className="block w-full px-3 py-2.5 text-start text-sm hover:bg-paper-deep"
               >
                 <span className="font-medium">
                   {p.structured_formatting?.main_text ?? p.description}
                 </span>
                 {p.structured_formatting?.secondary_text && (
-                  <span className="block text-xs text-slate-500">
+                  <span className="block text-xs text-ink-soft">
                     {p.structured_formatting.secondary_text}
                   </span>
                 )}

@@ -8,9 +8,9 @@ import {
 } from "@/lib/data/emergency";
 import { strings } from "@/lib/strings";
 
-const labelClass = "mb-1 block text-sm font-medium text-slate-600";
+const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
 const inputClass =
-  "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none";
+  "w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none";
 
 // Structured editor fields, grouped like the read view.
 const FIELD_GROUPS: {
@@ -145,7 +145,7 @@ function EmergencyEditForm({
 
         {FIELD_GROUPS.map((group) => (
           <fieldset key={group.title} className="space-y-3">
-            <legend className="mb-1 text-sm font-bold text-slate-700">
+            <legend className="mb-1 text-sm font-bold text-ink">
               {group.title}
             </legend>
             {group.fields.map((field) => (
@@ -182,7 +182,7 @@ function EmergencyEditForm({
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
         >
           {strings.common.save}
         </button>

@@ -59,13 +59,13 @@ export function NotificationsScreen() {
     <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
       <header>
         <h1 className="text-2xl font-bold">{s.title}</h1>
-        <p className="mt-1 text-sm text-slate-500">{s.subtitle}</p>
+        <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>
       </header>
 
       {/* what we send */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">{s.whatTitle}</h2>
-        <ul className="space-y-1.5 text-sm text-slate-600">
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-semibold text-ink">{s.whatTitle}</h2>
+        <ul className="space-y-1.5 text-sm text-ink-soft">
           <li>{s.whatWeather}</li>
           <li>{s.whatCheckin}</li>
           <li>{s.whatWall}</li>
@@ -86,7 +86,7 @@ export function NotificationsScreen() {
           </ol>
         </section>
       ) : state === "unsupported" ? (
-        <p className="rounded-2xl bg-slate-100 p-4 text-center text-sm text-slate-500">
+        <p className="rounded-2xl bg-paper-deep p-4 text-center text-sm text-ink-soft">
           {s.unsupported}
         </p>
       ) : state === "denied" ? (
@@ -95,14 +95,14 @@ export function NotificationsScreen() {
         </p>
       ) : state === "subscribed" ? (
         <div className="space-y-3">
-          <p className="rounded-2xl bg-teal-50 p-4 text-center text-sm font-medium text-teal-700">
+          <p className="rounded-2xl bg-sea-tint p-4 text-center text-sm font-medium text-sea">
             {s.enabled}
           </p>
           <button
             type="button"
             onClick={onDisable}
             disabled={busy}
-            className="w-full rounded-2xl border border-slate-200 bg-white py-3 font-medium text-slate-600 disabled:opacity-50"
+            className="w-full rounded-2xl border border-line bg-white py-3 font-medium text-ink-soft disabled:opacity-50"
           >
             {s.disable}
           </button>
@@ -112,7 +112,7 @@ export function NotificationsScreen() {
           type="button"
           onClick={onEnable}
           disabled={busy}
-          className="w-full rounded-2xl bg-teal-600 py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
+          className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
         >
           {busy ? s.working : s.enable}
         </button>

@@ -35,7 +35,7 @@ export function Sheet({
             type="button"
             onClick={onClose}
             aria-label={strings.common.close}
-            className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100"
+            className="rounded-full p-1.5 text-ink-soft hover:bg-paper-deep"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

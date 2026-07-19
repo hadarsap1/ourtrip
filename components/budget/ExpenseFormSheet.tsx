@@ -14,9 +14,9 @@ import type { BudgetCategory, Expense } from "@/lib/types";
 
 const LAST_CURRENCY_KEY = "ourtrip-last-currency";
 
-const labelClass = "mb-1 block text-sm font-medium text-slate-600";
+const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
 const inputClass =
-  "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none";
+  "w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none";
 
 export function ExpenseFormSheet({
   open,
@@ -176,8 +176,8 @@ function ExpenseForm({
                 onClick={() => setCurrency(c)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                   currency === c
-                    ? "bg-teal-600 text-white"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-sea text-white"
+                    : "bg-paper-deep text-ink-soft"
                 }`}
               >
                 {c}
@@ -191,7 +191,7 @@ function ExpenseForm({
           <span className={labelClass}>
             {strings.budget.category}
             {isNew && (
-              <span className="mr-1 text-xs font-normal text-slate-400">
+              <span className="mr-1 text-xs font-normal text-ink-soft">
                 · {strings.budget.categoryTapHint}
               </span>
             )}
@@ -208,8 +208,8 @@ function ExpenseForm({
                 }}
                 className={`rounded-xl px-2 py-2.5 text-sm font-semibold disabled:opacity-40 ${
                   categoryId === cat.id
-                    ? "bg-teal-600 text-white"
-                    : "bg-slate-100 text-slate-700"
+                    ? "bg-sea text-white"
+                    : "bg-paper-deep text-ink"
                 }`}
               >
                 {cat.label_he}
@@ -252,7 +252,7 @@ function ExpenseForm({
               type="button"
               disabled={saving || !amountValid || !categoryId}
               onClick={() => void save(categoryId)}
-              className="flex-1 rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+              className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
             >
               {strings.common.save}
             </button>

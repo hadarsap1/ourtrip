@@ -93,7 +93,7 @@ export function PhrasebookScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function PhrasebookScreen() {
       )}
 
       {languages.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.phrasebook.empty}
         </p>
       ) : (
@@ -129,8 +129,8 @@ export function PhrasebookScreen() {
               onClick={() => void selectLanguage(lang)}
               className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === lang
-                  ? "bg-teal-600 text-white"
-                  : "bg-white text-slate-600 shadow-sm"
+                  ? "bg-sea text-white"
+                  : "bg-white text-ink-soft shadow-sm"
               }`}
             >
               {languageName(lang)}
@@ -140,7 +140,7 @@ export function PhrasebookScreen() {
             type="button"
             onClick={() => setAddOpen(true)}
             disabled={generating}
-            className="shrink-0 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-500 disabled:opacity-50"
+            className="shrink-0 rounded-full border border-dashed border-line px-3 py-1.5 text-sm font-semibold text-ink-soft disabled:opacity-50"
           >
             + {strings.phrasebook.addLanguage}
           </button>
@@ -152,7 +152,7 @@ export function PhrasebookScreen() {
           type="button"
           onClick={() => setAddOpen(true)}
           disabled={generating}
-          className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700 disabled:opacity-60"
+          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep disabled:opacity-60"
         >
           {generating ? strings.phrasebook.generating : strings.phrasebook.addLanguage}
         </button>
@@ -160,16 +160,16 @@ export function PhrasebookScreen() {
 
       {selected && entries.length > 0 && (
         <>
-          <p className="text-xs text-slate-400">{strings.phrasebook.showToLocalHint}</p>
+          <p className="text-xs text-ink-soft">{strings.phrasebook.showToLocalHint}</p>
           {[...grouped.entries()].map(([category, categoryEntries]) => (
             <section
               key={category}
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
             >
-              <h2 className="border-b border-slate-100 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700">
+              <h2 className="border-b border-line bg-paper-deep px-3 py-2 text-sm font-bold text-ink">
                 {category}
               </h2>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {categoryEntries.map((entry) => (
                   <li key={entry.id}>
                     <button
@@ -177,14 +177,14 @@ export function PhrasebookScreen() {
                       onClick={() => setShowEntry(entry)}
                       className="block w-full px-3 py-2.5 text-start"
                     >
-                      <span className="block font-medium text-slate-800">
+                      <span className="block font-medium text-ink">
                         {entry.phrase_he}
                       </span>
-                      <span className="block text-sm text-teal-700" dir="auto">
+                      <span className="block text-sm text-sea" dir="auto">
                         {entry.phrase_local}
                       </span>
                       {entry.phonetic_he && (
-                        <span className="block text-xs text-slate-400">
+                        <span className="block text-xs text-ink-soft">
                           {entry.phonetic_he}
                         </span>
                       )}
@@ -199,7 +199,7 @@ export function PhrasebookScreen() {
               type="button"
               onClick={() => void handleGenerate(selected)}
               disabled={generating}
-              className="w-full rounded-2xl border border-slate-300 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+              className="w-full rounded-2xl border border-line py-2.5 text-sm font-semibold text-ink-soft hover:bg-paper-deep disabled:opacity-50"
             >
               {generating
                 ? strings.phrasebook.generating
@@ -210,7 +210,7 @@ export function PhrasebookScreen() {
       )}
 
       {selected && entries.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {strings.phrasebook.emptyLanguage}
         </p>
       )}
@@ -230,12 +230,12 @@ export function PhrasebookScreen() {
           aria-label={strings.common.close}
           className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 bg-white p-6"
         >
-          <span className="text-4xl font-bold leading-relaxed text-slate-900" dir="auto">
+          <span className="text-4xl font-bold leading-relaxed text-ink" dir="auto">
             {showEntry.phrase_local}
           </span>
-          <span className="text-lg text-slate-500">{showEntry.phrase_he}</span>
+          <span className="text-lg text-ink-soft">{showEntry.phrase_he}</span>
           {showEntry.phonetic_he && (
-            <span className="text-base text-slate-400">
+            <span className="text-base text-ink-soft">
               {strings.phrasebook.phonetic}: {showEntry.phonetic_he}
             </span>
           )}
@@ -268,7 +268,7 @@ function AddLanguageSheet({
     <Sheet open onClose={onClose} title={strings.phrasebook.addLanguage}>
       <div className="space-y-4">
         <div>
-          <span className="mb-1 block text-sm font-medium text-slate-600">
+          <span className="mb-1 block text-sm font-medium text-ink-soft">
             {strings.phrasebook.languageSelect}
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -282,8 +282,8 @@ function AddLanguageSheet({
                 }}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
                   picked === code && !custom
-                    ? "bg-teal-600 text-white"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-sea text-white"
+                    : "bg-paper-deep text-ink-soft"
                 }`}
               >
                 {languageName(code)}
@@ -295,7 +295,7 @@ function AddLanguageSheet({
         <div>
           <label
             htmlFor="pb-custom"
-            className="mb-1 block text-sm font-medium text-slate-600"
+            className="mb-1 block text-sm font-medium text-ink-soft"
           >
             {strings.phrasebook.customCode}
           </label>
@@ -306,7 +306,7 @@ function AddLanguageSheet({
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder="ja"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
             dir="ltr"
           />
         </div>
@@ -315,7 +315,7 @@ function AddLanguageSheet({
           type="button"
           disabled={!language || generating}
           onClick={() => onGenerate(language)}
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
         >
           {strings.phrasebook.generate}
         </button>

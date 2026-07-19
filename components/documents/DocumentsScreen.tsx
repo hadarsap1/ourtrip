@@ -201,7 +201,7 @@ export function DocumentsScreen() {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-slate-500">{strings.common.loading}</p>
+        <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
@@ -226,7 +226,7 @@ export function DocumentsScreen() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder={strings.documents.searchPlaceholder}
-        className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base focus:border-teal-500 focus:outline-none"
+        className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
       />
 
       <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -234,7 +234,7 @@ export function DocumentsScreen() {
           type="button"
           onClick={() => setTagFilter(null)}
           className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-            tagFilter === null ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600"
+            tagFilter === null ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
           }`}
         >
           {strings.documents.allTags}
@@ -245,7 +245,7 @@ export function DocumentsScreen() {
             type="button"
             onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-              tagFilter === tag ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600"
+              tagFilter === tag ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
             }`}
           >
             {strings.documents.tags[tag]}
@@ -254,7 +254,7 @@ export function DocumentsScreen() {
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
           {docs.length === 0
             ? isKid
               ? strings.documents.kidEmpty
@@ -269,14 +269,14 @@ export function DocumentsScreen() {
             return (
               <li
                 key={doc.id}
-                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm"
+                className="flex items-center gap-2 rounded-2xl border border-line bg-white px-3 py-2.5 shadow-sm"
               >
                 <button
                   type="button"
                   onClick={() => (isKid ? void handleOpen(doc) : setForm({ doc }))}
                   className="min-w-0 flex-1 text-start"
                 >
-                  <span className="block truncate font-medium text-slate-800">
+                  <span className="block truncate font-medium text-ink">
                     {doc.pin_protected && (
                       <span className="mr-1" aria-label={strings.documents.lockedBadge}>
                         🔒
@@ -289,7 +289,7 @@ export function DocumentsScreen() {
                     )}
                     {doc.title}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-ink-soft">
                     {strings.documents.tags[doc.tag] ?? doc.tag}
                     {doc.notes ? ` · ${doc.notes}` : ""}
                   </span>
@@ -303,7 +303,7 @@ export function DocumentsScreen() {
                     className={`rounded-full p-2 ${
                       doc.pin_protected
                         ? "bg-rose-100 text-rose-700"
-                        : "bg-slate-100 text-slate-400"
+                        : "bg-paper-deep text-ink-soft"
                     }`}
                   >
                     <span className="block h-4 w-4 text-center text-sm leading-4" aria-hidden="true">
@@ -320,7 +320,7 @@ export function DocumentsScreen() {
                     className={`rounded-full p-2 ${
                       doc.shared_with_kids
                         ? "bg-amber-100 text-amber-700"
-                        : "bg-slate-100 text-slate-400"
+                        : "bg-paper-deep text-ink-soft"
                     }`}
                   >
                     <span className="block h-4 w-4 text-center text-sm leading-4" aria-hidden="true">
@@ -335,7 +335,7 @@ export function DocumentsScreen() {
                   aria-label={strings.documents.offlineToggle}
                   aria-pressed={isOffline}
                   className={`rounded-full p-2 disabled:opacity-40 ${
-                    isOffline ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-400"
+                    isOffline ? "bg-sea-tint text-sea" : "bg-paper-deep text-ink-soft"
                   }`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
@@ -350,7 +350,7 @@ export function DocumentsScreen() {
                   type="button"
                   onClick={() => openDoc(doc)}
                   aria-label={strings.documents.open}
-                  className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"
+                  className="rounded-full bg-paper-deep p-2 text-ink-soft hover:bg-line"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -366,7 +366,7 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setForm({ doc: null })}
-          className="w-full rounded-2xl bg-teal-600 py-3 font-semibold text-white shadow hover:bg-teal-700"
+          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
         >
           {strings.documents.upload}
         </button>
@@ -379,7 +379,7 @@ export function DocumentsScreen() {
             lockVault();
             setUnlocked(false);
           }}
-          className="w-full text-center text-sm font-medium text-slate-400"
+          className="w-full text-center text-sm font-medium text-ink-soft"
         >
           🔒 {strings.documents.lockNow}
         </button>
@@ -428,7 +428,7 @@ export function DocumentsScreen() {
                 URL.revokeObjectURL(viewer.url);
                 setViewer(null);
               }}
-              className="rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-slate-800"
+              className="rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-ink"
             >
               {strings.documents.viewerClose}
             </button>
