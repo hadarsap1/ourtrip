@@ -109,7 +109,7 @@ export const strings = {
   placeholders: {
     comingSoon: "בקרוב…",
     documents: "כספת המסמכים תיבנה בספרינט 4",
-    more: "הגדרות, דף חירום ועוד — בהמשך",
+    more: "הגדרות ועוד — בהמשך",
   },
 
   budget: {
