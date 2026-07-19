@@ -404,6 +404,82 @@ export type Database = {
         }
         Relationships: []
       }
+      google_photos: {
+        Row: {
+          area: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          file_path: string
+          filename: string | null
+          google_media_id: string
+          height: number | null
+          id: string
+          map_pin_id: string | null
+          shared_with_guests: boolean
+          taken_at: string | null
+          trip_id: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          area?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_path: string
+          filename?: string | null
+          google_media_id: string
+          height?: number | null
+          id?: string
+          map_pin_id?: string | null
+          shared_with_guests?: boolean
+          taken_at?: string | null
+          trip_id: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          area?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_path?: string
+          filename?: string | null
+          google_media_id?: string
+          height?: number | null
+          id?: string
+          map_pin_id?: string | null
+          shared_with_guests?: boolean
+          taken_at?: string | null
+          trip_id?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_photos_map_pin_id_fkey"
+            columns: ["map_pin_id"]
+            isOneToOne: false
+            referencedRelation: "map_pins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_photos_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests_allowlist: {
         Row: {
           created_at: string

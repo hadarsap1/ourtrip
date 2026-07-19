@@ -187,3 +187,25 @@ Notes:
 - **Threat model**: defeats the "found/lost device" case fully — a locked passport is unreadable online or offline without the PIN, and the server never holds plaintext. **Accepted residual risk**: the salt + verifier are readable by an owner session, so an attacker who steals a live owner session could offline-brute-force a short numeric PIN (PBKDF2-210k slows it, but 6 digits is GPU-crackable). Mitigation: the UI allows 6–12 digit PINs — a longer PIN raises the cost. Inherent to short-PIN E2E, documented for the owner.
 - **Forgotten PIN = unrecoverable** by design (owner chose full E2E over recoverability); the set-PIN flow warns and requires acknowledgement.
 - `ANTHROPIC_API_KEY` is now configured — `recommend` + `phrasebook-generate` verified live (tool-use call returns structured output). The one-off `recommend-diag` probe function has been neutralized (inert 410 stub, `verify_jwt=true`).
+
+---
+
+## Google Photos integration (owner import, family view)
+Environment: migration `google_photos` (repo `00016_...`). New `google_photos` table + private `gphotos` storage bucket. Owner-gated import Edge Function (`gphotos`), `verify_jwt=true` + in-function `current_member_role()='owner'` check on every action (create/poll/import). The owner's Google access token is passed transiently and never stored.
+
+RLS coverage:
+- `google_photos_owner_all` — owner full access (import / re-file / delete).
+- `google_photos_kid_select` — kids read owner-curated photos (no write policy → deny-by-default on insert/update/delete).
+- **Guests: no policy → zero rows.** `shared_with_guests` column exists but guest sharing (signed-URL Edge Function, mirroring guest-photos) is intentionally deferred to Phase 2, so guests can never read Google-Photos content yet (CLAUDE.md rule #3).
+- Storage `gphotos`: `gphotos_bucket_family_select` (owner + kid) for signed-URL reads; insert/update/delete owner-only. Import writes go through the service role in the Edge Function.
+
+| Check | Method | Result |
+|---|---|---|
+| Import action rejects non-owner (kid/guest → 403) | in-function role gate | ⏳ verify post-deploy |
+| Kid can read imported rows, cannot insert/update/delete | policy set (deny-by-default) | ⏳ verify post-deploy |
+| Guest reads zero google_photos rows | policy set (no guest policy) | ⏳ verify post-deploy |
+
+Notes:
+- Google shut down third-party Library/album-read APIs on 2025-03-31; the Picker API (explicit user pick) is the only sanctioned path — no library mirroring is possible or attempted.
+- Only a **display-sized copy (~1600px)** is cached; full-res originals stay in Google Photos. Photo GPS is stripped by the Picker, so map placement is attach-to-place (Phase 2), never auto-geotag.
+- **Prerequisite (owner):** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env var + Google Cloud project with the Photos Picker API enabled and the app origin in the OAuth client's authorized JS origins. Until set, the import button shows a "not configured" message; viewing/existing features are unaffected.
