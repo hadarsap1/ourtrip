@@ -80,3 +80,22 @@ export async function listGuestPhotos(): Promise<GuestPhoto[]> {
   if (!data?.ok) throw new Error(data?.error ?? "failed");
   return data.photos as GuestPhoto[];
 }
+
+export type GuestGooglePhoto = {
+  id: string;
+  country: string | null;
+  area: string | null;
+  filename: string | null;
+  url: string | null;
+};
+
+/** Owner-shared Google Photos visible to this guest (via Edge Function). */
+export async function listGuestGooglePhotos(): Promise<GuestGooglePhoto[]> {
+  const { data, error } = await requireClient().functions.invoke(
+    "guest-gphotos",
+    { body: {} }
+  );
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error ?? "failed");
+  return data.photos as GuestGooglePhoto[];
+}

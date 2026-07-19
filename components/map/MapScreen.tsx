@@ -16,6 +16,10 @@ import {
   navigationUrl,
   routePath,
 } from "@/lib/data/map";
+import {
+  listGooglePhotos,
+  type GooglePhotoWithUrl,
+} from "@/lib/data/googlePhotos";
 import { loadGoogleMaps } from "@/lib/places";
 import { formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -49,6 +53,10 @@ export function MapScreen() {
   const [items, setItems] = useState<ItineraryItem[]>([]);
   const [pins, setPins] = useState<MapPin[]>([]);
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
+  const [pinPhotos, setPinPhotos] = useState<Map<string, GooglePhotoWithUrl[]>>(
+    new Map()
+  );
+  const [myLoc, setMyLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [noKey, setNoKey] = useState(false);
   const [dayFilter, setDayFilter] = useState<string | null>(null);
@@ -131,11 +139,48 @@ export function MapScreen() {
 
       mapRef.current = map;
       setMapReady(true);
+
+      // center on the user's current location (and mark it) — falls back to the
+      // trip's fitBounds framing below when there's itinerary/pin data to show.
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (!cancelled) {
+              setMyLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            }
+          },
+          () => {},
+          { enableHighAccuracy: false, timeout: 8000 }
+        );
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [refresh, showToast]);
+
+  // Google photos attached to pins (family view only — guests read the map
+  // read-only; shared Google photos appear in their Photos gallery instead).
+  useEffect(() => {
+    if (!trip || isGuest) return;
+    let cancelled = false;
+    void listGooglePhotos(trip.id)
+      .then((all) => {
+        if (cancelled) return;
+        const byPin = new Map<string, GooglePhotoWithUrl[]>();
+        for (const p of all) {
+          if (!p.map_pin_id) continue;
+          const list = byPin.get(p.map_pin_id) ?? [];
+          list.push(p);
+          byPin.set(p.map_pin_id, list);
+        }
+        setPinPhotos(byPin);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [trip, isGuest]);
 
   // render markers + saved routes whenever data/filter changes
   useEffect(() => {
@@ -195,19 +240,28 @@ export function MapScreen() {
 
     // custom + car pins
     for (const pin of pins) {
+      const attached = pinPhotos.get(pin.id) ?? [];
+      const hasPhotos = attached.length > 0;
       const marker = new google.maps.Marker({
         map,
         position: { lat: pin.lat, lng: pin.lng },
         title: pin.label,
-        label: pin.kind === "car" ? "🚗" : "📍",
+        label: pin.kind === "car" ? "🚗" : hasPhotos ? "📷" : "📍",
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 0, // emoji label only
         },
       });
-      marker.addListener("click", () =>
-        openInfo(marker, pin.label, pin.lat, pin.lng)
-      );
+      marker.addListener("click", () => {
+        const first = attached.find((p) => p.url);
+        const extra = first?.url
+          ? `<img src="${first.url}" alt="" style="width:100%;border-radius:8px;margin-top:6px" />` +
+            (attached.length > 1
+              ? `<div style="color:#64748b;font-size:12px;margin-top:2px">+${attached.length - 1}</div>`
+              : "")
+          : "";
+        openInfo(marker, pin.label, pin.lat, pin.lng, extra);
+      });
       bounds.extend(marker.getPosition()!);
       markersRef.current.push(marker);
     }
@@ -227,10 +281,33 @@ export function MapScreen() {
       polylinesRef.current.push(line);
     }
 
+    // "you are here" blue dot — not added to bounds, so a trip on the other
+    // side of the world still frames the trip rather than zooming out to fit us
+    if (myLoc) {
+      const dot = new google.maps.Marker({
+        map,
+        position: myLoc,
+        title: strings.map.youAreHere,
+        zIndex: 9999,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: "#2563eb",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+      markersRef.current.push(dot);
+    }
+
     if (!bounds.isEmpty()) {
       map.fitBounds(bounds, 48);
+    } else if (myLoc) {
+      map.setCenter(myLoc);
+      map.setZoom(12);
     }
-  }, [mapReady, items, pins, routes, days, dayFilter]);
+  }, [mapReady, items, pins, routes, days, dayFilter, pinPhotos, myLoc]);
 
   function startDraw() {
     if (!mapRef.current || typeof google === "undefined") return;

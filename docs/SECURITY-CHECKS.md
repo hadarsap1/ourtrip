@@ -209,3 +209,14 @@ Notes:
 - Google shut down third-party Library/album-read APIs on 2025-03-31; the Picker API (explicit user pick) is the only sanctioned path — no library mirroring is possible or attempted.
 - Only a **display-sized copy (~1600px)** is cached; full-res originals stay in Google Photos. Photo GPS is stripped by the Picker, so map placement is attach-to-place (Phase 2), never auto-geotag.
 - **Prerequisite (owner):** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env var + Google Cloud project with the Photos Picker API enabled and the app origin in the OAuth client's authorized JS origins. Until set, the import button shows a "not configured" message; viewing/existing features are unaffected.
+
+### Google Photos — Phase 2 (guest sharing + map attach)
+Migration `google_photos_guest_share` (repo `00017_...`). New policy `google_photos_guest_select`: guests read a Google photo **only** when `public.is_active_guest_of(trip_id) AND shared_with_guests = true` — same rule as native `photos_guest_select` (DECISIONS #5). Guests still never touch the `gphotos` bucket directly: the `guest-gphotos` Edge Function (`verify_jwt=true`) lists rows through the caller's own JWT (so RLS returns only shared) and mints short-lived signed URLs with the service role — identical pattern to `guest-photos`.
+
+Attaching a photo to a map pin (`map_pin_id`) is a plain owner UPDATE covered by the existing `google_photos_owner_all`; kids/guests have no UPDATE policy → deny-by-default. Attached photos render on the map for family only (owner+kid); guests see shared photos in their Photos gallery, not the map.
+
+| Check | Method | Result |
+|---|---|---|
+| Guest reads only shared google_photos (revoked/ unshared → 0) | policy = is_active_guest_of AND shared_with_guests | ⏳ verify post-deploy |
+| Kid/guest cannot set shared_with_guests or map_pin_id (no UPDATE policy) | deny-by-default | ⏳ verify post-deploy |
+| guest-gphotos returns signed URLs only for rows the caller's RLS allows | Edge Function via caller JWT | ⏳ verify post-deploy |

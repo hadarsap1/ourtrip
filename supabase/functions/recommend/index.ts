@@ -65,6 +65,34 @@ function buildSchema(categories: string[]) {
   };
 }
 
+/** Keyless reverse geocoding (OpenStreetMap/Nominatim) so the model knows the
+ *  actual city/area for a coordinate instead of guessing from raw lat/lng —
+ *  without this it tends to default to a famous tourist city (e.g. Eilat).
+ *  Global coverage, no API key; best-effort. */
+async function reverseGeocode(
+  lat: number,
+  lng: number
+): Promise<{ area: string | null; countryCode: string | null }> {
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/reverse?format=json&zoom=12` +
+      `&lat=${lat}&lon=${lng}&accept-language=he`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "OurTrip/1.0 (family trip planner)" },
+    });
+    if (!res.ok) return { area: null, countryCode: null };
+    const data = await res.json();
+    const a = data.address ?? {};
+    const area =
+      a.city ?? a.town ?? a.village ?? a.suburb ?? a.municipality ??
+      a.county ?? a.state ?? (data.display_name?.split(",")[0] ?? null);
+    const countryCode = a.country_code ? String(a.country_code).toUpperCase() : null;
+    return { area: area ?? null, countryCode };
+  } catch {
+    return { area: null, countryCode: null };
+  }
+}
+
 /** Google Places Nearby Search for kid-relevant candidates around a point. */
 async function fetchPlaces(
   key: string,
@@ -157,6 +185,17 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "not_configured" }, 503);
   }
 
+  // Resolve a human place name for the coordinates so the model anchors on the
+  // ACTUAL area, not a guess from bare lat/lng. Trust a caller-supplied
+  // area_name (e.g. from an itinerary day); otherwise reverse-geocode.
+  let resolvedArea = areaName;
+  let resolvedCC = countryCode;
+  if (lat !== null && lng !== null && !resolvedArea) {
+    const geo = await reverseGeocode(lat, lng);
+    if (geo.area) resolvedArea = geo.area;
+    if (!resolvedCC && geo.countryCode) resolvedCC = geo.countryCode;
+  }
+
   // real nearby candidates (best-effort)
   const placesKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
   const candidates =
@@ -166,9 +205,9 @@ Deno.serve(async (req) => {
 
   const anthropic = new Anthropic(); // ANTHROPIC_API_KEY from function secrets
   const whereText =
-    (areaName ? areaName : "") +
+    (resolvedArea ? resolvedArea : "") +
     (lat !== null ? ` (${lat.toFixed(4)}, ${lng!.toFixed(4)})` : "") +
-    (countryCode ? `, ${countryCode}` : "");
+    (resolvedCC ? `, ${resolvedCC}` : "");
 
   const candidateBlock =
     candidates.length > 0
@@ -178,10 +217,13 @@ Deno.serve(async (req) => {
         `Set candidate_index to the number of the place you chose and copy its ` +
         `name into title. You MAY also add up to 2 general tips (category "טיפ", ` +
         `candidate_index null).`
-      : `No live place list is available. From your own knowledge of this area, ` +
-        `suggest 6-8 real, specific, currently-known family spots. Set ` +
-        `candidate_index to null for every item and fill lat/lng if you are ` +
-        `confident, otherwise null.`;
+      : `No live place list is available. From your own knowledge, suggest 6-8 ` +
+        `real, specific, currently-known family spots that are IN or immediately ` +
+        `around ${resolvedArea || "this exact location"} — the place at the ` +
+        `coordinates above. Do NOT substitute a famous tourist city elsewhere in ` +
+        `the country; if you are not confident about this specific area, prefer ` +
+        `general nearby options over inventing landmarks. Set candidate_index to ` +
+        `null for every item and fill lat/lng only if you are confident, else null.`;
 
   let response;
   try {
@@ -253,7 +295,7 @@ Deno.serve(async (req) => {
       lat: rLat,
       lng: rLng,
       place_id: placeId,
-      country_code: countryCode,
+      country_code: resolvedCC,
       maps_url: mapsUrl(rLat, rLng, placeId, `${r.title} ${r.location_name}`),
     };
   });

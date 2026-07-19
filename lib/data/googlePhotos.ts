@@ -77,6 +77,30 @@ export async function updateGooglePhotoGrouping(
   if (error) throw new Error(error.message);
 }
 
+/** Owner: share / unshare a photo with guests (separate step, DECISIONS #5). */
+export async function setGooglePhotoShared(
+  id: string,
+  shared: boolean
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("google_photos")
+    .update({ shared_with_guests: shared })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Owner: attach a photo to a map pin (or detach with null) for the map. */
+export async function setGooglePhotoPin(
+  id: string,
+  mapPinId: string | null
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("google_photos")
+    .update({ map_pin_id: mapPinId })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 /** Removes the cached copy + row. The original stays in Google Photos. */
 export async function deleteGooglePhoto(photo: GooglePhoto): Promise<void> {
   const supabase = requireClient();
