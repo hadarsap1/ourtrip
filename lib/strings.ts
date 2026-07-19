@@ -604,6 +604,9 @@ export const strings = {
     setAllowance: "עדכון דמי כיס",
     deleteConfirm: "למחוק את הרישום?",
     infoNote: "דמי כיס לא נספרים בתקציב המשפחתי",
+    noKids: "עוד לא הוגדרו ילדים",
+    noKidsBody: "מוסיפים ילד כדי לעקוב אחרי דמי הכיס שלו בטיול",
+    noKidsCta: "להוספת ילד",
   },
 
   kids: {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
@@ -91,6 +92,20 @@ export function PocketScreen() {
       <h1 className="text-2xl font-bold">{strings.pocket.title}</h1>
       {isOwner && (
         <p className="text-xs text-ink-soft">{strings.pocket.infoNote}</p>
+      )}
+
+      {isOwner && shownKids.length === 0 && (
+        <section className="ot-card p-8 text-center">
+          <p className="mb-3 text-4xl" aria-hidden="true">🪙</p>
+          <h2 className="mb-2 text-lg font-semibold">{strings.pocket.noKids}</h2>
+          <p className="mb-4 text-sm text-ink-soft">{strings.pocket.noKidsBody}</p>
+          <Link
+            href="/kids"
+            className="inline-block rounded-xl bg-sea px-5 py-2.5 font-semibold text-white active:bg-sea-deep"
+          >
+            {strings.pocket.noKidsCta}
+          </Link>
+        </section>
       )}
 
       {shownKids.map((kid) => {
