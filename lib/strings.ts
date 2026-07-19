@@ -295,6 +295,7 @@ export const strings = {
   map: {
     title: "מפה",
     dayFilterAll: "כל הימים",
+    youAreHere: "כאן נמצאים",
     navigate: "ניווט",
     addPin: "הוספת סימון",
     pinLabel: "שם הסימון",

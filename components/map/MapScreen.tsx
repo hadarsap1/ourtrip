@@ -56,6 +56,7 @@ export function MapScreen() {
   const [pinPhotos, setPinPhotos] = useState<Map<string, GooglePhotoWithUrl[]>>(
     new Map()
   );
+  const [myLoc, setMyLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [noKey, setNoKey] = useState(false);
   const [dayFilter, setDayFilter] = useState<string | null>(null);
@@ -138,6 +139,20 @@ export function MapScreen() {
 
       mapRef.current = map;
       setMapReady(true);
+
+      // center on the user's current location (and mark it) — falls back to the
+      // trip's fitBounds framing below when there's itinerary/pin data to show.
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (!cancelled) {
+              setMyLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            }
+          },
+          () => {},
+          { enableHighAccuracy: false, timeout: 8000 }
+        );
+      }
     })();
     return () => {
       cancelled = true;
@@ -266,10 +281,33 @@ export function MapScreen() {
       polylinesRef.current.push(line);
     }
 
+    // "you are here" blue dot — not added to bounds, so a trip on the other
+    // side of the world still frames the trip rather than zooming out to fit us
+    if (myLoc) {
+      const dot = new google.maps.Marker({
+        map,
+        position: myLoc,
+        title: strings.map.youAreHere,
+        zIndex: 9999,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: "#2563eb",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+      markersRef.current.push(dot);
+    }
+
     if (!bounds.isEmpty()) {
       map.fitBounds(bounds, 48);
+    } else if (myLoc) {
+      map.setCenter(myLoc);
+      map.setZoom(12);
     }
-  }, [mapReady, items, pins, routes, days, dayFilter, pinPhotos]);
+  }, [mapReady, items, pins, routes, days, dayFilter, pinPhotos, myLoc]);
 
   function startDraw() {
     if (!mapRef.current || typeof google === "undefined") return;
