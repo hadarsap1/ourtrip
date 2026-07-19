@@ -3,7 +3,7 @@
 
 export const strings = {
   appName: "OurTrip",
-  appDescription: "מרכז הפיקוד של הטיול המשפחתי",
+  appDescription: "הטיול המשפחתי שלנו מסביב לעולם",
 
   nav: {
     today: "היום",
