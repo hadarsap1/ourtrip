@@ -109,7 +109,7 @@ export const strings = {
   placeholders: {
     comingSoon: "בקרוב…",
     documents: "כספת המסמכים תיבנה בספרינט 4",
-    more: "הגדרות, דף חירום ועוד — בהמשך",
+    more: "הגדרות ועוד — בהמשך",
   },
 
   budget: {
@@ -604,6 +604,9 @@ export const strings = {
     setAllowance: "עדכון דמי כיס",
     deleteConfirm: "למחוק את הרישום?",
     infoNote: "דמי כיס לא נספרים בתקציב המשפחתי",
+    noKids: "עוד לא הוגדרו ילדים",
+    noKidsBody: "מוסיפים ילד כדי לעקוב אחרי דמי הכיס שלו בטיול",
+    noKidsCta: "להוספת ילד",
   },
 
   kids: {
