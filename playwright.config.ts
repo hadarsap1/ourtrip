@@ -12,6 +12,8 @@ const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM_PATH ?? "/opt/pw-browsers/chrom
 
 export default defineConfig({
   testDir: "./e2e",
+  // Authenticated flows have their own env-wired config (playwright.auth.config.ts).
+  testIgnore: /authenticated\.spec\.ts/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
