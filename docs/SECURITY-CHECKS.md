@@ -220,3 +220,18 @@ Attaching a photo to a map pin (`map_pin_id`) is a plain owner UPDATE covered by
 | Guest reads only shared google_photos (revoked/ unshared → 0) | policy = is_active_guest_of AND shared_with_guests | ⏳ verify post-deploy |
 | Kid/guest cannot set shared_with_guests or map_pin_id (no UPDATE policy) | deny-by-default | ⏳ verify post-deploy |
 | guest-gphotos returns signed URLs only for rows the caller's RLS allows | Edge Function via caller JWT | ⏳ verify post-deploy |
+
+### Flight & hotel search (travel-search Edge Function)
+Feature added outside the sprint plan on request (search best flights/hotels from the route page). No new tables and no schema change: results are ephemeral and, when saved, become ordinary `bookings` rows covered by the existing owner-only bookings policies (kids/guests have no bookings policy → deny-by-default, so they can never read or write them).
+
+Security surface is the Edge Function itself, mirroring `recommend`:
+- Deployed `verify_jwt=true`; additionally re-checks `current_member_role() = 'owner'` in-function and returns 403 otherwise, so kids/guests cannot invoke the paid RapidAPI upstreams.
+- The RapidAPI credential lives only as the `RAPIDAPI_KEY` function secret — never shipped to the client (CLAUDE.md rule #8). The browser calls the function; the function calls RapidAPI.
+- Multi-country aware (rule #9): origin/destination and currency come from the request; nothing is hardcoded to a country or currency.
+- Missing key → `not_configured` (503) → Hebrew "service not configured" message; upstream failure → `search_failed` (502) → generic Hebrew retry message. No secret or upstream detail leaks to the client.
+
+| Check | Method | Result |
+|---|---|---|
+| Non-owner (kid/guest) invoking travel-search → 403 | in-function role gate | ⏳ verify post-deploy |
+| RAPIDAPI_KEY never present in client bundle | key read via Deno.env in the function only | ✅ by construction (no NEXT_PUBLIC var) |
+| Saved result becomes owner-only booking (kid/guest read → 0 rows) | existing bookings RLS (deny-by-default) | ⏳ verify post-deploy |

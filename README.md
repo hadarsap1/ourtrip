@@ -45,3 +45,18 @@ npm run dev
 ```
 
 משתני סביבה: העתיקו `.env.local.example` ל-`.env.local` ומלאו ערכים. אין לקמט (commit) קבצי `.env*`.
+
+## חיפוש טיסות ומלונות (RapidAPI)
+
+בעמוד **מסלול** יש טאב **חיפוש** להשוואת טיסות ומלונות בזמן אמת ושמירה ישירה לרשימת ההזמנות. החיפוש רץ דרך Edge Function בשם `travel-search` (מוגן להורים בלבד), שקורא לשני שירותי RapidAPI:
+
+- Google Flights Live API (`google-flights-live-api.p.rapidapi.com`)
+- Booking Live API (`booking-live-api.p.rapidapi.com`)
+
+המפתח נשמר כ־**סוד של פונקציית Edge** בלבד (לא כמשתנה `NEXT_PUBLIC`, כדי שלא ידלוף ללקוח):
+
+```
+supabase secrets set RAPIDAPI_KEY=xxxxxxxx
+```
+
+בלי המפתח, טאב החיפוש מציג הודעה עברית ש"השירות עדיין לא מוגדר"; שאר עמוד המסלול (מסלול והזמנות) עובד כרגיל.

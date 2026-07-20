@@ -30,6 +30,7 @@ import { DayCard } from "./DayCard";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
 import { ItemFormSheet } from "./ItemFormSheet";
+import { TravelSearch } from "./TravelSearch";
 
 const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
   planned: "done",
@@ -38,7 +39,7 @@ const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
 };
 
 export function ItineraryScreen() {
-  const [tab, setTab] = useState<"plan" | "bookings">("plan");
+  const [tab, setTab] = useState<"plan" | "bookings" | "search">("plan");
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [items, setItems] = useState<ItineraryItem[]>([]);
@@ -180,12 +181,13 @@ export function ItineraryScreen() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-4">
-      {/* segmented control: itinerary / bookings */}
-      <div className="mb-4 grid grid-cols-2 rounded-xl bg-line p-1 text-sm font-semibold">
+      {/* segmented control: itinerary / bookings / search */}
+      <div className="mb-4 grid grid-cols-3 rounded-xl bg-line p-1 text-sm font-semibold">
         {(
           [
             ["plan", strings.itinerary.tabPlan],
             ["bookings", strings.itinerary.tabBookings],
+            ["search", strings.itinerary.tabSearch],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -234,7 +236,7 @@ export function ItineraryScreen() {
             {strings.itinerary.addDay}
           </button>
         </div>
-      ) : (
+      ) : tab === "bookings" ? (
         <BookingsList
           bookings={bookings}
           onAdd={() => setBookingForm({ booking: null })}
@@ -242,6 +244,21 @@ export function ItineraryScreen() {
           onAddToDay={setDayPickFor}
           onError={() => showToast(strings.common.error)}
         />
+      ) : (
+        trip && (
+          <TravelSearch
+            tripId={trip.id}
+            defaultCurrency={trip.base_currency}
+            onSaved={(saved) => {
+              refreshNow();
+              showToast(strings.travelSearch.saved);
+              if (saved.cost != null && saved.cost > 0) {
+                setExpenseFor(saved);
+              }
+            }}
+            onError={(message) => showToast(message)}
+          />
+        )
       )}
 
       {/* ---------- sheets ---------- */}
