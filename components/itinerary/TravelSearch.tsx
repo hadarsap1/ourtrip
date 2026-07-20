@@ -59,17 +59,15 @@ export function TravelSearch({
   // flight form
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [tripType, setTripType] = useState<"round" | "oneway">("round");
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [cabin, setCabin] = useState("ECONOMY");
-  const [flightAdults, setFlightAdults] = useState(2);
 
   // hotel form
   const [hotelDest, setHotelDest] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
-  const [rooms, setRooms] = useState(1);
-  const [hotelAdults, setHotelAdults] = useState(2);
 
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -101,17 +99,14 @@ export function TravelSearch({
               origin,
               destination,
               departure_date: departureDate,
-              return_date: returnDate || undefined,
+              return_date: tripType === "round" ? returnDate || undefined : undefined,
               cabin,
-              adults: flightAdults,
               currency,
             })
           : await searchHotels({
               destination: hotelDest,
               check_in: checkIn,
               check_out: checkOut,
-              adults: hotelAdults,
-              rooms,
               currency,
             });
       setResults(found);
@@ -207,6 +202,26 @@ export function TravelSearch({
                 />
               </div>
             </div>
+            {/* round-trip / one-way */}
+            <div className="grid grid-cols-2 rounded-xl bg-line p-1 text-sm font-semibold">
+              {(
+                [
+                  ["round", strings.travelSearch.tripRoundTrip],
+                  ["oneway", strings.travelSearch.tripOneWay],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTripType(key)}
+                  className={`rounded-lg py-1.5 transition-colors ${
+                    tripType === key ? "bg-white text-sea shadow" : "text-ink-soft"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="ts-dep" className={labelClass}>
@@ -221,55 +236,39 @@ export function TravelSearch({
                   dir="ltr"
                 />
               </div>
-              <div>
-                <label htmlFor="ts-ret" className={labelClass}>
-                  {strings.travelSearch.returnDate}
-                </label>
-                <input
-                  id="ts-ret"
-                  type="date"
-                  value={returnDate}
-                  min={departureDate || undefined}
-                  onChange={(e) => setReturnDate(e.target.value)}
-                  className={inputClass}
-                  dir="ltr"
-                />
-              </div>
+              {tripType === "round" && (
+                <div>
+                  <label htmlFor="ts-ret" className={labelClass}>
+                    {strings.travelSearch.returnDate}
+                  </label>
+                  <input
+                    id="ts-ret"
+                    type="date"
+                    value={returnDate}
+                    min={departureDate || undefined}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    className={inputClass}
+                    dir="ltr"
+                  />
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="ts-cabin" className={labelClass}>
-                  {strings.travelSearch.cabin}
-                </label>
-                <select
-                  id="ts-cabin"
-                  value={cabin}
-                  onChange={(e) => setCabin(e.target.value)}
-                  className={inputClass}
-                >
-                  {CABINS.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="ts-fadults" className={labelClass}>
-                  {strings.travelSearch.adults}
-                </label>
-                <input
-                  id="ts-fadults"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="9"
-                  value={flightAdults}
-                  onChange={(e) => setFlightAdults(Number(e.target.value) || 1)}
-                  className={inputClass}
-                  dir="ltr"
-                />
-              </div>
+            <div>
+              <label htmlFor="ts-cabin" className={labelClass}>
+                {strings.travelSearch.cabin}
+              </label>
+              <select
+                id="ts-cabin"
+                value={cabin}
+                onChange={(e) => setCabin(e.target.value)}
+                className={inputClass}
+              >
+                {CABINS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </>
         ) : (
@@ -316,42 +315,17 @@ export function TravelSearch({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="ts-rooms" className={labelClass}>
-                  {strings.travelSearch.rooms}
-                </label>
-                <input
-                  id="ts-rooms"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="9"
-                  value={rooms}
-                  onChange={(e) => setRooms(Number(e.target.value) || 1)}
-                  className={inputClass}
-                  dir="ltr"
-                />
-              </div>
-              <div>
-                <label htmlFor="ts-hadults" className={labelClass}>
-                  {strings.travelSearch.adults}
-                </label>
-                <input
-                  id="ts-hadults"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="9"
-                  value={hotelAdults}
-                  onChange={(e) => setHotelAdults(Number(e.target.value) || 1)}
-                  className={inputClass}
-                  dir="ltr"
-                />
-              </div>
-            </div>
           </>
         )}
+
+        {/* passengers are fixed for the family — shown, not editable */}
+        <div className="flex items-center gap-2 rounded-xl bg-sea-tint/50 px-3 py-2 text-sm text-ink-soft">
+          <span aria-hidden="true">👨‍👩‍👧‍👦</span>
+          <span>
+            <span className="font-medium text-ink">{strings.travelSearch.passengers}: </span>
+            {strings.travelSearch.passengersFixed}
+          </span>
+        </div>
 
         <div>
           <label htmlFor="ts-currency" className={labelClass}>

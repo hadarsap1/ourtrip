@@ -180,7 +180,7 @@ export function ItineraryScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pt-4">
+    <div className="mx-auto max-w-lg px-4 pt-6">
       {/* segmented control: itinerary / bookings / search */}
       <div className="mb-4 grid grid-cols-3 rounded-xl bg-line p-1 text-sm font-semibold">
         {(

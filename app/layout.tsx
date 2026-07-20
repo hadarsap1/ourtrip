@@ -40,7 +40,7 @@ export default function RootLayout({
     <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-paper text-ink">
         <OfflineBanner />
-        <main className="flex-1 pb-20">
+        <main className="flex-1 pb-20 pt-[env(safe-area-inset-top)]">
           <AuthGate>{children}</AuthGate>
         </main>
         <BottomNav />

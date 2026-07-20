@@ -23,12 +23,13 @@ export type TravelResult = {
   details: Record<string, string>;
 };
 
+// Passengers are fixed server-side (2 adults + 2 kids), so they are not part
+// of the request — callers only choose route, dates, cabin and currency.
 export type FlightSearchParams = {
   origin: string;
   destination: string;
   departure_date: string;
   return_date?: string;
-  adults?: number;
   cabin?: string;
   currency?: string;
 };
@@ -37,8 +38,6 @@ export type HotelSearchParams = {
   destination: string;
   check_in: string;
   check_out: string;
-  adults?: number;
-  rooms?: number;
   currency?: string;
 };
 

@@ -26,6 +26,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const FLIGHTS_HOST = "google-flights-live-api.p.rapidapi.com";
 const HOTELS_HOST = "booking-live-api.p.rapidapi.com";
 
+// The travellers are fixed for this family trip (owner request): two parents +
+// two kids. Ages will drift over a round-the-world trip, so they're pinned
+// rather than exposed as an editable field. Change here if the family changes.
+const ADULTS = 2;
+const CHILD_AGES = [6, 8];
+
 // Browser calls this cross-origin (Vercel → *.supabase.co), so every response
 // — including the CORS preflight — must carry these headers.
 const CORS = {
@@ -144,14 +150,19 @@ async function resolveAirport(text: string, key: string): Promise<string | null>
   if (!t) return null;
   if (isIata(t)) return t.toUpperCase();
   try {
-    const data = await rapidGet(FLIGHTS_HOST, "/api/v1/searchAirport", { query: t }, key);
+    // Google Flights airport search: the id may be an IATA code or a Google
+    // Knowledge-Graph MID (e.g. "/m/02_286"); searchFlights accepts either.
+    const data = await rapidGet(
+      FLIGHTS_HOST,
+      "/api/v1/searchAirport",
+      { query: t, language_code: "en-US", country_code: "US" },
+      key
+    );
     const list = findArray(data, "data", "data.airports", "airports", "results");
     const first = list[0] as Record<string, unknown> | undefined;
     if (!first) return null;
     return (
-      firstString(
-        pick(first, "id", "skyId", "entityId", "iata", "code", "presentation.id")
-      ) ?? null
+      firstString(pick(first, "id", "skyId", "entityId", "iata", "code")) ?? null
     );
   } catch {
     return null;
@@ -169,15 +180,15 @@ function normalizeFlight(raw: unknown, currency: string): Result | null {
 
   const airline =
     firstString(
-      pick(r, "airline", "airlines.0.name"),
-      pick(first, "airline.name", "airline", "carrier", "airline_name")
+      pick(first, "airline", "airline_name", "carrier"),
+      pick(r, "airline", "airlines.0.name")
     ) ?? "";
   const dep = firstString(
-    pick(first, "departure_airport.id", "departure_airport.airport", "departureAirport", "origin"),
+    pick(first, "departure_airport.airport_code", "departure_airport.id", "departure_airport.airport"),
     pick(r, "departure", "origin")
   );
   const arr = firstString(
-    pick(last, "arrival_airport.id", "arrival_airport.airport", "arrivalAirport", "destination"),
+    pick(last, "arrival_airport.airport_code", "arrival_airport.id", "arrival_airport.airport"),
     pick(r, "arrival", "destination")
   );
   const depTime = firstString(
@@ -186,7 +197,12 @@ function normalizeFlight(raw: unknown, currency: string): Result | null {
   const arrTime = firstString(
     pick(last, "arrival_airport.time", "arrival_time", "arrivalTime")
   );
-  const durationTxt = firstString(pick(r, "duration.text", "duration", "total_duration"));
+  // duration.raw is minutes on google-flights2; fall back to a text field.
+  const durationRaw = pick<number>(r, "duration.raw");
+  const durationTxt =
+    typeof durationRaw === "number"
+      ? `${Math.floor(durationRaw / 60)}ש׳ ${durationRaw % 60}ד׳`
+      : firstString(pick(r, "duration.text", "duration", "total_duration"));
   const stops = pick<number>(r, "stops");
   const price = toNumber(pick(r, "price", "price.raw", "totalPrice", "fare"));
   const cur = firstString(pick(r, "currency", "price.currency")) ?? currency;
@@ -206,7 +222,16 @@ function normalizeFlight(raw: unknown, currency: string): Result | null {
   if (dep) details.from = dep;
   if (arr) details.to = arr;
 
-  const link = firstString(pick(r, "booking_url", "link", "url", "bookingToken"));
+  // These wrappers return a booking token, not a ready URL; a Google Flights
+  // search link is the reliable "open" target for the family.
+  const gfLink =
+    dep && arr
+      ? `https://www.google.com/travel/flights?q=${encodeURIComponent(
+          `flights from ${dep} to ${arr}`
+        )}`
+      : null;
+  const link =
+    firstString(pick(r, "booking_url", "link", "url")) ?? gfLink;
 
   return {
     id: crypto.randomUUID(),
@@ -244,27 +269,27 @@ async function searchFlights(
     FLIGHTS_HOST,
     "/api/v1/searchFlights",
     {
-      departureId: depId,
-      arrivalId: arrId,
-      departureDate,
-      arrivalDate: returnDate || undefined,
-      travelClass: String(body.cabin ?? "ECONOMY") || "ECONOMY",
-      adults: Number(body.adults) > 0 ? Number(body.adults) : 1,
+      departure_id: depId,
+      arrival_id: arrId,
+      outbound_date: departureDate,
+      return_date: returnDate || undefined,
+      travel_class: String(body.cabin ?? "ECONOMY") || "ECONOMY",
+      adults: ADULTS,
+      children: CHILD_AGES.length,
       currency,
+      show_hidden: 1,
+      language_code: "en-US",
+      country_code: "US",
+      search_type: "best",
     },
     key
   );
 
-  const list = findArray(
-    data,
-    "data.topFlights",
-    "data.otherFlights",
-    "data.itineraries",
-    "topFlights",
-    "itineraries",
-    "data.flights",
-    "data"
-  );
+  // Results live under data.itineraries.{topFlights,otherFlights} on this API.
+  const list = [
+    ...findArray(data, "data.itineraries.topFlights", "data.topFlights", "topFlights"),
+    ...findArray(data, "data.itineraries.otherFlights", "data.otherFlights", "otherFlights"),
+  ];
   const results = list
     .map((f) => normalizeFlight(f, currency))
     .filter((r): r is Result => r !== null && (r.title !== "טיסה" || r.price != null));
@@ -394,8 +419,9 @@ async function searchHotels(
       search_type: dest.searchType,
       arrival_date: checkIn,
       departure_date: checkOut,
-      adults: Number(body.adults) > 0 ? Number(body.adults) : 2,
-      room_qty: Number(body.rooms) > 0 ? Number(body.rooms) : 1,
+      adults: ADULTS,
+      children_age: CHILD_AGES.join(","),
+      room_qty: 1,
       currency_code: currency,
     },
     key
