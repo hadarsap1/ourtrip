@@ -460,7 +460,8 @@ export const strings = {
     tripRoundTrip: "הלוך-חזור",
     tripOneWay: "הלוך בלבד",
     passengers: "נוסעים",
-    passengersFixed: "2 מבוגרים · 2 ילדים (בני 6 ו-8)",
+    childAge: "גיל הילד/ה",
+    pickFromList: "בחרו מהרשימה או הקלידו קוד שדה",
     cabin: "מחלקה",
     cabinEconomy: "תיירים",
     cabinPremium: "תיירים פלוס",
@@ -474,6 +475,7 @@ export const strings = {
     rooms: "חדרים",
     // shared
     adults: "מבוגרים",
+    children: "ילדים",
     currency: "מטבע",
     search: "חיפוש",
     searching: "מחפשים…",
