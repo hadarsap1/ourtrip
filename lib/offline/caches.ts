@@ -103,6 +103,14 @@ export async function readEmergencySnapshots(): Promise<EmergencySnapshot[]> {
   return db.getAll("emergency_pages");
 }
 
+/** Removes a single country's cached emergency page (after an online delete). */
+export async function deleteEmergencySnapshot(countryCode: string): Promise<void> {
+  const dbp = getOfflineDB();
+  if (!dbp) return;
+  const db = await dbp;
+  await db.delete("emergency_pages", countryCode);
+}
+
 // ---------- offline documents ----------
 
 export async function saveOfflineDocument(doc: OfflineDocument): Promise<void> {
