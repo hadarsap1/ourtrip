@@ -1,5 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import {
+  deleteEmergencySnapshot,
   readEmergencySnapshots,
   saveEmergencySnapshots,
 } from "@/lib/offline/caches";
@@ -84,6 +85,21 @@ export async function upsertEmergencyPage(
     .from("emergency_info")
     .upsert({ trip_id: tripId, country_code: countryCode, content });
   if (error) throw new Error(error.message);
+}
+
+/** Deletes a country's emergency page (owner-only via RLS) and drops its
+ *  offline copy. Used to remove a country added by mistake. */
+export async function deleteEmergencyPage(
+  tripId: string,
+  countryCode: string
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("emergency_info")
+    .delete()
+    .eq("trip_id", tripId)
+    .eq("country_code", countryCode);
+  if (error) throw new Error(error.message);
+  await deleteEmergencySnapshot(countryCode).catch(() => {});
 }
 
 /** Auto-fills the country-knowable fields (emergency numbers + Israeli embassy)

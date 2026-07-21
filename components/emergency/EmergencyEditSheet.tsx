@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import {
+  deleteEmergencyPage,
   upsertEmergencyPage,
   type EmergencyContent,
 } from "@/lib/data/emergency";
@@ -57,6 +58,7 @@ export function EmergencyEditSheet({
   existing,
   onClose,
   onSaved,
+  onDeleted,
   onError,
 }: {
   open: boolean;
@@ -65,6 +67,7 @@ export function EmergencyEditSheet({
   existing: EmergencyContent;
   onClose: () => void;
   onSaved: (countryCode: string) => void;
+  onDeleted: (countryCode: string) => void;
   onError: () => void;
 }) {
   if (!open) return null;
@@ -76,6 +79,7 @@ export function EmergencyEditSheet({
       existing={existing}
       onClose={onClose}
       onSaved={onSaved}
+      onDeleted={onDeleted}
       onError={onError}
     />
   );
@@ -87,6 +91,7 @@ function EmergencyEditForm({
   existing,
   onClose,
   onSaved,
+  onDeleted,
   onError,
 }: {
   tripId: string;
@@ -94,11 +99,24 @@ function EmergencyEditForm({
   existing: EmergencyContent;
   onClose: () => void;
   onSaved: (countryCode: string) => void;
+  onDeleted: (countryCode: string) => void;
   onError: () => void;
 }) {
   const [code, setCode] = useState(countryCode ?? "");
   const [content, setContent] = useState<EmergencyContent>(existing);
   const [saving, setSaving] = useState(false);
+
+  function handleDelete() {
+    if (!countryCode || saving) return;
+    if (!confirm(strings.emergency.deleteCountryConfirm)) return;
+    setSaving(true);
+    deleteEmergencyPage(tripId, countryCode)
+      .then(() => onDeleted(countryCode))
+      .catch(() => {
+        onError();
+        setSaving(false);
+      });
+  }
 
   function setField(key: keyof EmergencyContent, value: string) {
     setContent((prev) => {
@@ -186,6 +204,17 @@ function EmergencyEditForm({
         >
           {strings.common.save}
         </button>
+
+        {countryCode !== null && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={saving}
+            className="w-full rounded-xl border border-rose-200 py-3 font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+          >
+            {strings.emergency.deleteCountry}
+          </button>
+        )}
       </form>
     </Sheet>
   );

@@ -278,6 +278,27 @@ export function EmergencyScreen() {
                   </p>
                 </section>
               )}
+
+              {/* auto-filled data can be imperfect — nudge to verify the embassy
+                  and numbers against the official source */}
+              {(content.police ||
+                content.ambulance ||
+                content.fire ||
+                content.embassy_phone ||
+                content.embassy_address) && (
+                <div className="rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                  <span className="font-semibold">{strings.emergency.verifyTitle}: </span>
+                  {strings.emergency.verifyBody}{" "}
+                  <a
+                    href="https://embassies.gov.il"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                  >
+                    {strings.emergency.verifyLink}
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -299,6 +320,16 @@ export function EmergencyScreen() {
             setSelected(code);
             void refresh(trip.id)
               .then(() => showToast(strings.emergency.saved))
+              .catch(() => showToast(strings.common.error));
+          }}
+          onDeleted={(code) => {
+            setEditing(null);
+            setSelected((cur) => (cur === code ? null : cur));
+            void refresh(trip.id)
+              .then((next) => {
+                setSelected((cur) => cur ?? next[0]?.countryCode ?? null);
+                showToast(strings.emergency.deleted);
+              })
               .catch(() => showToast(strings.common.error));
           }}
           onError={() => showToast(strings.common.error)}
