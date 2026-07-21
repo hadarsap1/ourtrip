@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AIRPORTS } from "@/lib/airports";
+import { AIRPORTS, HOTEL_CITIES } from "@/lib/airports";
 import { CURRENCIES } from "@/lib/currencies";
 import { createBooking } from "@/lib/data/bookings";
 import {
@@ -424,9 +424,9 @@ export function TravelSearch({
           ))}
         </datalist>
         <datalist id="ts-cities">
-          {AIRPORTS.map((a) => (
-            <option key={a.code} value={a.en}>
-              {a.he}
+          {HOTEL_CITIES.map((c) => (
+            <option key={c.en} value={c.en}>
+              {c.he}
             </option>
           ))}
         </datalist>
