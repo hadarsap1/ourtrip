@@ -452,9 +452,9 @@ export const strings = {
     tabHotels: "מלונות",
     // flights
     origin: "מוצא",
-    originHint: "עיר או קוד שדה (למשל TLV)",
+    originHint: "עיר או קוד שדה — כל קוד IATA (למשל TLV)",
     destination: "יעד",
-    destinationHint: "עיר או קוד שדה (למשל NRT)",
+    destinationHint: "עיר או קוד שדה — כל קוד IATA (למשל NRT)",
     departureDate: "תאריך יציאה",
     returnDate: "תאריך חזרה",
     tripRoundTrip: "הלוך-חזור",
@@ -469,7 +469,7 @@ export const strings = {
     cabinFirst: "ראשונה",
     // hotels
     hotelDestination: "יעד",
-    hotelDestinationHint: "עיר או אזור",
+    hotelDestinationHint: "כל עיר בעולם — למשל באר שבע",
     checkIn: "צ׳ק-אין",
     checkOut: "צ׳ק-אאוט",
     rooms: "חדרים",
