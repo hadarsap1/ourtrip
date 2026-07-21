@@ -2,38 +2,32 @@
 // Owner-gated (deployed verify_jwt=true; additionally re-checks role='owner'
 // in-function, same pattern as recommend / phrasebook-generate).
 //
-// Proxies two RapidAPI services so the family can compare live fares/prices
-// from inside the trip planner and park a result straight into the bookings
-// list:
-//   - Google Flights Live API  (google-flights-live-api.p.rapidapi.com)
-//   - Booking Live API         (booking-live-api.p.rapidapi.com)
+// Proxies two RapidAPI services (both by mtnrabi), field names confirmed
+// against live responses:
+//   - Google Flights Live API (google-flights-live-api.p.rapidapi.com)
+//       POST /api/google_flights/oneway/v1     {from_airport,to_airport,departure_date}
+//       POST /api/google_flights/roundtrip/v1  {…,return_date}
+//     → array of trip summaries: total_price_as_number, total_price ("$984"),
+//       total_duration_seconds, total_stops, from_airport ("Tel Aviv (TLV)"),
+//       to_airport, buy_link. (This API does not take passenger counts.)
+//   - Booking Live API (booking-live-api.p.rapidapi.com)
+//       POST /search  {destination,checkin_date,checkout_date,adults,children,currency}
+//     → array of properties: name, price, price_string ("₪2774"), review_score,
+//       review_count, image_url, room_type, location, link.
 //
 // The single RapidAPI key lives ONLY as a function secret (RAPIDAPI_KEY),
 // never in client code (CLAUDE.md hard rule #8). The browser calls this
 // function; the function calls RapidAPI.
 //
-// Multi-country aware (CLAUDE.md hard rule #9): nothing is hardcoded to a
-// destination country or currency — origin/destination and currency come from
-// the request.
-//
-// Response field mapping is intentionally DEFENSIVE. These community RapidAPI
-// wrappers occasionally rename/rearrange fields, so every extractor tries a
-// few plausible shapes and degrades to null rather than throwing. Results are
-// ephemeral; the client saves what it wants as a booking.
+// Multi-country aware (CLAUDE.md hard rule #9): origin/destination and currency
+// come from the request; nothing is hardcoded to a country or currency. Results
+// are ephemeral; the client saves what it wants as a booking.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const FLIGHTS_HOST = "google-flights-live-api.p.rapidapi.com";
 const HOTELS_HOST = "booking-live-api.p.rapidapi.com";
 
-// The travellers are fixed for this family trip (owner request): two parents +
-// two kids. Ages will drift over a round-the-world trip, so they're pinned
-// rather than exposed as an editable field. Change here if the family changes.
-const ADULTS = 2;
-const CHILD_AGES = [6, 8];
-
-// Browser calls this cross-origin (Vercel → *.supabase.co), so every response
-// — including the CORS preflight — must carry these headers.
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -47,9 +41,6 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// A single normalized result. Shared shape for flights and hotels so the client
-// renders one card and maps cleanly onto a booking row (title/cost/currency/
-// dates/link/details → bookings table).
 type Result = {
   id: string;
   kind: "flight" | "hotel";
@@ -64,20 +55,13 @@ type Result = {
   details: Record<string, string>;
 };
 
-// ---------- small helpers ----------
+// ---------- helpers ----------
 
-function isIata(s: string): boolean {
-  return /^[A-Za-z]{3}$/.test(s.trim());
-}
-
-/** Pull the first number out of a value that may be a number, a numeric string,
- *  or a formatted price string like "$1,240" / "1.240,50 €". Best-effort. */
 function toNumber(v: unknown): number | null {
   if (typeof v === "number" && isFinite(v)) return v;
   if (typeof v === "string") {
     const m = v.replace(/[^\d.,]/g, "");
     if (!m) return null;
-    // strip thousands separators, keep the last separator as decimal
     const cleaned = m.replace(/[.,](?=\d{3}\b)/g, "").replace(",", ".");
     const n = Number(cleaned);
     return isFinite(n) ? n : null;
@@ -91,6 +75,18 @@ function firstString(...vals: unknown[]): string | null {
     if (typeof v === "number") return String(v);
   }
   return null;
+}
+
+/** Detect a currency code from a formatted price string's symbol. */
+function currencyFrom(priceStr: string | null, fallback: string): string {
+  if (priceStr) {
+    if (priceStr.includes("₪")) return "ILS";
+    if (priceStr.includes("€")) return "EUR";
+    if (priceStr.includes("£")) return "GBP";
+    if (priceStr.includes("¥")) return "JPY";
+    if (priceStr.includes("$")) return "USD";
+  }
+  return fallback;
 }
 
 function pick<T = unknown>(obj: unknown, ...paths: string[]): T | undefined {
@@ -110,128 +106,93 @@ function pick<T = unknown>(obj: unknown, ...paths: string[]): T | undefined {
   return undefined;
 }
 
-async function rapidGet(
-  host: string,
-  path: string,
-  params: Record<string, string | number | undefined>,
-  key: string
-): Promise<unknown> {
-  const url = new URL(`https://${host}${path}`);
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
-  }
-  const res = await fetch(url.toString(), {
-    headers: { "x-rapidapi-key": key, "x-rapidapi-host": host },
-  });
-  if (!res.ok) {
-    throw new Error(`upstream ${res.status}`);
-  }
-  return res.json();
-}
-
-/** Returns the first array found among several candidate paths in a response. */
 function findArray(data: unknown, ...paths: string[]): unknown[] {
   for (const p of paths) {
     const v = pick(data, p);
     if (Array.isArray(v)) return v;
   }
-  // last resort: a top-level array
   if (Array.isArray(data)) return data;
   return [];
 }
 
-// ---------- flights ----------
-
-/** Resolve a free-text place (or a raw IATA code) to a departure/arrival id
- *  the flight search accepts. IATA codes are passed through directly; anything
- *  else is looked up via searchAirport. */
-async function resolveAirport(text: string, key: string): Promise<string | null> {
-  const t = text.trim();
-  if (!t) return null;
-  if (isIata(t)) return t.toUpperCase();
-  try {
-    // Google Flights airport search: the id may be an IATA code or a Google
-    // Knowledge-Graph MID (e.g. "/m/02_286"); searchFlights accepts either.
-    const data = await rapidGet(
-      FLIGHTS_HOST,
-      "/api/v1/searchAirport",
-      { query: t, language_code: "en-US", country_code: "US" },
-      key
-    );
-    const list = findArray(data, "data", "data.airports", "airports", "results");
-    const first = list[0] as Record<string, unknown> | undefined;
-    if (!first) return null;
-    return (
-      firstString(pick(first, "id", "skyId", "entityId", "iata", "code")) ?? null
-    );
-  } catch {
-    return null;
-  }
+async function postJson(
+  host: string,
+  path: string,
+  body: Record<string, unknown>,
+  key: string
+): Promise<{ status: number; data: unknown | null }> {
+  const res = await fetch(`https://${host}${path}`, {
+    method: "POST",
+    headers: {
+      "x-rapidapi-key": key,
+      "x-rapidapi-host": host,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) return { status: res.status, data: null };
+  return { status: res.status, data: await res.json().catch(() => null) };
 }
 
-function normalizeFlight(raw: unknown, currency: string): Result | null {
+/** Tries candidate endpoints in order; returns the first successful response. */
+async function tryPost(
+  host: string,
+  candidates: { path: string; body: Record<string, unknown> }[],
+  key: string
+): Promise<unknown | null> {
+  for (const c of candidates) {
+    const { status, data } = await postJson(host, c.path, c.body, key);
+    if (status >= 200 && status < 300 && data != null) return data;
+  }
+  return null;
+}
+
+// ---------- flights ----------
+
+function normalizeFlight(
+  raw: unknown,
+  origin: string,
+  destination: string,
+  fallbackCurrency: string
+): Result | null {
   const r = raw as Record<string, unknown>;
-  const legs = (pick<unknown[]>(r, "flights", "legs", "segments") ?? []) as Record<
-    string,
-    unknown
-  >[];
-  const first = legs[0] ?? {};
-  const last = legs[legs.length - 1] ?? first;
 
-  const airline =
-    firstString(
-      pick(first, "airline", "airline_name", "carrier"),
-      pick(r, "airline", "airlines.0.name")
-    ) ?? "";
-  const dep = firstString(
-    pick(first, "departure_airport.airport_code", "departure_airport.id", "departure_airport.airport"),
-    pick(r, "departure", "origin")
+  const from = firstString(pick(r, "from_airport", "origin")) ?? origin;
+  const to = firstString(pick(r, "to_airport", "destination")) ?? destination;
+
+  const priceStr = firstString(pick(r, "total_price", "price_string", "price"));
+  const price = toNumber(
+    pick(r, "total_price_as_number", "price_as_number", "price", "fare")
   );
-  const arr = firstString(
-    pick(last, "arrival_airport.airport_code", "arrival_airport.id", "arrival_airport.airport"),
-    pick(r, "arrival", "destination")
-  );
-  const depTime = firstString(
-    pick(first, "departure_airport.time", "departure_time", "departureTime")
-  );
-  const arrTime = firstString(
-    pick(last, "arrival_airport.time", "arrival_time", "arrivalTime")
-  );
-  // duration.raw is minutes on google-flights2; fall back to a text field.
-  const durationRaw = pick<number>(r, "duration.raw");
+  const cur = currencyFrom(priceStr, firstString(pick(r, "currency")) ?? fallbackCurrency);
+
+  const durSec = pick<number>(r, "total_duration_seconds", "duration_seconds");
+  const durMin = typeof durSec === "number" ? Math.round(durSec / 60) : null;
   const durationTxt =
-    typeof durationRaw === "number"
-      ? `${Math.floor(durationRaw / 60)}ש׳ ${durationRaw % 60}ד׳`
-      : firstString(pick(r, "duration.text", "duration", "total_duration"));
-  const stops = pick<number>(r, "stops");
-  const price = toNumber(pick(r, "price", "price.raw", "totalPrice", "fare"));
-  const cur = firstString(pick(r, "currency", "price.currency")) ?? currency;
+    typeof durMin === "number"
+      ? `${Math.floor(durMin / 60)}ש׳ ${durMin % 60}ד׳`
+      : firstString(pick(r, "duration"));
 
-  const routeTitle = dep && arr ? `${dep} → ${arr}` : dep || arr || "טיסה";
-  const title = airline ? `${routeTitle} · ${airline}` : routeTitle;
+  const stops = pick<number>(r, "total_stops", "stops", "number_of_stops");
+  const airline =
+    (firstString(pick(r, "airline", "airline_name", "airlines")) ?? "").split("|")[0].trim();
+  const depTime = firstString(pick(r, "departure_description", "departure_time"));
+  const arrTime = firstString(pick(r, "arrival_description", "arrival_time"));
+
+  const title = airline ? `${from} → ${to} · ${airline}` : `${from} → ${to}`;
 
   const subParts: string[] = [];
   if (depTime || arrTime) subParts.push(`${depTime ?? ""}${arrTime ? " → " + arrTime : ""}`.trim());
   if (durationTxt) subParts.push(durationTxt);
   if (typeof stops === "number") subParts.push(stops === 0 ? "ישיר" : `${stops} עצירות`);
 
-  const details: Record<string, string> = {};
-  const flightNo = firstString(pick(first, "flight_number", "flightNumber"));
-  if (flightNo) details.flight_number = flightNo;
+  const details: Record<string, string> = { from, to };
   if (airline) details.airline = airline;
-  if (dep) details.from = dep;
-  if (arr) details.to = arr;
 
-  // These wrappers return a booking token, not a ready URL; a Google Flights
-  // search link is the reliable "open" target for the family.
-  const gfLink =
-    dep && arr
-      ? `https://www.google.com/travel/flights?q=${encodeURIComponent(
-          `flights from ${dep} to ${arr}`
-        )}`
-      : null;
-  const link =
-    firstString(pick(r, "booking_url", "link", "url")) ?? gfLink;
+  const gfLink = `https://www.google.com/travel/flights?q=${encodeURIComponent(
+    `flights from ${origin} to ${destination}`
+  )}`;
+  const link = firstString(pick(r, "buy_link", "booking_url", "link", "url")) ?? gfLink;
 
   return {
     id: crypto.randomUUID(),
@@ -252,139 +213,79 @@ async function searchFlights(
   body: Record<string, unknown>,
   key: string
 ): Promise<Result[]> {
-  const origin = String(body.origin ?? "").trim();
-  const destination = String(body.destination ?? "").trim();
+  const origin = String(body.origin ?? "").trim().toUpperCase();
+  const destination = String(body.destination ?? "").trim().toUpperCase();
   const departureDate = String(body.departure_date ?? "").trim();
   if (!origin || !destination || !departureDate) return [];
 
-  const [depId, arrId] = await Promise.all([
-    resolveAirport(origin, key),
-    resolveAirport(destination, key),
-  ]);
-  if (!depId || !arrId) return [];
-
   const currency = String(body.currency ?? "USD").trim() || "USD";
   const returnDate = String(body.return_date ?? "").trim();
-  const data = await rapidGet(
-    FLIGHTS_HOST,
-    "/api/v1/searchFlights",
-    {
-      departure_id: depId,
-      arrival_id: arrId,
-      outbound_date: departureDate,
-      return_date: returnDate || undefined,
-      travel_class: String(body.cabin ?? "ECONOMY") || "ECONOMY",
-      adults: ADULTS,
-      children: CHILD_AGES.length,
-      currency,
-      show_hidden: 1,
-      language_code: "en-US",
-      country_code: "US",
-      search_type: "best",
-    },
-    key
-  );
 
-  // Results live under data.itineraries.{topFlights,otherFlights} on this API.
-  const list = [
-    ...findArray(data, "data.itineraries.topFlights", "data.topFlights", "topFlights"),
-    ...findArray(data, "data.itineraries.otherFlights", "data.otherFlights", "otherFlights"),
-  ];
+  const oneway = { from_airport: origin, to_airport: destination, departure_date: departureDate };
+  const round = { ...oneway, return_date: returnDate };
+  const candidates = returnDate
+    ? [
+        { path: "/api/google_flights/roundtrip/v1", body: round },
+        { path: "/api/google-flights/roundtrip/v1", body: round },
+        { path: "/api/google_flights/oneway/v1", body: oneway },
+      ]
+    : [
+        { path: "/api/google_flights/oneway/v1", body: oneway },
+        { path: "/api/google-flights/oneway/v1", body: oneway },
+      ];
+
+  const data = await tryPost(FLIGHTS_HOST, candidates, key);
+  if (!data) return [];
+
+  const list = findArray(data, "data", "flights", "results", "itineraries");
   const results = list
-    .map((f) => normalizeFlight(f, currency))
-    .filter((r): r is Result => r !== null && (r.title !== "טיסה" || r.price != null));
-
-  // include start/end so the client can prefill booking dates
+    .map((f) => normalizeFlight(f, origin, destination, currency))
+    .filter((r): r is Result => r !== null);
   for (const r of results) {
     r.start_date = departureDate;
     r.end_date = returnDate || null;
   }
+  results.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
   return results.slice(0, 20);
 }
 
 // ---------- hotels ----------
 
-async function resolveDestination(
-  text: string,
-  key: string
-): Promise<{ destId: string; searchType: string } | null> {
-  const t = text.trim();
-  if (!t) return null;
-  try {
-    const data = await rapidGet(
-      HOTELS_HOST,
-      "/api/v1/hotels/searchDestination",
-      { query: t },
-      key
-    );
-    const list = findArray(data, "data", "data.destinations", "results");
-    const first = list[0] as Record<string, unknown> | undefined;
-    if (!first) return null;
-    const destId = firstString(pick(first, "dest_id", "destId", "id"));
-    if (!destId) return null;
-    const searchType =
-      firstString(pick(first, "search_type", "searchType", "dest_type", "type")) ??
-      "CITY";
-    return { destId, searchType };
-  } catch {
-    return null;
-  }
-}
-
-function normalizeHotel(raw: unknown, currency: string): Result | null {
+function normalizeHotel(raw: unknown, fallbackCurrency: string): Result | null {
   const r = raw as Record<string, unknown>;
-  const prop = (pick<Record<string, unknown>>(r, "property") ?? r) as Record<
-    string,
-    unknown
-  >;
-
-  const name = firstString(pick(prop, "name"), pick(r, "hotel_name", "name"));
+  const name = firstString(pick(r, "name", "hotel_name", "title", "property.name"));
   if (!name) return null;
 
+  const priceStr = firstString(pick(r, "price_string"));
   const price = toNumber(
-    pick(
-      prop,
-      "priceBreakdown.grossPrice.value",
-      "priceBreakdown.grossPrice.amount",
-      "price"
-    ) ?? pick(r, "price", "min_total_price", "composite_price_breakdown.gross_amount.value")
+    pick(r, "price", "price_per_night", "gross_price", "total_price", "min_total_price")
   );
-  const cur =
-    firstString(
-      pick(prop, "priceBreakdown.grossPrice.currency", "currency"),
-      pick(r, "currency", "currencycode")
-    ) ?? currency;
-
-  const score = toNumber(pick(prop, "reviewScore", "review_score") ?? pick(r, "review_score"));
-  const reviewWord = firstString(
-    pick(prop, "reviewScoreWord", "review_score_word"),
-    pick(r, "review_score_word")
+  const cur = currencyFrom(
+    priceStr,
+    firstString(pick(r, "currency", "currency_code", "currencycode")) ?? fallbackCurrency
   );
+  const score = toNumber(pick(r, "review_score", "rating", "score", "reviewScore"));
+  const reviewCount = pick<number>(r, "review_count");
+  const roomType = firstString(pick(r, "room_type"));
   const photo = firstString(
-    pick(prop, "photoUrls.0", "main_photo_url"),
-    pick(r, "main_photo_url", "max_photo_url")
+    pick(r, "image_url", "main_photo_url", "photo", "image", "thumbnail", "photoUrls.0")
   );
-  const address = firstString(pick(r, "address", "wishlistName"), pick(prop, "wishlistName"));
-
-  const checkin = firstString(pick(prop, "checkinDate", "checkin_date"), pick(r, "checkin"));
-  const checkout = firstString(
-    pick(prop, "checkoutDate", "checkout_date"),
-    pick(r, "checkout")
-  );
+  const address = firstString(pick(r, "location", "address", "city"));
 
   const subParts: string[] = [];
-  if (score != null) subParts.push(`★ ${score}${reviewWord ? " " + reviewWord : ""}`);
+  if (score != null) subParts.push(`★ ${score}${reviewCount ? ` (${reviewCount})` : ""}`);
+  if (roomType) subParts.push(roomType);
   if (address) subParts.push(address);
 
   const details: Record<string, string> = {};
   if (address) details.address = address;
+  if (roomType) details.room_type = roomType;
   if (score != null) details.review_score = String(score);
 
-  const hotelId = firstString(pick(prop, "id", "hotel_id"), pick(r, "hotel_id"));
-  const link = firstString(pick(r, "url", "link"), pick(prop, "url"));
+  const link = firstString(pick(r, "link", "url", "booking_link", "booking_url"));
 
   return {
-    id: hotelId ?? crypto.randomUUID(),
+    id: firstString(pick(r, "hotel_id", "id")) ?? crypto.randomUUID(),
     kind: "hotel",
     title: name,
     subtitle: subParts.join(" · ") || null,
@@ -392,8 +293,8 @@ function normalizeHotel(raw: unknown, currency: string): Result | null {
     currency: price != null ? cur : null,
     link_url: link,
     image_url: photo,
-    start_date: checkin,
-    end_date: checkout,
+    start_date: null,
+    end_date: null,
     details,
   };
 }
@@ -407,42 +308,44 @@ async function searchHotels(
   const checkOut = String(body.check_out ?? "").trim();
   if (!destination || !checkIn || !checkOut) return [];
 
-  const dest = await resolveDestination(destination, key);
-  if (!dest) return [];
-
   const currency = String(body.currency ?? "USD").trim() || "USD";
-  const data = await rapidGet(
-    HOTELS_HOST,
-    "/api/v1/hotels/searchHotels",
-    {
-      dest_id: dest.destId,
-      search_type: dest.searchType,
-      arrival_date: checkIn,
-      departure_date: checkOut,
-      adults: ADULTS,
-      children_age: CHILD_AGES.join(","),
-      room_qty: 1,
-      currency_code: currency,
-    },
-    key
-  );
+  const adults = Number(body.adults) > 0 ? Number(body.adults) : 2;
+  const children = Number.isFinite(Number(body.children)) ? Number(body.children) : 2;
+  const childAges = Array.isArray(body.child_ages)
+    ? (body.child_ages as unknown[]).map((a) => Number(a)).filter((a) => Number.isFinite(a))
+    : [];
+
+  const reqBody: Record<string, unknown> = {
+    destination,
+    checkin_date: checkIn,
+    checkout_date: checkOut,
+    adults,
+    children,
+    currency,
+  };
+  if (childAges.length) reqBody.children_age = childAges;
+
+  const data = await tryPost(HOTELS_HOST, [{ path: "/search", body: reqBody }], key);
+  if (!data) return [];
 
   const list = findArray(
     data,
-    "data.hotels",
-    "data.result",
+    "properties",
+    "results",
     "hotels",
-    "result",
+    "items",
+    "data.hotels",
+    "data.results",
     "data"
   );
   const results = list
     .map((h) => normalizeHotel(h, currency))
     .filter((r): r is Result => r !== null);
-
   for (const r of results) {
-    if (!r.start_date) r.start_date = checkIn;
-    if (!r.end_date) r.end_date = checkOut;
+    r.start_date = checkIn;
+    r.end_date = checkOut;
   }
+  results.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
   return results.slice(0, 20);
 }
 
@@ -463,7 +366,6 @@ Deno.serve(async (req) => {
   const mode = body.mode === "hotels" ? "hotels" : body.mode === "flights" ? "flights" : null;
   if (!mode) return json({ ok: false, error: "mode required" }, 400);
 
-  // owner gate (caller's own JWT + RLS helper), identical to recommend
   const caller = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AIRPORTS } from "@/lib/airports";
 import { CURRENCIES } from "@/lib/currencies";
 import { createBooking } from "@/lib/data/bookings";
 import {
@@ -69,6 +70,21 @@ export function TravelSearch({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
 
+  // passengers (shared) — defaults to the family: 2 adults + 2 kids aged 6 & 8,
+  // fully editable. Booking Live uses these; the flights API prices the whole
+  // cabin and ignores counts.
+  const [adults, setAdults] = useState(2);
+  const [childAges, setChildAges] = useState<number[]>([6, 8]);
+
+  function setChildCount(n: number) {
+    const count = Math.max(0, Math.min(6, n));
+    setChildAges((prev) => {
+      const next = prev.slice(0, count);
+      while (next.length < count) next.push(8);
+      return next;
+    });
+  }
+
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [results, setResults] = useState<TravelResult[]>([]);
@@ -102,12 +118,18 @@ export function TravelSearch({
               return_date: tripType === "round" ? returnDate || undefined : undefined,
               cabin,
               currency,
+              adults,
+              children: childAges.length,
+              child_ages: childAges,
             })
           : await searchHotels({
               destination: hotelDest,
               check_in: checkIn,
               check_out: checkOut,
               currency,
+              adults,
+              children: childAges.length,
+              child_ages: childAges,
             });
       setResults(found);
     } catch (err) {
@@ -182,6 +204,8 @@ export function TravelSearch({
                 <input
                   id="ts-origin"
                   type="text"
+                  list="ts-airports"
+                  autoComplete="off"
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
                   placeholder={strings.travelSearch.originHint}
@@ -195,6 +219,8 @@ export function TravelSearch({
                 <input
                   id="ts-dest"
                   type="text"
+                  list="ts-airports"
+                  autoComplete="off"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   placeholder={strings.travelSearch.destinationHint}
@@ -280,6 +306,8 @@ export function TravelSearch({
               <input
                 id="ts-hdest"
                 type="text"
+                list="ts-cities"
+                autoComplete="off"
                 value={hotelDest}
                 onChange={(e) => setHotelDest(e.target.value)}
                 placeholder={strings.travelSearch.hotelDestinationHint}
@@ -318,14 +346,90 @@ export function TravelSearch({
           </>
         )}
 
-        {/* passengers are fixed for the family — shown, not editable */}
-        <div className="flex items-center gap-2 rounded-xl bg-sea-tint/50 px-3 py-2 text-sm text-ink-soft">
-          <span aria-hidden="true">👨‍👩‍👧‍👦</span>
-          <span>
-            <span className="font-medium text-ink">{strings.travelSearch.passengers}: </span>
-            {strings.travelSearch.passengersFixed}
-          </span>
+        {/* editable passengers: adults + children with per-child ages */}
+        <div className="rounded-xl border border-line p-3">
+          <p className="mb-2 text-sm font-medium text-ink-soft">
+            {strings.travelSearch.passengers}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="ts-adults" className={labelClass}>
+                {strings.travelSearch.adults}
+              </label>
+              <input
+                id="ts-adults"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="9"
+                value={adults}
+                onChange={(e) => setAdults(Math.max(1, Math.min(9, Number(e.target.value) || 1)))}
+                className={inputClass}
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label htmlFor="ts-children" className={labelClass}>
+                {strings.travelSearch.children}
+              </label>
+              <input
+                id="ts-children"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                max="6"
+                value={childAges.length}
+                onChange={(e) => setChildCount(Number(e.target.value) || 0)}
+                className={inputClass}
+                dir="ltr"
+              />
+            </div>
+          </div>
+          {childAges.length > 0 && (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {childAges.map((age, i) => (
+                <div key={i}>
+                  <label htmlFor={`ts-childage-${i}`} className="mb-1 block text-xs text-ink-soft">
+                    {strings.travelSearch.childAge} {i + 1}
+                  </label>
+                  <input
+                    id={`ts-childage-${i}`}
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="17"
+                    value={age}
+                    onChange={(e) =>
+                      setChildAges((prev) => {
+                        const next = [...prev];
+                        next[i] = Math.max(0, Math.min(17, Number(e.target.value) || 0));
+                        return next;
+                      })
+                    }
+                    className={inputClass}
+                    dir="ltr"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* autocomplete sources */}
+        <datalist id="ts-airports">
+          {AIRPORTS.map((a) => (
+            <option key={a.code} value={a.code}>
+              {a.he} · {a.en}
+            </option>
+          ))}
+        </datalist>
+        <datalist id="ts-cities">
+          {AIRPORTS.map((a) => (
+            <option key={a.code} value={a.en}>
+              {a.he}
+            </option>
+          ))}
+        </datalist>
 
         <div>
           <label htmlFor="ts-currency" className={labelClass}>
