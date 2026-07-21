@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { AIRPORTS, HOTEL_CITIES } from "@/lib/airports";
+import { useEffect, useMemo, useState } from "react";
+import { HOTEL_CITIES } from "@/lib/airports";
+import type { FullAirport } from "@/lib/airportsData";
+import {
+  buildAirportIndex,
+  resolveAirportCode,
+  searchAirports,
+} from "@/lib/airportSearch";
 import { CURRENCIES } from "@/lib/currencies";
 import { createBooking } from "@/lib/data/bookings";
 import {
@@ -90,13 +96,44 @@ export function TravelSearch({
   const [results, setResults] = useState<TravelResult[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
+  // Full airport list (~4k) is lazy-loaded so it stays out of the initial
+  // bundle; until it lands the curated shortlist still powers suggestions.
+  const [fullAirports, setFullAirports] = useState<FullAirport[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void import("@/lib/airportsData").then((m) => {
+      if (alive) setFullAirports(m.AIRPORTS_FULL);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const airportIndex = useMemo(() => buildAirportIndex(fullAirports), [fullAirports]);
+  const originOptions = useMemo(
+    () => searchAirports(airportIndex, origin),
+    [airportIndex, origin]
+  );
+  const destOptions = useMemo(
+    () => searchAirports(airportIndex, destination),
+    [airportIndex, destination]
+  );
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
 
+    let originCode = "";
+    let destCode = "";
     if (mode === "flights") {
       if (!origin.trim() || !destination.trim() || !departureDate) {
         onError(strings.travelSearch.needFlightFields);
+        return;
+      }
+      originCode = resolveAirportCode(airportIndex, origin);
+      destCode = resolveAirportCode(airportIndex, destination);
+      if (!/^[A-Z]{3}$/.test(originCode) || !/^[A-Z]{3}$/.test(destCode)) {
+        onError(strings.travelSearch.needAirport);
         return;
       }
     } else if (!hotelDest.trim() || !checkIn || !checkOut) {
@@ -112,8 +149,8 @@ export function TravelSearch({
       const found =
         mode === "flights"
           ? await searchFlights({
-              origin,
-              destination,
+              origin: originCode,
+              destination: destCode,
               departure_date: departureDate,
               return_date: tripType === "round" ? returnDate || undefined : undefined,
               cabin,
@@ -204,7 +241,7 @@ export function TravelSearch({
                 <input
                   id="ts-origin"
                   type="text"
-                  list="ts-airports"
+                  list="ts-airports-origin"
                   autoComplete="off"
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
@@ -219,7 +256,7 @@ export function TravelSearch({
                 <input
                   id="ts-dest"
                   type="text"
-                  list="ts-airports"
+                  list="ts-airports-dest"
                   autoComplete="off"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
@@ -415,11 +452,19 @@ export function TravelSearch({
           )}
         </div>
 
-        {/* autocomplete sources */}
-        <datalist id="ts-airports">
-          {AIRPORTS.map((a) => (
-            <option key={a.code} value={a.code}>
-              {a.he} · {a.en}
+        {/* autocomplete sources — airport lists are filtered to the top matches
+            for each field from the full ~4k dataset */}
+        <datalist id="ts-airports-origin">
+          {originOptions.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label}
+            </option>
+          ))}
+        </datalist>
+        <datalist id="ts-airports-dest">
+          {destOptions.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label}
             </option>
           ))}
         </datalist>

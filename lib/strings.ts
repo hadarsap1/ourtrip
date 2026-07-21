@@ -487,6 +487,7 @@ export const strings = {
     error: "לא הצלחנו להביא תוצאות כרגע. נסו שוב.",
     notConfigured: "שירות החיפוש עדיין לא מוגדר (חסר מפתח RAPIDAPI_KEY בשרת)",
     needFlightFields: "צריך למלא מוצא, יעד ותאריך יציאה",
+    needAirport: "בחרו שדה תעופה מהרשימה או הקלידו קוד IATA בן 3 אותיות",
     needHotelFields: "צריך למלא יעד ותאריכי צ׳ק-אין וצ׳ק-אאוט",
     ownersOnly: "התכונה זמינה להורים בלבד",
   },
