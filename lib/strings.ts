@@ -373,7 +373,7 @@ export const strings = {
     tabSearch: "חיפוש",
     importFromFile: "ייבוא מקובץ",
     importTitle: "ייבוא מסלול מקובץ",
-    importHint: "קובץ Excel‏ (.xlsx), CSV או Google Sheets (הורידו כ-Excel/CSV). עמודות מזוהות אוטומטית: תאריך, פעילות, שעה, מיקום, מדינה, הערות.",
+    importHint: "קובץ Excel‏ (.xlsx), CSV או Google Sheets (הורידו כ-Excel/CSV). כל גיליון = יעד/מקטע (שם הגיליון הופך למיקום ולמדינה), וכל שורה = פעילות. מזהה אוטומטית תאריכים (כולל טווח כמו 1.11–22.11), קטגוריה, שם מקום, קישור והערות. אפשר לערוך הכול אחר כך.",
     importChooseFile: "בחירת קובץ",
     importParsing: "קורא את הקובץ…",
     importPreview: "נמצאו {days} ימים ו-{items} פעילויות",
