@@ -101,9 +101,14 @@ export async function importItinerary(
     const dayRows = rows.filter((r) => r.date === date);
     let day = dayByDate.get(date);
     if (!day) {
-      // seed day-level fields from the first row that carries them
+      // seed day-level fields from the first row that carries them (leg name +
+      // country from the sheet; the date-range text becomes the day note)
       const seedCountry = dayRows.find((r) => r.country_code)?.country_code ?? null;
-      const seedLocation = dayRows.find((r) => r.location_name)?.location_name ?? null;
+      const seedLocation =
+        dayRows.find((r) => r.day_location)?.day_location ??
+        dayRows.find((r) => r.location_name)?.location_name ??
+        null;
+      const seedNote = dayRows.find((r) => r.day_note)?.day_note ?? null;
       const { data, error } = await supabase
         .from("itinerary_days")
         .insert({
@@ -111,6 +116,7 @@ export async function importItinerary(
           date,
           country_code: seedCountry,
           location_name: seedLocation,
+          notes: seedNote,
         })
         .select()
         .single();
