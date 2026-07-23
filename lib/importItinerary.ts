@@ -18,6 +18,9 @@ export type ParsedItineraryRow = {
   notes: string | null; // description (+ link) for the item
   day_location: string | null; // leg name for the day (usually the sheet name)
   day_note: string | null; // e.g. the original date-range text
+  day_end: string | null; // ISO end of the leg's range (for hotel check-out)
+  is_lodging: boolean; // לינה/מלון row → becomes a hotel booking, not an item
+  link: string | null; // raw link (kept separately for bookings)
 };
 
 export type ParseResult = { rows: ParsedItineraryRow[]; skipped: number };
@@ -132,6 +135,29 @@ function categoryEmoji(category: string): string {
   return "";
 }
 
+function isLodging(category: string): boolean {
+  return category.includes("לינה") || category.includes("מלון") || /hotel|lodg|stay/i.test(category);
+}
+
+/** End of a date range ("1.11 - 22.11" → 22.11), using the leg's start year so
+ *  an end that rolls past new-year lands in the next year. */
+function endOfRange(text: string, startYear: number | null, startMonth: number | null): string | null {
+  const parts = text.split(/\s*(?:[-–—]|עד)\s*/);
+  if (parts.length < 2) return null;
+  const end = parts[1].trim();
+  const full = parseDateCell(end);
+  if (full) return full;
+  const m = end.match(/^(\d{1,2})[.\/-](\d{1,2})$/);
+  if (m) {
+    const d = +m[1];
+    const mo = +m[2];
+    const y = startYear ?? new Date().getFullYear();
+    const year = startMonth !== null && mo < startMonth ? y + 1 : y;
+    return `${year}-${pad(mo)}-${pad(d)}`;
+  }
+  return null;
+}
+
 function mapColumns(headerRow: unknown[]): Record<string, number> {
   const col: Record<string, number> = {};
   headerRow.forEach((cell, i) => {
@@ -228,6 +254,7 @@ export async function parseItinerarySheet(file: File): Promise<ParseResult> {
       const emoji = categoryEmoji(category);
       const title = place ? (emoji ? `${emoji} ${place}` : place) : "";
       const noteParts = [desc, link].filter(Boolean);
+      const dayEnd = endOfRange(range.text, year, prevMonth);
 
       rows.push({
         date,
@@ -239,6 +266,9 @@ export async function parseItinerarySheet(file: File): Promise<ParseResult> {
         notes: noteParts.length ? noteParts.join("\n") : null,
         day_location: legName,
         day_note: range.text || null,
+        day_end: dayEnd,
+        is_lodging: isLodging(category),
+        link: link || null,
       });
     }
   }
