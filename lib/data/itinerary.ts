@@ -75,8 +75,11 @@ export async function deleteDay(id: string): Promise<void> {
 export async function importItinerary(
   tripId: string,
   rows: ParsedItineraryRow[]
-): Promise<{ daysCreated: number; itemsCreated: number }> {
+): Promise<{ daysCreated: number; itemsCreated: number; hotelsCreated: number }> {
   const supabase = requireClient();
+  // strips a leading category emoji (e.g. "🏨 ") from a title
+  const stripEmoji = (t: string) =>
+    t.replace(/^\s*[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]️?\s*/u, "").trim();
 
   // existing days by date, so an import merges into the current route
   const existing = await listDays(tripId);
@@ -95,6 +98,7 @@ export async function importItinerary(
 
   let daysCreated = 0;
   let itemsCreated = 0;
+  let hotelsCreated = 0;
   const orderedDates = [...new Set(rows.map((r) => r.date))].sort();
 
   for (const date of orderedDates) {
@@ -129,6 +133,22 @@ export async function importItinerary(
     }
 
     for (const r of dayRows) {
+      // לינה rows become hotel bookings (trip-scoped) instead of day activities
+      if (r.is_lodging) {
+        const { error } = await supabase.from("bookings").insert({
+          trip_id: tripId,
+          type: "hotel",
+          title: stripEmoji(r.title) || r.day_location || "מלון",
+          start_date: r.date,
+          end_date: r.day_end,
+          link_url: r.link,
+          notes: r.notes,
+          status: "booked",
+        });
+        if (error) throw new Error(error.message);
+        hotelsCreated++;
+        continue;
+      }
       if (!r.title) continue; // day-header row, no activity
       const order = nextOrder.get(day.id) ?? 0;
       const { error } = await supabase.from("itinerary_items").insert({
@@ -146,7 +166,7 @@ export async function importItinerary(
     }
   }
 
-  return { daysCreated, itemsCreated };
+  return { daysCreated, itemsCreated, hotelsCreated };
 }
 
 // ---------- items ----------

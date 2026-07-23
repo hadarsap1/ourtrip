@@ -49,11 +49,15 @@ export function ImportItinerarySheet({
     setBusy(true);
     setError(null);
     try {
-      const { daysCreated, itemsCreated } = await importItinerary(tripId, preview.rows);
+      const { daysCreated, itemsCreated, hotelsCreated } = await importItinerary(
+        tripId,
+        preview.rows
+      );
       onDone(
         s.imported
           .replace("{days}", String(daysCreated))
           .replace("{items}", String(itemsCreated))
+          .replace("{hotels}", String(hotelsCreated))
       );
     } catch {
       setError(s.importFailed);
@@ -61,7 +65,8 @@ export function ImportItinerarySheet({
     }
   }
 
-  const itemCount = preview?.rows.filter((r) => r.title).length ?? 0;
+  const hotelCount = preview?.rows.filter((r) => r.is_lodging).length ?? 0;
+  const itemCount = preview?.rows.filter((r) => r.title && !r.is_lodging).length ?? 0;
 
   return (
     <Sheet open onClose={onClose} title={s.importTitle}>
@@ -87,7 +92,8 @@ export function ImportItinerarySheet({
             <div className="rounded-xl bg-sea-tint/50 px-3 py-2.5 text-sm text-ink">
               {s.importPreview
                 .replace("{days}", String(preview.days))
-                .replace("{items}", String(itemCount))}
+                .replace("{items}", String(itemCount))
+                .replace("{hotels}", String(hotelCount))}
               {preview.skipped > 0 && (
                 <span className="mt-1 block text-xs text-ink-soft">
                   {s.importSkippedNote.replace("{n}", String(preview.skipped))}

@@ -29,6 +29,7 @@ import type {
 import { DayCard } from "./DayCard";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
+import { CalendarView } from "./CalendarView";
 import { ImportItinerarySheet } from "./ImportItinerarySheet";
 import { ItemFormSheet } from "./ItemFormSheet";
 import { TravelSearch } from "./TravelSearch";
@@ -49,8 +50,12 @@ export function ItineraryScreen() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
+  const [planView, setPlanView] = useState<"list" | "calendar">("list");
+  const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const pendingScroll = useRef<string | null>(null);
+
   // open sheets
-  const [dayForm, setDayForm] = useState<{ day: ItineraryDay | null } | null>(null);
+  const [dayForm, setDayForm] = useState<{ day: ItineraryDay | null; date?: string } | null>(null);
   const [itemForm, setItemForm] = useState<{
     dayId: string;
     item: ItineraryItem | null;
@@ -155,6 +160,32 @@ export function ItineraryScreen() {
     void refresh(trip.id).catch(() => showToast(strings.common.error));
   }, [trip, refresh, showToast]);
 
+  // after the calendar jumps to a day, scroll its card into view
+  useEffect(() => {
+    if (planView !== "list") return;
+    const id = pendingScroll.current;
+    if (!id) return;
+    const el = dayRefs.current[id];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      pendingScroll.current = null;
+    }
+  }, [planView, days]);
+
+  // tap a date in the calendar: open an existing day, or add that date
+  const handleCalendarSelect = useCallback(
+    (date: string) => {
+      const existing = days.find((d) => d.date === date);
+      if (existing) {
+        pendingScroll.current = existing.id;
+        setPlanView("list");
+      } else {
+        setDayForm({ day: null, date });
+      }
+    },
+    [days]
+  );
+
   function handleReorder(dayId: string, orderedIds: string[]) {
     // optimistic: reorder locally, then persist
     setItems((prev) => {
@@ -207,43 +238,77 @@ export function ItineraryScreen() {
 
       {tab === "plan" ? (
         <div className="space-y-4 pb-8">
-          {days.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
-              {strings.itinerary.emptyDays}
-            </p>
+          {/* list / calendar view toggle */}
+          <div className="grid grid-cols-2 rounded-xl bg-line p-1 text-sm font-semibold">
+            {(
+              [
+                ["list", strings.itinerary.viewList],
+                ["calendar", strings.itinerary.viewCalendar],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPlanView(key)}
+                className={`rounded-lg py-1.5 transition-colors ${
+                  planView === key ? "bg-white text-sea shadow" : "text-ink-soft"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {planView === "calendar" ? (
+            <CalendarView days={days} items={items} onSelectDate={handleCalendarSelect} />
+          ) : (
+            <>
+              {days.length === 0 && (
+                <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+                  {strings.itinerary.emptyDays}
+                </p>
+              )}
+              {days.map((day) => (
+                <div
+                  key={day.id}
+                  ref={(el) => {
+                    dayRefs.current[day.id] = el;
+                  }}
+                  className="scroll-mt-4"
+                >
+                  <DayCard
+                    day={day}
+                    items={itemsOf(day.id)}
+                    bookings={bookings}
+                    onEditDay={() => setDayForm({ day })}
+                    onAddItem={() => setItemForm({ dayId: day.id, item: null })}
+                    onItemClick={(item) => setItemForm({ dayId: day.id, item })}
+                    onMoveItem={setMovingItem}
+                    onCycleStatus={(item) =>
+                      void run(() =>
+                        updateItem(item.id, { status: NEXT_STATUS[item.status] })
+                      )
+                    }
+                    onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setDayForm({ day: null })}
+                className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+              >
+                {strings.itinerary.addDay}
+              </button>
+              <button
+                type="button"
+                onClick={() => setImporting(true)}
+                className="w-full rounded-2xl border border-line bg-white py-3 font-semibold text-ink-soft"
+              >
+                <span aria-hidden="true">📄</span> {strings.itinerary.importFromFile}
+              </button>
+            </>
           )}
-          {days.map((day) => (
-            <DayCard
-              key={day.id}
-              day={day}
-              items={itemsOf(day.id)}
-              bookings={bookings}
-              onEditDay={() => setDayForm({ day })}
-              onAddItem={() => setItemForm({ dayId: day.id, item: null })}
-              onItemClick={(item) => setItemForm({ dayId: day.id, item })}
-              onMoveItem={setMovingItem}
-              onCycleStatus={(item) =>
-                void run(() =>
-                  updateItem(item.id, { status: NEXT_STATUS[item.status] })
-                )
-              }
-              onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={() => setDayForm({ day: null })}
-            className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
-          >
-            {strings.itinerary.addDay}
-          </button>
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="w-full rounded-2xl border border-line bg-white py-3 font-semibold text-ink-soft"
-          >
-            <span aria-hidden="true">📄</span> {strings.itinerary.importFromFile}
-          </button>
         </div>
       ) : tab === "bookings" ? (
         <BookingsList
@@ -277,6 +342,7 @@ export function ItineraryScreen() {
           open={dayForm !== null}
           tripId={trip.id}
           day={dayForm?.day ?? null}
+          initialDate={dayForm?.date}
           onClose={() => setDayForm(null)}
           onSubmit={(action) => {
             setDayForm(null);

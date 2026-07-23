@@ -15,12 +15,14 @@ export function DayFormSheet({
   open,
   tripId,
   day,
+  initialDate,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   tripId: string;
   day: ItineraryDay | null;
+  initialDate?: string;
   onClose: () => void;
   onSubmit: (action: () => Promise<void>) => void;
 }) {
@@ -28,9 +30,10 @@ export function DayFormSheet({
   // key remounts the form per day, so state initializes from props cleanly
   return (
     <DayForm
-      key={day?.id ?? "new"}
+      key={day?.id ?? initialDate ?? "new"}
       tripId={tripId}
       day={day}
+      initialDate={initialDate}
       onClose={onClose}
       onSubmit={onSubmit}
     />
@@ -40,15 +43,17 @@ export function DayFormSheet({
 function DayForm({
   tripId,
   day,
+  initialDate,
   onClose,
   onSubmit,
 }: {
   tripId: string;
   day: ItineraryDay | null;
+  initialDate?: string;
   onClose: () => void;
   onSubmit: (action: () => Promise<void>) => void;
 }) {
-  const [date, setDate] = useState(day?.date ?? "");
+  const [date, setDate] = useState(day?.date ?? initialDate ?? "");
   const [locationName, setLocationName] = useState(day?.location_name ?? "");
   const [countryCode, setCountryCode] = useState(day?.country_code ?? "");
   const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({
