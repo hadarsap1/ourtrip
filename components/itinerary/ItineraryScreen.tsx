@@ -29,6 +29,7 @@ import type {
 import { DayCard } from "./DayCard";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
+import { ImportItinerarySheet } from "./ImportItinerarySheet";
 import { ItemFormSheet } from "./ItemFormSheet";
 import { TravelSearch } from "./TravelSearch";
 
@@ -55,6 +56,7 @@ export function ItineraryScreen() {
     item: ItineraryItem | null;
   } | null>(null);
   const [movingItem, setMovingItem] = useState<ItineraryItem | null>(null);
+  const [importing, setImporting] = useState(false);
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
   const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
@@ -235,6 +237,13 @@ export function ItineraryScreen() {
           >
             {strings.itinerary.addDay}
           </button>
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="w-full rounded-2xl border border-line bg-white py-3 font-semibold text-ink-soft"
+          >
+            <span aria-hidden="true">📄</span> {strings.itinerary.importFromFile}
+          </button>
         </div>
       ) : tab === "bookings" ? (
         <BookingsList
@@ -361,6 +370,18 @@ export function ItineraryScreen() {
           );
         }}
       />
+
+      {importing && trip && (
+        <ImportItinerarySheet
+          tripId={trip.id}
+          onClose={() => setImporting(false)}
+          onDone={(message) => {
+            setImporting(false);
+            refreshNow();
+            showToast(message);
+          }}
+        />
+      )}
 
       <Toast message={toast} />
     </div>
