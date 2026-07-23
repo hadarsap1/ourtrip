@@ -1,6 +1,7 @@
 import { getSupabase } from "@/lib/supabase";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { ItineraryDay, ItineraryItem } from "@/lib/types";
+import type { ParsedItineraryRow } from "@/lib/importItinerary";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -66,6 +67,80 @@ export async function deleteDay(id: string): Promise<void> {
   if (itemsError) throw new Error(itemsError.message);
   const { error } = await supabase.from("itinerary_days").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/** Imports parsed spreadsheet rows: reuses a day per date (creating missing
+ *  ones), then appends each titled row as an activity on its day. Everything
+ *  stays fully editable afterwards. Returns how much was added. */
+export async function importItinerary(
+  tripId: string,
+  rows: ParsedItineraryRow[]
+): Promise<{ daysCreated: number; itemsCreated: number }> {
+  const supabase = requireClient();
+
+  // existing days by date, so an import merges into the current route
+  const existing = await listDays(tripId);
+  const dayByDate = new Map<string, ItineraryDay>(existing.map((d) => [d.date, d]));
+  // next sort_order per day (append after whatever's already there)
+  const nextOrder = new Map<string, number>();
+  if (existing.length > 0) {
+    const items = await listItems(existing.map((d) => d.id));
+    for (const d of existing) {
+      const max = items
+        .filter((i) => i.day_id === d.id)
+        .reduce((m, i) => Math.max(m, i.sort_order), -1);
+      nextOrder.set(d.id, max + 1);
+    }
+  }
+
+  let daysCreated = 0;
+  let itemsCreated = 0;
+  const orderedDates = [...new Set(rows.map((r) => r.date))].sort();
+
+  for (const date of orderedDates) {
+    const dayRows = rows.filter((r) => r.date === date);
+    let day = dayByDate.get(date);
+    if (!day) {
+      // seed day-level fields from the first row that carries them
+      const seedCountry = dayRows.find((r) => r.country_code)?.country_code ?? null;
+      const seedLocation = dayRows.find((r) => r.location_name)?.location_name ?? null;
+      const { data, error } = await supabase
+        .from("itinerary_days")
+        .insert({
+          trip_id: tripId,
+          date,
+          country_code: seedCountry,
+          location_name: seedLocation,
+        })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      day = data;
+      dayByDate.set(date, day);
+      nextOrder.set(day.id, 0);
+      daysCreated++;
+      autofillEmergencyFor(tripId, seedCountry);
+    }
+
+    for (const r of dayRows) {
+      if (!r.title) continue; // day-header row, no activity
+      const order = nextOrder.get(day.id) ?? 0;
+      const { error } = await supabase.from("itinerary_items").insert({
+        day_id: day.id,
+        title: r.title,
+        start_time: r.start_time,
+        end_time: r.end_time,
+        location_name: r.location_name,
+        notes: r.notes,
+        sort_order: order,
+      });
+      if (error) throw new Error(error.message);
+      nextOrder.set(day.id, order + 1);
+      itemsCreated++;
+    }
+  }
+
+  return { daysCreated, itemsCreated };
 }
 
 // ---------- items ----------
