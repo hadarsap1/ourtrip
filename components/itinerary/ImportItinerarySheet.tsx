@@ -49,15 +49,16 @@ export function ImportItinerarySheet({
     setBusy(true);
     setError(null);
     try {
-      const { daysCreated, itemsCreated, hotelsCreated } = await importItinerary(
-        tripId,
-        preview.rows
-      );
+      const { daysCreated, itemsCreated, hotelsCreated, duplicatesSkipped } =
+        await importItinerary(tripId, preview.rows);
+      const base = s.imported
+        .replace("{days}", String(daysCreated))
+        .replace("{items}", String(itemsCreated))
+        .replace("{hotels}", String(hotelsCreated));
       onDone(
-        s.imported
-          .replace("{days}", String(daysCreated))
-          .replace("{items}", String(itemsCreated))
-          .replace("{hotels}", String(hotelsCreated))
+        duplicatesSkipped > 0
+          ? base + s.importedDuplicates.replace("{n}", String(duplicatesSkipped))
+          : base
       );
     } catch {
       setError(s.importFailed);

@@ -75,30 +75,51 @@ export async function deleteDay(id: string): Promise<void> {
 export async function importItinerary(
   tripId: string,
   rows: ParsedItineraryRow[]
-): Promise<{ daysCreated: number; itemsCreated: number; hotelsCreated: number }> {
+): Promise<{
+  daysCreated: number;
+  itemsCreated: number;
+  hotelsCreated: number;
+  duplicatesSkipped: number;
+}> {
   const supabase = requireClient();
   // strips a leading category emoji (e.g. "🏨 ") from a title
   const stripEmoji = (t: string) =>
     t.replace(/^\s*[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]️?\s*/u, "").trim();
+  // de-dup key: same wording regardless of emoji/spacing/case
+  const norm = (t: string) => stripEmoji(t).toLowerCase().replace(/\s+/g, " ").trim();
 
   // existing days by date, so an import merges into the current route
   const existing = await listDays(tripId);
   const dayByDate = new Map<string, ItineraryDay>(existing.map((d) => [d.date, d]));
-  // next sort_order per day (append after whatever's already there)
+  // next sort_order per day (append after whatever's already there) + the
+  // titles already on each day, so a re-import doesn't duplicate them
   const nextOrder = new Map<string, number>();
+  const titlesByDay = new Map<string, Set<string>>();
   if (existing.length > 0) {
     const items = await listItems(existing.map((d) => d.id));
     for (const d of existing) {
-      const max = items
-        .filter((i) => i.day_id === d.id)
-        .reduce((m, i) => Math.max(m, i.sort_order), -1);
+      const own = items.filter((i) => i.day_id === d.id);
+      const max = own.reduce((m, i) => Math.max(m, i.sort_order), -1);
       nextOrder.set(d.id, max + 1);
+      titlesByDay.set(d.id, new Set(own.map((i) => norm(i.title))));
     }
   }
+
+  // existing hotel bookings keyed by title + check-in, for the same reason
+  const { data: existingBookings } = await supabase
+    .from("bookings")
+    .select("title,start_date,type")
+    .eq("trip_id", tripId);
+  const hotelKeys = new Set(
+    (existingBookings ?? [])
+      .filter((b) => b.type === "hotel")
+      .map((b) => `${norm(b.title)}|${b.start_date ?? ""}`)
+  );
 
   let daysCreated = 0;
   let itemsCreated = 0;
   let hotelsCreated = 0;
+  let duplicatesSkipped = 0;
   const orderedDates = [...new Set(rows.map((r) => r.date))].sort();
 
   for (const date of orderedDates) {
@@ -128,17 +149,26 @@ export async function importItinerary(
       day = data;
       dayByDate.set(date, day);
       nextOrder.set(day.id, 0);
+      titlesByDay.set(day.id, new Set());
       daysCreated++;
       autofillEmergencyFor(tripId, seedCountry);
     }
 
+    const seenTitles = titlesByDay.get(day.id) ?? new Set<string>();
+
     for (const r of dayRows) {
       // לינה rows become hotel bookings (trip-scoped) instead of day activities
       if (r.is_lodging) {
+        const hotelTitle = stripEmoji(r.title) || r.day_location || "מלון";
+        const key = `${norm(hotelTitle)}|${r.date}`;
+        if (hotelKeys.has(key)) {
+          duplicatesSkipped++;
+          continue;
+        }
         const { error } = await supabase.from("bookings").insert({
           trip_id: tripId,
           type: "hotel",
-          title: stripEmoji(r.title) || r.day_location || "מלון",
+          title: hotelTitle,
           start_date: r.date,
           end_date: r.day_end,
           link_url: r.link,
@@ -146,10 +176,16 @@ export async function importItinerary(
           status: "booked",
         });
         if (error) throw new Error(error.message);
+        hotelKeys.add(key);
         hotelsCreated++;
         continue;
       }
       if (!r.title) continue; // day-header row, no activity
+      const titleKey = norm(r.title);
+      if (seenTitles.has(titleKey)) {
+        duplicatesSkipped++;
+        continue;
+      }
       const order = nextOrder.get(day.id) ?? 0;
       const { error } = await supabase.from("itinerary_items").insert({
         day_id: day.id,
@@ -161,12 +197,13 @@ export async function importItinerary(
         sort_order: order,
       });
       if (error) throw new Error(error.message);
+      seenTitles.add(titleKey);
       nextOrder.set(day.id, order + 1);
       itemsCreated++;
     }
   }
 
-  return { daysCreated, itemsCreated, hotelsCreated };
+  return { daysCreated, itemsCreated, hotelsCreated, duplicatesSkipped };
 }
 
 // ---------- items ----------
