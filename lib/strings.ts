@@ -386,6 +386,7 @@ export const strings = {
     importDo: "ייבוא למסלול",
     importing: "מייבא…",
     imported: "יובאו {days} ימים, {items} פעילויות ו-{hotels} מלונות",
+    importedDuplicates: " · {n} כפילויות דולגו",
     importFailed: "לא הצלחנו לקרוא את הקובץ",
     addDay: "הוספת יום",
     editDay: "עריכת יום",
