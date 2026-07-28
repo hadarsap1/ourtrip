@@ -179,6 +179,9 @@ export function BudgetScreen() {
         <h2 className="mb-3 text-sm font-semibold text-ink-soft">
           {strings.budget.categories}
         </h2>
+        {categories.length === 0 && (
+          <p className="text-sm text-ink-soft">{strings.budget.emptyCategories}</p>
+        )}
         <ul className="space-y-3">
           {categories.map((cat) => {
             const catSpent = spentByCategory.get(cat.id) ?? 0;
