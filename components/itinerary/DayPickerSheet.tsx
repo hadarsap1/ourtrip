@@ -2,6 +2,7 @@
 
 import { Sheet } from "@/components/Sheet";
 import { formatDate, formatWeekday } from "@/lib/format";
+import { strings } from "@/lib/strings";
 import type { ItineraryDay } from "@/lib/types";
 
 // One tap on a day completes the flow (move item / add booking to day).
@@ -20,6 +21,13 @@ export function DayPickerSheet({
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={title}>
+      {/* no day to pick (e.g. moving an item when it's the only day) — say so
+          instead of showing an empty sheet */}
+      {days.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+          {strings.itinerary.noDaysToPick}
+        </p>
+      )}
       <ul className="divide-y divide-line">
         {days.map((day) => (
           <li key={day.id}>

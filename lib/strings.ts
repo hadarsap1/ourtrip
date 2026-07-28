@@ -141,6 +141,7 @@ export const strings = {
     deleteExpenseConfirm: "למחוק את ההוצאה?",
     recentExpenses: "הוצאות אחרונות",
     emptyExpenses: "עוד אין הוצאות",
+    emptyCategories: "עוד אין קטגוריות תקציב",
     fxError: "לא הצלחנו להמיר את המטבע — נסו שוב",
     converterTitle: "המרת מטבע",
     converterRateLine: "לפי השער היומי",
@@ -413,6 +414,7 @@ export const strings = {
     deleteItemConfirm: "למחוק את הפעילות?",
     moveItem: "העברה ליום אחר",
     movePickDay: "לאיזה יום להעביר?",
+    noDaysToPick: "אין יום אחר לבחור — הוסיפו יום נוסף למסלול",
     dragHandle: "גרירה לשינוי סדר",
   },
 
