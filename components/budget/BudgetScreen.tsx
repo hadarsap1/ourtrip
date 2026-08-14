@@ -10,6 +10,7 @@ import type { BudgetCategory, Expense, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { PlannedAmountSheet } from "./PlannedAmountSheet";
+import { QuickLinesSheet } from "./QuickLinesSheet";
 
 function daysBetween(fromISO: string, toISO: string): number {
   return Math.floor(
@@ -28,6 +29,7 @@ export function BudgetScreen() {
 
   const [expenseForm, setExpenseForm] = useState<{ expense: Expense | null } | null>(null);
   const [plannedFor, setPlannedFor] = useState<BudgetCategory | null>(null);
+  const [quickLines, setQuickLines] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -91,6 +93,18 @@ export function BudgetScreen() {
     );
   }
 
+  // Spending done BEFORE departure (vaccinations, visas, gear, flights bought
+  // in advance) is real budget but not a daily pace — averaging it into the
+  // burn rate once the trip starts would wildly inflate both burn and
+  // projection. So it is tracked separately and excluded from the pace math,
+  // while still counting toward the totals.
+  const preTripSpent = trip?.start_date
+    ? expenses
+        .filter((e) => e.spent_on < trip.start_date!)
+        .reduce((sum, e) => sum + e.amount_ils, 0)
+    : 0;
+  const onTripSpent = spent - preTripSpent;
+
   // Burn/projection (ROADMAP: projection = spent + daily burn × remaining
   // days). Before the trip starts daily burn is meaningless → projection
   // degrades to "spent so far".
@@ -106,8 +120,9 @@ export function BudgetScreen() {
     } else {
       const elapsed = Math.min(daysBetween(trip.start_date, today) + 1, totalDays);
       const remaining = Math.max(totalDays - elapsed, 0);
-      burnPerDay = spent / elapsed;
-      projection = spent + burnPerDay * remaining;
+      burnPerDay = onTripSpent / elapsed;
+      // pre-trip spending is already sunk: add it once, don't project it
+      projection = preTripSpent + onTripSpent + burnPerDay * remaining;
     }
   }
 
@@ -164,15 +179,36 @@ export function BudgetScreen() {
         {notStarted && (
           <p className="mt-1 text-xs text-ink-soft">{strings.budget.tripNotStarted}</p>
         )}
+        {preTripSpent > 0 && (
+          <p className="mt-1 flex items-baseline justify-between text-xs text-ink-soft">
+            <span>
+              {strings.budget.beforeTrip}{" "}
+              <span className="font-semibold text-ink" dir="ltr">
+                {formatMoney(Math.round(preTripSpent), "ILS")}
+              </span>
+            </span>
+            {!notStarted && <span>{strings.budget.beforeTripHint}</span>}
+          </p>
+        )}
       </section>
 
-      <button
-        type="button"
-        onClick={() => setExpenseForm({ expense: null })}
-        className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
-      >
-        {strings.budget.addExpense}
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setExpenseForm({ expense: null })}
+          className="rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+        >
+          {strings.budget.addExpense}
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickLines(true)}
+          disabled={categories.length === 0}
+          className="rounded-2xl border border-line bg-white py-3 font-semibold text-ink-soft disabled:opacity-50"
+        >
+          {strings.budget.quickLines}
+        </button>
+      </div>
 
       {/* category bars; tap → edit planned amount */}
       <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
@@ -288,6 +324,24 @@ export function BudgetScreen() {
         }}
         onError={() => showToast(strings.common.error)}
       />
+
+      {quickLines && categories.length > 0 && (
+        <QuickLinesSheet
+          categories={categories}
+          defaultCategoryId={
+            // default to trip-prep for the pre-departure case (vaccinations,
+            // visas…), else the first category
+            (categories.find((c) => c.key === "prep") ?? categories[0]).id
+          }
+          onClose={() => setQuickLines(false)}
+          onDone={(message) => {
+            setQuickLines(false);
+            refreshNow();
+            showToast(message);
+          }}
+          onError={showToast}
+        />
+      )}
 
       <Toast message={toast} />
     </div>
