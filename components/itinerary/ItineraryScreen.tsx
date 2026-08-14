@@ -17,6 +17,7 @@ import {
 } from "@/lib/data/itinerary";
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
 import { listCategories } from "@/lib/data/expenses";
+import { saveOrQueue } from "@/lib/offline/queue";
 import { strings } from "@/lib/strings";
 import type {
   Booking,
@@ -129,6 +130,35 @@ export function ItineraryScreen() {
   }, [refresh, showToast]);
 
   // Runs a mutation, then refetches; errors surface as a Hebrew toast.
+  /**
+   * Ticking off "we did this" is the itinerary action most likely to happen
+   * mid-day with no signal, so it applies optimistically and queues offline
+   * (audit S-1). Everything else on this screen is a deliberate edit that can
+   * wait for the network and fails loudly instead.
+   */
+  const cycleStatus = useCallback(
+    async (item: ItineraryItem) => {
+      const status = NEXT_STATUS[item.status];
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status } : i))
+      );
+      try {
+        const outcome = await saveOrQueue(
+          () => updateItem(item.id, { status }),
+          { kind: "itinerary-status", payload: { itemId: item.id, status } }
+        );
+        if (outcome === "queued") showToast(strings.offline.queued);
+        else if (trip) await refresh(trip.id);
+      } catch {
+        setItems((prev) =>
+          prev.map((i) => (i.id === item.id ? { ...i, status: item.status } : i))
+        );
+        showToast(strings.common.error);
+      }
+    },
+    [trip, refresh, showToast]
+  );
+
   const run = useCallback(
     async (action: () => Promise<void>, successMessage?: string) => {
       if (!trip) return;
@@ -284,11 +314,7 @@ export function ItineraryScreen() {
                     onAddItem={() => setItemForm({ dayId: day.id, item: null })}
                     onItemClick={(item) => setItemForm({ dayId: day.id, item })}
                     onMoveItem={setMovingItem}
-                    onCycleStatus={(item) =>
-                      void run(() =>
-                        updateItem(item.id, { status: NEXT_STATUS[item.status] })
-                      )
-                    }
+                    onCycleStatus={(item) => void cycleStatus(item)}
                     onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
                   />
                 </div>

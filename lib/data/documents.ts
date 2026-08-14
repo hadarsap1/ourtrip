@@ -35,11 +35,56 @@ export async function listDocuments(tripId: string): Promise<Document[]> {
   return data;
 }
 
+// ---------- expiry (audit M-1) ----------
+
+/** Passports are the special case: most border controls refuse entry on a
+ *  passport with under six months of validity left, so "valid until next
+ *  March" is already a problem in January. Everything else warns at a month. */
+const EXPIRY_WARN_DAYS: Record<string, number> = {
+  passport: 180,
+  visa: 30,
+  insurance: 30,
+  vaccine: 30,
+  other: 30,
+};
+
+export type ExpiryLevel = "expired" | "critical" | "soon" | "ok";
+
+export type ExpiryStatus = {
+  level: ExpiryLevel;
+  /** Whole days from `today` to the expiry date; negative once past. */
+  daysLeft: number;
+};
+
+/**
+ * Classifies a document's expiry relative to `today` (ISO date).
+ * `critical` means inside the tag's own threshold — six months for a passport,
+ * a month for everything else; `soon` is the month before that threshold, so a
+ * passport starts nagging gently at seven months out rather than silently
+ * flipping to red. Returns null when the document carries no expiry date.
+ */
+export function expiryStatus(
+  doc: Pick<Document, "expires_on" | "tag">,
+  today: string
+): ExpiryStatus | null {
+  if (!doc.expires_on) return null;
+  const daysLeft = Math.round(
+    (Date.parse(`${doc.expires_on}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) /
+      86_400_000
+  );
+  const threshold = EXPIRY_WARN_DAYS[doc.tag] ?? 30;
+  if (daysLeft < 0) return { level: "expired", daysLeft };
+  if (daysLeft <= threshold) return { level: "critical", daysLeft };
+  if (daysLeft <= threshold + 30) return { level: "soon", daysLeft };
+  return { level: "ok", daysLeft };
+}
+
 export async function uploadDocument(input: {
   tripId: string;
   title: string;
   tag: string;
   notes: string | null;
+  expiresOn: string | null;
   file: File;
 }): Promise<void> {
   const supabase = requireClient();
@@ -55,6 +100,7 @@ export async function uploadDocument(input: {
     title: input.title.trim(),
     tag: input.tag,
     notes: input.notes?.trim() || null,
+    expires_on: input.expiresOn || null,
     file_path: path,
   });
   if (error) throw new Error(error.message);
@@ -62,7 +108,12 @@ export async function uploadDocument(input: {
 
 export async function updateDocument(
   id: string,
-  patch: { title: string; tag: string; notes: string | null }
+  patch: {
+    title: string;
+    tag: string;
+    notes: string | null;
+    expires_on: string | null;
+  }
 ): Promise<void> {
   const { error } = await requireClient()
     .from("documents")

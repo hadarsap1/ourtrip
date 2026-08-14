@@ -12,6 +12,7 @@ import {
   type JournalEntry,
 } from "@/lib/data/journal";
 import { uploadPhoto } from "@/lib/data/photos";
+import { saveOrQueue } from "@/lib/offline/queue";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
@@ -73,28 +74,54 @@ export function JournalScreen() {
     try {
       // auto-tag: entry_date = today (createJournalEntry), location from
       // today's itinerary day (Sprint 6 acceptance)
-      const locationName = await getAutoLocation(trip.id);
-      const entry = await createJournalEntry({
-        tripId: trip.id,
-        authorId: member.id,
-        body,
-        mood,
-        locationName,
-      });
-      if (photo) {
-        await uploadPhoto({
-          tripId: trip.id,
-          memberId: member.id,
-          isOwner: member.role === "owner",
-          file: photo,
-          journalEntryId: entry.id,
-        });
+      const locationName = await getAutoLocation(trip.id).catch(() => null);
+
+      // Offline: the text is queued and replayed on reconnect (audit S-1).
+      // A photo can't be — the upload needs the network — so an entry with a
+      // photo attached says so instead of silently dropping the picture.
+      if (photo && typeof navigator !== "undefined" && !navigator.onLine) {
+        showToast(strings.journal.photoNeedsNetwork);
+        return;
       }
+
+      const outcome = await saveOrQueue(
+        async () => {
+          const entry = await createJournalEntry({
+            tripId: trip.id,
+            authorId: member.id,
+            body,
+            mood,
+            locationName,
+          });
+          if (photo) {
+            await uploadPhoto({
+              tripId: trip.id,
+              memberId: member.id,
+              isOwner: member.role === "owner",
+              file: photo,
+              journalEntryId: entry.id,
+            });
+          }
+        },
+        {
+          kind: "journal",
+          payload: {
+            tripId: trip.id,
+            authorId: member.id,
+            body,
+            mood,
+            locationName,
+          },
+        }
+      );
+
       setBody("");
       setMood(null);
       setPhoto(null);
-      await refresh(trip.id);
-      showToast(strings.journal.saved);
+      await refresh(trip.id).catch(() => {});
+      showToast(
+        outcome === "queued" ? strings.offline.queued : strings.journal.saved
+      );
     } catch {
       showToast(strings.common.error);
     } finally {

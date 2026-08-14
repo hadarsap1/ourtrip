@@ -195,7 +195,60 @@ async function handleDaily(): Promise<{ weather: number; checkin: number }> {
     }
   }
 
-  return { weather: weatherSent, checkin: checkinSent };
+  // ---- document expiry warnings (audit M-1) ----
+  const expirySent = await handleExpiringDocuments(trip.id, today);
+
+  return { weather: weatherSent, checkin: checkinSent, expiry: expirySent };
+}
+
+// Fires on exact anniversaries of the deadline rather than every day inside a
+// window: a passport 180 days out would otherwise nag for six months straight
+// and be tuned out long before it mattered. 180/90/30 covers the renewal lead
+// time, the "book it now" point, and the last call; 0 is the day itself.
+const EXPIRY_LEAD_DAYS = [180, 90, 30, 0];
+
+function addDays(isoDate: string, days: number): string {
+  return new Date(Date.parse(`${isoDate}T12:00:00Z`) + days * 864e5)
+    .toISOString()
+    .slice(0, 10);
+}
+
+async function handleExpiringDocuments(
+  tripId: string,
+  today: string
+): Promise<number> {
+  // Passports are the only tag warned at 180/90 — the six-months-remaining
+  // validity rule most border controls apply. Everything else starts at 30.
+  const targets = EXPIRY_LEAD_DAYS.map((lead) => ({
+    lead,
+    date: addDays(today, lead),
+  }));
+
+  const { data: docs } = await service
+    .from("documents")
+    .select("id, title, tag, expires_on")
+    .eq("trip_id", tripId)
+    .in("expires_on", targets.map((t) => t.date));
+  if (!docs || docs.length === 0) return 0;
+
+  const owners = await ownerIds(tripId);
+  let sent = 0;
+  for (const doc of docs) {
+    const lead = targets.find((t) => t.date === doc.expires_on)?.lead ?? 0;
+    if (lead > 30 && doc.tag !== "passport") continue;
+
+    const body =
+      lead === 0
+        ? `${doc.title} — פג תוקף היום`
+        : `${doc.title} — בתוקף עוד ${lead} ימים`;
+    sent += await pushToMembers(owners, {
+      title: "🛂 תוקף מסמך מסתיים",
+      body,
+      url: "/documents",
+      tag: `doc-expiry-${doc.id}-${lead}`,
+    });
+  }
+  return sent;
 }
 
 Deno.serve(async (req) => {

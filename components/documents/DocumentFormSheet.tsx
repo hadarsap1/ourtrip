@@ -59,6 +59,7 @@ function DocumentForm({
   const [title, setTitle] = useState(doc?.title ?? "");
   const [tag, setTag] = useState(doc?.tag ?? "passport");
   const [notes, setNotes] = useState(doc?.notes ?? "");
+  const [expiresOn, setExpiresOn] = useState(doc?.expires_on ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -81,6 +82,7 @@ function DocumentForm({
           title: title.trim(),
           tag,
           notes: notes.trim() || null,
+          expires_on: expiresOn || null,
         });
       } else {
         await uploadDocument({
@@ -88,6 +90,7 @@ function DocumentForm({
           title: title.trim(),
           tag,
           notes: notes.trim() || null,
+          expiresOn: expiresOn || null,
           file: file!,
         });
       }
@@ -160,6 +163,34 @@ function DocumentForm({
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="doc-expires" className={labelClass}>
+            {strings.documents.expiresOn}
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="doc-expires"
+              type="date"
+              value={expiresOn}
+              onChange={(e) => setExpiresOn(e.target.value)}
+              className={inputClass}
+              dir="ltr"
+            />
+            {expiresOn && (
+              <button
+                type="button"
+                onClick={() => setExpiresOn("")}
+                className="shrink-0 rounded-xl bg-paper-deep px-3 py-2.5 text-sm font-semibold text-ink-soft"
+              >
+                {strings.documents.expiryClear}
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-ink-soft">
+            {strings.documents.expiresHint}
+          </p>
         </div>
 
         <div>

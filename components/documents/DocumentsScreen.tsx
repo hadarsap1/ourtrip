@@ -6,6 +6,7 @@ import { getActiveTrip } from "@/lib/data/trip";
 import {
   DOCUMENT_TAGS,
   decryptDocument,
+  expiryStatus,
   listDocuments,
   listOfflineDocumentIds,
   makeAvailableOffline,
@@ -21,11 +22,34 @@ import {
   isVaultUnlocked,
   lockVault,
 } from "@/lib/data/docPin";
+import { todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Document, Trip } from "@/lib/types";
 import { DocPinSheet } from "./DocPinSheet";
 import { DocumentFormSheet } from "./DocumentFormSheet";
+
+/** Expiry pill on a vault row. Silent while a document is comfortably valid —
+ *  a badge on every row would train the family to stop reading them. */
+function ExpiryBadge({ doc, today }: { doc: Document; today: string }) {
+  const status = expiryStatus(doc, today);
+  if (!status || status.level === "ok") return null;
+  const tone =
+    status.level === "expired" || status.level === "critical"
+      ? "bg-rose-100 text-rose-700"
+      : "bg-amber-100 text-amber-800";
+  const label =
+    status.level === "expired"
+      ? strings.documents.expiredAgo(-status.daysLeft)
+      : strings.documents.expiresInDays(status.daysLeft);
+  return (
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${tone}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function DocumentsScreen() {
   const { member } = useMember();
@@ -206,6 +230,16 @@ export function DocumentsScreen() {
     );
   }
 
+  const today = todayISO();
+
+  // Surfaced at the top of the vault: anything already lapsed or inside its
+  // tag's threshold. Soonest first — the passport that expires in three weeks
+  // matters more than the insurance that expires in five months.
+  const needsAttention = docs
+    .map((doc) => ({ doc, status: expiryStatus(doc, today) }))
+    .filter((row) => row.status && row.status.level !== "ok" && row.status.level !== "soon")
+    .sort((a, b) => a.status!.daysLeft - b.status!.daysLeft);
+
   const query = search.trim().toLowerCase();
   const visible = docs.filter((doc) => {
     if (tagFilter && doc.tag !== tagFilter) return false;
@@ -221,6 +255,31 @@ export function DocumentsScreen() {
       {isKid && (
         <h1 className="text-2xl font-bold">{strings.documents.kidTitle}</h1>
       )}
+
+      {needsAttention.length > 0 && (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-3">
+          <h2 className="mb-2 text-sm font-bold text-rose-700">
+            🛂 {strings.documents.expiringTitle}
+          </h2>
+          <ul className="space-y-1.5">
+            {needsAttention.map(({ doc }) => (
+              <li key={doc.id}>
+                <button
+                  type="button"
+                  onClick={() => (isKid ? void handleOpen(doc) : setForm({ doc }))}
+                  className="flex w-full items-center gap-2 text-start text-sm"
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink">
+                    {doc.title}
+                  </span>
+                  <ExpiryBadge doc={doc} today={today} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <input
         type="search"
         value={search}
@@ -289,9 +348,12 @@ export function DocumentsScreen() {
                     )}
                     {doc.title}
                   </span>
-                  <span className="text-xs text-ink-soft">
-                    {strings.documents.tags[doc.tag] ?? doc.tag}
-                    {doc.notes ? ` · ${doc.notes}` : ""}
+                  <span className="flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
+                    <span>
+                      {strings.documents.tags[doc.tag] ?? doc.tag}
+                      {doc.notes ? ` · ${doc.notes}` : ""}
+                    </span>
+                    <ExpiryBadge doc={doc} today={today} />
                   </span>
                 </button>
                 {!isKid && (

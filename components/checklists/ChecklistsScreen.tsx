@@ -12,6 +12,7 @@ import {
   setItemChecked,
   subscribeChecklists,
 } from "@/lib/data/checklists";
+import { saveOrQueue } from "@/lib/offline/queue";
 import { strings } from "@/lib/strings";
 import type { Checklist, ChecklistItem, Member, Trip } from "@/lib/types";
 import { ImportChecklistSheet } from "./ImportChecklistSheet";
@@ -85,6 +86,37 @@ export function ChecklistsScreen() {
       unsubscribe();
     };
   }, [refresh, showToast]);
+
+  /**
+   * Check-off is the one action here that must survive a dead zone — packing
+   * happens in hotel rooms with no wifi — so it applies optimistically, queues
+   * when offline (audit S-1), and only rolls back on a real rejection.
+   * Deliberately not routed through `run`, which refetches from the server and
+   * would flip the box straight back while offline.
+   */
+  const toggleItem = useCallback(
+    async (item: ChecklistItem, checked: boolean) => {
+      setItems((current) =>
+        current.map((i) => (i.id === item.id ? { ...i, checked } : i))
+      );
+      try {
+        const outcome = await saveOrQueue(
+          () => setItemChecked(item.id, checked),
+          { kind: "checklist-item", payload: { itemId: item.id, checked } }
+        );
+        if (outcome === "queued") showToast(strings.offline.queued);
+        else if (trip) await refresh(trip.id);
+      } catch {
+        setItems((current) =>
+          current.map((i) =>
+            i.id === item.id ? { ...i, checked: item.checked } : i
+          )
+        );
+        showToast(strings.common.error);
+      }
+    },
+    [trip, refresh, showToast]
+  );
 
   const run = useCallback(
     async (action: () => Promise<void>, successMessage?: string) => {
@@ -190,9 +222,7 @@ export function ChecklistsScreen() {
                       <input
                         type="checkbox"
                         checked={item.checked}
-                        onChange={(e) =>
-                          void run(() => setItemChecked(item.id, e.target.checked))
-                        }
+                        onChange={(e) => void toggleItem(item, e.target.checked)}
                         className="h-5 w-5 shrink-0 accent-teal-600"
                       />
                       <span

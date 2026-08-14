@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignOutRow } from "@/components/settings/SignOutRow";
 import { strings } from "@/lib/strings";
 
 type Item = { href: string; emoji: string; label: string };
@@ -85,6 +86,8 @@ export default function MorePage() {
             ‹
           </span>
         </Link>
+
+        <SignOutRow />
       </div>
 
       <p className="mt-6 text-center text-sm text-ink-soft">

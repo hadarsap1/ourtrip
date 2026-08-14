@@ -15,6 +15,7 @@ import {
   type PocketExpense,
   type PocketMoney,
 } from "@/lib/data/pocket";
+import { saveOrQueue } from "@/lib/offline/queue";
 import { formatMoney, formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
@@ -222,9 +223,23 @@ export function PocketScreen() {
           onSave={(amount, description) => {
             const kidId = addFor;
             setAddFor(null);
-            void addPocketExpense({ tripId: trip.id, kidId, amount, description })
-              .then(() => refresh(trip.id, isOwner))
-              .then(() => showToast(strings.pocket.saved))
+            // A kid buying a souvenir in a market has no wifi — queue it
+            // rather than losing the line (audit S-1).
+            void saveOrQueue(
+              () => addPocketExpense({ tripId: trip.id, kidId, amount, description }),
+              {
+                kind: "pocket-expense",
+                payload: { tripId: trip.id, kidId, amount, description },
+              }
+            )
+              .then(async (outcome) => {
+                await refresh(trip.id, isOwner).catch(() => {});
+                showToast(
+                  outcome === "queued"
+                    ? strings.offline.queued
+                    : strings.pocket.saved
+                );
+              })
               .catch(() => showToast(strings.common.error));
           }}
         />

@@ -75,6 +75,22 @@ export const strings = {
     pinSave: "שמירת הקוד ונעילה",
     pinUnlock: "פתיחה",
     viewerClose: "סגירה",
+    expiresOn: "בתוקף עד",
+    expiresHint: "לא חובה — אבל דרכון בתוקף של פחות מחצי שנה לא מתקבל בהרבה מדינות",
+    expiryClear: "ללא תאריך",
+    expired: "פג תוקף",
+    expiresInDays: (days: number) =>
+      days === 0
+        ? "פג היום"
+        : days === 1
+          ? "פג מחר"
+          : days < 60
+            ? `עוד ${days} ימים`
+            : `עוד ${Math.round(days / 30)} חודשים`,
+    expiredAgo: (days: number) =>
+      days === 1 ? "פג אתמול" : `פג לפני ${days} ימים`,
+    expiringTitle: "תוקף מסמכים",
+    expiringNone: "כל המסמכים בתוקף",
   },
 
   emergency: {
@@ -627,6 +643,8 @@ export const strings = {
     deleteConfirm: "למחוק את הרשומה?",
     sharedWithGuests: "משותף עם האורחים",
     shareToggle: "שיתוף עם אורחים",
+    photoNeedsNetwork:
+      "אין אינטרנט — אפשר לשמור את הטקסט עכשיו בלי התמונה, ולהוסיף אותה אחר כך",
   },
 
   photos: {
@@ -716,7 +734,10 @@ export const strings = {
 
   auth: {
     signIn: "כניסה עם Google",
-    signOut: "יציאה",
+    signOut: "יציאה מהחשבון",
+    signingOut: "יוצא ומוחק…",
+    signOutConfirm:
+      "לצאת מהחשבון? כל מה ששמור במכשיר יימחק — המסמכים הזמינים ללא אינטרנט, המסלול של היום, דפי החירום ושיחון. אפשר להוריד הכול מחדש בכניסה הבאה.",
     notAllowedTitle: "אין הרשאה",
     notAllowedBody: "החשבון הזה לא מורשה להיכנס לאפליקציה. נסו עם חשבון אחר.",
     missingEnv: "חסרים משתני סביבה של Supabase — ראו .env.local.example",
@@ -724,6 +745,7 @@ export const strings = {
 
   offline: {
     banner: "אין חיבור לאינטרנט — חלק מהמסכים לא זמינים",
+    queued: "נשמר במכשיר — יסונכרן כשיחזור האינטרנט",
     synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
     syncFailed: "חלק מההוצאות שנרשמו לא מקוון לא נשמרו — כדאי לרשום אותן מחדש",
     fromCache: "מוצג מהעותק השמור במכשיר",

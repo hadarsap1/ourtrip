@@ -6,6 +6,13 @@ import type { Member, Trip } from "@/lib/types";
 let cachedTrip: Trip | null = null;
 let cachedMember: Member | null = null;
 
+/** Drops the module-level caches. Called on sign-out so the next session on
+ *  this device never resolves the previous person's trip or role. */
+export function clearTripCache(): void {
+  cachedTrip = null;
+  cachedMember = null;
+}
+
 export async function getActiveTrip(): Promise<Trip | null> {
   if (cachedTrip) return cachedTrip;
   const supabase = getSupabase();

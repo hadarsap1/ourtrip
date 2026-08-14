@@ -28,18 +28,55 @@ export type EmergencySnapshot = {
   updatedAt: string;
 };
 
-export type PendingWrite = {
-  id?: number;
-  kind: "expense";
-  payload: {
-    categoryId: string;
-    amount: number;
-    currency: string;
-    description: string | null;
-    spentOn: string;
-  };
-  createdAt: string;
-};
+/**
+ * A write made with no connectivity, replayed in order on reconnect
+ * (audit S-1). Every kind here is something a person can legitimately do on a
+ * plane or in a dead zone; anything needing a server-side lookup at write time
+ * (an FX rate, a signed upload URL) either carries what it needs in the
+ * payload or is not queueable at all.
+ *
+ * Payloads are self-contained by design — they store resolved ids rather than
+ * "the current trip", so replay does not depend on which trip or member the
+ * app happens to have loaded when connectivity returns.
+ */
+export type PendingWrite = { id?: number; createdAt: string } & (
+  | {
+      kind: "expense";
+      payload: {
+        categoryId: string;
+        amount: number;
+        currency: string;
+        description: string | null;
+        spentOn: string;
+      };
+    }
+  | {
+      kind: "journal";
+      payload: {
+        tripId: string;
+        authorId: string;
+        body: string;
+        mood: string | null;
+        locationName: string | null;
+      };
+    }
+  | { kind: "checklist-item"; payload: { itemId: string; checked: boolean } }
+  | {
+      kind: "pocket-expense";
+      payload: {
+        tripId: string;
+        kidId: string;
+        amount: number;
+        description: string | null;
+      };
+    }
+  | {
+      kind: "itinerary-status";
+      payload: { itemId: string; status: "planned" | "done" | "cancelled" };
+    }
+);
+
+export type PendingWriteKind = PendingWrite["kind"];
 
 export type PhrasebookSnapshot = {
   language: string;
@@ -69,11 +106,20 @@ interface OurTripDB extends DBSchema {
   map_snapshot: { key: string; value: MapSnapshot };
 }
 
+export const OFFLINE_DB_NAME = "ourtrip-offline";
+
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
+
+/** Closes the connection and drops the memoized handle, so the database can be
+ *  deleted (sign-out wipe) and lazily reopened afterwards. */
+export function closeOfflineDB(): void {
+  void dbPromise?.then((db) => db.close()).catch(() => {});
+  dbPromise = null;
+}
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 2, {
+  dbPromise ??= openDB<OurTripDB>(OFFLINE_DB_NAME, 2, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore("documents_offline", { keyPath: "id" });
