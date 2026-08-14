@@ -125,7 +125,7 @@ function BookingForm({
 
       let saved: Booking;
       if (booking) {
-        await updateBooking(booking.id, payload);
+        await updateBooking(booking.id, payload, booking.updated_at);
         saved = { ...booking, ...payload };
       } else {
         saved = await createBooking({ trip_id: tripId, ...payload });

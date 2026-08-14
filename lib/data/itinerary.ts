@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { assertMatched } from "@/lib/data/concurrency";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { ItineraryDay, ItineraryItem } from "@/lib/types";
 import type { ParsedItineraryRow } from "@/lib/importItinerary";
@@ -40,13 +41,14 @@ function autofillEmergencyFor(tripId: string, countryCode: string | null): void 
 
 export async function updateDay(
   id: string,
-  patch: TablesUpdate<"itinerary_days">
+  patch: TablesUpdate<"itinerary_days">,
+  expectedUpdatedAt?: string
 ): Promise<void> {
-  const { error } = await requireClient()
-    .from("itinerary_days")
-    .update(patch)
-    .eq("id", id);
+  let query = requireClient().from("itinerary_days").update(patch).eq("id", id);
+  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+  const { data, error } = await query.select("id");
   if (error) throw new Error(error.code === "23505" ? "duplicate_date" : error.message);
+  assertMatched(data?.length ?? 0, expectedUpdatedAt);
   if (patch.country_code) {
     const code = patch.country_code;
     void import("@/lib/data/trip").then((m) =>
@@ -227,15 +229,23 @@ export async function createItem(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * `expectedUpdatedAt` turns this into an optimistic-concurrency write: pass the
+ * `updated_at` the row carried when it was read, and the update is rejected
+ * with a conflict error if the other owner saved first (audit S-3). Omit it for
+ * writes that are last-write-wins by intent — queued offline replays, status
+ * ticks — where a conflict would be noise rather than information.
+ */
 export async function updateItem(
   id: string,
-  patch: TablesUpdate<"itinerary_items">
+  patch: TablesUpdate<"itinerary_items">,
+  expectedUpdatedAt?: string
 ): Promise<void> {
-  const { error } = await requireClient()
-    .from("itinerary_items")
-    .update(patch)
-    .eq("id", id);
+  let query = requireClient().from("itinerary_items").update(patch).eq("id", id);
+  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+  const { data, error } = await query.select("id");
   if (error) throw new Error(error.message);
+  assertMatched(data?.length ?? 0, expectedUpdatedAt);
 }
 
 export async function deleteItem(id: string): Promise<void> {

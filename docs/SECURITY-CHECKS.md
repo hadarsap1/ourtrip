@@ -308,3 +308,70 @@ Previously only verified by SQL role emulation. Now issued as real HTTP requests
 | `GET /rest/v1/trips?select=*` | 1 | `200 []` ✅ |
 
 PostgREST returns `200` with an empty array rather than `403` — RLS filters the rows, which is the expected and correct behaviour.
+
+## 2026-08-14 — Pre-departure audit remediation
+
+Fixes for the findings in `docs/AUDIT-2026-08-14.md`. **Migrations `00019` and
+`00020` are written but NOT yet applied to the production project** — see
+"Deploy order" below. Everything else is client-side and ships with the build.
+
+### P-2 — members email exposure (the one real leak the Sprint 8 matrix missed)
+
+The 2026-07-27 role matrix counted **rows** per role, not **columns**.
+`members_kid_guest_select` (00008) granted kids and active guests `SELECT` on
+every `members` row of their trip so the wall could resolve `sender_id` into a
+name — and RLS being row-level, that grant necessarily carried `email` and
+`auth_user_id`. Any invited guest could read both owners' addresses, the kid
+rows, and **every other guest's address**.
+
+Column-level `REVOKE` cannot fix this: privileges attach to the `authenticated`
+role, and owners are `authenticated` too, so revoking `email` would blind the
+owners as well.
+
+| Change | Effect |
+|---|---|
+| `create view trip_member_names` (security definer, `where trip_id in (caller's trips)`) | exposes `id, trip_id, display_name, role` only |
+| `grant select … to authenticated`, `revoke … from public, anon` | anonymous callers get nothing |
+| `drop policy members_kid_guest_select on members` | kids and guests can no longer read the `members` table at all |
+| `listMembers()` → `listMemberNames()` | wall / journal / checklists read the view |
+
+Owners keep full row access via `members_owner_all`; every member keeps their
+own row via `members_self_select` (needed to resolve role before any other
+policy matches). No owner screen reads `members.email` — guest addresses come
+from `guests_allowlist`, which is owner-only — so nothing regresses.
+
+**To verify after applying:** as a guest session, `select * from members`
+returns 0 rows, and `select * from trip_member_names` returns the trip's names
+with no `email` column present.
+
+### M-1 — documents.expires_on
+
+New nullable column + partial index. Owner-only planning data, already covered
+by `documents_owner_all`; kids see it only on rows an owner shared with them
+(`documents_kid_select`, 00014), which carries no more sensitivity than the
+document they can already open. No new policy needed.
+
+### P-5 — verify_jwt codified
+
+`supabase/config.toml` now declares `verify_jwt` for all twelve functions, so
+the eight authenticated / four unauthenticated split is reviewable in a diff
+instead of living in source comments and dashboard state. Values recorded there
+match what is currently deployed; the file makes drift visible, it does not
+change behaviour.
+
+### P-6 — backup retention
+
+`backup-weekly` now prunes to the last 8 snapshots after a successful upload.
+Each snapshot contains every row of the trip including `kid_devices`
+token/PIN hashes, so unbounded accumulation was a growing blast radius. Pruning
+failures are swallowed deliberately — they must never fail the backup that just
+succeeded. **Still open:** the restore drill (audit P-6) has not been done.
+
+### Deploy order
+
+`00020` drops the policy the current production client depends on for name
+resolution, so apply migrations and deploy the app together. Applying `00020`
+first leaves kid/guest wall messages showing blank sender names until the build
+lands — degraded, not broken, and self-healing on deploy. Applying the build
+first is harmless: `trip_member_names` simply doesn't exist yet and name
+resolution returns empty.

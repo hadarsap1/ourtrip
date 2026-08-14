@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { assertMatched } from "@/lib/data/concurrency";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { Booking } from "@/lib/types";
 
@@ -32,15 +33,18 @@ export async function createBooking(
   return data;
 }
 
+/** `expectedUpdatedAt` guards against the other owner having saved first
+ *  (audit S-3) — see updateItem for the full note. */
 export async function updateBooking(
   id: string,
-  patch: TablesUpdate<"bookings">
+  patch: TablesUpdate<"bookings">,
+  expectedUpdatedAt?: string
 ): Promise<void> {
-  const { error } = await requireClient()
-    .from("bookings")
-    .update(patch)
-    .eq("id", id);
+  let query = requireClient().from("bookings").update(patch).eq("id", id);
+  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+  const { data, error } = await query.select("id");
   if (error) throw new Error(error.message);
+  assertMatched(data?.length ?? 0, expectedUpdatedAt);
 }
 
 export async function deleteBooking(id: string): Promise<void> {

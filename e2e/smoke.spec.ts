@@ -54,6 +54,37 @@ test.describe("app shell", () => {
     await expect(page.getByRole("navigation")).toHaveCount(0);
   });
 
+  test("every screen keeps emergency one tap away (SPEC 2.12)", async ({
+    page,
+  }) => {
+    // Today carries its own SOS in the header; every other screen gets the
+    // shell-level one. Either way it is always exactly one tap (audit S-2).
+    for (const route of ["/", "/budget", "/map", "/documents", "/photos"]) {
+      await page.goto(route);
+      const sos = page.getByRole("link", { name: "חירום" });
+      await expect(sos, `no one-tap emergency access on ${route}`).toBeVisible();
+      await expect(sos).toHaveAttribute("href", "/emergency");
+    }
+  });
+
+  test("sign-out is reachable and warns before wiping the device", async ({
+    page,
+  }) => {
+    // SPEC 2.5 caches documents unencrypted on condition they are wiped on
+    // logout, so logout has to exist and has to say what it destroys (P-1).
+    await page.goto("/more");
+    const signOut = page.getByRole("button", { name: /יציאה מהחשבון/ });
+    await expect(signOut).toBeVisible();
+
+    let confirmText = "";
+    page.on("dialog", (dialog) => {
+      confirmText = dialog.message();
+      void dialog.dismiss();
+    });
+    await signOut.click();
+    expect(confirmText).toContain("יימחק");
+  });
+
   test("PWA manifest is served and linked", async ({ page, request }) => {
     await page.goto("/");
     const res = await request.get("/manifest.webmanifest");

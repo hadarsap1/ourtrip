@@ -97,7 +97,7 @@ function ItemForm({
     };
     onSubmit(
       item
-        ? () => updateItem(item.id, payload)
+        ? () => updateItem(item.id, payload, item.updated_at)
         : () => createItem({ day_id: dayId, sort_order: itemCount, ...payload })
     );
   }

@@ -79,5 +79,37 @@ Deno.serve(async () => {
     return json({ ok: false, error: uploadError.message }, 500);
   }
 
-  return json({ ok: true, path, counts });
+  const pruned = await pruneOldBackups(service);
+  return json({ ok: true, path, counts, pruned });
 });
+
+// Retention (audit P-6). Nothing pruned these before, so the bucket grew
+// without bound — and each snapshot contains every row of the trip, including
+// kid_devices token/PIN hashes. Two months of weekly snapshots is enough to
+// recover from a mistake noticed late, and keeps the blast radius small.
+const KEEP_BACKUPS = 8;
+
+async function pruneOldBackups(
+  service: ReturnType<typeof createClient>
+): Promise<number> {
+  const { data: files, error } = await service.storage
+    .from("backups")
+    .list("", { limit: 1000, sortBy: { column: "name", order: "desc" } });
+  // Pruning is housekeeping: a failure here must never fail the backup that
+  // just succeeded, which is the part that actually matters.
+  if (error || !files) return 0;
+
+  // Names are `backup-<ISO timestamp>.json`, so a descending name sort is a
+  // descending time sort. Filter first — an unrelated object must not shift
+  // the window and cause a real snapshot to be deleted.
+  const stale = files
+    .filter((f) => f.name.startsWith("backup-") && f.name.endsWith(".json"))
+    .slice(KEEP_BACKUPS)
+    .map((f) => f.name);
+  if (stale.length === 0) return 0;
+
+  const { error: removeError } = await service.storage
+    .from("backups")
+    .remove(stale);
+  return removeError ? 0 : stale.length;
+}

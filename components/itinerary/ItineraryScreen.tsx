@@ -17,6 +17,7 @@ import {
 } from "@/lib/data/itinerary";
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
 import { listCategories } from "@/lib/data/expenses";
+import { isConflictError } from "@/lib/data/concurrency";
 import { saveOrQueue } from "@/lib/offline/queue";
 import { strings } from "@/lib/strings";
 import type {
@@ -167,6 +168,14 @@ export function ItineraryScreen() {
         await refresh(trip.id);
         if (successMessage) showToast(successMessage);
       } catch (e) {
+        // A conflict means the other owner saved first (audit S-3). Refetch so
+        // the screen shows what actually landed, then say so — the edit isn't
+        // blocked, but it must not vanish silently.
+        if (isConflictError(e)) {
+          await refresh(trip.id).catch(() => {});
+          showToast(strings.common.conflict);
+          return;
+        }
         const message = e instanceof Error ? e.message : "";
         showToast(
           message === "duplicate_date"
@@ -419,13 +428,18 @@ export function ItineraryScreen() {
               setExpenseFor(saved);
             }
           }}
-          onError={(message) =>
+          onError={(message) => {
+            if (message === "conflict") {
+              refreshNow();
+              showToast(strings.common.conflict);
+              return;
+            }
             showToast(
               message === "booking_linked"
                 ? strings.bookings.deleteLinked
                 : strings.common.error
-            )
-          }
+            );
+          }}
         />
       )}
 

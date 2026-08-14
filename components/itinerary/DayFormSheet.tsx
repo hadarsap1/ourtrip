@@ -74,7 +74,7 @@ function DayForm({
     };
     onSubmit(
       day
-        ? () => updateDay(day.id, payload)
+        ? () => updateDay(day.id, payload, day.updated_at)
         : () => createDay({ trip_id: tripId, ...payload })
     );
   }

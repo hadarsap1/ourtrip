@@ -1,8 +1,12 @@
 // OurTrip service worker — Sprint 1: app-shell cache only.
 // Later sprints add IndexedDB-backed data caching and a pending-writes queue.
 
-const CACHE_NAME = "ourtrip-shell-v9";
-const SHELL_URLS = ["/", "/itinerary", "/budget", "/documents", "/more", "/checklists", "/emergency", "/map", "/phrasebook", "/journal", "/photos", "/pocket", "/messages", "/recommend", "/notifications", "/links", "/memory-book", "/manifest.webmanifest"];
+const CACHE_NAME = "ourtrip-shell-v10";
+// Every route the app can land on. /login and /kid-login are here so a cold
+// offline start on a signed-out device still renders a real screen instead of
+// falling back to "/" (audit S-4) — note the kid PIN unlock itself still needs
+// the network, which is deliberate: it is verified server-side and rate-limited.
+const SHELL_URLS = ["/", "/itinerary", "/budget", "/documents", "/more", "/checklists", "/emergency", "/map", "/phrasebook", "/journal", "/photos", "/pocket", "/messages", "/recommend", "/notifications", "/links", "/memory-book", "/guests", "/kids", "/login", "/kid-login", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

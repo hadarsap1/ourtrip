@@ -1,0 +1,72 @@
+# Supabase project config.
+#
+# The reason this file exists (audit P-5): each Edge Function's `verify_jwt`
+# setting used to live only in a comment at the top of its own source, and was
+# applied by hand in the dashboard. Four functions deliberately run
+# unauthenticated and eight require a JWT — a split that a redeploy from a clean
+# checkout could silently flip in either direction, in the direction that opens
+# things up as easily as the one that breaks them. Declared here, it is
+# reviewable in a diff and reapplied on every `supabase functions deploy`.
+
+project_id = "xeqfcrxrpfjlqhkijrwd"
+
+# ---------------------------------------------------------------------------
+# Authenticated functions. verify_jwt rejects a missing or invalid token at the
+# edge; each one ALSO re-checks the caller's role in-function, because a valid
+# JWT only proves the caller is signed in, not that they are an owner.
+# ---------------------------------------------------------------------------
+
+[functions.travel-search]
+verify_jwt = true
+
+[functions.recommend]
+verify_jwt = true
+
+[functions.phrasebook-generate]
+verify_jwt = true
+
+[functions.emergency-autofill]
+verify_jwt = true
+
+[functions.gphotos]
+verify_jwt = true
+
+[functions.guest-invite]
+verify_jwt = true
+
+# Guest media: both list rows through the CALLER's JWT, so RLS decides what
+# exists before any signed URL is minted. verify_jwt is what guarantees there
+# is a caller identity to run RLS against — without it these would run as anon.
+[functions.guest-photos]
+verify_jwt = true
+
+[functions.guest-gphotos]
+verify_jwt = true
+
+# ---------------------------------------------------------------------------
+# Unauthenticated by necessity. Each is documented in docs/SECURITY-CHECKS.md
+# as an accepted risk; none returns trip data to its caller.
+# ---------------------------------------------------------------------------
+
+# register/unlock are pre-auth by nature — the tablet has no JWT until it has
+# been through them. Security comes from the one-time registration code, the
+# 256-bit device token, and the server-side rate-limited PIN. The one action
+# that does need privilege, create-registration, checks for an owner in-function.
+[functions.kid-auth]
+verify_jwt = false
+
+# Invoked by pg_cron via pg_net, which cannot present a user JWT. Takes no
+# input, upserts public FX rates idempotently, returns no data.
+[functions.fx-daily]
+verify_jwt = false
+
+# Invoked by pg_net from AFTER INSERT triggers and by pg_cron. Loads every piece
+# of content server-side from the id it is handed, so a forged call can at most
+# re-notify legitimate content.
+[functions.push-send]
+verify_jwt = false
+
+# Invoked by pg_cron. Reads and writes with the service role only and returns no
+# data, so an anonymous call can at most trigger a redundant backup.
+[functions.backup-weekly]
+verify_jwt = false

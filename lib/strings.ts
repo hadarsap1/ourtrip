@@ -398,6 +398,9 @@ export const strings = {
     error: "משהו השתבש, נסו שוב",
     none: "ללא",
     ownersOnly: "התכונה זמינה להורים בלבד",
+    // SPEC §3: last-write-wins, but never silently — the other owner may have
+    // just changed the same item from their own phone.
+    conflict: "עודכן גם ממכשיר אחר - בדקו את הפריט",
   },
 
   itinerary: {
