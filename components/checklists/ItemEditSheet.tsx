@@ -7,7 +7,7 @@ import {
   updateChecklistItem,
 } from "@/lib/data/checklists";
 import { strings } from "@/lib/strings";
-import type { ChecklistItem, Member } from "@/lib/types";
+import type { ChecklistItem, MemberName } from "@/lib/types";
 
 export function ItemEditSheet({
   item,
@@ -16,7 +16,7 @@ export function ItemEditSheet({
   onSubmit,
 }: {
   item: ChecklistItem | null;
-  members: Member[];
+  members: MemberName[];
   onClose: () => void;
   onSubmit: (action: () => Promise<void>) => void;
 }) {
@@ -39,7 +39,7 @@ function ItemEdit({
   onSubmit,
 }: {
   item: ChecklistItem;
-  members: Member[];
+  members: MemberName[];
   onClose: () => void;
   onSubmit: (action: () => Promise<void>) => void;
 }) {

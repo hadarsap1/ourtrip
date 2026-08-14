@@ -397,6 +397,7 @@ export const strings = {
     loading: "טוען…",
     error: "משהו השתבש, נסו שוב",
     none: "ללא",
+    ownersOnly: "התכונה זמינה להורים בלבד",
   },
 
   itinerary: {

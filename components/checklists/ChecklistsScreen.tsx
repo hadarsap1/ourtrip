@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
-import { getActiveTrip, listMembers } from "@/lib/data/trip";
+import { getActiveTrip, listMemberNames } from "@/lib/data/trip";
 import {
   addChecklistItem,
   createFromTemplate,
@@ -14,14 +14,14 @@ import {
 } from "@/lib/data/checklists";
 import { saveOrQueue } from "@/lib/offline/queue";
 import { strings } from "@/lib/strings";
-import type { Checklist, ChecklistItem, Member, Trip } from "@/lib/types";
+import type { Checklist, ChecklistItem, MemberName, Trip } from "@/lib/types";
 import { ImportChecklistSheet } from "./ImportChecklistSheet";
 import { ItemEditSheet } from "./ItemEditSheet";
 import { ListFormSheet } from "./ListFormSheet";
 
 export function ChecklistsScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberName[]>([]);
   const [lists, setLists] = useState<Checklist[]>([]);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +62,7 @@ export function ChecklistsScreen() {
       try {
         const [, tripMembers] = await Promise.all([
           refresh(activeTrip.id),
-          listMembers(activeTrip.id),
+          listMemberNames(activeTrip.id),
         ]);
         if (!cancelled) setMembers(tripMembers);
       } catch {

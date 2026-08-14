@@ -54,6 +54,11 @@ function ExpiryBadge({ doc, today }: { doc: Document; today: string }) {
 export function DocumentsScreen() {
   const { member } = useMember();
   const isKid = member?.role === "kid";
+  // Write affordances are owner-only. Keyed off "not owner" rather than "is
+  // kid" so a guest who reaches this URL doesn't get an upload button that
+  // always fails (audit P-3). Fails open on an unresolved member: this screen
+  // is offline-critical and must open for the owners with no connectivity.
+  const isOwner = !member || member.role === "owner";
   const [trip, setTrip] = useState<Trip | null>(null);
   const [docs, setDocs] = useState<Document[]>([]);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
@@ -266,7 +271,7 @@ export function DocumentsScreen() {
               <li key={doc.id}>
                 <button
                   type="button"
-                  onClick={() => (isKid ? void handleOpen(doc) : setForm({ doc }))}
+                  onClick={() => (isOwner ? setForm({ doc }) : void handleOpen(doc))}
                   className="flex w-full items-center gap-2 text-start text-sm"
                 >
                   <span className="min-w-0 flex-1 truncate font-medium text-ink">
@@ -332,7 +337,7 @@ export function DocumentsScreen() {
               >
                 <button
                   type="button"
-                  onClick={() => (isKid ? void handleOpen(doc) : setForm({ doc }))}
+                  onClick={() => (isOwner ? setForm({ doc }) : void handleOpen(doc))}
                   className="min-w-0 flex-1 text-start"
                 >
                   <span className="block truncate font-medium text-ink">
@@ -356,7 +361,7 @@ export function DocumentsScreen() {
                     <ExpiryBadge doc={doc} today={today} />
                   </span>
                 </button>
-                {!isKid && (
+                {isOwner && (
                   <button
                     type="button"
                     onClick={() => toggleLock(doc)}
@@ -373,7 +378,7 @@ export function DocumentsScreen() {
                     </span>
                   </button>
                 )}
-                {!isKid && !doc.pin_protected && (
+                {isOwner && !doc.pin_protected && (
                   <button
                     type="button"
                     onClick={() => void toggleShareWithKids(doc)}
@@ -424,7 +429,7 @@ export function DocumentsScreen() {
         </ul>
       )}
 
-      {!isKid && (
+      {isOwner && (
         <button
           type="button"
           onClick={() => setForm({ doc: null })}
@@ -434,7 +439,7 @@ export function DocumentsScreen() {
         </button>
       )}
 
-      {!isKid && pinExists && unlocked && (
+      {isOwner && pinExists && unlocked && (
         <button
           type="button"
           onClick={() => {
@@ -447,7 +452,7 @@ export function DocumentsScreen() {
         </button>
       )}
 
-      {trip && !isKid && (
+      {trip && isOwner && (
         <DocumentFormSheet
           open={form !== null}
           tripId={trip.id}

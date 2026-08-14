@@ -1402,7 +1402,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      trip_member_names: {
+        Row: {
+          display_name: string
+          id: string
+          role: Database["public"]["Enums"]["member_role"]
+          trip_id: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       current_member_id: { Args: never; Returns: string }

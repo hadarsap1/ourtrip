@@ -3,6 +3,7 @@ import { Heebo } from "next/font/google";
 import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
 import { BottomNav } from "@/components/BottomNav";
+import { EmergencyFab } from "@/components/EmergencyFab";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
@@ -43,6 +44,7 @@ export default function RootLayout({
         <main className="flex-1 pb-20 pt-[env(safe-area-inset-top)]">
           <AuthGate>{children}</AuthGate>
         </main>
+        <EmergencyFab />
         <BottomNav />
         <OfflineSync />
         <RegisterSW />

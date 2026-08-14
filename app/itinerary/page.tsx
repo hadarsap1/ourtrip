@@ -1,5 +1,10 @@
+import { OwnerOnly } from "@/components/OwnerOnly";
 import { ItineraryScreen } from "@/components/itinerary/ItineraryScreen";
 
 export default function ItineraryPage() {
-  return <ItineraryScreen />;
+  return (
+    <OwnerOnly>
+      <ItineraryScreen />
+    </OwnerOnly>
+  );
 }

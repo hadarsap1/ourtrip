@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
-import { getActiveTrip, listMembers } from "@/lib/data/trip";
+import { getActiveTrip, listMemberNames } from "@/lib/data/trip";
 import {
   createJournalEntry,
   deleteJournalEntry,
@@ -16,14 +16,14 @@ import { saveOrQueue } from "@/lib/offline/queue";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
-import type { Member, Trip } from "@/lib/types";
+import type { MemberName, Trip } from "@/lib/types";
 
 const MOODS = ["🤩", "😀", "🙂", "😐", "🙁", "😴"];
 
 export function JournalScreen() {
   const { member } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberName[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export function JournalScreen() {
       setTrip(activeTrip);
       try {
         await refresh(activeTrip.id);
-        const tripMembers = await listMembers(activeTrip.id);
+        const tripMembers = await listMemberNames(activeTrip.id);
         if (!cancelled) setMembers(tripMembers);
       } catch {
         if (!cancelled) showToast(strings.common.error);

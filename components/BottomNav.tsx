@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { isKidDevice } from "@/lib/data/kids";
 import { countUnread, subscribeMessages } from "@/lib/data/messages";
 import { getActiveTrip } from "@/lib/data/trip";
+import { getSupabase } from "@/lib/supabase";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 
@@ -89,7 +90,7 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { member } = useMember();
+  const { member, memberLoading } = useMember();
   const role = member?.role ?? (isKidDevice() ? "kid" : "owner");
   const [unread, setUnread] = useState(0);
 
@@ -119,6 +120,21 @@ export function BottomNav() {
   }, [member, pathname]);
 
   if (pathname === "/kid-login" || pathname === "/login") return null;
+
+  // Until the member resolves we don't know whose nav this is, and the
+  // fallback above is the owner's — so a guest on a slow connection would be
+  // shown Budget and Documents and could tap in before it swaps (audit P-4).
+  // Hold the bar empty instead. Only when a backend is actually configured:
+  // with no Supabase env (local dev, e2e shell) the lookup never resolves to
+  // anyone and the owner shell is the right thing to render.
+  if (memberLoading && getSupabase()) {
+    return (
+      <nav
+        aria-hidden="true"
+        className="fixed bottom-0 inset-x-0 z-50 h-[3.75rem] border-t border-line bg-paper/90 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+      />
+    );
+  }
 
   if (role !== "owner") {
     const roleTabs = role === "kid" ? kidTabs : guestTabs;

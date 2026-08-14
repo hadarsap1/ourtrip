@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
-import { getActiveTrip, listMembers } from "@/lib/data/trip";
+import { getActiveTrip, listMemberNames } from "@/lib/data/trip";
 import {
   listMessages,
   markRead,
@@ -13,12 +13,12 @@ import {
 import { formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
-import type { Member, Trip } from "@/lib/types";
+import type { MemberName, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
   const { member } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberName[]>([]);
   const [messages, setMessages] = useState<WallMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
@@ -60,7 +60,7 @@ export function MessagesScreen() {
       setTrip(activeTrip);
       try {
         await refresh(activeTrip.id, member.id);
-        const tripMembers = await listMembers(activeTrip.id);
+        const tripMembers = await listMemberNames(activeTrip.id);
         if (!cancelled) setMembers(tripMembers);
       } catch {
         if (!cancelled) showToast(strings.common.error);

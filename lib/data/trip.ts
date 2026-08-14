@@ -1,5 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
-import type { Member, Trip } from "@/lib/types";
+import type { Member, MemberName, Trip } from "@/lib/types";
 
 // The app manages a single active trip (DECISIONS #8: no multi-trip UI).
 // Both values are stable for a session, so cache after first fetch.
@@ -27,12 +27,20 @@ export async function getActiveTrip(): Promise<Trip | null> {
   return data;
 }
 
-/** All members of the trip (owners see everyone via members_owner_all). */
-export async function listMembers(tripId: string): Promise<Member[]> {
+/**
+ * Names of everyone on the trip, for resolving a sender/author/assignee id
+ * into something readable.
+ *
+ * Reads the `trip_member_names` view rather than `members` (audit P-2): the
+ * table row carries email addresses, and the wall needs names. The view exposes
+ * four columns and is scoped to the caller's own trip in the database, so this
+ * is not a client-side narrowing that a hand-written request could widen.
+ */
+export async function listMemberNames(tripId: string): Promise<MemberName[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
   const { data } = await supabase
-    .from("members")
+    .from("trip_member_names")
     .select("*")
     .eq("trip_id", tripId)
     .order("display_name");
