@@ -25,6 +25,7 @@ from trips t,
        ('attractions', 'אטרקציות'),
        ('transport', 'תחבורה'),
        ('shopping', 'קניות'),
+       ('prep', 'הכנות לטיול'),
        ('misc', 'בלת"מ')
      ) as v(key, label_he)
 where t.is_active;

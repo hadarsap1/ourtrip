@@ -1,7 +1,7 @@
 import { getSupabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/format";
 import { getActiveTrip, getCurrentMember } from "@/lib/data/trip";
-import type { TablesUpdate } from "@/lib/database.types";
+import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { Booking, BudgetCategory, Expense } from "@/lib/types";
 
 function requireClient() {
@@ -137,6 +137,53 @@ export async function createExpense(input: {
     created_by: member.id,
   });
   if (error) throw new Error(error.message);
+}
+
+/** Bulk quick-add: saves many free-text lines in one go, each converted at the
+ *  spent_on day's rate. Lines whose currency has no rate are reported back
+ *  rather than failing the whole batch. */
+export async function createExpenses(
+  lines: { amount: number; currency: string; description?: string | null }[],
+  opts: { categoryId: string; spentOn?: string }
+): Promise<{ saved: number; failed: { description: string; reason: "fx" }[] }> {
+  const supabase = requireClient();
+  const [trip, member] = await Promise.all([getActiveTrip(), getCurrentMember()]);
+  if (!trip || !member) throw new Error("missing expense context");
+
+  const spentOn = opts.spentOn ?? todayISO();
+
+  // one rate lookup per distinct currency, not per line
+  const currencies = [...new Set(lines.map((l) => l.currency))];
+  const rates = new Map<string, number | null>();
+  await Promise.all(
+    currencies.map(async (c) => rates.set(c, await getRateToIls(c, spentOn)))
+  );
+
+  const rows: TablesInsert<"expenses">[] = [];
+  const failed: { description: string; reason: "fx" }[] = [];
+  for (const line of lines) {
+    const rate = rates.get(line.currency) ?? null;
+    if (rate == null) {
+      failed.push({ description: line.description?.trim() || line.currency, reason: "fx" });
+      continue;
+    }
+    rows.push({
+      trip_id: trip.id,
+      category_id: opts.categoryId,
+      amount: line.amount,
+      currency: line.currency,
+      amount_ils: Math.round(line.amount * rate * 100) / 100,
+      description: line.description?.trim() || null,
+      spent_on: spentOn,
+      created_by: member.id,
+    });
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from("expenses").insert(rows);
+    if (error) throw new Error(error.message);
+  }
+  return { saved: rows.length, failed };
 }
 
 export function isConnectivityError(e: unknown): boolean {
