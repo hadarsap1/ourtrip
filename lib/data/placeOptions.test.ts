@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bookingTypeForCategory, normalizeUrl } from "./placeOptions";
+import { bookingTypeForCategory, mapsSearchUrl, normalizeUrl } from "./placeOptions";
 
 // normalizeUrl carried over from lib/data/links.ts, which place_options
 // replaces — people paste "booking.com/x" as often as a full URL.
@@ -46,5 +46,38 @@ describe("bookingTypeForCategory", () => {
   it("falls back to 'other' for an unset or invented category", () => {
     expect(bookingTypeForCategory(null)).toBe("other");
     expect(bookingTypeForCategory("סנורקלינג")).toBe("other");
+  });
+});
+
+// Every extracted place gets a way to be found on a map, even when the post
+// named no link at all — that was the point of adding it.
+describe("mapsSearchUrl", () => {
+  const q = (url: string | null) =>
+    decodeURIComponent(new URL(url!).searchParams.get("query")!);
+
+  it("combines name, area and country into one search", () => {
+    expect(q(mapsSearchUrl("Roving Chill House", "הוי אן", "וייטנאם"))).toBe(
+      "Roving Chill House הוי אן וייטנאם"
+    );
+  });
+
+  it("works from the name alone", () => {
+    expect(q(mapsSearchUrl("Slow Cafe"))).toBe("Slow Cafe");
+  });
+
+  it("skips missing or blank parts rather than leaving gaps", () => {
+    expect(q(mapsSearchUrl("Slow Cafe", null, "וייטנאם"))).toBe("Slow Cafe וייטנאם");
+    expect(q(mapsSearchUrl("Slow Cafe", "   ", null))).toBe("Slow Cafe");
+  });
+
+  it("escapes characters that would otherwise break the query string", () => {
+    const url = mapsSearchUrl("Bánh Mì Phượng & Co", "Hội An")!;
+    expect(url).toContain("%26"); // the & is encoded, not a second param
+    expect(new URL(url).searchParams.get("query")).toBe("Bánh Mì Phượng & Co Hội An");
+  });
+
+  it("returns null when there is nothing to search for", () => {
+    expect(mapsSearchUrl("")).toBeNull();
+    expect(mapsSearchUrl("  ", "  ")).toBeNull();
   });
 });

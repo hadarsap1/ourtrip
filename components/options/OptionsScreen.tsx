@@ -11,6 +11,7 @@ import {
   deletePlaceOption,
   listPlaceOptions,
   promoteToBooking,
+  mapsSearchUrl,
   setPlaceOptionStatus,
   updatePlaceOption,
   PLACE_CATEGORIES,
@@ -314,6 +315,20 @@ export function OptionsScreen() {
                                       className="text-xs font-medium text-sea underline"
                                     >
                                       {s.book}
+                                    </a>
+                                  )}
+                                  {(o.maps_url ??
+                                    mapsSearchUrl(o.title, o.area, o.country)) && (
+                                    <a
+                                      href={
+                                        o.maps_url ??
+                                        mapsSearchUrl(o.title, o.area, o.country)!
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs font-medium text-sea underline"
+                                    >
+                                      {s.onMap}
                                     </a>
                                   )}
                                   {o.source_url && (
