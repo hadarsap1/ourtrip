@@ -10,6 +10,7 @@
 // visible to kids or guests.
 
 import { createBooking } from "@/lib/data/bookings";
+import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
 import type { Booking, PlaceOption, PlaceOptionStatus } from "@/lib/types";
 import type { TablesInsert } from "@/lib/database.types";
@@ -229,7 +230,9 @@ export async function extractPlacesFromText(
     "extract-places",
     { body: { text, country: hints.country, area: hints.area } }
   );
-  if (error) throw new Error(error.message);
+  // Rethrow the function's own error code, not supabase-js's generic message,
+  // so the UI can tell "no API key" and "no balance" apart from "try again".
+  if (error) throw new Error((await functionErrorCode(error)) ?? "failed");
   const places = (data as { places?: ExtractedPlace[] } | null)?.places;
   return places ?? [];
 }

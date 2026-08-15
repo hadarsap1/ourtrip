@@ -287,6 +287,7 @@ export const strings = {
     importNone: "לא נמצאו מקומות בטקסט הזה",
     importSaveSelected: "שמירת הנבחרים",
     importFailed: "החילוץ נכשל, אפשר לנסות שוב",
+    importNoCredit: "אין יתרה בחשבון ה-AI — צריך לטעון קרדיט ב-Anthropic. שאר הבנק עובד רגיל, ואפשר להוסיף מקומות ידנית.",
     importNotConfigured: "שירות החילוץ עדיין לא מוגדר (חסר מפתח ANTHROPIC_API_KEY בשרת)",
     importTooShort: "צריך להדביק טקסט ארוך יותר",
 

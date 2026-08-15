@@ -71,8 +71,16 @@ export function ExtractSheet({
       setPicked(new Set(places.map((_, i) => i)));
       setPhase("review");
     } catch (err) {
-      const msg = (err as Error).message ?? "";
-      setError(msg.includes("not_configured") ? s.importNotConfigured : s.importFailed);
+      // The message here is the function's own error CODE (see
+      // lib/functionError.ts) — an exact match, not a substring guess.
+      const code = (err as Error).message ?? "";
+      setError(
+        code === "not_configured"
+          ? s.importNotConfigured
+          : code === "no_credit"
+            ? s.importNoCredit
+            : s.importFailed
+      );
       setPhase("input");
     }
   };

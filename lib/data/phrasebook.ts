@@ -1,3 +1,4 @@
+import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
 import {
   listPhrasebookLanguages,
@@ -84,7 +85,7 @@ export async function generateLanguage(
     "phrasebook-generate",
     { body: { language, country_code: countryCode ?? null } }
   );
-  if (error) throw new Error(error.message);
+  if (error) throw new Error((await functionErrorCode(error)) ?? "generation failed");
   if (!data?.ok) throw new Error(data?.error ?? "generation failed");
 }
 

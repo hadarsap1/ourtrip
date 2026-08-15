@@ -160,7 +160,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ],
     });
   } catch (err) {
-    console.error("extract-places: anthropic call failed:", (err as Error).message);
+    const message = (err as Error).message ?? "";
+    console.error("extract-places: anthropic call failed:", message);
+    // An exhausted account balance arrives as a 400 invalid_request_error and
+    // is NOT transient — telling the owner to "try again" would send them into
+    // a loop that can never succeed, so it gets its own code and message.
+    if (/credit balance is too low|insufficient.*credit/i.test(message)) {
+      return json({ ok: false, error: "no_credit" }, 402);
+    }
     return json({ ok: false, error: "ai_failed" }, 502);
   }
 
