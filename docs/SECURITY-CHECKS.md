@@ -416,3 +416,16 @@ Notes:
   (0 rows each) before the split was planned, so nothing is lost either way.
 - The probe row used for the anon check was deleted afterwards; the table is
   empty again.
+
+### 2026-08-15 — `00021` applied after deploy
+
+Sequenced as planned. The production build carrying the new code reached READY
+first; `saved_links` / `saved_recommendations` were re-checked immediately
+before dropping (still 0 rows each — the old code had been live until minutes
+earlier, so this was re-verified rather than assumed), then dropped.
+
+| Check | Result |
+|---|---|
+| Legacy tables remaining in `public` | 0 ✅ |
+| Public tables now | 28 (was 29; +`place_options`, −2 legacy) |
+| Public tables **without** RLS enabled | 0 ✅ |
