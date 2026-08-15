@@ -90,7 +90,7 @@ Next.js 16 App Router (RTL, Hebrew)          Vercel
         │
         ▼
 Supabase                                     project ref in migrations
-  Postgres + RLS        30 tables, deny-by-default, 21 migrations
+  Postgres + RLS        28 tables, deny-by-default, 21 migrations
   Storage               6 private buckets
   Realtime              itinerary, bookings, checklists, messages
   Edge Functions        13, Deno
