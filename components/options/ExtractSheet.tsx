@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import {
   extractPlacesFromText,
+  mapsSearchUrl,
   type ExtractedPlace,
   type PlaceOptionInput,
 } from "@/lib/data/placeOptions";
@@ -96,16 +97,22 @@ export function ExtractSheet({
   const save = async () => {
     const inputs: PlaceOptionInput[] = found
       .filter((_, i) => picked.has(i))
-      .map((p) => ({
-        title: p.title,
-        category: p.category,
-        country: country || null,
-        area: p.area ?? area ?? null,
-        note: p.note,
-        sourceUrl: sourceUrl || null,
-        bookingUrl: null,
-        source: "facebook",
-      }));
+      .map((p) => {
+        const placeArea = p.area ?? area ?? null;
+        return {
+          title: p.title,
+          category: p.category,
+          country: country || null,
+          area: placeArea,
+          note: p.note,
+          sourceUrl: sourceUrl || null,
+          // A link the post gave for this place, if any.
+          bookingUrl: p.url,
+          // Always a way to find it on a map, even when the post gave no link.
+          mapsUrl: mapsSearchUrl(p.title, placeArea, country || null),
+          source: "facebook",
+        };
+      });
     await onSave(inputs);
     reset();
   };
@@ -141,6 +148,11 @@ export function ExtractSheet({
                         {p.note && (
                           <span className="mt-1 block text-xs text-ink-soft">
                             {p.note}
+                          </span>
+                        )}
+                        {p.url && (
+                          <span className="mt-1 block truncate text-xs text-sea" dir="ltr">
+                            {p.url}
                           </span>
                         )}
                       </span>

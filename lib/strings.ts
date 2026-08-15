@@ -249,6 +249,7 @@ export const strings = {
     emptyBody: "אפשר להוסיף ידנית, או להדביק פוסט מפייסבוק ולתת ל-AI לחלץ ממנו מקומות.",
     open: "פתיחה",
     book: "להזמנה",
+    onMap: "במפה",
     deleteConfirm: "למחוק את האפשרות?",
     ungrouped: "כללי",
     invalid: "צריך למלא לפחות שם מקום",

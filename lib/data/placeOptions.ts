@@ -217,7 +217,30 @@ export type ExtractedPlace = {
   category: string | null;
   area: string | null;
   note: string | null;
+  /** A link the post itself gave for this place. Null when the post named no
+   *  URL — the model is told never to invent one. */
+  url: string | null;
 };
+
+/** A Google Maps search link for a place, built from its name and area.
+ *
+ *  Deterministic and keyless: it is a search URL, not a resolved place, so it
+ *  cannot point at the wrong business the way a guessed place id could, and it
+ *  needs no Places API call. Maps resolves "<name> <area> <country>" to the
+ *  right pin in practice, and degrades to a sensible search when it can't.
+ *  Works for any script, so Hebrew and Vietnamese names are both fine. */
+export function mapsSearchUrl(
+  title: string,
+  area?: string | null,
+  country?: string | null
+): string | null {
+  const query = [title, area, country]
+    .map((p) => p?.trim())
+    .filter((p): p is string => !!p)
+    .join(" ");
+  if (query === "") return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
 
 /** Sends pasted post text to the extract-places Edge Function, which asks
  *  Claude for structured candidates. Nothing is saved here — the caller shows

@@ -68,6 +68,7 @@ const SCHEMA = {
           category: { type: "string", enum: CATEGORIES },
           area: { type: ["string", "null"] },
           note: { type: ["string", "null"] },
+          url: { type: ["string", "null"] },
         },
         required: ["title", "category"],
       },
@@ -152,6 +153,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
             `- note: one short Hebrew sentence on why the post recommends it, or ` +
             `null. Write the note in Hebrew even when the post is in another ` +
             `language. Keep the title in its original form.\n` +
+            `- url: a link for THIS place if the text contains one (its website, ` +
+            `a booking page, a Google Maps link). Copy it exactly as written. ` +
+            `Null if the text gives no link for it — never invent or guess a URL, ` +
+            `and never reuse a link that belongs to a different place.\n` +
             `- The same place mentioned twice is one entry.\n\n` +
             (hint ? hint + "\n\n" : "") +
             `<<<POST TEXT START>>>\n${text}\n<<<POST TEXT END>>>\n\n` +
@@ -181,6 +186,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     category?: string;
     area?: string | null;
     note?: string | null;
+    url?: string | null;
   };
   const raw = ((toolUse.input as { places?: Raw[] }).places) ?? [];
 
@@ -191,6 +197,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       category: CATEGORIES.includes(p.category ?? "") ? p.category! : "other",
       area: p.area?.trim() || area,
       note: p.note?.trim() || null,
+      // Only keep a real http(s) link. The model is told not to invent URLs,
+      // but a fragment like "see their instagram" must not reach the UI as one.
+      url: /^https?:\/\/\S+$/i.test(p.url?.trim() ?? "") ? p.url!.trim() : null,
     }))
     .filter((p) => p.title !== "")
     .slice(0, 40);
