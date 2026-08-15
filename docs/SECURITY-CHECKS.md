@@ -308,3 +308,29 @@ Previously only verified by SQL role emulation. Now issued as real HTTP requests
 | `GET /rest/v1/trips?select=*` | 1 | `200 []` ✅ |
 
 PostgREST returns `200` with an empty array rather than `403` — RLS filters the rows, which is the expected and correct behaviour.
+
+## 2026-08-15 — Config drift: `verify_jwt` pinning + cron URL helper
+
+Not a new feature; a hardening pass on configuration that previously lived only
+in the Supabase dashboard. Migration `00019_cron_functions_base_url`.
+
+| Check | Method | Result |
+|---|---|---|
+| Live `verify_jwt` per Edge Function matches what each function's header comment claims | `list_edge_functions` against the live project | ✅ PASS — 4 false (`fx-daily`, `push-send`, `backup-weekly`, `kid-auth`), 8 true |
+| Those live values are now pinned in `supabase/config.toml` so a redeploy cannot flip them | file committed, values copied from the live read | ✅ PASS |
+| `public.functions_base_url()` not executable by `anon` / `authenticated` | `revoke execute` in migration, mirroring `00002_function_hardening` | ✅ PASS |
+| Re-scheduled cron jobs still resolve and reach the function | ran the new `fx-daily` body manually; `net._http_response` | ✅ PASS — `200 {"ok":true,"day":"2026-08-15","count":165,"source":"open.er-api.com"}` |
+| All three jobs still active, correct schedules, owner `postgres` | `select * from cron.job` | ✅ PASS |
+| Weekly backup actually producing files | `storage.objects` in the `backups` bucket | ✅ PASS — 5 files, newest 2026-08-09 03:00 |
+
+Notes:
+- `cron.job_run_details.status = 'succeeded'` proves only that the SQL ran:
+  `net.http_post` queues the request, so a job reports success even when the HTTP
+  call fails. Verify cron work by its effect, or via `net._http_response`.
+- The helper falls back to the current project URL when
+  `app.settings.functions_base_url` is unset, so it cannot introduce a
+  NULL-URL failure mode.
+- One deployed function is not in the repo: `recommend-diag`, a retired
+  debugging endpoint. Inspected — inert (returns `410`, no data access, no AI
+  call). Left deployed only because this toolset has no delete-function API;
+  tracked in `docs/HANDOFF.md` §9.

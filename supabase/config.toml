@@ -1,0 +1,72 @@
+# Supabase CLI config — the parts that MUST NOT drift.
+#
+# Why this file exists: every Edge Function's `verify_jwt` setting used to live
+# only in the dashboard. A redeploy from a clean checkout defaults it to `true`,
+# which would silently break the four functions that are unauthenticated *by
+# design* — the three cron-invoked ones and the pre-auth kid device flow. FX
+# would go stale, push would stop, and the weekly backup would stop running,
+# with nothing surfacing the failure.
+#
+# Values below were read back from the live project on 2026-08-15 and match it
+# exactly. Changing one here changes production on the next deploy — read the
+# rationale in the function's own header comment first, and re-verify the
+# role-access matrix in docs/SECURITY-CHECKS.md.
+
+project_id = "ourtrip"
+
+# ---------------------------------------------------------------------------
+# Unauthenticated by design (verify_jwt = false)
+# ---------------------------------------------------------------------------
+
+# Invoked by pg_cron via pg_net, which carries no JWT. Idempotent: upserts
+# today's public FX rates. Anonymous invocation can at most repeat that work.
+[functions.fx-daily]
+verify_jwt = false
+
+# Invoked by pg_cron (daily digest) and by pg_net from the wall-message and
+# pending-photo triggers. Returns no data and loads every piece of content
+# server-side from the id it is handed.
+[functions.push-send]
+verify_jwt = false
+
+# Invoked by pg_cron. Service-role only, returns no data.
+[functions.backup-weekly]
+verify_jwt = false
+
+# Pre-auth by nature: the tablet has no JWT until `register` succeeds, and
+# `unlock` is the PIN gate itself. Security comes from the one-time code, the
+# 256-bit device token and the server-side PIN lockout — not from a JWT.
+[functions.kid-auth]
+verify_jwt = false
+
+# ---------------------------------------------------------------------------
+# Authenticated (verify_jwt = true). The owner-gated ones ALSO re-check
+# current_member_role() = 'owner' in-function — the JWT check alone only
+# proves "some valid user", not "an owner".
+# ---------------------------------------------------------------------------
+
+[functions.phrasebook-generate]
+verify_jwt = true
+
+[functions.recommend]
+verify_jwt = true
+
+[functions.emergency-autofill]
+verify_jwt = true
+
+[functions.travel-search]
+verify_jwt = true
+
+[functions.gphotos]
+verify_jwt = true
+
+[functions.guest-invite]
+verify_jwt = true
+
+# Guest-facing: these deliberately do NOT require the owner role. They list what
+# the caller's own RLS allows and mint short-lived signed URLs for exactly that.
+[functions.guest-photos]
+verify_jwt = true
+
+[functions.guest-gphotos]
+verify_jwt = true

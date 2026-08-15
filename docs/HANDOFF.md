@@ -23,8 +23,33 @@ view, emergency-page autofill, and a "Paper · Sea · Sun" design system with an
 e2e suite and CI. The app is feature-complete for departure; what remains is
 real-data entry, the family dry-run, and trip-time operations.
 
-Trip dates live in `trips.start_date` / `trips.end_date` in the database — not
-in the repo. Check there rather than trusting any date written in a doc.
+### What is actually in the database (read live, 2026-08-15)
+
+The code is finished; the data is not. This is the real gap before departure.
+
+| | Count | |
+|---|---|---|
+| Trip | 1 | ⚠️ `start_date` **and** `end_date` are NULL |
+| Owners / kids / guests | 2 / 2 / 0 | no guests invited yet |
+| Itinerary days | 6, across 5 countries | 27 items on them |
+| Bookings | 0 | nothing imported or entered |
+| Expenses | 1 | a test row |
+| Documents / photos | 0 / 0 | every media bucket is empty |
+| Checklists | 0 | the seed's dry-run template not instantiated |
+| Emergency pages | 5 | one per country ✅ |
+| Phrasebook entries | 47 | ✅ |
+| FX rates | 5,115 rows, current to today | ✅ pipeline healthy |
+| Push subscriptions | 0 | nobody has enabled notifications |
+| Registered kid devices | 0 | tablet never bound |
+
+Infrastructure, by contrast, is running clean: all three cron jobs active with
+**zero** failed runs in their history, the weekly backup has produced 5 files
+(newest 2026-08-09, 336 kB total), and FX has today's rates from
+open.er-api.com.
+
+**Set `trips.start_date` / `trips.end_date` first.** They are NULL, and the
+budget projection, the flight check-in reminder and the "day N of the trip"
+framing all key off them. Nothing in the repo records the real dates.
 
 ---
 
@@ -32,8 +57,8 @@ in the repo. Check there rather than trusting any date written in a doc.
 
 ```bash
 npm install
-cp .env.local.example .env.local   # ⚠️ this file does not exist — see §4
-npm run dev                        # http://localhost:3000
+cp env.example .env.local   # fill in the five NEXT_PUBLIC_* values — see §4
+npm run dev                 # http://localhost:3000
 ```
 
 With **no** Supabase env vars set, `components/AuthGate.tsx` bypasses auth and
@@ -113,9 +138,10 @@ flagged documents, today's itinerary, the emergency page, the phrasebook.
 
 ## 4. Environment variables
 
-There is **no `.env.local.example` in the repo** — `.gitignore` excludes `.env*`,
-so the file README tells you to copy has never existed. Use this table as the
-source of truth. (Fixing that mismatch is listed in §9.)
+`env.example` (no leading dot — `.gitignore` excludes `.env*`) is the template:
+`cp env.example .env.local`. It holds only the client-side values; the table
+below is the full picture including the server-side secrets, which never go in
+that file.
 
 ### Vercel (build + client)
 
@@ -202,8 +228,19 @@ service role. Keep that shape for any new guest-visible media.
 | `push-daily` | `0 5 * * *` | `push-send` (rain alert + flight check-in 24h) |
 | `backup-weekly` | `0 3 * * 0` | `backup-weekly` → JSON snapshot into `backups` |
 
-⚠️ The cron job bodies **hardcode the Supabase project URL**. If the project ref
-ever changes, these three jobs silently post into the void — re-schedule them.
+All three job bodies call `public.functions_base_url()` (migration `00019`)
+rather than a hardcoded URL, and they resolve it on each firing. To repoint them
+at another project, no migration and no redeploy:
+
+```sql
+alter database postgres
+  set app.settings.functions_base_url = 'https://<ref>.supabase.co/functions/v1';
+```
+
+Note that `cron.job_run_details.status = 'succeeded'` only means the SQL ran —
+`net.http_post` queues the request, so the job "succeeds" even if the HTTP call
+fails. To check a job really worked, look at the effect (a fresh `fx_rates` row,
+a new file in `backups`) or join `net._http_response` on the request id.
 
 ### Seeding a fresh project
 
@@ -237,10 +274,15 @@ anonymous invocation can at most re-run harmless idempotent work
 (`docs/SECURITY-CHECKS.md`). The Claude-backed functions all pin
 `claude-haiku-4-5-20251001`.
 
-⚠️ **There is no `supabase/config.toml` in the repo**, so each function's
-`verify_jwt` setting lives only in the Supabase dashboard. A redeploy from a
-clean checkout can flip the cron functions back to the default (`true`) and break
-FX, push and backups silently. See §9.
+`supabase/config.toml` pins every function's `verify_jwt` so a redeploy from a
+clean checkout cannot flip the four unauthenticated-by-design ones back to the
+default and silently break FX, push, backups and the kid login. The committed
+values were read back from the live project on 2026-08-15 and match it exactly.
+
+One extra function is deployed that is **not** in the repo: `recommend-diag`,
+left over from debugging the recommendations function. It is inert — no AI call,
+no data access, returns `410` — and stays only because this toolset has no
+delete-function API. Delete it from the dashboard when convenient.
 
 ---
 
@@ -307,28 +349,35 @@ missing from the Edge Function secrets. Everything else keeps working.
 
 ## 9. Open items
 
-Nothing here blocks the trip; ordered by how much pain it saves later.
+Ordered by what actually gates departure.
 
-1. **Commit an env template.** README tells you to copy `.env.local.example`,
-   which `.gitignore`'s `.env*` rule has always excluded. Add
-   `env.example` (no dot) or a force-added exception, listing the five
-   `NEXT_PUBLIC_*` vars from §4.
-2. **Commit `supabase/config.toml`** pinning `verify_jwt` per function, so
-   `fx-daily`, `push-send`, `backup-weekly` and `kid-auth` cannot regress to the
-   default on a redeploy (§6).
-3. **De-hardcode the project URL in the cron jobs** (§5) — a Postgres setting or
-   a migration variable instead of a literal.
-4. **Reorder the `gphotos` role check before input validation** so a malformed
+1. **Set the trip dates.** `trips.start_date` / `trips.end_date` are NULL (§1).
+   Everything date-derived is degraded until they are filled in.
+2. **Load the real trip.** 6 days, 0 bookings, 0 documents. The itinerary
+   importer (Excel / CSV / Google Sheets, `/itinerary`) exists precisely for
+   this, and re-imports de-duplicate, so it is safe to run repeatedly as the
+   plan firms up.
+3. **The family dry-run.** The seed ships a full-day dry-run checklist template
+   (`docs/ROADMAP.md` Sprint 8) — not yet instantiated. Run it end-to-end on the
+   two phones plus the tablet: it is the last acceptance criterion that a human,
+   not a test, has to sign off, and it is what will surface the real problems.
+4. **Bind the kid tablet and enable push.** 0 registered devices, 0 push
+   subscriptions — neither flow has been exercised outside development.
+   iOS needs the PWA installed to the home screen first.
+5. **Reorder the `gphotos` role check before input validation** so a malformed
    non-owner call gets `403`, not `400`. Not a leak — noted in SECURITY-CHECKS.
-5. **Storage backups.** Consider whether photos/documents deserve their own
-   export or an explicit "Supabase durability is enough" decision.
-6. **The family dry-run.** The seed ships a full-day dry-run checklist template
-   (`docs/ROADMAP.md` Sprint 8). Run it end-to-end on the two phones plus the
-   tablet before departure — it is the last acceptance criterion that a human,
-   not a test, has to sign off.
-7. **Backlog, explicitly not built:** email-forward booking extraction, live
+6. **Delete the `recommend-diag` function** from the dashboard (§6). Inert, but
+   it is repo/production drift.
+7. **Storage backups.** Decide whether photos/documents deserve their own export
+   or an explicit "Supabase bucket durability is enough" decision. Today the
+   weekly backup covers structured data only.
+8. **Backlog, explicitly not built:** email-forward booking extraction, live
    flight tracking, multi-trip UI (DECISIONS #8). The memory book, once out of
    scope, now exists at `/memory-book`.
+
+Closed on 2026-08-15: the missing env template (`env.example`), the unpinned
+`verify_jwt` settings (`supabase/config.toml`), and the hardcoded project URL in
+the cron jobs (migration `00019`).
 
 ---
 

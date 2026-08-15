@@ -47,7 +47,7 @@ npm install
 npm run dev
 ```
 
-משתני סביבה: העתיקו `.env.local.example` ל-`.env.local` ומלאו ערכים. אין לקמט (commit) קבצי `.env*`.
+משתני סביבה: העתיקו `env.example` ל-`.env.local` ומלאו ערכים. אין לקמט (commit) קבצי `.env*`. מפתחות צד-שרת (Anthropic, RapidAPI, Resend, VAPID) הם סודות של Edge Functions ולא נכנסים ל-`.env.local` — ראו `docs/HANDOFF.md` §4.
 
 ## חיפוש טיסות ומלונות (RapidAPI)
 
