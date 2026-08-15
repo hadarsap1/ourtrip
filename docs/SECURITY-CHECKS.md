@@ -400,11 +400,25 @@ token/PIN hashes, so unbounded accumulation was a growing blast radius. Pruning
 failures are swallowed deliberately — they must never fail the backup that just
 succeeded. **Still open:** the restore drill (audit P-6) has not been done.
 
-### Deploy order
+### Deploy order — migrations FIRST, then the build
 
-`00020` drops the policy the current production client depends on for name
-resolution, so apply migrations and deploy the app together. Applying `00020`
-first leaves kid/guest wall messages showing blank sender names until the build
-lands — degraded, not broken, and self-healing on deploy. Applying the build
-first is harmless: `trip_member_names` simply doesn't exist yet and name
-resolution returns empty.
+Not interchangeable. The two orders fail differently and only one is safe.
+
+**Migrations first (do this).** The old client loses kid/guest sender names on
+the wall — it still reads `members`, which they no longer have a policy on, and
+`listMembers` returns empty. Cosmetic, confined to name labels, self-heals the
+moment the build lands.
+
+**Build first (do NOT).** `uploadDocument` writes `expires_on`, which doesn't
+exist until `00019`. PostgREST rejects the insert and the function throws, so
+**document upload fails outright** for as long as the gap lasts — after the file
+has already been put in the bucket, leaving an orphaned object. Strictly worse
+than a missing name label.
+
+Both migrations are additive except `drop policy members_kid_guest_select`,
+which is the single line that changes existing access. To undo just that:
+
+```sql
+create policy members_kid_guest_select on members
+  for select using (public.is_kid_of(trip_id) or public.is_active_guest_of(trip_id));
+```
