@@ -371,7 +371,13 @@ Ordered by what actually gates departure.
 7. **Storage backups.** Decide whether photos/documents deserve their own export
    or an explicit "Supabase bucket durability is enough" decision. Today the
    weekly backup covers structured data only.
-8. **Backlog, explicitly not built:** email-forward booking extraction, live
+8. **`npm audit` will keep reporting `xlsx`.** Prototype pollution + ReDoS with
+   no npm fix available. Assessed and accepted: it parses only in the browser,
+   only on owner screens, on files the owner picks. Do **not** "fix" it by moving
+   the import server-side — that runs the same unpatched library next to the
+   service role. Full reasoning and the two real mitigations are in
+   `docs/SECURITY-CHECKS.md` (2026-08-15).
+9. **Backlog, explicitly not built:** email-forward booking extraction, live
    flight tracking, multi-trip UI (DECISIONS #8). The memory book, once out of
    scope, now exists at `/memory-book`.
 

@@ -334,3 +334,47 @@ Notes:
   debugging endpoint. Inspected — inert (returns `410`, no data access, no AI
   call). Left deployed only because this toolset has no delete-function API;
   tracked in `docs/HANDOFF.md` §9.
+
+## 2026-08-15 — Accepted risk: `xlsx` (SheetJS) advisories, no npm fix
+
+`npm audit` reports 12 vulnerabilities (1 critical, 8 high, 3 moderate). All but
+one are dev-only transitives (`sharp`/libvips via the toolchain) that never reach
+the browser or a runtime. The one that ships is **`xlsx`**:
+
+| Advisory | Effect |
+|---|---|
+| [GHSA-4r6h-8v6p-xvw6](https://github.com/advisories/GHSA-4r6h-8v6p-xvw6) | Prototype pollution |
+| [GHSA-5pgg-2g8v-p4x9](https://github.com/advisories/GHSA-5pgg-2g8v-p4x9) | ReDoS |
+
+`npm audit fix` cannot resolve either — the npm-published line ends at the
+pinned 0.18.5 and SheetJS moved patched builds to their own CDN, so audit
+reports "No fix available".
+
+### Exposure
+
+| Question | Answer |
+|---|---|
+| Where does parsing run? | The **browser only**. All three call sites are `"use client"` and read a `File` via `arrayBuffer()` — `lib/importFile.ts` (checklists, map routes) and `lib/importItinerary.ts` (itinerary import) |
+| Does it ever run server-side? | No. No Edge Function, route handler or server component imports `xlsx` |
+| Who can reach it? | Owners only — the three import sheets live on `/itinerary`, `/checklists`, `/map`, all owner-gated by RLS |
+| Blast radius | The owner's own tab. Prototype pollution there corrupts a session that already holds full owner access, so no privilege boundary is crossed. ReDoS hangs the tab |
+| Realistic attack | An owner imports a hostile workbook received from a third party (travel agent, hotel), which pollutes the page and goes after the session token |
+
+### Decision: accepted, keep parsing client-side
+
+Moving the import server-side would make this **worse**, not better: the same
+unpatched library would then run in a Node process near the service role, with
+the file upload adding transport and storage surface on top. The browser tab is
+the better isolation boundary — per-origin, ephemeral, no service-role access.
+
+If the risk is ever judged too high, in preference order:
+
+1. **Parse in a Web Worker.** Contains prototype pollution to the worker's own
+   global scope; the page's `Object.prototype` is never touched. Contained
+   change — the parsers already return plain arrays that post cleanly.
+2. **Install SheetJS from the vendor CDN** rather than npm, which is where
+   patched builds live. Trades the advisory for a dependency outside the npm
+   registry — check the advisory pages for current guidance before doing it.
+
+Re-review if an importer is ever moved server-side, or if a non-owner role is
+ever given access to an import screen. Neither is true today.
