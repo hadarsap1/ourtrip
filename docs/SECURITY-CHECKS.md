@@ -340,9 +340,42 @@ own row via `members_self_select` (needed to resolve role before any other
 policy matches). No owner screen reads `members.email` — guest addresses come
 from `guests_allowlist`, which is owner-only — so nothing regresses.
 
-**To verify after applying:** as a guest session, `select * from members`
-returns 0 rows, and `select * from trip_member_names` returns the trip's names
-with no `email` column present.
+**Verified 2026-08-14, before applying to production.** The full 20-migration
+chain was replayed against a stock Postgres 16 with a minimal Supabase shim
+(`auth.uid()` / `auth.jwt()` reading request-local GUCs, `storage`, `pg_cron` /
+`pg_net` stubs, and the blanket `anon` / `authenticated` grants Supabase issues
+at project creation — without those, every probe fails with a privilege error
+and proves nothing about the policies). All 20 applied cleanly. Probes used the
+same role-emulation method as the 2026-07-27 matrix.
+
+Seed: 1 trip, 2 owners (both with emails), 1 kid, 2 guests (both with emails,
+both allowlisted), 2 documents.
+
+| Probe | Before | After | Result |
+|---|---|---|---|
+| guest `select * from members` | 5 rows, all emails | **1 row — their own** | ✅ |
+| guest sees the *other* guest's email | yes | **no** | ✅ |
+| guest `select * from trip_member_names` | n/a | 5 names, no `email`/`auth_user_id` column | ✅ |
+| kid `select * from members` | 4 rows | **1 row — their own** | ✅ |
+| owner `select * from members` | 5 rows / 4 emails | 5 rows / 4 emails | ✅ no regression |
+| anon `select * from members` | 0 | 0 | ✅ |
+| anon `select from trip_member_names` | n/a | `permission denied for view` | ✅ fails closed |
+| guest `select * from documents` | 0 | 0 | ✅ no regression |
+
+**The remaining visible row is the caller's own**, via `members_self_select` —
+required for `getCurrentMember()` to resolve a role at all, and it exposes only
+the address that person supplied themselves. The finding was cross-member
+exposure, and that is closed.
+
+Regression checks in the same session:
+
+| Check | Result |
+|---|---|
+| Kid inserts a photo **claiming** `status='approved'`, `shared_with_guests=true` | stored `pending` / `false` — hard rule #3 trigger unaffected by 00019/00020 ✅ |
+| That photo visible to a guest | 0 rows ✅ |
+| **S-3** — owner B saves, then owner A's write guarded on the `updated_at` it read | `UPDATE 0` → conflict detected ✅ |
+| Same write **unguarded** (offline replay path) | `UPDATE 1` → still last-write-wins by intent ✅ |
+| **M-1** — digest query plan on `documents(trip_id, expires_on)` | `Bitmap Index Scan on idx_documents_expires_on` ✅ |
 
 ### M-1 — documents.expires_on
 
