@@ -1,0 +1,435 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ExtractSheet } from "@/components/options/ExtractSheet";
+import { OptionFormSheet } from "@/components/options/OptionFormSheet";
+import { PromoteSheet } from "@/components/options/PromoteSheet";
+import { Toast } from "@/components/Toast";
+import {
+  createPlaceOption,
+  createPlaceOptions,
+  deletePlaceOption,
+  listPlaceOptions,
+  promoteToBooking,
+  setPlaceOptionStatus,
+  updatePlaceOption,
+  PLACE_CATEGORIES,
+  type PlaceOptionInput,
+} from "@/lib/data/placeOptions";
+import { getActiveTrip } from "@/lib/data/trip";
+import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
+import type { PlaceOption, PlaceOptionStatus, Trip } from "@/lib/types";
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  hotel: "🏨",
+  restaurant: "🍜",
+  attraction: "🎡",
+  activity: "🎒",
+  transport: "🚌",
+  shop: "🛍️",
+  other: "📍",
+};
+
+const STATUS_CLASS: Record<PlaceOptionStatus, string> = {
+  option: "bg-paper-deep text-ink-soft",
+  shortlist: "bg-sun/20 text-ink",
+  booked: "bg-sea/15 text-sea",
+  rejected: "bg-paper-deep text-ink-soft line-through",
+};
+
+type Grouped = {
+  country: string;
+  areas: { area: string; options: PlaceOption[] }[];
+}[];
+
+function group(options: PlaceOption[], ungrouped: string): Grouped {
+  const byCountry = new Map<string, Map<string, PlaceOption[]>>();
+  for (const o of options) {
+    const c = o.country?.trim() || ungrouped;
+    const a = o.area?.trim() || "";
+    if (!byCountry.has(c)) byCountry.set(c, new Map());
+    const areas = byCountry.get(c)!;
+    if (!areas.has(a)) areas.set(a, []);
+    areas.get(a)!.push(o);
+  }
+  return [...byCountry.entries()].map(([country, areas]) => ({
+    country,
+    areas: [...areas.entries()].map(([area, opts]) => ({ area, options: opts })),
+  }));
+}
+
+export function OptionsScreen() {
+  const s = strings.options;
+  const { member, memberLoading } = useMember();
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [options, setOptions] = useState<PlaceOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+  const [editing, setEditing] = useState<PlaceOption | "new" | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [promoting, setPromoting] = useState<PlaceOption | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((m: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(m);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const refresh = useCallback(async (tripId: string) => {
+    setOptions(await listPlaceOptions(tripId));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const t = await getActiveTrip();
+      if (cancelled || !t) {
+        setLoading(false);
+        return;
+      }
+      setTrip(t);
+      await refresh(t.id);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    []
+  );
+
+  const countries = useMemo(
+    () =>
+      [...new Set(options.map((o) => o.country?.trim()).filter(Boolean))] as string[],
+    [options]
+  );
+  const areas = useMemo(
+    () => [...new Set(options.map((o) => o.area?.trim()).filter(Boolean))] as string[],
+    [options]
+  );
+
+  const save = useCallback(
+    async (input: PlaceOptionInput) => {
+      if (!trip) return;
+      if (input.title.trim() === "") {
+        showToast(s.invalid);
+        return;
+      }
+      try {
+        if (editing && editing !== "new") {
+          await updatePlaceOption(editing.id, input);
+        } else {
+          await createPlaceOption(trip.id, input, member?.id ?? null);
+        }
+        setEditing(null);
+        await refresh(trip.id);
+      } catch {
+        showToast(strings.common.error);
+      }
+    },
+    [editing, member, refresh, s.invalid, showToast, trip]
+  );
+
+  const saveExtracted = useCallback(
+    async (inputs: PlaceOptionInput[]) => {
+      if (!trip) return;
+      try {
+        await createPlaceOptions(trip.id, inputs, member?.id ?? null);
+        setExtracting(false);
+        await refresh(trip.id);
+      } catch {
+        showToast(strings.common.error);
+      }
+    },
+    [member, refresh, showToast, trip]
+  );
+
+  const changeStatus = useCallback(
+    async (option: PlaceOption, status: PlaceOptionStatus) => {
+      if (!trip) return;
+      try {
+        await setPlaceOptionStatus(option.id, status);
+        await refresh(trip.id);
+      } catch {
+        showToast(strings.common.error);
+      }
+    },
+    [refresh, showToast, trip]
+  );
+
+  const promote = useCallback(
+    async (fields: {
+      startDate: string | null;
+      endDate: string | null;
+      notes: string | null;
+    }) => {
+      if (!trip || !promoting) return;
+      try {
+        await promoteToBooking(promoting, fields);
+        setPromoting(null);
+        await refresh(trip.id);
+        showToast(s.promoteDone);
+      } catch {
+        showToast(s.promoteFailed);
+      }
+    },
+    [promoting, refresh, s.promoteDone, s.promoteFailed, showToast, trip]
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (!trip || !confirm(s.deleteConfirm)) return;
+      try {
+        await deletePlaceOption(id);
+        setOptions((prev) => prev.filter((o) => o.id !== id));
+      } catch {
+        showToast(strings.common.error);
+      }
+    },
+    [s.deleteConfirm, showToast, trip]
+  );
+
+  if (memberLoading || loading) return null;
+  if (member && member.role !== "owner") {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-10 text-center text-ink-soft">
+        {s.ownersOnly}
+      </div>
+    );
+  }
+
+  const visible = categoryFilter
+    ? options.filter((o) => o.category === categoryFilter)
+    : options;
+  const grouped = group(visible, s.ungrouped);
+
+  return (
+    <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
+      <header>
+        <h1 className="text-2xl font-bold">{s.title}</h1>
+        <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>
+      </header>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setEditing("new")}
+          className="rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm"
+        >
+          + {s.add}
+        </button>
+        <button
+          type="button"
+          onClick={() => setExtracting(true)}
+          className="rounded-2xl border border-sea bg-white py-3 font-semibold text-sea shadow-sm"
+        >
+          📋 {s.importTitle}
+        </button>
+      </div>
+
+      {options.length > 0 && (
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter(null)}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
+              categoryFilter === null ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
+            }`}
+          >
+            {s.filterAll}
+          </button>
+          {PLACE_CATEGORIES.filter((c) => options.some((o) => o.category === c)).map(
+            (c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategoryFilter(c)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
+                  categoryFilter === c ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
+                }`}
+              >
+                {CATEGORY_EMOJI[c]} {s.categories[c]}
+              </button>
+            )
+          )}
+        </div>
+      )}
+
+      {visible.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
+          <p className="text-sm font-medium text-ink">{s.empty}</p>
+          <p className="mt-1 text-xs text-ink-soft">{s.emptyBody}</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {grouped.map((g) => (
+            <section key={g.country}>
+              <h2 className="mb-2 text-sm font-bold text-sea">🌍 {g.country}</h2>
+              <div className="space-y-3">
+                {g.areas.map((a) => (
+                  <div key={a.area || "_"}>
+                    {a.area && (
+                      <h3 className="mb-1 pr-1 text-xs font-semibold text-ink-soft">
+                        {a.area}
+                      </h3>
+                    )}
+                    <ul className="space-y-2">
+                      {a.options.map((o) => {
+                        const status = o.status as PlaceOptionStatus;
+                        return (
+                          <li
+                            key={o.id}
+                            className="rounded-2xl border border-line bg-white p-3 shadow-sm"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-ink">
+                                  {CATEGORY_EMOJI[o.category ?? "other"] ?? "📍"}{" "}
+                                  {o.title}
+                                </p>
+                                {o.note && (
+                                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                                    {o.note}
+                                  </p>
+                                )}
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASS[status]}`}
+                                  >
+                                    {s.status[status]}
+                                  </span>
+                                  {o.booking_url && (
+                                    <a
+                                      href={o.booking_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs font-medium text-sea underline"
+                                    >
+                                      {s.book}
+                                    </a>
+                                  )}
+                                  {o.source_url && (
+                                    <a
+                                      href={o.source_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-ink-soft underline"
+                                    >
+                                      {s.open}
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditing(o)}
+                                  className="text-ink-soft"
+                                >
+                                  {strings.common.edit}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void remove(o.id)}
+                                  className="text-rose-600"
+                                >
+                                  {strings.common.delete}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-2 text-xs">
+                              {status !== "shortlist" && status !== "booked" && (
+                                <button
+                                  type="button"
+                                  onClick={() => void changeStatus(o, "shortlist")}
+                                  className="rounded-full bg-sun/20 px-3 py-1 font-medium"
+                                >
+                                  ⭐ {s.markShortlist}
+                                </button>
+                              )}
+                              {status === "booked" ? (
+                                <span className="rounded-full bg-sea/15 px-3 py-1 font-medium text-sea">
+                                  ✓ {s.alreadyBooked}
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setPromoting(o)}
+                                  className="rounded-full bg-sea px-3 py-1 font-medium text-white"
+                                >
+                                  {s.promoteTitle}
+                                </button>
+                              )}
+                              {status !== "rejected" && status !== "booked" && (
+                                <button
+                                  type="button"
+                                  onClick={() => void changeStatus(o, "rejected")}
+                                  className="rounded-full bg-paper-deep px-3 py-1 font-medium text-ink-soft"
+                                >
+                                  {s.markRejected}
+                                </button>
+                              )}
+                              {(status === "rejected" || status === "shortlist") && (
+                                <button
+                                  type="button"
+                                  onClick={() => void changeStatus(o, "option")}
+                                  className="rounded-full bg-paper-deep px-3 py-1 font-medium text-ink-soft"
+                                >
+                                  {s.markOption}
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <OptionFormSheet
+          // Remount per target so the form seeds from the right row.
+          key={editing === "new" ? "new" : editing.id}
+          open
+          editing={editing === "new" ? null : editing}
+          countries={countries}
+          areas={areas}
+          onClose={() => setEditing(null)}
+          onSave={save}
+        />
+      )}
+
+      <ExtractSheet
+        open={extracting}
+        countries={countries}
+        areas={areas}
+        onClose={() => setExtracting(false)}
+        onSave={saveExtracted}
+      />
+
+      <PromoteSheet
+        key={promoting?.id ?? "none"}
+        option={promoting}
+        onClose={() => setPromoting(null)}
+        onConfirm={promote}
+      />
+
+      <Toast message={toast} />
+    </div>
+  );
+}

@@ -16,6 +16,11 @@ export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
 export type SavedRecommendation = Tables<"saved_recommendations">;
 export type SavedLink = Tables<"saved_links">;
+export type PlaceOption = Tables<"place_options">;
+
+/** place_options.status is a text column with a CHECK constraint rather than a
+ *  PG enum, so the union lives here (see 00020_place_options.sql). */
+export type PlaceOptionStatus = "option" | "shortlist" | "booked" | "rejected";
 
 export type ItemStatus = Enums<"item_status">;
 export type BookingType = Enums<"booking_type">;

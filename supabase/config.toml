@@ -54,6 +54,9 @@ verify_jwt = true
 [functions.emergency-autofill]
 verify_jwt = true
 
+[functions.extract-places]
+verify_jwt = true
+
 [functions.travel-search]
 verify_jwt = true
 

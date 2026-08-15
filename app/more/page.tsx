@@ -12,7 +12,7 @@ const groups: { kicker: string; items: Item[] }[] = [
       { href: "/recommend", emoji: "✨", label: strings.more.menuRecommend },
       { href: "/map", emoji: "🗺️", label: strings.more.menuMap },
       { href: "/phrasebook", emoji: "💬", label: strings.more.menuPhrasebook },
-      { href: "/links", emoji: "🔗", label: strings.more.menuLinks },
+      { href: "/options", emoji: "🏨", label: strings.more.menuOptions },
     ],
   },
   {

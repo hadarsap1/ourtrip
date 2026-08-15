@@ -56,6 +56,16 @@
 - Open-Meteo per itinerary day location, cached; shown in today view and timeline
 - In-app alert if rain probability > 50% on a day with an outdoor-tagged item
 
+### 2.7a Options bank ("בנק אפשרויות") — owners only
+- A per-destination bank of candidate places (`place_options`): hotels, restaurants, attractions, activities, transport, shops. Grouped country → area, filterable by category
+- Three ways in, one list out:
+  - **manual** — typed in
+  - **facebook** — paste the *text* of a post; an Edge Function (`extract-places`) asks Claude for structured candidates and the owner ticks which to keep. Fetching a Facebook post server-side is not possible (login wall) and scraping breaches their terms, so pasting is the supported path. The post URL is kept on each option as `source_url`
+  - **ai** — saved from "מה בסביבה" (2.8), which now parks its maybe-list here instead of a separate table
+- Each option carries an optional `booking_url` for actually reserving it
+- Lifecycle: `option` → `shortlist` → `booked` | `rejected`. Promoting an option creates a real booking (2.3), links the two, and marks the option `booked` — the option stays in the bank as planning history rather than being consumed
+- Replaces the earlier `saved_links` and `saved_recommendations`, which were two half-versions of this split by how an item was created
+
 ### 2.8 Local recommendations
 - "מה בסביבה" screen: based on current GPS or selected itinerary day
 - Server-side Edge Function calls Anthropic API + Google Places: kid-friendly restaurants, attractions, tips; results in Hebrew

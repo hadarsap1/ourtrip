@@ -16,7 +16,7 @@ Last updated: **2026-08-15**.
 All eight sprints in `docs/ROADMAP.md` are built, deployed and verified,
 including the Sprint 8 security criterion (full role-access matrix, live, logged
 at the end of `docs/SECURITY-CHECKS.md`). Since then the app has kept growing
-past the roadmap: saved links, kid-shared documents behind a Documents PIN,
+past the roadmap: a per-destination options bank, kid-shared documents behind a Documents PIN,
 memory-book export, Google Photos import via the Picker API, flight/hotel search
 via RapidAPI, itinerary import from Excel/CSV/Google Sheets with a calendar
 view, emergency-page autofill, and a "Paper · Sea · Sun" design system with an
@@ -90,10 +90,10 @@ Next.js 16 App Router (RTL, Hebrew)          Vercel
         │
         ▼
 Supabase                                     project ref in migrations
-  Postgres + RLS        29 tables, deny-by-default, 18 migrations
+  Postgres + RLS        30 tables, deny-by-default, 21 migrations
   Storage               6 private buckets
   Realtime              itinerary, bookings, checklists, messages
-  Edge Functions        12, Deno
+  Edge Functions        13, Deno
   pg_cron + pg_net      3 scheduled jobs
 ```
 
@@ -110,7 +110,7 @@ Everything goes through `lib/data/*.ts`, and every user-visible string comes fro
 | `/budget` | Budget dashboard, expenses, converter | owner |
 | `/documents` | Documents vault (PIN-locked) | owner (+ kid for shared docs) |
 | `/more` | Menu hub → everything below | all |
-| `/map` `/phrasebook` `/links` `/recommend` | Field tools | owner (phrasebook also kid) |
+| `/map` `/phrasebook` `/options` `/recommend` | Field tools + options bank | owner (phrasebook also kid) |
 | `/journal` `/photos` `/memory-book` `/messages` | Memories + family wall | owner, kid, guest (wall/shared) |
 | `/checklists` `/pocket` `/kids` `/guests` `/notifications` | Household + admin | owner (pocket also kid) |
 | `/emergency` | Per-country emergency page, one tap from anywhere | all, offline |
@@ -121,7 +121,7 @@ Everything goes through `lib/data/*.ts`, and every user-visible string comes fro
 One file per domain in `lib/data/` (`itinerary.ts`, `expenses.ts`, `photos.ts`,
 `kids.ts`, `guests.ts`, …). They own the queries, the realtime subscriptions,
 and the offline fallbacks. Unit tests sit next to the pure ones
-(`expenses.test.ts`, `links.test.ts`, `format.test.ts`, `importFile.test.ts`,
+(`expenses.test.ts`, `placeOptions.test.ts`, `format.test.ts`, `importFile.test.ts`,
 `importItinerary.test.ts`, `parseExpenseLines.test.ts`, `docCrypto.test.ts`,
 `recommendCategories.test.ts`).
 
@@ -161,7 +161,7 @@ Google console.
 
 | Secret | Used by | Missing ⇒ |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | `phrasebook-generate`, `recommend`, `emergency-autofill` | Hebrew "service not configured" message, no crash |
+| `ANTHROPIC_API_KEY` | `phrasebook-generate`, `recommend`, `emergency-autofill`, `extract-places` | Hebrew "service not configured" message, no crash |
 | `GOOGLE_MAPS_API_KEY` | `recommend` (server-side Places) | falls back to keyless OpenStreetMap/Overpass |
 | `RAPIDAPI_KEY` | `travel-search` | search tab shows "not configured"; rest of itinerary fine |
 | `RESEND_API_KEY`, `RESEND_FROM` | `guest-invite` | magic link is returned to the owner UI to share manually (by design) |
@@ -263,6 +263,7 @@ committed code.**
 | `phrasebook-generate` | `true` | owner re-checked in-function | Claude, forced tool-use for structured output |
 | `recommend` | `true` | owner | grounded in real POIs (Places, else Overpass) — never invents names |
 | `emergency-autofill` | `true` | owner | curated resident-embassy list; only fills empty generic fields |
+| `extract-places` | `true` | owner (gate runs *before* input validation) | pasted post text → structured place candidates; persists nothing |
 | `travel-search` | `true` | owner | proxies two RapidAPI services; key never reaches the client |
 | `gphotos` | `true` | owner | Google Picker API; access token used transiently, never stored |
 | `guest-invite` | `true` | owner | allowlist + magic link, Resend optional |
