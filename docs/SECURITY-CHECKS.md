@@ -308,3 +308,73 @@ Previously only verified by SQL role emulation. Now issued as real HTTP requests
 | `GET /rest/v1/trips?select=*` | 1 | `200 []` ✅ |
 
 PostgREST returns `200` with an empty array rather than `403` — RLS filters the rows, which is the expected and correct behaviour.
+
+## 2026-08-15 — Config drift: `verify_jwt` pinning + cron URL helper
+
+Not a new feature; a hardening pass on configuration that previously lived only
+in the Supabase dashboard. Migration `00019_cron_functions_base_url`.
+
+| Check | Method | Result |
+|---|---|---|
+| Live `verify_jwt` per Edge Function matches what each function's header comment claims | `list_edge_functions` against the live project | ✅ PASS — 4 false (`fx-daily`, `push-send`, `backup-weekly`, `kid-auth`), 8 true |
+| Those live values are now pinned in `supabase/config.toml` so a redeploy cannot flip them | file committed, values copied from the live read | ✅ PASS |
+| `public.functions_base_url()` not executable by `anon` / `authenticated` | `revoke execute` in migration, mirroring `00002_function_hardening` | ✅ PASS |
+| Re-scheduled cron jobs still resolve and reach the function | ran the new `fx-daily` body manually; `net._http_response` | ✅ PASS — `200 {"ok":true,"day":"2026-08-15","count":165,"source":"open.er-api.com"}` |
+| All three jobs still active, correct schedules, owner `postgres` | `select * from cron.job` | ✅ PASS |
+| Weekly backup actually producing files | `storage.objects` in the `backups` bucket | ✅ PASS — 5 files, newest 2026-08-09 03:00 |
+
+Notes:
+- `cron.job_run_details.status = 'succeeded'` proves only that the SQL ran:
+  `net.http_post` queues the request, so a job reports success even when the HTTP
+  call fails. Verify cron work by its effect, or via `net._http_response`.
+- The helper falls back to the current project URL when
+  `app.settings.functions_base_url` is unset, so it cannot introduce a
+  NULL-URL failure mode.
+- One deployed function is not in the repo: `recommend-diag`, a retired
+  debugging endpoint. Inspected — inert (returns `410`, no data access, no AI
+  call). Left deployed only because this toolset has no delete-function API;
+  tracked in `docs/HANDOFF.md` §9.
+
+## 2026-08-15 — Accepted risk: `xlsx` (SheetJS) advisories, no npm fix
+
+`npm audit` reports 12 vulnerabilities (1 critical, 8 high, 3 moderate). All but
+one are dev-only transitives (`sharp`/libvips via the toolchain) that never reach
+the browser or a runtime. The one that ships is **`xlsx`**:
+
+| Advisory | Effect |
+|---|---|
+| [GHSA-4r6h-8v6p-xvw6](https://github.com/advisories/GHSA-4r6h-8v6p-xvw6) | Prototype pollution |
+| [GHSA-5pgg-2g8v-p4x9](https://github.com/advisories/GHSA-5pgg-2g8v-p4x9) | ReDoS |
+
+`npm audit fix` cannot resolve either — the npm-published line ends at the
+pinned 0.18.5 and SheetJS moved patched builds to their own CDN, so audit
+reports "No fix available".
+
+### Exposure
+
+| Question | Answer |
+|---|---|
+| Where does parsing run? | The **browser only**. All three call sites are `"use client"` and read a `File` via `arrayBuffer()` — `lib/importFile.ts` (checklists, map routes) and `lib/importItinerary.ts` (itinerary import) |
+| Does it ever run server-side? | No. No Edge Function, route handler or server component imports `xlsx` |
+| Who can reach it? | Owners only — the three import sheets live on `/itinerary`, `/checklists`, `/map`, all owner-gated by RLS |
+| Blast radius | The owner's own tab. Prototype pollution there corrupts a session that already holds full owner access, so no privilege boundary is crossed. ReDoS hangs the tab |
+| Realistic attack | An owner imports a hostile workbook received from a third party (travel agent, hotel), which pollutes the page and goes after the session token |
+
+### Decision: accepted, keep parsing client-side
+
+Moving the import server-side would make this **worse**, not better: the same
+unpatched library would then run in a Node process near the service role, with
+the file upload adding transport and storage surface on top. The browser tab is
+the better isolation boundary — per-origin, ephemeral, no service-role access.
+
+If the risk is ever judged too high, in preference order:
+
+1. **Parse in a Web Worker.** Contains prototype pollution to the worker's own
+   global scope; the page's `Object.prototype` is never touched. Contained
+   change — the parsers already return plain arrays that post cleanly.
+2. **Install SheetJS from the vendor CDN** rather than npm, which is where
+   patched builds live. Trades the advisory for a dependency outside the npm
+   registry — check the advisory pages for current guidance before doing it.
+
+Re-review if an importer is ever moved server-side, or if a non-owner role is
+ever given access to an import screen. Neither is true today.
