@@ -1,6 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import { getCurrentMember } from "@/lib/data/trip";
-import type { SavedRecommendation } from "@/lib/types";
+import type { PlaceOption } from "@/lib/types";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -54,35 +54,43 @@ export async function fetchRecommendations(
   return (data.recommendations ?? []) as Recommendation[];
 }
 
+// The maybe-list now lives in place_options alongside manually-added and
+// Facebook-extracted options — one bank per destination rather than a separate
+// AI-only list (00020_place_options.sql). These three keep their names and
+// shapes so the recommend screen is unchanged apart from the row type.
+
 export async function listSavedRecommendations(
   tripId: string
-): Promise<SavedRecommendation[]> {
+): Promise<PlaceOption[]> {
   const { data, error } = await requireClient()
-    .from("saved_recommendations")
+    .from("place_options")
     .select("*")
     .eq("trip_id", tripId)
+    .eq("source", "ai")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data;
+  return data ?? [];
 }
 
-/** Parks a recommendation on the maybe-list. */
+/** Parks a recommendation on the maybe-list (an option in the bank). */
 export async function saveRecommendation(
   tripId: string,
   rec: Recommendation
 ): Promise<void> {
   const member = await getCurrentMember();
-  const { error } = await requireClient().from("saved_recommendations").insert({
+  const { error } = await requireClient().from("place_options").insert({
     trip_id: tripId,
     title: rec.title,
     category: rec.category,
-    description: rec.description,
+    // The bank calls this `note`; the recommender produces a `description`.
+    note: rec.description,
     location_name: rec.location_name,
     lat: rec.lat,
     lng: rec.lng,
     place_id: rec.place_id,
     country_code: rec.country_code,
     maps_url: rec.maps_url,
+    source: "ai",
     created_by: member?.id ?? null,
   });
   if (error) throw new Error(error.message);
@@ -90,7 +98,7 @@ export async function saveRecommendation(
 
 export async function deleteSavedRecommendation(id: string): Promise<void> {
   const { error } = await requireClient()
-    .from("saved_recommendations")
+    .from("place_options")
     .delete()
     .eq("id", id);
   if (error) throw new Error(error.message);

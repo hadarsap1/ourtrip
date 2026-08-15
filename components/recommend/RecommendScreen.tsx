@@ -17,7 +17,7 @@ import { formatShortDate, todayISO } from "@/lib/format";
 import { categoryIcon, RECOMMEND_CATEGORIES } from "@/lib/recommendCategories";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
-import type { ItineraryDay, SavedRecommendation, Trip } from "@/lib/types";
+import type { ItineraryDay, PlaceOption, Trip } from "@/lib/types";
 
 export function RecommendScreen() {
   const s = strings.recommend;
@@ -25,7 +25,7 @@ export function RecommendScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [results, setResults] = useState<Recommendation[] | null>(null);
-  const [saved, setSaved] = useState<SavedRecommendation[]>([]);
+  const [saved, setSaved] = useState<PlaceOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [dayFor, setDayFor] = useState<Recommendation | null>(null);
@@ -330,8 +330,8 @@ export function RecommendScreen() {
                   <p className="font-medium text-ink">
                     {categoryIcon(r.category)} {r.title}
                   </p>
-                  {r.description && (
-                    <p className="text-xs text-ink-soft">{r.description}</p>
+                  {r.note && (
+                    <p className="text-xs text-ink-soft">{r.note}</p>
                   )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
@@ -342,7 +342,7 @@ export function RecommendScreen() {
                         setDayFor({
                           title: r.title,
                           category: r.category,
-                          description: r.description,
+                          description: r.note,
                           location_name: r.location_name,
                           lat: r.lat,
                           lng: r.lng,

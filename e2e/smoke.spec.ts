@@ -21,7 +21,7 @@ const ROUTES = [
   "/messages",
   "/memory-book",
   "/notifications",
-  "/links",
+  "/options",
   "/login",
   "/kid-login",
 ];

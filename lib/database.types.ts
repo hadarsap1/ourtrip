@@ -1067,6 +1067,100 @@ export type Database = {
           },
         ]
       }
+      place_options: {
+        Row: {
+          area: string | null
+          booking_id: string | null
+          booking_url: string | null
+          category: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          location_name: string | null
+          maps_url: string | null
+          note: string | null
+          place_id: string | null
+          source: string
+          source_url: string | null
+          status: string
+          title: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          area?: string | null
+          booking_id?: string | null
+          booking_url?: string | null
+          category?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location_name?: string | null
+          maps_url?: string | null
+          note?: string | null
+          place_id?: string | null
+          source?: string
+          source_url?: string | null
+          status?: string
+          title: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string | null
+          booking_id?: string | null
+          booking_url?: string | null
+          category?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location_name?: string | null
+          maps_url?: string | null
+          note?: string | null
+          place_id?: string | null
+          source?: string
+          source_url?: string | null
+          status?: string
+          title?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_options_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_options_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_options_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pocket_expenses: {
         Row: {
           amount: number
@@ -1412,6 +1506,7 @@ export type Database = {
         Returns: boolean
       }
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
+      functions_base_url: { Args: never; Returns: string }
       is_active_guest_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_kid_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_owner_of: { Args: { p_trip_id: string }; Returns: boolean }

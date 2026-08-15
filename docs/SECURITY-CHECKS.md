@@ -378,3 +378,41 @@ If the risk is ever judged too high, in preference order:
 
 Re-review if an importer is ever moved server-side, or if a non-owner role is
 ever given access to an import screen. Neither is true today.
+
+## 2026-08-15 — "בנק אפשרויות" (place_options) + extract-places
+
+New owner-only planning table and one new Edge Function. Migration
+`00020_place_options` (additive) and `00021_drop_legacy_option_tables`
+(deferred — see note below).
+
+RLS covering this feature: `place_options_owner_all` (single policy, FOR ALL,
+`is_owner_of(trip_id)` in both USING and WITH CHECK) — the same shape as the two
+tables it replaces, so kids and guests have no path to planning content.
+
+| Check | Method | Result |
+|---|---|---|
+| RLS enabled on `place_options`, exactly one policy | `pg_class.relrowsecurity` + `pg_policies` | ✅ PASS — enabled, 1 policy |
+| `anon` sees zero rows **with a real row present** | probe row + `set local role anon` | ✅ PASS — `0` while the table held 1 |
+| Supabase advisors raise nothing new for the table | `get_advisors(security)` | ✅ PASS — no RLS/policy lint; only the pre-existing accepted helper warnings |
+| `extract-places` rejects an unauthenticated call | live POST via `pg_net` | ✅ PASS — `401 UNAUTHORIZED_NO_AUTH_HEADER` |
+| `extract-places` deployed with `verify_jwt=true` and pinned in config.toml | deploy response + repo file | ✅ PASS |
+
+Notes:
+
+- **The role gate runs before input validation** in `extract-places`, so a
+  non-owner gets `403` regardless of payload. This is deliberately the opposite
+  order from `gphotos`, whose "validates first, gates second" behaviour was
+  logged as an observation on 2026-07-27 — the new function does not repeat it.
+- **Prompt injection is in scope here**, because the pasted text is untrusted
+  third-party content (a Facebook post) fed to a model. Contained three ways:
+  the text is delimited and explicitly labelled as data-not-instructions; the
+  reply shape is pinned by a forced tool schema whose only fields are place
+  attributes; and the function persists nothing — the owner reviews and ticks
+  each candidate before anything is written. Worst case a hostile post proposes
+  a junk row the owner declines.
+- **`00021` is deliberately not applied yet.** Dropping `saved_links` while the
+  deployed build still queries it would break the live `/links` screen. Apply it
+  after this change is merged and deployed. Both tables were verified empty
+  (0 rows each) before the split was planned, so nothing is lost either way.
+- The probe row used for the anon check was deleted afterwards; the table is
+  empty again.
