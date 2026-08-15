@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { functionErrorCode } from "@/lib/functionError";
 import { getCurrentMember } from "@/lib/data/trip";
 import type { PlaceOption } from "@/lib/types";
 
@@ -49,7 +50,9 @@ export async function fetchRecommendations(
     setTimeout(() => reject(new Error("timeout")), 45000)
   );
   const { data, error } = await Promise.race([invoke, timeout]);
-  if (error) throw new Error(error.message);
+  // supabase-js hides the function's JSON body behind error.context — without
+  // this the UI can never distinguish "no API key" from a transient failure.
+  if (error) throw new Error((await functionErrorCode(error)) ?? "recommend failed");
   if (!data?.ok) throw new Error(data?.error ?? "recommend failed");
   return (data.recommendations ?? []) as Recommendation[];
 }
