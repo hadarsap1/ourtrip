@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExtractSheet } from "@/components/options/ExtractSheet";
+import { OptionsMap } from "@/components/options/OptionsMap";
 import { OptionFormSheet } from "@/components/options/OptionFormSheet";
 import { PromoteSheet } from "@/components/options/PromoteSheet";
 import { Toast } from "@/components/Toast";
@@ -9,6 +10,8 @@ import {
   createPlaceOption,
   createPlaceOptions,
   deletePlaceOption,
+  filterOptions,
+  geocodePlaceOptions,
   listPlaceOptions,
   promoteToBooking,
   mapsSearchUrl,
@@ -73,6 +76,11 @@ export function OptionsScreen() {
   const [extracting, setExtracting] = useState(false);
   const [promoting, setPromoting] = useState<PlaceOption | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<PlaceOptionStatus | null>(null);
+  const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const [areaFilter, setAreaFilter] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "map">("list");
+  const [locating, setLocating] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((m: string) => {
@@ -118,6 +126,19 @@ export function OptionsScreen() {
     () => [...new Set(options.map((o) => o.area?.trim()).filter(Boolean))] as string[],
     [options]
   );
+
+  // Areas offered narrow to the chosen country, so the two cuts compose
+  // instead of producing empty results.
+  const areasForCountry = useMemo(() => {
+    const pool = countryFilter
+      ? options.filter(
+          (o) =>
+            (o.country ?? "").trim().toLowerCase() ===
+            countryFilter.trim().toLowerCase()
+        )
+      : options;
+    return [...new Set(pool.map((o) => o.area?.trim()).filter(Boolean))] as string[];
+  }, [countryFilter, options]);
 
   const save = useCallback(
     async (input: PlaceOptionInput) => {
@@ -187,6 +208,27 @@ export function OptionsScreen() {
     [promoting, refresh, s.promoteDone, s.promoteFailed, showToast, trip]
   );
 
+  /** Resolves names to coordinates a batch at a time, reporting progress. The
+   *  keyless provider is throttled to about a request a second, so a big bank
+   *  takes a while — showing the remaining count beats a frozen button. */
+  const locate = useCallback(async () => {
+    if (!trip || locating !== null) return;
+    setLocating(s.mapLocating);
+    try {
+      for (let pass = 0; pass < 20; pass++) {
+        const { remaining } = await geocodePlaceOptions(trip.id);
+        await refresh(trip.id);
+        if (remaining === 0) break;
+        setLocating(s.mapLocatingCount.replace("{n}", String(remaining)));
+      }
+      showToast(s.mapLocated);
+    } catch {
+      showToast(strings.common.error);
+    } finally {
+      setLocating(null);
+    }
+  }, [locating, refresh, s, showToast, trip]);
+
   const remove = useCallback(
     async (id: string) => {
       if (!trip || !confirm(s.deleteConfirm)) return;
@@ -209,10 +251,20 @@ export function OptionsScreen() {
     );
   }
 
-  const visible = categoryFilter
-    ? options.filter((o) => o.category === categoryFilter)
-    : options;
+  // One filter, both views — a pin the list doesn't show would be a lie.
+  const visible = filterOptions(options, {
+    category: categoryFilter,
+    status: statusFilter,
+    country: countryFilter,
+    area: areaFilter,
+  });
   const grouped = group(visible, s.ungrouped);
+  const unlocated = visible.filter((o) => o.lat == null || o.lng == null).length;
+  const activeCuts =
+    (categoryFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0) +
+    (countryFilter ? 1 : 0) +
+    (areaFilter ? 1 : 0);
 
   return (
     <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
@@ -237,6 +289,74 @@ export function OptionsScreen() {
           📋 {s.importTitle}
         </button>
       </div>
+
+      {options.length > 0 && (
+        <div className="flex rounded-2xl border border-line bg-white p-1">
+          {(["list", "map"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setView(mode)}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
+                view === mode ? "bg-sea text-white" : "text-ink-soft"
+              }`}
+            >
+              {mode === "list" ? s.viewList : s.viewMap}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {options.length > 0 && (countries.length > 1 || areas.length > 1) && (
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            value={countryFilter ?? ""}
+            onChange={(e) => {
+              setCountryFilter(e.target.value || null);
+              // An area belongs to a country; keeping a stale one would
+              // silently select nothing.
+              setAreaFilter(null);
+            }}
+            className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
+          >
+            <option value="">{s.allCountries}</option>
+            {countries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={areaFilter ?? ""}
+            onChange={(e) => setAreaFilter(e.target.value || null)}
+            className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
+          >
+            <option value="">{s.allAreas}</option>
+            {areasForCountry.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {options.length > 0 && (
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          {(["shortlist", "option", "booked", "rejected"] as const).map((st) => (
+            <button
+              key={st}
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === st ? null : st)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
+                statusFilter === st ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
+              }`}
+            >
+              {s.status[st]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {options.length > 0 && (
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -268,9 +388,20 @@ export function OptionsScreen() {
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
-          <p className="text-sm font-medium text-ink">{s.empty}</p>
-          <p className="mt-1 text-xs text-ink-soft">{s.emptyBody}</p>
+          <p className="text-sm font-medium text-ink">
+            {activeCuts > 0 ? s.noneForCut : s.empty}
+          </p>
+          <p className="mt-1 text-xs text-ink-soft">
+            {activeCuts > 0 ? s.noneForCutBody : s.emptyBody}
+          </p>
         </div>
+      ) : view === "map" ? (
+        <OptionsMap
+          options={visible}
+          unlocatedCount={unlocated}
+          onLocate={() => void locate()}
+          locating={locating}
+        />
       ) : (
         <div className="space-y-5">
           {grouped.map((g) => (

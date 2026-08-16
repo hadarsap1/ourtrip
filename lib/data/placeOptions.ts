@@ -244,6 +244,55 @@ export function mapsSearchUrl(
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+/** The cuts the bank can be sliced by. Every field is optional; an unset field
+ *  means "don't filter on this". Shared by the list and the map so both always
+ *  show the same set — a pin that isn't in the list would be a lie. */
+export type OptionFilter = {
+  category?: string | null;
+  status?: PlaceOptionStatus | null;
+  country?: string | null;
+  area?: string | null;
+  /** Map view only: drop options with no coordinates, since they can't be pinned. */
+  locatedOnly?: boolean;
+};
+
+const sameLabel = (a: string | null | undefined, b: string | null | undefined) =>
+  (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
+
+/** Applies every set cut. Pure, so the list, the map and the counts can't drift
+ *  apart. Country and area compare case- and whitespace-insensitively because
+ *  they are free text a person types. */
+export function filterOptions(
+  options: PlaceOption[],
+  filter: OptionFilter
+): PlaceOption[] {
+  return options.filter((o) => {
+    if (filter.category && o.category !== filter.category) return false;
+    if (filter.status && o.status !== filter.status) return false;
+    if (filter.country && !sameLabel(o.country, filter.country)) return false;
+    if (filter.area && !sameLabel(o.area, filter.area)) return false;
+    if (filter.locatedOnly && (o.lat == null || o.lng == null)) return false;
+    return true;
+  });
+}
+
+/** Bounding box of a set of located options, for fitting the map to whatever
+ *  the current cut selects. Null when nothing in the set has coordinates. */
+export function boundsOf(
+  options: PlaceOption[]
+): { north: number; south: number; east: number; west: number } | null {
+  const located = options.filter((o) => o.lat != null && o.lng != null);
+  if (located.length === 0) return null;
+  const lats = located.map((o) => o.lat!);
+  const lngs = located.map((o) => o.lng!);
+  return {
+    north: Math.max(...lats),
+    south: Math.min(...lats),
+    east: Math.max(...lngs),
+    west: Math.min(...lngs),
+  };
+}
+
 export type ExtractResult = {
   places: ExtractedPlace[];
   /** True when at least one chunk of a long post hit the model's output
@@ -255,6 +304,27 @@ export type ExtractResult = {
 /** Sends pasted post text to the extract-places Edge Function, which asks
  *  Claude for structured candidates. Nothing is saved here — the caller shows
  *  the candidates and saves whichever the owner ticks. */
+/** Asks the geocode-places function to resolve one batch of not-yet-located
+ *  options into coordinates. Returns how many are still pending so the caller
+ *  can loop with a progress indicator rather than blocking on the whole set. */
+export async function geocodePlaceOptions(
+  tripId: string
+): Promise<{ located: number; failed: number; remaining: number }> {
+  const { data, error } = await requireClient().functions.invoke(
+    "geocode-places",
+    { body: { trip_id: tripId } }
+  );
+  if (error) throw new Error((await functionErrorCode(error)) ?? "failed");
+  const payload = data as
+    | { located?: number; failed?: number; remaining?: number }
+    | null;
+  return {
+    located: payload?.located ?? 0,
+    failed: payload?.failed ?? 0,
+    remaining: payload?.remaining ?? 0,
+  };
+}
+
 export async function extractPlacesFromText(
   text: string,
   hints: { country: string | null; area: string | null }

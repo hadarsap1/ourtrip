@@ -57,6 +57,9 @@ verify_jwt = true
 [functions.extract-places]
 verify_jwt = true
 
+[functions.geocode-places]
+verify_jwt = true
+
 [functions.travel-search]
 verify_jwt = true
 

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  boundsOf,
   bookingTypeForCategory,
+  filterOptions,
   mapsSearchUrl,
   normalizeUrl,
   PLACE_CATEGORIES,
 } from "./placeOptions";
 import { strings } from "@/lib/strings";
+import type { PlaceOption } from "@/lib/types";
 
 // normalizeUrl carried over from lib/data/links.ts, which place_options
 // replaces — people paste "booking.com/x" as often as a full URL.
@@ -108,5 +111,109 @@ describe("mapsSearchUrl", () => {
   it("returns null when there is nothing to search for", () => {
     expect(mapsSearchUrl("")).toBeNull();
     expect(mapsSearchUrl("  ", "  ")).toBeNull();
+  });
+});
+
+// The list and the map share one filter on purpose: a pin the list doesn't
+// show, or vice versa, would be a lie about what's in the bank.
+describe("filterOptions", () => {
+  const opt = (over: Partial<PlaceOption>): PlaceOption =>
+    ({
+      id: crypto.randomUUID(),
+      trip_id: "t",
+      title: "x",
+      category: "restaurant",
+      country: "וייטנאם",
+      country_code: null,
+      area: "הוי אן",
+      note: null,
+      source: "facebook",
+      source_url: null,
+      booking_url: null,
+      location_name: null,
+      lat: 15.88,
+      lng: 108.33,
+      place_id: null,
+      maps_url: null,
+      status: "option",
+      booking_id: null,
+      created_by: null,
+      created_at: "",
+      updated_at: "",
+      ...over,
+    }) as PlaceOption;
+
+  const bank = [
+    opt({ title: "מסעדה בהוי אן" }),
+    opt({ title: "מלון בהוי אן", category: "hotel", status: "shortlist" }),
+    opt({ title: "מסעדה בהואה", area: "הואה" }),
+    opt({ title: "פארק בלאוס", country: "לאוס", area: "לואנג פראבנג", category: "nature" }),
+    opt({ title: "בלי מיקום", lat: null, lng: null }),
+  ];
+
+  it("returns everything when no cut is set", () => {
+    expect(filterOptions(bank, {})).toHaveLength(5);
+  });
+
+  it("cuts by category, status, country and area independently", () => {
+    expect(filterOptions(bank, { category: "hotel" })).toHaveLength(1);
+    expect(filterOptions(bank, { status: "shortlist" })).toHaveLength(1);
+    expect(filterOptions(bank, { country: "לאוס" })).toHaveLength(1);
+    expect(filterOptions(bank, { area: "הואה" })).toHaveLength(1);
+  });
+
+  it("composes cuts — they narrow, never widen", () => {
+    const cut = filterOptions(bank, { country: "וייטנאם", area: "הוי אן" });
+    expect(cut.map((o) => o.title)).toEqual([
+      "מסעדה בהוי אן",
+      "מלון בהוי אן",
+      "בלי מיקום",
+    ]);
+    expect(
+      filterOptions(bank, { country: "וייטנאם", area: "הוי אן", category: "hotel" })
+    ).toHaveLength(1);
+  });
+
+  it("matches country and area regardless of case and stray spaces", () => {
+    // These are free text a person types twice; "  הוי אן " must not be a
+    // different place from "הוי אן".
+    expect(filterOptions(bank, { area: "  הוי אן  " })).toHaveLength(3);
+  });
+
+  it("drops unlocated options only when the map asks", () => {
+    expect(filterOptions(bank, { locatedOnly: true })).toHaveLength(4);
+    expect(filterOptions(bank, {})).toHaveLength(5);
+  });
+
+  it("returns empty rather than everything when a cut matches nothing", () => {
+    expect(filterOptions(bank, { country: "תאילנד" })).toEqual([]);
+  });
+});
+
+describe("boundsOf", () => {
+  const at = (lat: number | null, lng: number | null) =>
+    ({ lat, lng }) as PlaceOption;
+
+  it("spans every located option", () => {
+    expect(boundsOf([at(10, 100), at(20, 110), at(15, 105)])).toEqual({
+      north: 20,
+      south: 10,
+      east: 110,
+      west: 100,
+    });
+  });
+
+  it("ignores options with no coordinates", () => {
+    expect(boundsOf([at(10, 100), at(null, null), at(20, 110)])).toEqual({
+      north: 20,
+      south: 10,
+      east: 110,
+      west: 100,
+    });
+  });
+
+  it("is null when nothing can be placed", () => {
+    expect(boundsOf([])).toBeNull();
+    expect(boundsOf([at(null, null)])).toBeNull();
   });
 });
