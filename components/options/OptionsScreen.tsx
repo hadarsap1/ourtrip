@@ -27,6 +27,8 @@ const CATEGORY_EMOJI: Record<string, string> = {
   restaurant: "🍜",
   attraction: "🎡",
   activity: "🎒",
+  city: "🏙️",
+  nature: "🌿",
   transport: "🚌",
   shop: "🛍️",
   other: "📍",

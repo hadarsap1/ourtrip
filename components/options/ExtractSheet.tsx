@@ -39,6 +39,7 @@ export function ExtractSheet({
   const [area, setArea] = useState("");
   const [found, setFound] = useState<ExtractedPlace[]>([]);
   const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [partial, setPartial] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reset = () => {
@@ -47,6 +48,7 @@ export function ExtractSheet({
     setSourceUrl("");
     setFound([]);
     setPicked(new Set());
+    setPartial(false);
     setError(null);
   };
 
@@ -63,11 +65,12 @@ export function ExtractSheet({
     setError(null);
     setPhase("running");
     try {
-      const places = await extractPlacesFromText(text, {
+      const { places, partial } = await extractPlacesFromText(text, {
         country: country || null,
         area: area || null,
       });
       setFound(places);
+      setPartial(partial);
       // Default to everything ticked: the common case is "yes, save these".
       setPicked(new Set(places.map((_, i) => i)));
       setPhase("review");
@@ -80,7 +83,9 @@ export function ExtractSheet({
           ? s.importNotConfigured
           : code === "no_credit"
             ? s.importNoCredit
-            : s.importFailed
+            : code === "truncated"
+              ? s.importTruncated
+              : s.importFailed
       );
       setPhase("input");
     }
@@ -128,6 +133,11 @@ export function ExtractSheet({
           ) : (
             <>
               <p className="text-sm text-ink-soft">{s.importFound}</p>
+              {partial && (
+                <p className="rounded-xl bg-sun/20 p-3 text-xs text-ink">
+                  {s.importPartial}
+                </p>
+              )}
               <ul className="space-y-2">
                 {found.map((p, i) => (
                   <li key={`${p.title}-${i}`}>
