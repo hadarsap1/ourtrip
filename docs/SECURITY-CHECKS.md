@@ -416,3 +416,33 @@ Notes:
   (0 rows each) before the split was planned, so nothing is lost either way.
 - The probe row used for the anon check was deleted afterwards; the table is
   empty again.
+
+## 2026-08-16 — geocode-places
+
+New owner-gated Edge Function; no new tables or policies. It resolves the
+options bank's place names into coordinates so the bank can be drawn on a map.
+
+| Check | Method | Result |
+|---|---|---|
+| Deployed `verify_jwt=true` and pinned in config.toml | deploy response + repo file | ✅ PASS |
+| Unauthenticated call rejected | live POST via `pg_net` | ✅ PASS — `401 UNAUTHORIZED_NO_AUTH_HEADER` |
+| Role gate runs before input validation | code order | ✅ PASS — same ordering as extract-places |
+
+Notes:
+
+- **This function reads and writes through the CALLER's client, not the service
+  role.** That is deliberate: RLS stays in force on every row it touches, so a
+  request naming another trip's `trip_id` resolves to zero rows rather than
+  being trusted. It is the same posture as `guest-photos`, and the opposite of
+  the service-role functions (`fx-daily`, `backup-weekly`), which need to write
+  where no user can.
+- The only external calls are geocoding lookups (Google Geocoding when the key
+  is set, else keyless Nominatim). The place name and its area/country are the
+  only data leaving; no trip identifiers, no member data.
+- Nominatim's usage policy asks for ~1 request/second and a User-Agent; the
+  keyless path honours both. Work is batched (20 rows) so an invocation cannot
+  run past the function timeout.
+- Map InfoWindow content is built from pasted-post text, which is untrusted.
+  `components/options/OptionsMap.tsx` escapes it before interpolating into the
+  HTML string the Maps API requires — the one place in this feature where
+  untrusted text meets raw HTML.

@@ -255,6 +255,18 @@ export const strings = {
     invalid: "צריך למלא לפחות שם מקום",
     ownersOnly: "התכונה זמינה להורים בלבד",
     filterAll: "הכול",
+    viewList: "רשימה",
+    viewMap: "מפה",
+    allCountries: "כל המדינות",
+    allAreas: "כל האזורים",
+    noneForCut: "אין אפשרויות שמתאימות לסינון",
+    noneForCutBody: "נסו להסיר חלק מהסינונים.",
+    mapUnavailable: "המפה לא זמינה כרגע (חסר מפתח Google Maps או אין חיבור).",
+    mapUnlocated: "‏{n} מקומות עדיין בלי מיקום על המפה — הם לא מוצגים כסיכה.",
+    mapLocate: "איתור המקומות על המפה",
+    mapLocating: "מאתר מקומות…",
+    mapLocatingCount: "מאתר… נותרו {n}",
+    mapLocated: "האיתור הסתיים",
 
     categories: {
       hotel: "לינה",
