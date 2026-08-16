@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { bookingTypeForCategory, mapsSearchUrl, normalizeUrl } from "./placeOptions";
+import {
+  bookingTypeForCategory,
+  mapsSearchUrl,
+  normalizeUrl,
+  PLACE_CATEGORIES,
+} from "./placeOptions";
+import { strings } from "@/lib/strings";
 
 // normalizeUrl carried over from lib/data/links.ts, which place_options
 // replaces — people paste "booking.com/x" as often as a full URL.
@@ -46,6 +52,29 @@ describe("bookingTypeForCategory", () => {
   it("falls back to 'other' for an unset or invented category", () => {
     expect(bookingTypeForCategory(null)).toBe("other");
     expect(bookingTypeForCategory("סנורקלינג")).toBe("other");
+  });
+
+  // city/nature exist for destination guides. You don't "book" a town or a
+  // national park as a booking type, so they land on 'other' by design.
+  it("books a city or a park as 'other'", () => {
+    expect(bookingTypeForCategory("city")).toBe("other");
+    expect(bookingTypeForCategory("nature")).toBe("other");
+  });
+});
+
+// Guarding the client/function contract: the Edge Function pins `category` to
+// an enum, so a value only one side knows about is silently rewritten to
+// "other". These are the categories both sides must agree on.
+describe("PLACE_CATEGORIES", () => {
+  it("carries the destination-guide categories, not just business types", () => {
+    expect(PLACE_CATEGORIES).toContain("city");
+    expect(PLACE_CATEGORIES).toContain("nature");
+  });
+
+  it("has a Hebrew label for every category", () => {
+    for (const category of PLACE_CATEGORIES) {
+      expect(strings.options.categories[category]).toBeTruthy();
+    }
   });
 });
 

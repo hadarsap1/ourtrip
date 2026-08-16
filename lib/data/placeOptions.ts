@@ -28,6 +28,8 @@ export const PLACE_CATEGORIES = [
   "restaurant",
   "attraction",
   "activity",
+  "city",
+  "nature",
   "transport",
   "shop",
   "other",
@@ -242,13 +244,21 @@ export function mapsSearchUrl(
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+export type ExtractResult = {
+  places: ExtractedPlace[];
+  /** True when at least one chunk of a long post hit the model's output
+   *  ceiling, so the list may be short of a few places. The caller warns
+   *  rather than silently presenting a partial list as complete. */
+  partial: boolean;
+};
+
 /** Sends pasted post text to the extract-places Edge Function, which asks
  *  Claude for structured candidates. Nothing is saved here — the caller shows
  *  the candidates and saves whichever the owner ticks. */
 export async function extractPlacesFromText(
   text: string,
   hints: { country: string | null; area: string | null }
-): Promise<ExtractedPlace[]> {
+): Promise<ExtractResult> {
   const { data, error } = await requireClient().functions.invoke(
     "extract-places",
     { body: { text, country: hints.country, area: hints.area } }
@@ -256,6 +266,6 @@ export async function extractPlacesFromText(
   // Rethrow the function's own error code, not supabase-js's generic message,
   // so the UI can tell "no API key" and "no balance" apart from "try again".
   if (error) throw new Error((await functionErrorCode(error)) ?? "failed");
-  const places = (data as { places?: ExtractedPlace[] } | null)?.places;
-  return places ?? [];
+  const payload = data as { places?: ExtractedPlace[]; partial?: boolean } | null;
+  return { places: payload?.places ?? [], partial: payload?.partial === true };
 }
