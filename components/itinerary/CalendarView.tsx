@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { buildCalendarIndex, iso } from "@/lib/itineraryCalendar";
 import { strings } from "@/lib/strings";
 import type { ItineraryDay, ItineraryItem } from "@/lib/types";
@@ -28,25 +28,43 @@ export function CalendarView({
   items: ItineraryItem[];
   onSelectDate: (dateISO: string) => void;
 }) {
-  const { cells, months, today } = useMemo(() => {
-    const index = buildCalendarIndex(days, items);
-    const now = new Date();
-    return {
-      ...index,
-      today: iso(now.getFullYear(), now.getMonth(), now.getDate()),
-    };
-  }, [days, items]);
+  // Months shown beyond the trip's own span. Tapping a date in one of them
+  // offers to add that day, which is how the trip gets extended from here —
+  // before this, the grid stopped dead at the first and last planned day.
+  const [monthsBefore, setMonthsBefore] = useState(1);
+  const [monthsAfter, setMonthsAfter] = useState(1);
 
-  if (days.length === 0) {
-    return (
-      <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
-        {strings.itinerary.calendarEmpty}
-      </p>
-    );
-  }
+  const { cells, months, today } = useMemo(() => {
+    const now = new Date();
+    const todayISO = iso(now.getFullYear(), now.getMonth(), now.getDate());
+    return {
+      // An empty itinerary has no span to hang months off, so it centres on
+      // today and you can start adding from an ordinary-looking calendar.
+      ...buildCalendarIndex(days, items, {
+        monthsBefore,
+        monthsAfter,
+        anchorDate: todayISO,
+      }),
+      today: todayISO,
+    };
+  }, [days, items, monthsBefore, monthsAfter]);
 
   return (
     <div className="space-y-6 pb-8">
+      {days.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-line bg-white p-4 text-center text-sm text-ink-soft">
+          {strings.itinerary.calendarEmpty}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setMonthsBefore((n) => n + 6)}
+        className="w-full rounded-xl border border-line bg-white py-2 text-xs font-medium text-ink-soft"
+      >
+        {strings.itinerary.calendarEarlier}
+      </button>
+
       {months.map(({ y, m }) => {
         const daysInMonth = new Date(y, m + 1, 0).getDate();
         const lead = new Date(y, m, 1).getDay(); // 0=Sun
@@ -137,6 +155,14 @@ export function CalendarView({
           </section>
         );
       })}
+
+      <button
+        type="button"
+        onClick={() => setMonthsAfter((n) => n + 6)}
+        className="w-full rounded-xl border border-line bg-white py-2 text-xs font-medium text-ink-soft"
+      >
+        {strings.itinerary.calendarLater}
+      </button>
     </div>
   );
 }

@@ -481,6 +481,8 @@ export const strings = {
     countryCodeHint: "שתי אותיות, למשל JP",
     notes: "הערות",
     calendarActivityCount: "‏{n} פעילויות",
+    calendarEarlier: "▲ חודשים קודמים",
+    calendarLater: "▼ חודשים הבאים",
     deleteDay: "מחיקת היום",
     deleteItem: "מחיקת הפריט",
     deleteDayConfirm: "למחוק את היום ואת כל הפעילויות שבו?",
