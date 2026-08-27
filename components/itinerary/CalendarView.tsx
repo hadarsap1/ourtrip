@@ -1,35 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import { buildCalendarIndex, iso } from "@/lib/itineraryCalendar";
 import { strings } from "@/lib/strings";
 import type { ItineraryDay, ItineraryItem } from "@/lib/types";
-
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-function iso(y: number, m: number, d: number): string {
-  return `${y}-${pad(m + 1)}-${pad(d)}`;
-}
-
-/** A day imported as a LEG carries its range in notes ("1.11 - 22.11"); the
- *  whole span is shaded so a 3-week leg reads as one block, not a single date.
- *  Days without such a range cover just themselves. */
-function legEndISO(day: ItineraryDay): string | null {
-  const text = day.notes ?? "";
-  const m = text.match(
-    /(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\s*(?:[-–—]|עד)\s*(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?/
-  );
-  if (!m) return null;
-  const startMonth = Number(day.date.slice(5, 7));
-  const startYear = Number(day.date.slice(0, 4));
-  const endDay = Number(m[4]);
-  const endMonth = Number(m[5]);
-  if (!endDay || !endMonth || endDay > 31 || endMonth > 12) return null;
-  let endYear = m[6] ? Number(m[6].length === 2 ? `20${m[6]}` : m[6]) : startYear;
-  // a range that wraps past new-year ends in the following year
-  if (!m[6] && endMonth < startMonth) endYear = startYear + 1;
-  return `${endYear}-${pad(endMonth)}-${pad(endDay)}`;
-}
 
 const monthLabel = (y: number, m: number) => {
   try {
@@ -41,9 +15,10 @@ const monthLabel = (y: number, m: number) => {
   }
 };
 
-/** Month-grid overview of the trip. Days that exist are highlighted with their
- *  activity count; tapping any date calls onSelectDate (existing → open it,
- *  empty → offer to add that day). */
+/** Month-grid overview of the trip. Each date shows what is planned on it —
+ *  where you are, and how many activities — so the plan is readable without
+ *  opening anything. Tapping still opens the day (existing → scroll to it,
+ *  empty → offer to add it). */
 export function CalendarView({
   days,
   items,
@@ -53,60 +28,13 @@ export function CalendarView({
   items: ItineraryItem[];
   onSelectDate: (dateISO: string) => void;
 }) {
-  const { months, dayByDate, covered, countByDate, today } = useMemo(() => {
-    const dayByDate = new Map(days.map((d) => [d.date, d]));
-    const countByDayId = new Map<string, number>();
-    for (const it of items) {
-      countByDayId.set(it.day_id, (countByDayId.get(it.day_id) ?? 0) + 1);
-    }
-    const countByDate = new Map<string, number>();
-    for (const d of days) countByDate.set(d.date, countByDayId.get(d.id) ?? 0);
-
-    // every date inside a leg's span → the leg's start date (so tapping any
-    // day of the leg opens it)
-    const covered = new Map<string, string>();
-    let lastCoveredISO = "";
-    for (const d of days) {
-      covered.set(d.date, d.date);
-      const end = legEndISO(d);
-      if (!end || end <= d.date) continue;
-      const cur = new Date(`${d.date}T00:00:00`);
-      const endDate = new Date(`${end}T00:00:00`);
-      // guard against a nonsense range blowing up the grid
-      let guard = 0;
-      while (cur < endDate && guard++ < 400) {
-        cur.setDate(cur.getDate() + 1);
-        const key = iso(cur.getFullYear(), cur.getMonth(), cur.getDate());
-        if (!covered.has(key)) covered.set(key, d.date);
-        if (key > lastCoveredISO) lastCoveredISO = key;
-      }
-    }
-
-    const sorted = [...dayByDate.keys()].sort();
-    const months: { y: number; m: number }[] = [];
-    if (sorted.length > 0) {
-      const lastISO =
-        lastCoveredISO > sorted[sorted.length - 1]
-          ? lastCoveredISO
-          : sorted[sorted.length - 1];
-      const first = new Date(`${sorted[0]}T00:00:00`);
-      const last = new Date(`${lastISO}T00:00:00`);
-      let y = first.getFullYear();
-      let m = first.getMonth();
-      const endY = last.getFullYear();
-      const endM = last.getMonth();
-      while (y < endY || (y === endY && m <= endM)) {
-        months.push({ y, m });
-        m += 1;
-        if (m > 11) {
-          m = 0;
-          y += 1;
-        }
-      }
-    }
+  const { cells, months, today } = useMemo(() => {
+    const index = buildCalendarIndex(days, items);
     const now = new Date();
-    const today = iso(now.getFullYear(), now.getMonth(), now.getDate());
-    return { months, dayByDate, covered, countByDate, today };
+    return {
+      ...index,
+      today: iso(now.getFullYear(), now.getMonth(), now.getDate()),
+    };
   }, [days, items]);
 
   if (days.length === 0) {
@@ -122,7 +50,7 @@ export function CalendarView({
       {months.map(({ y, m }) => {
         const daysInMonth = new Date(y, m + 1, 0).getDate();
         const lead = new Date(y, m, 1).getDay(); // 0=Sun
-        const cells: (number | null)[] = [
+        const grid: (number | null)[] = [
           ...Array(lead).fill(null),
           ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
         ];
@@ -137,32 +65,69 @@ export function CalendarView({
                   {w}
                 </div>
               ))}
-              {cells.map((d, i) => {
+              {grid.map((d, i) => {
                 if (d === null) return <div key={`b${i}`} />;
                 const date = iso(y, m, d);
-                const isStart = dayByDate.has(date);
-                const legStart = covered.get(date);
-                const inLeg = legStart !== undefined;
-                const count = countByDate.get(date) ?? 0;
+                const cell = cells.get(date);
                 const isToday = date === today;
+
                 return (
                   <button
                     key={date}
                     type="button"
                     // any day inside a leg opens that leg
-                    onClick={() => onSelectDate(legStart ?? date)}
-                    className={`relative aspect-square rounded-lg text-sm transition-colors ${
-                      isStart
+                    onClick={() => onSelectDate(cell?.opensDate ?? date)}
+                    // Taller than square: the extra room is what lets the plan
+                    // show at all. Square cells only ever fit a number.
+                    className={`relative flex min-h-[3.4rem] flex-col items-center justify-start gap-0.5 overflow-hidden rounded-lg px-0.5 pt-1 pb-1 text-sm transition-colors ${
+                      cell?.isStart
                         ? "bg-sea-tint font-bold text-sea-deep"
-                        : inLeg
+                        : cell
                           ? "bg-sea-tint/40 text-sea-deep"
                           : "text-ink-soft hover:bg-paper-deep"
                     } ${isToday ? "ring-2 ring-sea" : ""}`}
                   >
-                    {d}
-                    {isStart && count > 0 && (
-                      <span className="absolute inset-x-0 bottom-0.5 text-[9px] font-medium text-sea">
-                        {count}
+                    <span className="leading-none">{d}</span>
+
+                    {/* Where you are that day. Repeated across a leg on purpose:
+                        a label that appears only on the leg's first date leaves
+                        the rest of the block unexplained. */}
+                    {cell?.label && (
+                      <span
+                        className={`w-full truncate text-[8px] leading-tight ${
+                          cell.isStart
+                            ? "font-semibold text-sea-deep"
+                            : "font-normal text-sea-deep/70"
+                        }`}
+                        title={cell.label}
+                      >
+                        {cell.label}
+                      </span>
+                    )}
+
+                    {/* Activities, as dots up to three so the density reads at a
+                        glance; the exact number takes over beyond that. */}
+                    {cell?.isStart && cell.itemCount > 0 && (
+                      <span className="mt-auto flex items-center justify-center gap-0.5 leading-none">
+                        {cell.itemCount <= 3 ? (
+                          Array.from({ length: cell.itemCount }, (_, k) => (
+                            <span
+                              key={k}
+                              className="h-1 w-1 rounded-full bg-sea"
+                              aria-hidden="true"
+                            />
+                          ))
+                        ) : (
+                          <span className="text-[9px] font-semibold text-sea">
+                            {cell.itemCount}
+                          </span>
+                        )}
+                        <span className="sr-only">
+                          {strings.itinerary.calendarActivityCount.replace(
+                            "{n}",
+                            String(cell.itemCount)
+                          )}
+                        </span>
                       </span>
                     )}
                   </button>
