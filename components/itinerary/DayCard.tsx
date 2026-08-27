@@ -37,9 +37,11 @@ export function DayCard({
   items,
   bookings,
   onEditDay,
+  onDeleteDay,
   onAddItem,
   onItemClick,
   onMoveItem,
+  onDeleteItem,
   onCycleStatus,
   onReorder,
 }: {
@@ -47,9 +49,11 @@ export function DayCard({
   items: ItineraryItem[];
   bookings: Booking[];
   onEditDay: () => void;
+  onDeleteDay: () => void;
   onAddItem: () => void;
   onItemClick: (item: ItineraryItem) => void;
   onMoveItem: (item: ItineraryItem) => void;
+  onDeleteItem: (item: ItineraryItem) => void;
   onCycleStatus: (item: ItineraryItem) => void;
   onReorder: (orderedIds: string[]) => void;
 }) {
@@ -69,10 +73,11 @@ export function DayCard({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+      <div className="flex items-center gap-1 bg-sea-tint pe-2">
       <button
         type="button"
         onClick={onEditDay}
-        className="flex w-full items-baseline justify-between gap-2 bg-sea-tint px-4 py-3 text-start"
+        className="flex min-w-0 flex-1 items-baseline justify-between gap-2 px-4 py-3 text-start"
       >
         <span>
           <span className="font-bold text-sea">
@@ -103,6 +108,31 @@ export function DayCard({
         )}
       </button>
 
+      {/* Editing a day used to be an unlabelled tap on the whole header, and
+          deleting one was buried inside the sheet that tap opened. Both are
+          now visible on the card itself. */}
+      <button
+        type="button"
+        onClick={onEditDay}
+        aria-label={strings.itinerary.editDay}
+        className="shrink-0 rounded-lg p-2 text-sea/70 hover:bg-white hover:text-sea"
+      >
+        <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={onDeleteDay}
+        aria-label={strings.itinerary.deleteDay}
+        className="shrink-0 rounded-lg p-2 text-rose-500/80 hover:bg-white hover:text-rose-600"
+      >
+        <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.2v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+        </svg>
+      </button>
+      </div>
+
       {items.length === 0 ? (
         <p className="px-4 py-3 text-sm text-ink-soft">
           {strings.itinerary.emptyDayItems}
@@ -128,6 +158,7 @@ export function DayCard({
                   }
                   onClick={() => onItemClick(item)}
                   onMove={() => onMoveItem(item)}
+                  onDelete={() => onDeleteItem(item)}
                   onCycleStatus={() => onCycleStatus(item)}
                 />
               ))}
@@ -151,12 +182,14 @@ function SortableItem({
   item,
   hasBooking,
   onClick,
+  onDelete,
   onMove,
   onCycleStatus,
 }: {
   item: ItineraryItem;
   hasBooking: boolean;
   onClick: () => void;
+  onDelete: () => void;
   onMove: () => void;
   onCycleStatus: () => void;
 }) {
@@ -247,6 +280,27 @@ function SortableItem({
             strokeLinejoin="round"
             d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
           />
+        </svg>
+      </button>
+
+      {/* Move was on the row while delete was only inside the edit sheet, so
+          the row read as "you can shuffle these but not remove them". */}
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label={strings.itinerary.deleteItem}
+        className="p-1.5 text-ink-soft hover:text-rose-600"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.8}
+          stroke="currentColor"
+          className="h-4.5 w-4.5"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.2v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
         </svg>
       </button>
 

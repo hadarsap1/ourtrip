@@ -8,6 +8,8 @@ import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   createItem,
+  deleteDay,
+  deleteItem,
   listDays,
   listItems,
   moveItemToDay,
@@ -281,9 +283,30 @@ export function ItineraryScreen() {
                     items={itemsOf(day.id)}
                     bookings={bookings}
                     onEditDay={() => setDayForm({ day })}
+                    onDeleteDay={() => {
+                      // Say what goes with it: deleting a day takes its
+                      // activities too, and that is easy to not expect.
+                      const count = itemsOf(day.id).length;
+                      const question =
+                        count > 0
+                          ? strings.itinerary.deleteDayWithItemsConfirm.replace(
+                              "{n}",
+                              String(count)
+                            )
+                          : strings.itinerary.deleteDayConfirm;
+                      if (!confirm(question)) return;
+                      void run(() => deleteDay(day.id), strings.itinerary.dayDeleted);
+                    }}
                     onAddItem={() => setItemForm({ dayId: day.id, item: null })}
                     onItemClick={(item) => setItemForm({ dayId: day.id, item })}
                     onMoveItem={setMovingItem}
+                    onDeleteItem={(item) => {
+                      if (!confirm(strings.itinerary.deleteItemConfirm)) return;
+                      void run(
+                        () => deleteItem(item.id),
+                        strings.itinerary.itemDeleted
+                      );
+                    }}
                     onCycleStatus={(item) =>
                       void run(() =>
                         updateItem(item.id, { status: NEXT_STATUS[item.status] })
