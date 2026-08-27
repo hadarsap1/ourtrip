@@ -446,3 +446,26 @@ Notes:
   `components/options/OptionsMap.tsx` escapes it before interpolating into the
   HTML string the Maps API requires — the one place in this feature where
   untrusted text meets raw HTML.
+
+## 2026-08-27 — trips.total_budget + category CRUD
+
+Migration `00022_trip_total_budget` adds one nullable column to `trips`. No new
+table, no new policy, no new Edge Function.
+
+| Check | Method | Result |
+|---|---|---|
+| `trips` RLS unchanged and still owner-only for writes | existing `trips` policies cover the new column | ✅ PASS — a column inherits its table's policies |
+| `budget_categories` insert/update/delete reachable only by owners | existing `budget_categories_owner_all` | ✅ PASS |
+| Deleting a category with expenses is refused, not cascaded | FK `expenses_category_id_fkey` (no ON DELETE) | ✅ PASS — raises 23503, surfaced in Hebrew |
+| Negative total budget rejected at the database | `trips_total_budget_check` | ✅ PASS |
+
+Notes:
+
+- **Category delete deliberately has no cascade.** Removing a category that
+  still carries expenses would either orphan or silently destroy spending
+  records; the FK refuses instead, and the UI explains that the expenses must
+  be moved first. This is the same posture as `deleteBooking`, which maps the
+  same 23503 to `booking_linked`.
+- The new column is nullable and NULL means "derive the total from the
+  categories", which is the pre-existing behaviour — so a trip that never sets
+  a budget behaves exactly as before.

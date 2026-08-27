@@ -5,11 +5,13 @@ import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
 import { listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
+import { resolveBudgetTotals } from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory, Expense, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
-import { PlannedAmountSheet } from "./PlannedAmountSheet";
+import { CategorySheet } from "./CategorySheet";
+import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
 
 function daysBetween(fromISO: string, toISO: string): number {
@@ -28,7 +30,11 @@ export function BudgetScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   const [expenseForm, setExpenseForm] = useState<{ expense: Expense | null } | null>(null);
-  const [plannedFor, setPlannedFor] = useState<BudgetCategory | null>(null);
+  // null = closed; { category: null } = creating a new one.
+  const [categoryForm, setCategoryForm] = useState<{
+    category: BudgetCategory | null;
+  } | null>(null);
+  const [editingTotal, setEditingTotal] = useState(false);
   const [quickLines, setQuickLines] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,7 +90,8 @@ export function BudgetScreen() {
 
   // ---------- dashboard math ----------
   const spent = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
-  const planned = categories.reduce((sum, c) => sum + c.planned_amount, 0);
+  const { planned, allocated, unallocated, hasExplicitTotal } =
+    resolveBudgetTotals(trip?.total_budget, categories);
   const spentByCategory = new Map<string, number>();
   for (const e of expenses) {
     spentByCategory.set(
@@ -141,9 +148,18 @@ export function BudgetScreen() {
           <span className="text-2xl font-bold text-ink" dir="ltr">
             {formatMoney(Math.round(spent), "ILS")}
           </span>
-          <span className="text-lg font-semibold text-ink-soft" dir="ltr">
-            {formatMoney(Math.round(planned), "ILS")}
-          </span>
+          {/* The total used to be a computed read-only figure. It is now the
+              trip's own budget when one is set, and editable either way. */}
+          <button
+            type="button"
+            onClick={() => setEditingTotal(true)}
+            className="flex items-baseline gap-1 rounded-lg px-1 text-lg font-semibold text-ink-soft hover:bg-paper-deep"
+          >
+            <span dir="ltr">{formatMoney(Math.round(planned), "ILS")}</span>
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            </svg>
+          </button>
         </div>
         <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-paper-deep">
           <div
@@ -155,6 +171,16 @@ export function BudgetScreen() {
             }}
           />
         </div>
+        {/* Only meaningful when a total was set by hand: otherwise the total IS
+            the sum of the categories and "unallocated" is always zero. */}
+        {hasExplicitTotal && (
+          <p className="mt-2 text-xs text-ink-soft">
+            {unallocated >= 0
+              ? `${strings.budget.unallocated}: ₪${Math.round(unallocated).toLocaleString("he-IL")}`
+              : strings.budget.overAllocated}
+          </p>
+        )}
+
         {(burnPerDay !== null || projection !== null) && (
           <div className="mt-3 flex justify-between border-t border-line pt-3 text-sm">
             <span className="text-ink-soft">
@@ -212,9 +238,18 @@ export function BudgetScreen() {
 
       {/* category bars; tap → edit planned amount */}
       <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-ink-soft">
-          {strings.budget.categories}
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink-soft">
+            {strings.budget.categories}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setCategoryForm({ category: null })}
+            className="rounded-full bg-paper-deep px-3 py-1 text-xs font-medium text-ink"
+          >
+            + {strings.budget.addCategory}
+          </button>
+        </div>
         {categories.length === 0 && (
           <p className="text-sm text-ink-soft">{strings.budget.emptyCategories}</p>
         )}
@@ -226,7 +261,7 @@ export function BudgetScreen() {
               <li key={cat.id}>
                 <button
                   type="button"
-                  onClick={() => setPlannedFor(cat)}
+                  onClick={() => setCategoryForm({ category: cat })}
                   className="block w-full text-start"
                 >
                   <span className="flex items-baseline justify-between text-sm">
@@ -315,15 +350,32 @@ export function BudgetScreen() {
         onError={(message) => showToast(message)}
       />
 
-      <PlannedAmountSheet
-        category={plannedFor}
-        onClose={() => setPlannedFor(null)}
-        onDone={() => {
-          setPlannedFor(null);
-          refreshNow();
-        }}
-        onError={() => showToast(strings.common.error)}
-      />
+      {categoryForm && trip && (
+        <CategorySheet
+          key={categoryForm.category?.id ?? "new"}
+          tripId={trip.id}
+          category={categoryForm.category}
+          onClose={() => setCategoryForm(null)}
+          onDone={() => {
+            setCategoryForm(null);
+            refreshNow();
+          }}
+          onError={(message) => showToast(message ?? strings.common.error)}
+        />
+      )}
+
+      {editingTotal && trip && (
+        <TotalBudgetSheet
+          trip={trip}
+          allocated={allocated}
+          onClose={() => setEditingTotal(false)}
+          onDone={() => {
+            setEditingTotal(false);
+            refreshNow();
+          }}
+          onError={() => showToast(strings.common.error)}
+        />
+      )}
 
       {quickLines && categories.length > 0 && (
         <QuickLinesSheet

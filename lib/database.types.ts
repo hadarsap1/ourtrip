@@ -1470,6 +1470,7 @@ export type Database = {
           is_active: boolean
           name: string
           start_date: string | null
+          total_budget: number | null
         }
         Insert: {
           base_currency?: string
@@ -1479,6 +1480,7 @@ export type Database = {
           is_active?: boolean
           name: string
           start_date?: string | null
+          total_budget?: number | null
         }
         Update: {
           base_currency?: string
@@ -1488,6 +1490,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           start_date?: string | null
+          total_budget?: number | null
         }
         Relationships: []
       }

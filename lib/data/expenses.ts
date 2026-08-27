@@ -93,6 +93,61 @@ export async function updateCategoryPlanned(
   if (error) throw new Error(error.message);
 }
 
+/** Overall trip budget. NULL clears it, which puts the screen back to
+ *  deriving the total from the categories. */
+export async function updateTripTotalBudget(
+  tripId: string,
+  totalBudget: number | null
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("trips")
+    .update({ total_budget: totalBudget })
+    .eq("id", tripId);
+  if (error) throw new Error(error.message);
+}
+
+/** Categories used to come only from the seed file, so a category the seed did
+ *  not think of could not be added at all. `key` is a stable slug used by the
+ *  seed and by booking→expense mapping; custom ones get a generated key that
+ *  cannot collide with a seeded one. */
+export async function createCategory(
+  tripId: string,
+  labelHe: string,
+  plannedAmount = 0
+): Promise<void> {
+  const { error } = await requireClient().from("budget_categories").insert({
+    trip_id: tripId,
+    key: `custom_${crypto.randomUUID().slice(0, 8)}`,
+    label_he: labelHe.trim(),
+    planned_amount: plannedAmount,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function renameCategory(
+  categoryId: string,
+  labelHe: string
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("budget_categories")
+    .update({ label_he: labelHe.trim() })
+    .eq("id", categoryId);
+  if (error) throw new Error(error.message);
+}
+
+/** Deleting a category that still has expenses is refused by the FK (23503).
+ *  Surfaced as a named error so the UI can explain it rather than showing a
+ *  Postgres code — losing the expenses silently would be far worse. */
+export async function deleteCategory(categoryId: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("budget_categories")
+    .delete()
+    .eq("id", categoryId);
+  if (error) {
+    throw new Error(error.code === "23503" ? "category_in_use" : error.message);
+  }
+}
+
 // ---------- expenses ----------
 
 export async function listExpenses(tripId: string): Promise<Expense[]> {
