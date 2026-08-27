@@ -480,6 +480,7 @@ export const strings = {
     countryCode: "קוד מדינה",
     countryCodeHint: "שתי אותיות, למשל JP",
     notes: "הערות",
+    calendarActivityCount: "‏{n} פעילויות",
     deleteDay: "מחיקת היום",
     deleteItem: "מחיקת הפריט",
     deleteDayConfirm: "למחוק את היום ואת כל הפעילויות שבו?",
