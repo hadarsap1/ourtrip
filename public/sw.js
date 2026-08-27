@@ -1,12 +1,47 @@
-// OurTrip service worker — Sprint 1: app-shell cache only.
-// Later sprints add IndexedDB-backed data caching and a pending-writes queue.
+// OurTrip service worker.
+//
+// Caching rules, in priority order:
+//   1. Never touch anything that isn't a same-origin GET — Supabase, Google
+//      Maps and Open-Meteo must reach the network untouched.
+//   2. Never cache React Server Component payloads (`?_rsc=`). They are tied
+//      to one build; a stale one makes tab switches render old data or fail.
+//   3. Hashed build assets live in their own cache that SURVIVES a service
+//      worker update. Wiping them on activate used to pull the rug out from
+//      under an open page (its next chunk 404s → white screen until refresh).
+//   4. Navigations are network-first with a short timeout, so a slow mobile
+//      connection falls back to the cached shell instead of hanging.
 
-const CACHE_NAME = "ourtrip-shell-v10";
-const SHELL_URLS = ["/", "/itinerary", "/budget", "/documents", "/more", "/checklists", "/emergency", "/map", "/phrasebook", "/journal", "/photos", "/pocket", "/messages", "/recommend", "/notifications", "/options", "/memory-book", "/manifest.webmanifest"];
+const SHELL_CACHE = "ourtrip-shell-v11";
+const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs — safe to keep
+const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
+
+// Cap the asset cache so months on the road don't fill the device.
+const ASSET_CACHE_LIMIT = 400;
+
+// Navigation network timeout: past this we serve the cached shell and let the
+// page hydrate from IndexedDB rather than leaving the family staring at white.
+const NAV_TIMEOUT_MS = 4000;
+
+const SHELL_URLS = [
+  "/", "/itinerary", "/budget", "/documents", "/more", "/checklists",
+  "/emergency", "/map", "/phrasebook", "/journal", "/photos", "/pocket",
+  "/messages", "/recommend", "/notifications", "/options", "/memory-book",
+  "/manifest.webmanifest",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS))
+    caches.open(SHELL_CACHE).then((cache) =>
+      // Individually, not addAll: one failing URL used to abort the whole
+      // install, leaving the app with no service worker at all.
+      Promise.all(
+        SHELL_URLS.map((url) =>
+          fetch(url, { credentials: "same-origin" })
+            .then((res) => (res.ok ? cache.put(url, res) : null))
+            .catch(() => null)
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -17,46 +52,120 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+          keys
+            .filter((k) => k.startsWith("ourtrip-") && !CURRENT_CACHES.includes(k))
+            .map((k) => caches.delete(k))
         )
       )
+      .then(() => trimCache(ASSET_CACHE, ASSET_CACHE_LIMIT))
       .then(() => self.clients.claim())
   );
 });
 
-// Network-first for navigations (fresh app when online, cached shell offline);
-// cache-first for static assets.
+/** Drops the oldest entries once a cache grows past `limit`. */
+async function trimCache(cacheName, limit) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys(); // insertion order
+  if (keys.length <= limit) return;
+  await Promise.all(keys.slice(0, keys.length - limit).map((k) => cache.delete(k)));
+}
+
+function isAsset(url) {
+  if (url.pathname === "/sw.js") return false; // never cache ourselves
+  return (
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname)
+  );
+}
+
+/** Cache-first: build assets are content-hashed, so a hit is always correct. */
+async function assetFirst(request) {
+  const cached = await caches.match(request, { cacheName: ASSET_CACHE });
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) {
+    const copy = response.clone();
+    caches
+      .open(ASSET_CACHE)
+      .then((cache) => cache.put(request, copy))
+      .catch(() => {});
+  }
+  return response;
+}
+
+/** Network-first with a timeout, falling back to the cached shell. */
+async function navigateWithFallback(request) {
+  const fallback = async () =>
+    (await caches.match(request, { cacheName: SHELL_CACHE })) ??
+    (await caches.match("/", { cacheName: SHELL_CACHE })) ??
+    Response.error();
+
+  let timer;
+  try {
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error("nav-timeout")), NAV_TIMEOUT_MS);
+    });
+    const response = await Promise.race([fetch(request), timeout]);
+    if (response.ok) {
+      const copy = response.clone();
+      caches
+        .open(SHELL_CACHE)
+        .then((cache) => cache.put(request, copy))
+        .catch(() => {});
+    }
+    return response;
+  } catch {
+    return fallback();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match("/"))
-        )
-    );
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
     return;
   }
 
+  // Rule 1: leave every other origin alone.
+  if (url.origin !== self.location.origin) return;
+
+  // Rule 2: RSC payloads and route prefetches are build-specific — always live.
+  if (url.searchParams.has("_rsc") || request.headers.get("RSC") === "1") return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(navigateWithFallback(request));
+    return;
+  }
+
+  if (isAsset(url)) {
+    event.respondWith(assetFirst(request).catch(() => fetch(request)));
+    return;
+  }
+
+  // Anything else same-origin (manifest, small JSON): stale-while-revalidate.
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok && new URL(request.url).origin === self.location.origin) {
+    caches.match(request, { cacheName: SHELL_CACHE }).then((cached) => {
+      const network = fetch(request)
+        .then((response) => {
+          if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            caches
+              .open(SHELL_CACHE)
+              .then((cache) => cache.put(request, copy))
+              .catch(() => {});
           }
           return response;
         })
-    )
+        .catch(() => cached ?? Response.error());
+      return cached ?? network;
+    })
   );
 });
 

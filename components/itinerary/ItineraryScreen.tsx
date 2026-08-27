@@ -189,21 +189,29 @@ export function ItineraryScreen() {
   );
 
   function handleReorder(dayId: string, orderedIds: string[]) {
+    const byId = new Map(items.map((i) => [i.id, i]));
+    const ordered = orderedIds
+      .map((id) => byId.get(id))
+      .filter((i): i is ItineraryItem => i !== undefined);
+
     // optimistic: reorder locally, then persist
     setItems((prev) => {
-      const byId = new Map(prev.map((i) => [i.id, i]));
-      const reordered = orderedIds
-        .map((id, index) => {
-          const item = byId.get(id);
-          return item ? { ...item, sort_order: index } : null;
-        })
-        .filter((i): i is ItineraryItem => i !== null);
+      const reordered = ordered.map((item, index) => ({
+        ...item,
+        sort_order: index,
+      }));
       return [
         ...prev.filter((i) => i.day_id !== dayId),
         ...reordered,
       ].sort((a, b) => a.sort_order - b.sort_order);
     });
-    void run(() => reorderItems(orderedIds));
+
+    // No refetch on success: the optimistic state above already matches what
+    // was written, so re-reading every day and booking would only add latency.
+    void reorderItems(ordered).catch(() => {
+      showToast(strings.common.error);
+      refreshNow();
+    });
   }
 
   if (loading) {

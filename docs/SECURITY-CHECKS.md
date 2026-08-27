@@ -469,3 +469,31 @@ Notes:
 - The new column is nullable and NULL means "derive the total from the
   categories", which is the pre-existing behaviour — so a trip that never sets
   a budget behaves exactly as before.
+
+## 2026-08-27 — performance & responsiveness fixes (no schema change)
+
+No migration, no new table, no new policy, no new Edge Function. The changes
+are client-side (service worker, auth gate, request de-duplication, code
+splitting), so the security question is whether any of them weakens a check
+that was previously enforced.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid/guest still cannot read documents, budget or unshared content | unchanged RLS policies; no query, table or policy touched | ✅ PASS |
+| `AuthGate`'s optimistic render cannot grant data access | gate is client routing only; every read still goes through RLS with the caller's JWT | ✅ PASS — a rendered empty screen, not other people's data |
+| Dropping `auth.getUser()` from `getCurrentMember()` | uid now read from the locally stored session; it only selects which `members` row to display, and RLS validates the JWT server-side on that query | ✅ PASS — a forged local uid returns no row |
+| Service worker cannot serve one member's data to another | SW caches only same-origin app shell + hashed build assets; all Supabase traffic is cross-origin and now explicitly passes through untouched | ✅ PASS |
+| Kid PIN gate still runs on cold start | `needsKidUnlock()` is still the first branch in the gate, and the sessionStorage flag is unchanged | ✅ PASS |
+
+Notes:
+
+- **The gate's 2.5 s timeout renders optimistically but never caches that
+  verdict.** The real answer from `link_member_to_auth_user` still lands and
+  still redirects or rejects; only the blank-screen wait was removed. This
+  matches the existing posture for the offline case, where the gate already
+  allowed the shell to render on RPC failure because security is RLS
+  (CLAUDE.md rule #1), not the gate.
+- **The service worker no longer caches RSC payloads.** Those responses are
+  rendered per request and could carry member-specific content; keeping them
+  out of the cache removes that question entirely, and was also required to
+  stop stale navigation content.
