@@ -1,30 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { getCurrentMember } from "@/lib/data/trip";
 import type { Member } from "@/lib/types";
 
 /** Current member row (cached module-side). Role gates are cosmetic —
  *  real access control is RLS. */
-export function useMember(): { member: Member | null; memberLoading: boolean } {
-  const [member, setMember] = useState<Member | null>(null);
-  const [memberLoading, setMemberLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+// BottomNav plus whichever screen is mounted both call this. With per-hook
+// state each mount re-ran the fetch chain and re-rendered on its own; a single
+// module-level store resolves once and updates every consumer together.
+type Snapshot = { member: Member | null; memberLoading: boolean };
+
+const INITIAL: Snapshot = { member: null, memberLoading: true };
+
+let snapshot: Snapshot = INITIAL;
+let started = false;
+const listeners = new Set<() => void>();
+
+function publish(next: Snapshot): void {
+  snapshot = next;
+  for (const notify of listeners) notify();
+}
+
+function subscribe(notify: () => void): () => void {
+  listeners.add(notify);
+  if (!started) {
+    started = true;
     void getCurrentMember()
-      .then((m) => {
-        if (cancelled) return;
-        setMember(m);
-        setMemberLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setMemberLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      .then((member) => publish({ member, memberLoading: false }))
+      .catch(() => publish({ member: null, memberLoading: false }));
+  }
+  return () => {
+    listeners.delete(notify);
+  };
+}
 
-  return { member, memberLoading };
+export function useMember(): Snapshot {
+  return useSyncExternalStore(
+    subscribe,
+    () => snapshot,
+    () => INITIAL // prerender: nothing is known about the member yet
+  );
 }

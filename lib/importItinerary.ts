@@ -6,7 +6,10 @@
 //     + a link, rather than one activity per row with a clock time.
 // It still handles a simple single-sheet "date | activity | time" table too.
 
-import * as XLSX from "xlsx";
+// SheetJS is ~300 KB and only needed once someone actually picks a file.
+// A static import put it in the /itinerary, /checklists and /map bundles,
+// which every page load paid for.
+import { loadSheetJS } from "@/lib/importFile";
 
 export type ParsedItineraryRow = {
   date: string; // ISO YYYY-MM-DD (leg start when the cell is a range)
@@ -179,7 +182,7 @@ function looksLikeHeaderRow(row: unknown[]): boolean {
  *  a leg whose start month is earlier than the previous leg's rolls into the
  *  next year (e.g. Nov→Dec 2026 then Jan 2027). */
 export async function parseItinerarySheet(file: File): Promise<ParseResult> {
-  const buf = await file.arrayBuffer();
+  const [XLSX, buf] = await Promise.all([loadSheetJS(), file.arrayBuffer()]);
   const wb = XLSX.read(buf, { type: "array" });
 
   const rows: ParsedItineraryRow[] = [];

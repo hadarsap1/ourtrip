@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isKidDevice } from "@/lib/data/kids";
 import { countUnread, subscribeMessages } from "@/lib/data/messages";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
+import { useIsKidDevice } from "@/lib/useKidDevice";
 import { useMember } from "@/lib/useMember";
 
 // Kid tablet variant: bigger touch targets, kid-relevant destinations only
@@ -90,7 +90,8 @@ const tabs = [
 export function BottomNav() {
   const pathname = usePathname();
   const { member } = useMember();
-  const role = member?.role ?? (isKidDevice() ? "kid" : "owner");
+  const isKid = useIsKidDevice();
+  const role = member?.role ?? (isKid ? "kid" : "owner");
   const [unread, setUnread] = useState(0);
 
   // unread wall badge for kid/guest tabs; clears when the wall marks reads

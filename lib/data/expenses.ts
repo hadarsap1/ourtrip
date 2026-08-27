@@ -22,6 +22,14 @@ export async function listCategories(
   return data;
 }
 
+// A rate for a given day never changes once resolved, but the lookup can cost
+// a Supabase query plus two external HTTP calls. The converter card and every
+// bulk expense line asked again each time; memoising per currency+day keeps a
+// screenful of expenses to one lookup. Failures are not cached, so a rate
+// missed while offline is retried on reconnect.
+const rateCache = new Map<string, number>();
+const rateInFlight = new Map<string, Promise<number | null>>();
+
 /**
  * ILS rate for a given day (DECISIONS #7 order): the day's cached rate in
  * fx_rates (populated daily by the fx-daily Edge Function) → live providers
@@ -33,6 +41,29 @@ export async function getRateToIls(
 ): Promise<number | null> {
   if (currency === "ILS") return 1;
 
+  const key = `${currency}|${day}`;
+  const hit = rateCache.get(key);
+  if (hit !== undefined) return hit;
+
+  let pending = rateInFlight.get(key);
+  if (!pending) {
+    pending = fetchRateToIls(currency, day)
+      .then((rate) => {
+        if (rate !== null) rateCache.set(key, rate);
+        return rate;
+      })
+      .finally(() => {
+        rateInFlight.delete(key);
+      });
+    rateInFlight.set(key, pending);
+  }
+  return pending;
+}
+
+async function fetchRateToIls(
+  currency: string,
+  day: string
+): Promise<number | null> {
   const cached = getSupabase();
   if (cached) {
     const { data } = await cached

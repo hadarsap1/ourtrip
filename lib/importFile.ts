@@ -2,7 +2,18 @@
 // items, map routes). SheetJS is used because browsers can't parse .xlsx
 // natively; .csv/.txt are handled the same way so one code path covers all.
 
-import * as XLSX from "xlsx";
+// SheetJS is ~300 KB and only needed once someone actually picks a file.
+// A static import put it in the /itinerary, /checklists and /map bundles,
+// which every page load paid for.
+type SheetJS = typeof import("xlsx");
+
+let sheetJS: Promise<SheetJS> | null = null;
+
+/** Loads SheetJS on demand, once per session. */
+export function loadSheetJS(): Promise<SheetJS> {
+  sheetJS ??= import("xlsx");
+  return sheetJS;
+}
 
 export type SheetRows = string[][];
 
@@ -19,7 +30,7 @@ export async function parseSheet(file: File): Promise<SheetRows> {
       .filter((row) => row[0] !== "");
   }
 
-  const buf = await file.arrayBuffer();
+  const [XLSX, buf] = await Promise.all([loadSheetJS(), file.arrayBuffer()]);
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) return [];

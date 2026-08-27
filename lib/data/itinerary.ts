@@ -246,12 +246,28 @@ export async function deleteItem(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Persists a new in-day order after a drag (index = sort_order). */
-export async function reorderItems(orderedIds: string[]): Promise<void> {
+/**
+ * Persists a new in-day order after a drag. `ordered` is the day's items in
+ * their new order, each still carrying the sort_order it had before.
+ *
+ * Only the rows that actually moved are written. Dragging one item used to
+ * issue an UPDATE per item in the day, and since every update echoes back
+ * through the realtime channel, each one triggered another full refetch of
+ * every day, item and booking — which is what made dragging feel like the app
+ * had locked up.
+ */
+export async function reorderItems(
+  ordered: Pick<ItineraryItem, "id" | "sort_order">[]
+): Promise<void> {
+  const moved = ordered
+    .map((item, i) => ({ id: item.id, sort_order: i, was: item.sort_order }))
+    .filter((item) => item.was !== item.sort_order);
+  if (moved.length === 0) return;
+
   const supabase = requireClient();
   const results = await Promise.all(
-    orderedIds.map((id, i) =>
-      supabase.from("itinerary_items").update({ sort_order: i }).eq("id", id)
+    moved.map(({ id, sort_order }) =>
+      supabase.from("itinerary_items").update({ sort_order }).eq("id", id)
     )
   );
   const failed = results.find((r) => r.error);

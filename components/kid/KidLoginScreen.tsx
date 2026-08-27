@@ -3,19 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import {
-  isKidDevice,
-  kidDisplayName,
-  registerDevice,
-  unlockWithPin,
-} from "@/lib/data/kids";
+import { isKidDevice, registerDevice, unlockWithPin } from "@/lib/data/kids";
 import { strings } from "@/lib/strings";
+import { useIsKidDevice, useKidDisplayName } from "@/lib/useKidDevice";
 
 export function KidLoginScreen() {
   const router = useRouter();
-  const [phase, setPhase] = useState<"register" | "pin">(() =>
-    isKidDevice() ? "pin" : "register"
-  );
+  // Read after mount, not during render: localStorage doesn't exist on the
+  // server, so deciding the phase in the render body mismatched hydration.
+  const registered = useIsKidDevice();
+  const kidName = useKidDisplayName();
+  const [override, setOverride] = useState<"register" | "pin" | null>(null);
+  const phase = override ?? (registered ? "pin" : "register");
+  const setPhase = setOverride;
   const [code, setCode] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -110,7 +110,7 @@ export function KidLoginScreen() {
         <>
           <h2 className="mt-2 text-center text-xl font-semibold">
             {strings.kidLogin.pinTitle}
-            {kidDisplayName() ? ` ${kidDisplayName()}!` : "!"}
+            {kidName ? ` ${kidName}!` : "!"}
           </h2>
           <p className="mb-4 text-center text-sm text-ink-soft">
             {strings.kidLogin.pinHint}
