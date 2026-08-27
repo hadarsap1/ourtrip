@@ -58,14 +58,34 @@ export type CalendarIndex = {
   months: { y: number; m: number }[];
 };
 
+export type CalendarRange = {
+  /** Months to show before the trip's first month, so a day can be added
+   *  ahead of the current span. */
+  monthsBefore?: number;
+  /** Months to show after the trip's last month, same reason. */
+  monthsAfter?: number;
+  /** ISO date the grid centres on when the itinerary is empty — without it
+   *  there is no span to derive months from, and the calendar has nothing to
+   *  render at all. */
+  anchorDate?: string;
+};
+
+function addMonths(y: number, m: number, delta: number): { y: number; m: number } {
+  const total = y * 12 + m + delta;
+  return { y: Math.floor(total / 12), m: ((total % 12) + 12) % 12 };
+}
+
 /** Guard against a nonsense range (a typo'd year) expanding into thousands of
  *  cells and freezing the grid. */
 const MAX_LEG_DAYS = 400;
 
 export function buildCalendarIndex(
   days: ItineraryDay[],
-  items: ItineraryItem[]
+  items: ItineraryItem[],
+  range: CalendarRange = {}
 ): CalendarIndex {
+  const monthsBefore = Math.max(0, range.monthsBefore ?? 1);
+  const monthsAfter = Math.max(0, range.monthsAfter ?? 1);
   const itemsByDayId = new Map<string, number>();
   for (const item of items) {
     itemsByDayId.set(item.day_id, (itemsByDayId.get(item.day_id) ?? 0) + 1);
@@ -109,21 +129,23 @@ export function buildCalendarIndex(
     }
   }
 
+  // With no days there is no span, so the grid hangs off the anchor instead —
+  // otherwise an empty itinerary renders no months and offers nowhere to start.
+  const firstISO = sorted.length > 0 ? sorted[0].date : range.anchorDate;
+  const lastISO = sorted.length > 0 ? lastCoveredISO : range.anchorDate;
+
   const months: { y: number; m: number }[] = [];
-  if (sorted.length > 0) {
-    const first = new Date(`${sorted[0].date}T00:00:00`);
-    const last = new Date(`${lastCoveredISO}T00:00:00`);
-    let y = first.getFullYear();
-    let m = first.getMonth();
-    const endY = last.getFullYear();
-    const endM = last.getMonth();
-    while (y < endY || (y === endY && m <= endM)) {
+  if (firstISO && lastISO) {
+    const first = new Date(`${firstISO}T00:00:00`);
+    const last = new Date(`${lastISO}T00:00:00`);
+    const start = addMonths(first.getFullYear(), first.getMonth(), -monthsBefore);
+    const end = addMonths(last.getFullYear(), last.getMonth(), monthsAfter);
+    let { y, m } = start;
+    // Bounded so a corrupt date can't spin this into thousands of months.
+    let guard = 0;
+    while ((y < end.y || (y === end.y && m <= end.m)) && guard++ < 600) {
       months.push({ y, m });
-      m += 1;
-      if (m > 11) {
-        m = 0;
-        y += 1;
-      }
+      ({ y, m } = addMonths(y, m, 1));
     }
   }
 

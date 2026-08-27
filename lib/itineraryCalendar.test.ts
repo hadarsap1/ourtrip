@@ -109,12 +109,15 @@ describe("buildCalendarIndex", () => {
   });
 
   it("spans every month the trip touches, in order", () => {
+    // Padding is off here so this stays a test of span derivation; the
+    // padding behaviour has its own tests below.
     const { months } = buildCalendarIndex(
       [
         day({ id: "a", date: "2026-11-01" }),
         day({ id: "b", date: "2027-01-15" }),
       ],
-      []
+      [],
+      { monthsBefore: 0, monthsAfter: 0 }
     );
     expect(months).toEqual([
       { y: 2026, m: 10 },
@@ -123,9 +126,66 @@ describe("buildCalendarIndex", () => {
     ]);
   });
 
-  it("is empty for an empty itinerary rather than throwing", () => {
+  it("is empty for an empty itinerary with no anchor, rather than throwing", () => {
     const { cells, months } = buildCalendarIndex([], []);
     expect(cells.size).toBe(0);
     expect(months).toEqual([]);
+  });
+});
+
+// The grid used to stop dead at the first and last planned day, so a date
+// outside the span could not be tapped and the trip could not be extended
+// from the calendar. It now reaches past both ends.
+describe("buildCalendarIndex — month range", () => {
+  const nov = day({ id: "a", date: "2026-11-10" });
+
+  it("pads a month either side of the trip by default", () => {
+    expect(buildCalendarIndex([nov], []).months).toEqual([
+      { y: 2026, m: 9 },
+      { y: 2026, m: 10 },
+      { y: 2026, m: 11 },
+    ]);
+  });
+
+  it("reaches further when asked, crossing year boundaries correctly", () => {
+    const months = buildCalendarIndex([nov], [], {
+      monthsBefore: 2,
+      monthsAfter: 3,
+    }).months;
+    expect(months[0]).toEqual({ y: 2026, m: 8 });
+    expect(months[months.length - 1]).toEqual({ y: 2027, m: 1 });
+    expect(months).toHaveLength(6);
+  });
+
+  it("can be asked for no padding at all", () => {
+    expect(
+      buildCalendarIndex([nov], [], { monthsBefore: 0, monthsAfter: 0 }).months
+    ).toEqual([{ y: 2026, m: 10 }]);
+  });
+
+  it("treats a negative pad as zero rather than walking backwards", () => {
+    expect(
+      buildCalendarIndex([nov], [], { monthsBefore: -3, monthsAfter: -3 }).months
+    ).toEqual([{ y: 2026, m: 10 }]);
+  });
+
+  it("centres on the anchor when the itinerary is empty", () => {
+    // With no days there is no span; without an anchor the calendar would have
+    // nothing to draw and nowhere to start a trip from.
+    expect(buildCalendarIndex([], [], { anchorDate: "2026-12-15" }).months).toEqual([
+      { y: 2026, m: 10 },
+      { y: 2026, m: 11 },
+      { y: 2027, m: 0 },
+    ]);
+  });
+
+  it("still renders nothing when empty and given no anchor", () => {
+    expect(buildCalendarIndex([], []).months).toEqual([]);
+  });
+
+  it("pads around the far end of a leg, not just its start date", () => {
+    const leg = day({ id: "leg", date: "2026-11-20", notes: "20.11 - 10.12" });
+    const months = buildCalendarIndex([leg], []).months;
+    expect(months[months.length - 1]).toEqual({ y: 2027, m: 0 });
   });
 });
