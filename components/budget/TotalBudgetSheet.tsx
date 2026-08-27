@@ -14,15 +14,15 @@ const FIELD =
  *  categories, which is what it always did before. */
 export function TotalBudgetSheet({
   trip,
-  allocated,
+  planned,
   onClose,
   onDone,
   onError,
 }: {
   trip: Trip;
-  /** Sum of the category planned amounts, so the sheet can say how the total
-   *  compares to what is already spoken for. */
-  allocated: number;
+  /** Sum of the category planned amounts, so the sheet can say how the target
+   *  compares to the plan it is being measured against. */
+  planned: number;
   onClose: () => void;
   onDone: () => void;
   onError: () => void;
@@ -81,7 +81,7 @@ export function TotalBudgetSheet({
         <p className="text-xs text-ink-soft">
           {s.totalBudgetAllocated.replace(
             "{n}",
-            Math.round(allocated).toLocaleString("he-IL")
+            Math.round(planned).toLocaleString("he-IL")
           )}
         </p>
 

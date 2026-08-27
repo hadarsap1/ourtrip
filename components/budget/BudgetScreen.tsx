@@ -90,7 +90,7 @@ export function BudgetScreen() {
 
   // ---------- dashboard math ----------
   const spent = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
-  const { planned, allocated, unallocated, hasExplicitTotal } =
+  const { planned, target, hasTarget, gap, overTarget, budgetForProgress } =
     resolveBudgetTotals(trip?.total_budget, categories);
   const spentByCategory = new Map<string, number>();
   for (const e of expenses) {
@@ -142,44 +142,57 @@ export function BudgetScreen() {
       <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-ink-soft">{strings.budget.totalSpent}</span>
-          <span className="text-sm text-ink-soft">{strings.budget.totalPlanned}</span>
+          <span className="text-sm text-ink-soft">{strings.budget.plannedLabel}</span>
         </div>
         <div className="mt-1 flex items-baseline justify-between gap-2">
           <span className="text-2xl font-bold text-ink" dir="ltr">
             {formatMoney(Math.round(spent), "ILS")}
           </span>
-          {/* The total used to be a computed read-only figure. It is now the
-              trip's own budget when one is set, and editable either way. */}
-          <button
-            type="button"
-            onClick={() => setEditingTotal(true)}
-            className="flex items-baseline gap-1 rounded-lg px-1 text-lg font-semibold text-ink-soft hover:bg-paper-deep"
-          >
-            <span dir="ltr">{formatMoney(Math.round(planned), "ILS")}</span>
-            <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-            </svg>
-          </button>
+          {/* The headline is the categories' sum, so editing a category moves
+              it straight away. The declared target lives on its own line
+              below — two numbers about the same money, with the relationship
+              between them visible instead of implied. */}
+          <span className="text-lg font-semibold text-ink-soft" dir="ltr">
+            {formatMoney(Math.round(planned), "ILS")}
+          </span>
         </div>
         <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-paper-deep">
           <div
             className={`h-full rounded-full ${
-              planned > 0 && spent > planned ? "bg-rose-500" : "bg-sea"
+              budgetForProgress > 0 && spent > budgetForProgress
+                ? "bg-rose-500"
+                : "bg-sea"
             }`}
             style={{
-              width: `${planned > 0 ? Math.min((spent / planned) * 100, 100) : 0}%`,
+              width: `${
+                budgetForProgress > 0
+                  ? Math.min((spent / budgetForProgress) * 100, 100)
+                  : 0
+              }%`,
             }}
           />
         </div>
-        {/* Only meaningful when a total was set by hand: otherwise the total IS
-            the sum of the categories and "unallocated" is always zero. */}
-        {hasExplicitTotal && (
-          <p className="mt-2 text-xs text-ink-soft">
-            {unallocated >= 0
-              ? `${strings.budget.unallocated}: ₪${Math.round(unallocated).toLocaleString("he-IL")}`
-              : strings.budget.overAllocated}
-          </p>
-        )}
+        {/* The declared budget, and how the plan sits against it. Tappable
+            whether or not one is set — setting the first one has to start
+            somewhere. */}
+        <button
+          type="button"
+          onClick={() => setEditingTotal(true)}
+          className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-xs hover:bg-paper-deep"
+        >
+          <span className="text-ink-soft">
+            {hasTarget
+              ? `${strings.budget.target}: ₪${Math.round(target!).toLocaleString("he-IL")}`
+              : strings.budget.setTarget}
+          </span>
+          {hasTarget && (
+            <span className={overTarget ? "font-semibold text-rose-600" : "text-ink-soft"}>
+              {overTarget
+                ? `${strings.budget.overTarget} ₪${Math.abs(Math.round(gap)).toLocaleString("he-IL")}`
+                : `${strings.budget.leftToAllocate} ₪${Math.round(gap).toLocaleString("he-IL")}`}
+            </span>
+          )}
+        </button>
 
         {(burnPerDay !== null || projection !== null) && (
           <div className="mt-3 flex justify-between border-t border-line pt-3 text-sm">
@@ -367,7 +380,7 @@ export function BudgetScreen() {
       {editingTotal && trip && (
         <TotalBudgetSheet
           trip={trip}
-          allocated={allocated}
+          planned={planned}
           onClose={() => setEditingTotal(false)}
           onDone={() => {
             setEditingTotal(false);
