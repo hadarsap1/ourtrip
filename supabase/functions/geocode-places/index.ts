@@ -100,7 +100,6 @@ const COUNTRY: Record<string, { name: string; code: string }> = {
   "וייטנאם": { name: "Vietnam", code: "VN" },
   "ויאטנם": { name: "Vietnam", code: "VN" },
   "תאילנד": { name: "Thailand", code: "TH" },
-  "תאילנד ": { name: "Thailand", code: "TH" },
   "יפן": { name: "Japan", code: "JP" },
   "פיליפינים": { name: "Philippines", code: "PH" },
   "הפיליפינים": { name: "Philippines", code: "PH" },
