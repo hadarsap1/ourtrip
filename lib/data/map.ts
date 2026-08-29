@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { compressImage } from "@/lib/images";
 import { getCurrentMember } from "@/lib/data/trip";
 import { readMapSnapshot, saveMapSnapshot } from "@/lib/offline/caches";
 import { todayISO } from "@/lib/format";
@@ -96,10 +97,14 @@ export async function saveCarPin(input: {
   let photoPath: string | null = null;
   if (input.photo) {
     photoPath = `car/${Date.now()}.jpg`;
+    // Re-encoded via canvas, which drops EXIF — including the GPS tag and
+    // capture timestamp the phone embeds (review finding L2). The bucket is
+    // owner-only, so this was never an external leak, but there is no reason
+    // to keep coordinates we did not ask for.
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(photoPath, input.photo, {
-        contentType: input.photo.type || "image/jpeg",
+      .upload(photoPath, await compressImage(input.photo), {
+        contentType: "image/jpeg",
       });
     if (error) throw new Error(error.message);
   }
@@ -120,9 +125,10 @@ export async function saveCarPin(input: {
 export async function updateCarPhoto(pin: MapPin, photo: File): Promise<void> {
   const supabase = requireClient();
   const path = `car/${Date.now()}.jpg`;
+  // EXIF-stripped on the way in, same as the create path above (L2).
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(path, photo, { contentType: photo.type || "image/jpeg" });
+    .upload(path, await compressImage(photo), { contentType: "image/jpeg" });
   if (uploadError) throw new Error(uploadError.message);
   const { error } = await supabase
     .from("map_pins")

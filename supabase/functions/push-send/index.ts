@@ -6,12 +6,35 @@
 //   - daily (cron)  : rain-on-outdoor-day alert + flight check-in 24h reminder
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
-// so it is deployed verify_jwt=false. It never returns data and loads every
-// piece of content server-side from the id it is handed, so a forged call can
-// at most re-notify legitimate content (accepted risk — docs/SECURITY-CHECKS.md).
+// so it is deployed verify_jwt=false. A forged call leaks no content — the
+// ids are unguessable UUIDs and everything is loaded server-side — but the
+// review pointed out it can still spam the family with real notifications at
+// any hour. Since migration 00025 both callers send a shared secret and
+// cronAuthorized() checks it.
 
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+// ---- shared-secret gate (review findings M3/M4) ----
+// This function runs verify_jwt=false because pg_cron carries no JWT, which
+// left it invokable by anyone who knows the URL. Both callers now send
+// x-cron-secret (migration 00025) and we check it here.
+//
+// Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
+// before the secret exists would stop notifications with nothing surfacing the
+// failure, which is the silent breakage supabase/config.toml exists to
+// prevent. Setting CRON_SECRET (both sides — see 00025) switches it on.
+function cronAuthorized(req: Request): boolean {
+  const expected = Deno.env.get("CRON_SECRET");
+  if (!expected) return true;
+  const got = req.headers.get("x-cron-secret") ?? "";
+  if (got.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < got.length; i++) {
+    diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -199,6 +222,8 @@ async function handleDaily(): Promise<{ weather: number; checkin: number }> {
 }
 
 Deno.serve(async (req) => {
+  if (!cronAuthorized(req)) return json({ ok: false, error: "forbidden" }, 401);
+
   const subject = Deno.env.get("VAPID_SUBJECT");
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
