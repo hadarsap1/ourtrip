@@ -181,42 +181,78 @@ export async function getDocumentUrl(path: string): Promise<string> {
 
 // ---------- offline copies ----------
 
-/** Downloads the file and stores it in IndexedDB for offline access. */
-export async function makeAvailableOffline(doc: Document): Promise<void> {
+/**
+ * Downloads the file and stores it in IndexedDB for offline access —
+ * encrypted at rest under the vault key.
+ *
+ * Before the 2026-08 review this wrote the file as-is, so an unlocked
+ * document (the default) sat readable in IndexedDB with no passphrase in
+ * front of it: a found phone opened the passport. Now every offline copy is
+ * ciphertext.
+ *
+ * A pin_protected document is already stored as its own ciphertext, so it is
+ * saved unchanged and `offlineEncrypted` stays false — decryptDocument owns
+ * that unwrapping. Everything else gets a layer here.
+ */
+export async function makeAvailableOffline(
+  doc: Document,
+  key: CryptoKey
+): Promise<void> {
   const url = await getDocumentUrl(doc.file_path);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`download failed (${res.status})`);
   const blob = await res.blob();
+
+  const store = doc.pin_protected ? blob : await encryptBlob(key, blob);
   await saveOfflineDocument({
     id: doc.id,
     title: doc.title,
     tag: doc.tag,
     mime: blob.type,
-    blob,
+    blob: store,
     savedAt: new Date().toISOString(),
+    offlineEncrypted: !doc.pin_protected,
   });
 }
 
 export { listOfflineDocumentIds, removeOfflineDocument } from "@/lib/offline/caches";
 
+export type OpenResult = "opened" | "needs-key" | "unavailable";
+
 /**
  * Opens a document: online → fresh signed URL; offline (or fetch failure)
  * → the IndexedDB copy, if the document was flagged for offline.
- * Returns false when no copy could be opened.
+ *
+ * Returns "needs-key" when the only available copy is an encrypted offline
+ * one and no vault key was supplied — the caller prompts and retries. Going
+ * online never needs the key, so the common path is unchanged.
  */
-export async function openDocument(doc: Document): Promise<boolean> {
-  if (typeof navigator === "undefined") return false;
+export async function openDocument(
+  doc: Document,
+  key: CryptoKey | null = null
+): Promise<OpenResult> {
+  if (typeof navigator === "undefined") return "unavailable";
   if (navigator.onLine) {
     try {
       const url = await getDocumentUrl(doc.file_path);
       window.open(url, "_blank", "noopener");
-      return true;
+      return "opened";
     } catch {
       // fall through to the offline copy
     }
   }
   const offline = await readOfflineDocument(doc.id);
-  if (!offline) return false;
-  window.open(URL.createObjectURL(offline.blob), "_blank", "noopener");
-  return true;
+  if (!offline) return "unavailable";
+
+  let blob = offline.blob;
+  if (offline.offlineEncrypted) {
+    if (!key) return "needs-key";
+    try {
+      blob = await decryptBlob(key, blob, offline.mime);
+    } catch {
+      return "unavailable"; // wrong key or corrupt copy
+    }
+  }
+  window.open(URL.createObjectURL(blob), "_blank", "noopener");
+  return "opened";
 }

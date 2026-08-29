@@ -973,6 +973,7 @@ export type Database = {
       messages: {
         Row: {
           body: string
+          channel: Database["public"]["Enums"]["message_channel"]
           created_at: string
           id: string
           sender_id: string
@@ -980,6 +981,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          channel?: Database["public"]["Enums"]["message_channel"]
           created_at?: string
           id?: string
           sender_id: string
@@ -987,6 +989,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
           created_at?: string
           id?: string
           sender_id?: string
@@ -1556,6 +1559,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_backup_freshness: { Args: never; Returns: Json }
+      cron_secret_header: { Args: never; Returns: Json }
       current_member_id: { Args: never; Returns: string }
       current_member_role: {
         Args: never
@@ -1586,6 +1591,7 @@ export type Database = {
         | "other"
       item_status: "planned" | "done" | "cancelled"
       member_role: "owner" | "kid" | "guest"
+      message_channel: "family" | "guests"
       photo_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -1725,6 +1731,7 @@ export const Constants = {
       ],
       item_status: ["planned", "done", "cancelled"],
       member_role: ["owner", "kid", "guest"],
+      message_channel: ["family", "guests"],
       photo_status: ["pending", "approved", "rejected"],
     },
   },

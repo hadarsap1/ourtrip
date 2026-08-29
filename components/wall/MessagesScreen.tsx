@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
+  channelsFor,
   listMessages,
   markRead,
   sendMessage,
   subscribeMessages,
+  type MessageChannel,
   type WallMessage,
 } from "@/lib/data/messages";
 import { formatShortDate } from "@/lib/format";
@@ -16,7 +19,12 @@ import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
-  const { member } = useMember();
+  const { member, memberLoading } = useMember();
+  // Which feeds this role may open (migration 00027): owners get both and act
+  // as the bridge, kids only the family one, guests only theirs. RLS enforces
+  // it regardless — this just decides what to render.
+  const channels = channelsFor(member?.role);
+  const [channel, setChannel] = useState<MessageChannel>(channels[0]);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<WallMessage[]>([]);
@@ -34,10 +42,10 @@ export function MessagesScreen() {
   }, []);
 
   const refresh = useCallback(
-    async (tripId: string, memberId: string | null) => {
-      const next = await listMessages(tripId);
+    async (tripId: string, memberId: string | null, feed: MessageChannel) => {
+      const next = await listMessages(tripId, feed);
       setMessages(next);
-      // reading the wall marks everything read → unread badges clear
+      // reading a feed marks its messages read → unread badges clear
       if (memberId) {
         void markRead(memberId, next.map((m) => m.id)).catch(() => {});
       }
@@ -46,7 +54,10 @@ export function MessagesScreen() {
   );
 
   useEffect(() => {
-    if (!member) return;
+    // Nothing to fetch until a member is resolved. When resolution finishes
+    // and produces nobody, `loading` is left as-is on purpose — the render
+    // below only treats it as meaningful once a member exists.
+    if (memberLoading || !member) return;
     let cancelled = false;
     let unsubscribe = () => {};
     let debounce: ReturnType<typeof setTimeout> | null = null;
@@ -59,7 +70,7 @@ export function MessagesScreen() {
       }
       setTrip(activeTrip);
       try {
-        await refresh(activeTrip.id, member.id);
+        await refresh(activeTrip.id, member.id, channel);
         const tripMembers = await listMembers(activeTrip.id);
         if (!cancelled) setMembers(tripMembers);
       } catch {
@@ -71,7 +82,7 @@ export function MessagesScreen() {
       unsubscribe = subscribeMessages(() => {
         if (debounce) clearTimeout(debounce);
         debounce = setTimeout(() => {
-          void refresh(activeTrip.id, member.id).catch(() => {});
+          void refresh(activeTrip.id, member.id, channel).catch(() => {});
         }, 200);
       });
     })();
@@ -81,7 +92,7 @@ export function MessagesScreen() {
       if (debounce) clearTimeout(debounce);
       unsubscribe();
     };
-  }, [member, refresh, showToast]);
+  }, [member, memberLoading, refresh, showToast, channel]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
@@ -94,8 +105,8 @@ export function MessagesScreen() {
     const text = body;
     setBody("");
     try {
-      await sendMessage(trip.id, member.id, text);
-      await refresh(trip.id, member.id);
+      await sendMessage(trip.id, member.id, text, channel);
+      await refresh(trip.id, member.id, channel);
     } catch {
       setBody(text);
       showToast(strings.common.error);
@@ -104,10 +115,26 @@ export function MessagesScreen() {
     }
   }
 
-  if (loading || !member) {
+  // `loading` only means "this member's data is on its way", so it is only
+  // consulted once there IS a member. Previously the guard was
+  // `loading || !member`, which meant a failed member lookup (an expired
+  // session returns 401) left the screen on "loading…" forever, with nothing
+  // said and nothing to act on — reported from production 2026-08-29.
+  if (memberLoading || (member && loading)) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
+        <Link href="/login" className="font-semibold text-sea underline">
+          {strings.common.signInAgain}
+        </Link>
       </div>
     );
   }
@@ -119,7 +146,35 @@ export function MessagesScreen() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col px-4 pt-4">
-      <h1 className="mb-3 text-2xl font-bold">💬 {strings.wall.title}</h1>
+      <h1 className="mb-3 text-2xl font-bold">
+        💬 {channel === "guests" ? strings.wall.guestTitle : strings.wall.title}
+      </h1>
+
+      {/* Owners are the only role with more than one feed to switch between. */}
+      {channels.length > 1 && (
+        <div className="mb-3 flex gap-2" role="tablist">
+          {channels.map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="tab"
+              aria-selected={c === channel}
+              onClick={() => setChannel(c)}
+              className={`flex-1 rounded-2xl px-3 py-2 text-sm font-semibold ${
+                c === channel
+                  ? "bg-sea text-white"
+                  : "bg-white text-ink-soft border border-line"
+              }`}
+            >
+              {c === "guests" ? strings.wall.guestTab : strings.wall.familyTab}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <p className="mb-2 text-xs text-ink-soft">
+        {channel === "guests" ? strings.wall.guestHint : strings.wall.familyHint}
+      </p>
 
       <div className="flex-1 space-y-2 overflow-y-auto pb-3">
         {messages.length === 0 ? (

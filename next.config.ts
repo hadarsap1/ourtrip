@@ -29,23 +29,34 @@ import type { NextConfig } from "next";
 // before its certificate story is settled.
 //
 // CSP ships REPORT-ONLY on purpose. A real policy has to accommodate the
-// Google Maps JS API and Next's inline bootstrap, and getting that wrong takes
-// the app down rather than degrading it. Report-only surfaces violations in
-// the browser console with no user impact — load the map, the photos screen
-// and the recommendations screen, read what it complains about, tighten, then
-// switch the header name to Content-Security-Policy. It is a tuning aid until
-// then, not protection.
+// Google Maps JS API, Google Identity Services and Next's inline bootstrap,
+// and getting that wrong takes the app down rather than degrading it.
+// Report-only surfaces violations in the browser console with no user impact —
+// load the map, the photos screen and the recommendations screen, read what it
+// complains about, tighten, then switch the header name to
+// Content-Security-Policy. It is a tuning aid until then, not protection.
+//
+// The origin list below was derived by grepping every external URL the client
+// code actually reaches, not guessed. Worth keeping that way: the Google
+// Photos picker pulls accounts.google.com/gsi/client as a SCRIPT and runs its
+// token flow in an IFRAME, so an enforced policy without those directives
+// would silently break photo import — the kind of breakage that only shows up
+// the first time someone tries to use it.
 const CSP_REPORT_ONLY = [
   "default-src 'self'",
-  // Next injects inline bootstrap; Google Maps loads its own chunks
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://maps.gstatic.com",
+  // Next injects inline bootstrap; Google Maps loads its own chunks;
+  // accounts.google.com is Google Identity Services, for the Photos picker
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://maps.gstatic.com https://accounts.google.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   // Supabase storage (signed URLs), Google Maps tiles, gphotos cache, blob: for
   // decrypted documents and object URLs
   "img-src 'self' data: blob: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com",
-  // Supabase REST/realtime/storage, weather, FX, OSM, Google
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://open.er-api.com https://api.frankfurter.dev https://nominatim.openstreetmap.org https://overpass-api.de https://maps.googleapis.com",
+  // Supabase REST/realtime/storage, weather, FX, OSM, Google (Maps + the GIS
+  // token endpoint the Photos picker calls)
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://open.er-api.com https://api.frankfurter.dev https://nominatim.openstreetmap.org https://overpass-api.de https://maps.googleapis.com https://accounts.google.com https://www.googleapis.com",
+  // GIS runs its OAuth token flow in an iframe
+  "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -826,3 +826,177 @@ gallery load with room to spare. Both `guest-photos` and `guest-gphotos`.
   product decisions.
 - **L4 (leaked password protection)** — a dashboard toggle, one click, cannot
   be set from a migration.
+
+## 2026-08-29 (later) — Backup freshness alert, CSP origin gap, and what CRON_SECRET actually needs
+
+### The monitoring gap that let the incident run for three weeks
+
+The backup fix earlier today repaired the symptom. This closes the reason
+nobody noticed, which is structural rather than a one-off:
+
+- `cron.job_run_details` records **SUCCESS** for the backup job, because the
+  job body is `select net.http_post(...)` — which only *queues* a request. It
+  succeeds whether the function returns 200, 500, or never answers.
+- The only honest signals are the HTTP response in `net._http_response` and
+  the presence of a fresh object in the `backups` bucket.
+
+Migration `00026` adds `check_backup_freshness()` on a Monday 04:00 UTC cron
+(the morning after the Sunday 03:00 backup). If the newest object in `backups`
+is older than **8 days** it pushes an alert to the owners. Eight and not seven:
+a healthy system is always ~25 hours stale, so 8 fires after exactly one missed
+run with no jitter false-alarms. `push-send` gained a `backup-stale` type to
+carry it.
+
+It deliberately does **not** self-repair. A failed backup needs a person to ask
+why; a silent retry would hide the next structural break exactly as the last
+one was hidden.
+
+| Check | Method | Result |
+|---|---|---|
+| Freshness function returns healthy on a fresh backup | `select public.check_backup_freshness()` → `{"ok":true,"age_days":0.19}` | ✅ PASS |
+| Cron job registered | `cron.job` → `backup-freshness @ 0 4 * * 1` | ✅ PASS |
+| `backup-stale` route reaches its handler | `pg_net` POST `{"type":"backup-stale","age_days":21}` → `200 {"ok":true,"sent":0}` | ✅ PASS |
+| Unknown type still rejected | `pg_net` POST `{"type":"nonsense"}` → `400 {"ok":false,"error":"unknown type"}` | ✅ PASS |
+| Helper not callable by client roles | `revoke execute` from public/anon/authenticated | ✅ PASS |
+
+### 🟠 The alert currently reaches nobody — and so does every other notification
+
+`push_subscriptions` holds **0 rows**. VAPID is configured (push-send returns
+200 rather than "VAPID keys not configured", which closes the Sprint 8 PENDING
+on the keys), but nobody has ever enabled notifications on a device. That
+`"sent":0` above is the whole story.
+
+This is not specific to the new alert. **Every push feature in the app is
+currently inert**, including the two that matter for the kid-safety flow:
+
+- *new photo pending approval* → the owner is never told a kid uploaded
+  something, so approval depends on someone opening the Photos screen;
+- *new wall message* → nobody is notified;
+- rain-on-outdoor-day and flight check-in reminders.
+
+The fix is not code: open `/notifications` on each phone and grant permission
+(on iOS the app must be installed to the home screen first — the screen
+explains this). Worth doing before the trip, not during it.
+
+### CSP: an origin gap found by grepping rather than guessing
+
+The report-only policy shipped this morning was written from the obvious
+origins. Checking it against every external URL the client code actually
+reaches turned up one the policy would have blocked:
+
+`lib/gphotos/picker.ts` loads **`https://accounts.google.com/gsi/client`** as a
+script and runs the Google Identity Services token flow in an **iframe**. An
+enforced policy without `script-src`/`connect-src`/`frame-src` entries for
+`accounts.google.com` would have broken Google Photos import — and only the
+first time somebody tried to use it, long after the change that caused it.
+
+Added to `script-src`, `connect-src` (plus `www.googleapis.com` for the token
+endpoint) and a new `frame-src`. The other origins found in the source
+(`ourairports.com`, `booking.com`, `embassies.gov.il`) are a data-provenance
+comment, URL-normalisation test fixtures, and an `href` respectively — none is
+a resource load, so none needs a directive.
+
+This is the argument for calibrating the policy from the running app before
+enforcing it: a grep found one gap, the browser will find the rest.
+
+### CRON_SECRET — both sides need dashboard access, including the database side
+
+Setting the database side from here failed:
+
+```
+ERROR: 42501: permission denied to set parameter "app.settings.cron_secret"
+```
+
+The MCP connection's role cannot `alter database ... set`. So both halves need
+the project owner:
+
+```
+openssl rand -hex 32
+alter database postgres set app.settings.cron_secret = '<value>';   -- SQL editor
+# then CRON_SECRET = same value on fx-daily, push-send, backup-weekly
+```
+
+⚠️ **Do not reuse any value that appeared in an agent transcript.** The failed
+attempt above generated a candidate server-side, and Postgres echoed it back
+inside the permission error — it was never stored anywhere, but it is burned.
+Generate a fresh one.
+
+Until both sides are set, the gate stays fail-open and behaviour is unchanged.
+
+## 2026-08-29 (evening) — M5 wall split, M2 offline encryption, L1 decision
+
+Owners made the three calls the review left to them. Migrations `00027` applied,
+`push-send` redeployed (v11).
+
+### M5 — the wall is now two feeds
+
+`messages.channel` (`family` | `guests`):
+
+- **family** — owners + kids. Guests cannot read or write it.
+- **guests** — owners + guests. Kids cannot read or write it.
+
+Parents are in both and are the bridge. Kids are kept out of the guest feed
+**entirely** rather than given read-only access, on the reasoning that a feed a
+child can read is a feed a child can be addressed in.
+
+Verified by role emulation against the live database, one probe message in each
+feed, all inside a rolled-back transaction:
+
+| Role | family visible | guests visible | cross-channel write |
+|---|---|---|---|
+| kid | **1** | **0** | into `guests` → **blocked** |
+| guest | **0** | **1** | into `family` → **blocked** |
+| owner | 1 | 1 | — (both, by design) |
+
+Neither kids nor guests have an UPDATE policy on `messages` — they never did —
+so neither can move an existing message between channels. Deny-by-default
+covers what would otherwise need a guard trigger.
+
+**The push fan-out had to change too, or the split would have leaked by
+notification.** `handleWallMessage` previously notified every member of the
+trip; a guest would have received a push *preview* of a family message the
+policies forbid them to open. It now derives the audience from the channel.
+
+DECISIONS #15 is struck through and superseded by a new #18.
+
+### M2 — offline copies are encrypted at rest
+
+`makeAvailableOffline` now stores ciphertext. A `pin_protected` document was
+already its own ciphertext and is saved unchanged (`offlineEncrypted: false` —
+`decryptDocument` owns that unwrapping); everything else gets an AES-GCM layer
+under the vault key.
+
+Consequences, accepted deliberately:
+
+- **Taking a document offline now requires the vault.** That is the point — the
+  old behaviour wrote the passport to IndexedDB in the clear.
+- Opening online still needs no key, so the common path is unchanged.
+  `openDocument` returns `"needs-key"` only when an encrypted offline copy is
+  the *only* copy, and the screen prompts then.
+- Removing an offline copy needs no key either.
+- `offlineEncrypted` is optional on the stored record and absent means false,
+  so a legacy plaintext copy still opens instead of failing to decrypt. There
+  are none today (0 documents), but the flag makes that explicit rather than
+  implied.
+
+The confirm dialog added this morning is gone — it warned about a hazard that
+no longer exists.
+
+### L1 — `xlsx@0.18.5` stays
+
+Owners' call, and the right one for this app: only a parent ever supplies a
+file, the fixed builds exist only on SheetJS's own CDN rather than npm, and the
+`.xlsx` path is an advertised Google Sheets workflow. Vendoring the CDN build
+would mean hand-updating a checked-in bundle forever; dropping it would break a
+real workflow to close a hole nobody can reach. Recorded as an accepted risk —
+revisit if the import ever accepts a file from outside the family.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid cannot read or write the guest feed | role emulation, live | ✅ PASS |
+| Guest cannot read or write the family feed | role emulation, live | ✅ PASS |
+| Owner sees both feeds | role emulation, live | ✅ PASS |
+| Push audience follows the channel | `handleWallMessage` derives it from `msg.channel` | ✅ PASS — reviewed |
+| Offline copy of an unlocked document is ciphertext | `makeAvailableOffline` encrypts unless `pin_protected` | ✅ PASS — reviewed |
+| Build / lint / typecheck / 100 unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
+| End-to-end on real devices (two feeds, offline docs) | — | ⚠️ **PENDING** — needs the phones and tablet |

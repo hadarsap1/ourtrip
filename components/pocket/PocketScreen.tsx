@@ -21,7 +21,7 @@ import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
 export function PocketScreen() {
-  const { member } = useMember();
+  const { member, memberLoading } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [kids, setKids] = useState<Member[]>([]);
   const [allowances, setAllowances] = useState<PocketMoney[]>([]);
@@ -49,7 +49,10 @@ export function PocketScreen() {
   }, []);
 
   useEffect(() => {
-    if (!member) return;
+    // Nothing to fetch until a member is resolved. When resolution finishes
+    // and produces nobody, `loading` is left as-is on purpose — the render
+    // below only treats it as meaningful once a member exists.
+    if (memberLoading || !member) return;
     let cancelled = false;
     void (async () => {
       const activeTrip = await getActiveTrip();
@@ -69,12 +72,28 @@ export function PocketScreen() {
     return () => {
       cancelled = true;
     };
-  }, [member, refresh, showToast]);
+  }, [member, memberLoading, refresh, showToast]);
 
-  if (loading || !member) {
+  // `loading` only means "this member's data is on its way", so it is only
+  // consulted once there IS a member. Previously the guard was
+  // `loading || !member`, which meant a failed member lookup (an expired
+  // session returns 401) left the screen on "loading…" forever, with nothing
+  // said and nothing to act on — reported from production 2026-08-29.
+  if (memberLoading || (member && loading)) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
+        <Link href="/login" className="font-semibold text-sea underline">
+          {strings.common.signInAgain}
+        </Link>
       </div>
     );
   }

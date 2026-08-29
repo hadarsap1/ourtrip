@@ -3,18 +3,38 @@ import type { Tables } from "@/lib/database.types";
 
 export type WallMessage = Tables<"messages">;
 
+/**
+ * The two feeds (migration 00027, review finding M5).
+ *   family — owners + kids. Guests cannot read or write it.
+ *   guests — owners + guests. Kids cannot read or write it.
+ * Parents are in both and bridge between them. RLS enforces this; the values
+ * here only decide which feed the UI is looking at.
+ */
+export type MessageChannel = "family" | "guests";
+
+/** Which feeds this role may open, in display order. */
+export function channelsFor(role: string | undefined): MessageChannel[] {
+  if (role === "owner") return ["family", "guests"];
+  if (role === "guest") return ["guests"];
+  return ["family"]; // kid
+}
+
 function requireClient() {
   const supabase = getSupabase();
   if (!supabase) throw new Error("supabase not configured");
   return supabase;
 }
 
-/** One shared family wall (DECISIONS #15) — RLS grants all roles the feed. */
-export async function listMessages(tripId: string): Promise<WallMessage[]> {
+/** One feed. RLS decides whether the caller may see it at all. */
+export async function listMessages(
+  tripId: string,
+  channel: MessageChannel
+): Promise<WallMessage[]> {
   const { data, error } = await requireClient()
     .from("messages")
     .select("*")
     .eq("trip_id", tripId)
+    .eq("channel", channel)
     .order("created_at");
   if (error) throw new Error(error.message);
   return data;
@@ -23,12 +43,14 @@ export async function listMessages(tripId: string): Promise<WallMessage[]> {
 export async function sendMessage(
   tripId: string,
   senderId: string,
-  body: string
+  body: string,
+  channel: MessageChannel
 ): Promise<void> {
   const { error } = await requireClient().from("messages").insert({
     trip_id: tripId,
     sender_id: senderId,
     body: body.trim(),
+    channel,
   });
   if (error) throw new Error(error.message);
 }
@@ -56,6 +78,8 @@ export async function countUnread(
   const supabase = requireClient();
   const [{ data: msgs, error }, { data: reads, error: readsError }] =
     await Promise.all([
+      // no channel filter: RLS already limits this to the feeds the caller
+      // may read, so the badge counts exactly what they can open
       supabase
         .from("messages")
         .select("id, sender_id")

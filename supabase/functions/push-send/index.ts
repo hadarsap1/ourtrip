@@ -4,6 +4,8 @@
 //   - wall-message  : new family-wall message → everyone on the trip but the sender
 //   - pending-photo : kid/owner upload awaiting approval → owners
 //   - daily (cron)  : rain-on-outdoor-day alert + flight check-in 24h reminder
+//   - backup-stale  : the weekly backup has not landed → owners (migration
+//                     00026; see the incident note in backup-weekly)
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
 // so it is deployed verify_jwt=false. A forged call leaks no content — the
@@ -102,23 +104,33 @@ async function familyIds(tripId: string): Promise<string[]> {
 async function handleWallMessage(messageId: string): Promise<number> {
   const { data: msg } = await service
     .from("messages")
-    .select("id, body, sender_id, trip_id")
+    .select("id, body, sender_id, trip_id, channel")
     .eq("id", messageId)
     .maybeSingle();
   if (!msg) return 0;
 
   const { data: members } = await service
     .from("members")
-    .select("id, display_name")
+    .select("id, display_name, role")
     .eq("trip_id", msg.trip_id);
   const sender = members?.find((m) => m.id === msg.sender_id);
+
+  // Notify only the roles that can actually READ this feed (migration 00027).
+  // Without this the split would leak by notification: a guest would get a
+  // push preview of a message the policies forbid them to open.
+  const audience = msg.channel === "guests"
+    ? ["owner", "guest"]
+    : ["owner", "kid"];
   const recipients = (members ?? [])
-    .map((m) => m.id)
-    .filter((id) => id !== msg.sender_id);
+    .filter((m) => audience.includes(m.role) && m.id !== msg.sender_id)
+    .map((m) => m.id);
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;
   return pushToMembers(recipients, {
-    title: "הודעה חדשה בקיר המשפחתי 💬",
+    title:
+      msg.channel === "guests"
+        ? "הודעה חדשה בקיר האורחים 💬"
+        : "הודעה חדשה בקיר המשפחתי 💬",
     body: sender ? `${sender.display_name}: ${preview}` : preview,
     url: "/messages",
     tag: "wall",
@@ -141,6 +153,29 @@ async function handlePendingPhoto(photoId: string): Promise<number> {
     body: "יש תמונה חדשה מהילדים — אפשר לאשר ולשתף",
     url: "/photos",
     tag: "pending-photo",
+  });
+}
+
+/** The weekly backup has gone stale. Sent by check_backup_freshness (00026),
+ *  which exists because a failing backup is otherwise completely silent —
+ *  cron reports success for a merely-queued request. Owners only. */
+async function handleBackupStale(ageDays: number): Promise<number> {
+  const { data: trip } = await service
+    .from("trips")
+    .select("id")
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  if (!trip) return 0;
+
+  return pushToMembers(await ownerIds(trip.id), {
+    title: "⚠️ הגיבוי השבועי לא רץ",
+    body:
+      ageDays < 0
+        ? "לא נמצא אף גיבוי במערכת — כדאי לבדוק מה קרה"
+        : `הגיבוי האחרון בן ${ageDays} ימים — כדאי לבדוק מה קרה`,
+    url: "/more",
+    tag: "backup-stale",
   });
 }
 
@@ -232,7 +267,12 @@ Deno.serve(async (req) => {
   }
   webpush.setVapidDetails(subject, publicKey, privateKey);
 
-  let body: { type?: string; message_id?: string; photo_id?: string };
+  let body: {
+    type?: string;
+    message_id?: string;
+    photo_id?: string;
+    age_days?: number;
+  };
   try {
     body = await req.json();
   } catch {
@@ -251,6 +291,10 @@ Deno.serve(async (req) => {
       }
       case "daily": {
         return json({ ok: true, ...(await handleDaily()) });
+      }
+      case "backup-stale": {
+        const age = typeof body.age_days === "number" ? body.age_days : -1;
+        return json({ ok: true, sent: await handleBackupStale(age) });
       }
       default:
         return json({ ok: false, error: "unknown type" }, 400);

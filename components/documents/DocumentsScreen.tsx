@@ -111,7 +111,18 @@ export function DocumentsScreen() {
     void refresh(trip.id).catch(() => showToast(strings.common.error));
   }, [trip, refresh, showToast]);
 
-  async function toggleOffline(doc: Document) {
+  // Removing a copy needs no key; adding one does. Split here so the vault
+  // prompt only appears when it is actually required.
+  function toggleOffline(doc: Document) {
+    if (busyIds.has(doc.id)) return;
+    if (offlineIds.has(doc.id)) {
+      void runOffline(doc, null);
+      return;
+    }
+    withKey((key) => void runOffline(doc, key));
+  }
+
+  async function runOffline(doc: Document, offlineKey: CryptoKey | null) {
     if (busyIds.has(doc.id)) return;
     setBusyIds((prev) => new Set(prev).add(doc.id));
     try {
@@ -123,15 +134,12 @@ export function DocumentsScreen() {
           return next;
         });
         showToast(strings.documents.offlineRemoved);
-      } else {
-        // An offline copy of a LOCKED document is ciphertext, so it is safe at
-        // rest. An unlocked one is the file itself, sitting readable in
-        // IndexedDB with no passphrase in front of it — a found phone opens it
-        // (security review finding M2). Say so plainly before saving it.
-        if (!doc.pin_protected && !confirm(strings.documents.offlinePlainWarning)) {
-          return;
-        }
-        await makeAvailableOffline(doc);
+      } else if (offlineKey) {
+        // Every offline copy is now encrypted at rest under the vault key
+        // (M2), so saving one needs the vault open. toggleOffline resolves the
+        // key before calling; if it somehow did not, do nothing rather than
+        // fall back to writing plaintext.
+        await makeAvailableOffline(doc, offlineKey);
         setOfflineIds((prev) => new Set(prev).add(doc.id));
         showToast(strings.documents.offlineSaved);
       }
@@ -146,9 +154,16 @@ export function DocumentsScreen() {
     }
   }
 
-  async function handleOpen(doc: Document) {
-    const opened = await openDocument(doc);
-    if (!opened) showToast(strings.documents.openFailed);
+  // Online needs no vault key, so try that first and only prompt when the
+  // encrypted offline copy turns out to be the only copy available (M2).
+  async function handleOpen(doc: Document, key: CryptoKey | null = null) {
+    const result = await openDocument(doc, key);
+    if (result === "opened") return;
+    if (result === "needs-key") {
+      withKey((k) => void handleOpen(doc, k));
+      return;
+    }
+    showToast(strings.documents.openFailed);
   }
 
   async function toggleShareWithKids(doc: Document) {
