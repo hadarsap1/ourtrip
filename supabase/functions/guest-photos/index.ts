@@ -6,6 +6,11 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Signed URLs need no auth once minted, so a guest can forward one to anyone.
+// An hour was a wide window for photos of the kids; 15 minutes still covers a
+// gallery load with room to spare (review finding L3).
+const SIGNED_URL_TTL_SECONDS = 15 * 60;
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -35,7 +40,7 @@ Deno.serve(async (req) => {
   );
   const { data: signed, error: signError } = await service.storage
     .from("photos")
-    .createSignedUrls(photos.map((p) => p.file_path), 60 * 60);
+    .createSignedUrls(photos.map((p) => p.file_path), SIGNED_URL_TTL_SECONDS);
   if (signError) return json({ ok: false, error: signError.message }, 500);
 
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));

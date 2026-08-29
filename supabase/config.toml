@@ -17,6 +17,13 @@ project_id = "ourtrip"
 # ---------------------------------------------------------------------------
 # Unauthenticated by design (verify_jwt = false)
 # ---------------------------------------------------------------------------
+#
+# Since migration 00025 these three are no longer open to anyone with the URL:
+# the cron jobs and the push triggers send an `x-cron-secret` header and each
+# function compares it against its CRON_SECRET function secret. The check FAILS
+# OPEN while CRON_SECRET is unset, so enforcement only begins once the secret is
+# set on BOTH sides (see 00025 for the two commands). verify_jwt stays false
+# regardless — pg_cron still has no JWT to present.
 
 # Invoked by pg_cron via pg_net, which carries no JWT. Idempotent: upserts
 # today's public FX rates. Anonymous invocation can at most repeat that work.

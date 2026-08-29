@@ -1,14 +1,33 @@
-// Kid device auth (SPEC 2.9, ROADMAP Sprint 6). Three actions:
+// Kid device auth (SPEC 2.9, ROADMAP Sprint 6). Four actions:
 //
 //   create-registration  (owner JWT required — checked in-function)
 //     owner picks a kid member + PIN → one-time 6-char code, 15 min expiry
 //   register             (unauthenticated by design: the tablet has no JWT yet)
-//     code → binds the device: (re)sets the kid's auth-user password to a
-//     fresh 256-bit device token, revokes previous devices, returns the token
+//     code → binds the device: returns a 256-bit device token, revokes
+//     previous devices
 //   unlock               (unauthenticated by design: PIN gate happens here)
 //     device_token + PIN → server-side PIN check with lockout (5 wrong PINs
-//     → 15 min lock, persisted in kid_devices) → real Supabase session via
-//     signInWithPassword, so refresh/realtime/storage all work normally
+//     → 15 min lock, persisted in kid_devices) → real Supabase session, so
+//     refresh/realtime/storage all work normally
+//   revoke               (owner JWT required — checked in-function)
+//     cuts a device off for good
+//
+// SECURITY NOTE (review 2026-08, finding H1). The device token used to BE the
+// kid's Supabase auth password, and it is stored in plaintext localStorage on
+// the tablet. Since the anon key ships to every browser, anyone holding the
+// device could read the token and call signInWithPassword directly — walking
+// straight past the PIN prompt, the attempt counter and the 15-minute
+// lockout, all of which live in the `unlock` branch below.
+//
+// The token and the password are now separate secrets:
+//   * the device token identifies the device to THIS function, and is stored
+//     only as a SHA-256 hash;
+//   * the auth password is random, never leaves the server, and is rotated to
+//     a fresh value on every unlock — it exists just long enough to mint one
+//     session, so there is no standing password for a stolen token to use.
+// Revocation additionally rotates it to a value nobody knows, and migration
+// 00024 makes `current_member_id()` refuse to resolve a kid whose device is
+// revoked, so an already-issued session stops seeing rows on its next query.
 //
 // Deployed with verify_jwt=false because register/unlock are pre-auth by
 // nature; security comes from the one-time code, the 256-bit device token,
@@ -30,6 +49,11 @@ function toHex(bytes: Uint8Array): string {
 
 function fromHex(hex: string): Uint8Array {
   return new Uint8Array(hex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
+}
+
+/** 256 bits of randomness, hex encoded — device tokens and auth passwords. */
+function randomSecret(): string {
+  return toHex(crypto.getRandomValues(new Uint8Array(32)));
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -87,6 +111,37 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+type ServiceClient = ReturnType<typeof createClient>;
+
+/** Resolves the caller to an owner member id, or null. */
+async function ownerCaller(req: Request): Promise<string | null> {
+  const caller = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
+  );
+  const [{ data: role }, { data: callerId }] = await Promise.all([
+    caller.rpc("current_member_role"),
+    caller.rpc("current_member_id"),
+  ]);
+  return role === "owner" && callerId ? (callerId as string) : null;
+}
+
+/**
+ * Points the kid's auth user at a brand-new random password and returns it.
+ * Callers either consume it immediately (unlock) or throw it away, which is
+ * what makes a credential unusable (register, revoke).
+ */
+async function rotateAuthPassword(
+  service: ServiceClient,
+  authUserId: string
+): Promise<string> {
+  const password = randomSecret();
+  const { error } = await service.auth.admin.updateUserById(authUserId, { password });
+  if (error) throw new Error(error.message);
+  return password;
+}
+
 Deno.serve(async (req) => {
   let body: Record<string, string>;
   try {
@@ -102,19 +157,8 @@ Deno.serve(async (req) => {
 
   // ---------- create-registration (owner only) ----------
   if (body.action === "create-registration") {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const caller = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const [{ data: role }, { data: callerId }] = await Promise.all([
-      caller.rpc("current_member_role"),
-      caller.rpc("current_member_id"),
-    ]);
-    if (role !== "owner" || !callerId) {
-      return json({ ok: false, error: "forbidden" }, 403);
-    }
+    const callerId = await ownerCaller(req);
+    if (!callerId) return json({ ok: false, error: "forbidden" }, 403);
 
     const pin = body.pin ?? "";
     if (!/^\d{4,6}$/.test(pin)) {
@@ -170,21 +214,22 @@ Deno.serve(async (req) => {
       .single();
     if (!member) return json({ ok: false, error: "member missing" }, 500);
 
-    const deviceToken = toHex(crypto.getRandomValues(new Uint8Array(32)));
+    // The token the tablet keeps. It is NOT the auth password — it only ever
+    // identifies the device to this function, and is stored hashed.
+    const deviceToken = randomSecret();
     const email = kidEmail(member.id);
 
-    // bind: the kid's auth-user password IS the device token. Rebinding a
-    // new device rotates the password, which invalidates the old device.
     if (member.auth_user_id) {
-      const { error } = await service.auth.admin.updateUserById(
-        member.auth_user_id,
-        { password: deviceToken }
-      );
-      if (error) return json({ ok: false, error: error.message }, 500);
+      // rotate to a fresh server-only password; nothing else may use the old one
+      try {
+        await rotateAuthPassword(service, member.auth_user_id);
+      } catch (err) {
+        return json({ ok: false, error: (err as Error).message }, 500);
+      }
     } else {
       const { data: created, error } = await service.auth.admin.createUser({
         email,
-        password: deviceToken,
+        password: randomSecret(),
         email_confirm: true,
       });
       if (error || !created.user) {
@@ -197,20 +242,30 @@ Deno.serve(async (req) => {
       if (linkError) return json({ ok: false, error: linkError.message }, 500);
     }
 
-    // one active device per kid: revoke previous bindings
+    // Insert the new binding BEFORE revoking the old ones: since 00024 a kid
+    // with zero active devices cannot resolve as a member at all, and doing it
+    // the other way round opens a window where in-flight requests see nothing.
+    const { data: device, error: deviceError } = await service
+      .from("kid_devices")
+      .insert({
+        member_id: member.id,
+        device_token_hash: await sha256Hex(deviceToken),
+        pin_hash: registration.pin_hash,
+        approved_by: registration.created_by,
+      })
+      .select("id")
+      .single();
+    if (deviceError || !device) {
+      return json({ ok: false, error: deviceError?.message ?? "insert failed" }, 500);
+    }
+
+    // one active device per kid
     await service
       .from("kid_devices")
       .update({ revoked_at: new Date().toISOString() })
       .eq("member_id", member.id)
+      .neq("id", device.id)
       .is("revoked_at", null);
-
-    const { error: deviceError } = await service.from("kid_devices").insert({
-      member_id: member.id,
-      device_token_hash: await sha256Hex(deviceToken),
-      pin_hash: registration.pin_hash,
-      approved_by: registration.created_by,
-    });
-    if (deviceError) return json({ ok: false, error: deviceError.message }, 500);
 
     await service
       .from("kid_device_registrations")
@@ -275,10 +330,22 @@ Deno.serve(async (req) => {
 
     const { data: member } = await service
       .from("members")
-      .select("id, display_name")
+      .select("id, display_name, auth_user_id")
       .eq("id", device.member_id)
       .single();
-    if (!member) return json({ ok: false, error: "member missing" }, 500);
+    if (!member?.auth_user_id) {
+      return json({ ok: false, error: "member missing" }, 500);
+    }
+
+    // The PIN has been proven, so mint a session: set a fresh single-use
+    // password and consume it right away. Nothing persists that a stolen
+    // device token could later replay against signInWithPassword.
+    let oneTimePassword: string;
+    try {
+      oneTimePassword = await rotateAuthPassword(service, member.auth_user_id);
+    } catch (err) {
+      return json({ ok: false, error: (err as Error).message }, 500);
+    }
 
     const anon = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -287,7 +354,7 @@ Deno.serve(async (req) => {
     );
     const { data: signIn, error: signInError } = await anon.auth.signInWithPassword({
       email: kidEmail(member.id),
-      password: deviceToken,
+      password: oneTimePassword,
     });
     if (signInError || !signIn.session) {
       return json({ ok: false, error: signInError?.message ?? "sign-in failed" }, 500);
@@ -299,6 +366,62 @@ Deno.serve(async (req) => {
       refresh_token: signIn.session.refresh_token,
       member: { id: member.id, display_name: member.display_name },
     });
+  }
+
+  // ---------- revoke (owner only) ----------
+  // Marking revoked_at is now enough to stop RLS resolving the kid (00024),
+  // but rotating the password as well means the binding can never mint a new
+  // session either — belt and braces, and it makes the revocation independent
+  // of any one policy staying correct.
+  if (body.action === "revoke") {
+    const callerId = await ownerCaller(req);
+    if (!callerId) return json({ ok: false, error: "forbidden" }, 403);
+
+    const { data: device } = await service
+      .from("kid_devices")
+      .select("id, member_id")
+      .eq("id", body.device_id ?? "")
+      .maybeSingle();
+    if (!device) return json({ ok: false, error: "unknown device" }, 404);
+
+    // the device's kid must be on the calling owner's trip
+    const { data: kid } = await service
+      .from("members")
+      .select("id, trip_id, auth_user_id")
+      .eq("id", device.member_id)
+      .maybeSingle();
+    const { data: owner } = await service
+      .from("members")
+      .select("trip_id")
+      .eq("id", callerId)
+      .maybeSingle();
+    if (!kid || !owner || kid.trip_id !== owner.trip_id) {
+      return json({ ok: false, error: "forbidden" }, 403);
+    }
+
+    const { error } = await service
+      .from("kid_devices")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("id", device.id)
+      .is("revoked_at", null);
+    if (error) return json({ ok: false, error: error.message }, 500);
+
+    // Only rotate once the kid has no active device left — otherwise revoking
+    // an old binding would break the current one's next unlock.
+    const { count } = await service
+      .from("kid_devices")
+      .select("id", { count: "exact", head: true })
+      .eq("member_id", kid.id)
+      .is("revoked_at", null);
+    if ((count ?? 0) === 0 && kid.auth_user_id) {
+      try {
+        await rotateAuthPassword(service, kid.auth_user_id);
+      } catch (err) {
+        return json({ ok: false, error: (err as Error).message }, 500);
+      }
+    }
+
+    return json({ ok: true });
   }
 
   return json({ ok: false, error: "unknown action" }, 400);

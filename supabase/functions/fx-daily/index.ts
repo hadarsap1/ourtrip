@@ -1,12 +1,32 @@
 // Daily FX fetch into fx_rates (DECISIONS #7 provider order):
 // open.er-api.com (global, ~160 currencies) → Frankfurter (ECB) fallback.
 // Writes with the service role — fx_rates has no client write policy.
-// Deployed with verify_jwt=false so pg_cron can invoke it without a key:
-// the function is idempotent (upserts today's public rates) and harmless
-// to over-invoke, so anonymous invocation is an accepted risk
-// (logged in docs/SECURITY-CHECKS.md).
+// Deployed with verify_jwt=false so pg_cron can invoke it without a key.
+// Anonymous invocation used to be an accepted risk; since migration 00025
+// the cron job sends a shared secret and cronAuthorized() checks it.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+// ---- shared-secret gate (review findings M3/M4) ----
+// This function runs verify_jwt=false because pg_cron carries no JWT, which
+// left it invokable by anyone who knows the URL. The cron job now sends
+// x-cron-secret (migration 00025) and we check it here.
+//
+// Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
+// before the secret exists would stop this job with nothing surfacing the
+// failure, which is the silent breakage supabase/config.toml exists to
+// prevent. Setting CRON_SECRET (both sides — see 00025) switches it on.
+function cronAuthorized(req: Request): boolean {
+  const expected = Deno.env.get("CRON_SECRET");
+  if (!expected) return true;
+  const got = req.headers.get("x-cron-secret") ?? "";
+  if (got.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < got.length; i++) {
+    diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
+}
 
 type Rates = Record<string, number>;
 
@@ -34,7 +54,14 @@ async function fetchRates(): Promise<{ rates: Rates; source: string } | null> {
   return null;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (!cronAuthorized(req)) {
+    return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const fetched = await fetchRates();
   if (!fetched) {
     // fx_rates keeps yesterday's rows — clients fall back to last known rate

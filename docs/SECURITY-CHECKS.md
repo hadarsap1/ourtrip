@@ -497,3 +497,332 @@ Notes:
   rendered per request and could carry member-specific content; keeping them
   out of the cache removes that question entirely, and was also required to
   stop stale navigation content.
+
+## 2026-08-29 — Vault hardening: passphrase KDF + biometric unlock (M1)
+
+Environment: migration `document_passkeys` (repo file `00023_...`). Closes
+finding **M1** of `docs/SECURITY-REVIEW-2026-08.md` — the vault key was derived
+from a 6–12 digit PIN at PBKDF2-210k, and the salt + verifier are cached
+client-side, so a stolen device allowed an offline brute force of the whole
+10⁶ space in well under a minute.
+
+Two changes, one goal:
+
+1. **Passphrase instead of PIN.** New vaults require ≥10 characters of
+   anything (`MIN_PASSPHRASE_LENGTH`), derived at **600,000** PBKDF2-SHA256
+   iterations. The cost is now stored per vault in `document_pin.iterations`
+   rather than hardcoded, because changing it for an existing vault would make
+   that vault's documents permanently undecryptable. Pre-existing vaults keep
+   `210000` and keep opening with their old PIN — the unlock path deliberately
+   does **not** enforce the new length rule.
+2. **Biometric unlock (WebAuthn PRF).** A device's platform authenticator
+   (Face ID / Touch ID / Android biometric) holds a credential whose PRF
+   extension yields a stable 256-bit secret. That secret AES-GCM-encrypts a
+   copy of the vault key into `document_passkeys.wrapped_key_*`. Day-to-day
+   unlocking therefore costs an attacker 2²⁵⁶, not 10⁶; the passphrase is
+   needed only to enrol a device or to recover one.
+
+**No biometric data is received or stored.** WebAuthn returns a signature and
+the PRF output; face and fingerprint templates never leave the device. There is
+no face-recognition model anywhere in the app, and no new runtime dependency —
+this is `navigator.credentials` plus the existing WebCrypto (CLAUDE.md rule #7).
+
+RLS coverage: `document_passkeys_owner_all` (owner-only, same posture as
+`document_pin`). Kids and guests get no policy → deny-by-default, consistent
+with their zero access to `documents` (rule #2).
+
+**Why the wrapped key is safe to store server-side.** Unlike the PIN's salt +
+verifier — which is exactly what made M1 exploitable — these rows are not
+brute-forceable. The wrapping key is 256 uniformly random bits held in the
+device's secure enclave, so reading the whole table (as an owner, or with the
+entire database) yields nothing without the physical authenticator.
+
+| Check | Method | Result |
+|---|---|---|
+| Wrapped key round-trips to the same vault key; documents sealed before enrolment still open | `lib/docCrypto.test.ts` — wrap → unwrap → decrypt | ✅ PASS |
+| A different PRF secret cannot unwrap the key | unit test, wrong 32-byte secret → rejects | ✅ PASS |
+| Wrapped blob contains no plaintext key material | unit test, asserts ciphertext excludes the raw bits | ✅ PASS |
+| Legacy vaults still open: a vault sealed at 210k does not open at any other iteration count, and the count is read per row rather than assumed | 2 unit tests + `fetchPinRow` reads `document_pin.iterations` | ✅ PASS |
+| Enrolment is impossible while the vault is locked (nothing to wrap) | `enrollPasskey` throws `vault_locked` unless `isVaultUnlocked` | ✅ PASS |
+| PRF secret and cached key bits are zeroed after use | `prfSecret.fill(0)` after wrap/unwrap; `lockVault()` zeroes `cachedBits` | ✅ PASS |
+| Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
+| `document_passkeys` owner-only; kid / anon read zero rows | SQL role emulation, probe row in a rolled-back transaction: owner **1**, kid **0**, anon **0** (same for `document_pin`) | ✅ PASS (2026-08-29) |
+| Biometric enrol + unlock on the real devices | two phones + the Android tablet | ⚠️ **PENDING** — needs real hardware |
+
+### Applied
+
+`00023` was applied on 2026-08-29 and verified against the live schema:
+`document_pin.iterations` (not null, default 210000), `document_pin.prf_salt`
+(nullable), and `document_passkeys` with `document_passkeys_owner_all`.
+`lib/database.types.ts` was regenerated — the hand-written entries matched the
+generated output exactly, so no drift. `get_advisors(security)` reports no new
+findings: the new table is not flagged, and only the pre-existing accepted
+WARNs remain.
+
+### ⚠️ Still to verify
+
+- **PRF support must be verified on the actual devices**, not assumed. It needs
+  a platform authenticator *and* a browser that implements the extension;
+  installed PWAs on iOS are the historically weak spot. Everything
+  feature-detects and fails soft — `isPasskeySupported()` gates the UI,
+  `enrollPrfCredential` throws `prf_unsupported` rather than storing an
+  unusable credential, and the passphrase always works — so an unsupported
+  device degrades to today's behaviour rather than losing access.
+- **Enrolment is per device**, and a lost device is revoked by removing it from
+  the list on the Documents screen. That revocation is real, not cosmetic: the
+  row carrying the wrapped key is deleted, so that authenticator can no longer
+  produce anything useful. (Contrast with kid device revocation — finding H1,
+  still open.)
+
+Notes:
+
+- **Changing the passphrase is still not possible** — it would require
+  re-encrypting every locked document, unchanged from the original design.
+  Enrolling a passkey does not alter that: the passkey wraps the *derived* key,
+  so the passphrase remains the root secret and the sole recovery path.
+- **M2 is untouched** by this work: an unlocked document marked "available
+  offline" is still stored as plaintext in IndexedDB. The passphrase warning
+  covers locked documents only.
+
+## 2026-08-29 — Kid device revocation made real (H1) + offline plaintext warning (M2)
+
+Environment: migration `kid_device_revocation` (repo file `00024_...`),
+`kid-auth` Edge Function rewritten. Closes finding **H1** of
+`docs/SECURITY-REVIEW-2026-08.md`, the one genuine hole the review found.
+
+### What was wrong
+
+Two defects that compounded:
+
+1. `kid_devices.revoked_at` was read in exactly one place — the `unlock`
+   branch of `kid-auth` — and by **no policy**. Once a session existed it never
+   passed through that branch again, so "revoke device" set a timestamp and
+   changed nothing. The tablet kept reading and writing.
+2. The device token **was** the kid's Supabase auth password, and it sits in
+   plaintext `localStorage`. Since the anon key ships to every browser, anyone
+   holding the tablet could read the token and call `signInWithPassword`
+   directly — past the PIN prompt, the attempt counter and the 15-minute
+   lockout, all of which live only in `unlock`.
+
+### What changed
+
+- **`current_member_id()` now refuses to resolve a kid without an active
+  device binding.** That function is the root of every policy in the schema —
+  directly, or via `current_member_role()` / `is_kid_of()` / `is_owner_of()`,
+  and for `storage.objects` too — so revocation now takes effect on the next
+  query everywhere at once. This mirrors how guests always worked
+  (`is_active_guest_of()` re-checks `revoked_at` per query).
+  Fixing `is_kid_of()` instead would **not** have been enough: five policies
+  match on `current_member_id()` without also calling it —
+  `pocket_money_kid_select`, the USING clause of `pocket_expenses_kid_all`,
+  `message_reads_self_all`, `push_subscriptions_self_all`,
+  `members_self_select` — so a revoked kid would have kept reading their pocket
+  money.
+- **The device token is no longer a password.** It identifies the device to
+  `kid-auth` and is stored only as a SHA-256 hash. The auth password is
+  separate, random, never leaves the server, and is **rotated to a fresh value
+  on every unlock** — it exists just long enough to mint one session, so a
+  stolen token has nothing to replay.
+- **`revokeDevice()` goes through the function**, not a direct table UPDATE. A
+  new owner-gated `revoke` action sets `revoked_at` and, once no active device
+  remains for that kid, rotates the auth password to a value nobody knows.
+- **Registration order flipped**: the new binding is inserted *before* old ones
+  are revoked. Under the new rule a kid with zero active devices cannot resolve
+  at all, so the old order would have opened a window where in-flight requests
+  saw nothing.
+
+| Check | Method | Result |
+|---|---|---|
+| Revoking a device stops all reads for that kid | SQL role emulation, kid claims, one rolled-back transaction: **active device** → resolves, 227 itinerary days, 1 pocket_money; **revoked** → does not resolve, **0** days, **0** pocket_money | ✅ PASS (2026-08-29) |
+| A revoked device's token cannot mint a session via `kid-auth/unlock` | `unlock` filters on `revoked_at is null` → 401 `unknown device` | ✅ PASS — by construction, unchanged from before |
+| A stolen device token cannot sign in directly against Supabase Auth | token is no longer the password; password is random, server-only, rotated per unlock | ✅ PASS — by construction |
+| Owners are unaffected by the new condition | same probe, owner control row: resolves, 227 itinerary days, 1 pocket_money | ✅ PASS (2026-08-29) |
+| `revoke` rejects a non-owner caller | `ownerCaller()` re-checks `current_member_role() = 'owner'`, same pattern as `create-registration` | ✅ PASS — by construction |
+| `revoke` rejects a device belonging to another trip's kid | trip_id compared against the calling owner's | ✅ PASS — by construction |
+| Policy-evaluation cost of the added EXISTS | partial index `idx_kid_devices_active on kid_devices(member_id) where revoked_at is null` | ✅ PASS — index-backed |
+| Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
+
+### M2 — offline plaintext warning
+
+An offline copy of a **locked** document is ciphertext and safe at rest. An
+**unlocked** one is the file itself, readable from IndexedDB with no passphrase
+in front of it. Marking an unlocked document "available offline" now warns in
+Hebrew and asks for confirmation, naming the passport case and pointing at the
+lock toggle. This is the mitigation the review recommended; it does not change
+where the bytes live. Encrypting every offline copy under the vault key would,
+but it would also make offline access impossible for families who never set a
+passphrase — a behaviour change worth deciding on deliberately rather than
+assuming.
+
+### Deployed and applied
+
+Both shipped on 2026-08-29, in the required order:
+
+1. **`kid-auth` redeployed** — version 7, ACTIVE, `verify_jwt=false` preserved
+   per `supabase/config.toml`.
+2. **Migration `00024` applied** — `current_member_id()` carries the kid-device
+   condition live, and `idx_kid_devices_active` exists.
+
+The pocket-money column of the probe is the one worth keeping: it went to
+**0** on revocation, and that is precisely the row a fix in `is_kid_of()`
+alone would have left readable. `get_advisors(security)` after the change
+reports no new findings.
+
+All probe rows (kid device, pocket money, document pin, passkey) were created
+inside transactions that were rolled back; a follow-up count confirms
+**0 kid_devices, 0 pocket_money, 0 document_passkeys** persist.
+
+### ⚠️ Still to verify
+
+- **Register + unlock + revoke on the real tablet.** The rewritten `kid-auth`
+  changes the credential model, and the whole flow has never run end to end on
+  hardware — the Sprint 6 log still carries a PENDING for PIN unlock, blocked
+  back then on the Email provider being disabled. Bind the tablet, unlock with
+  the PIN, then press revoke in the owner UI and confirm the tablet drops to
+  registration on its next cold start.
+
+Notes:
+
+- **`link_member_to_auth_user()` deliberately still returns a role for a
+  revoked kid**, so `AuthGate` renders the shell rather than an error. That is
+  the existing posture for revoked guests too: the gate is client-side routing,
+  RLS is the boundary, and the kid sees empty screens. On the next cold start
+  `needsKidUnlock()` sends them to `/kid-login`, `unlock` returns 401, and
+  `forgetKidDevice()` drops them back to registration with a clear message.
+- **The PIN lockout still resets `failed_attempts` on lock expiry** (5 attempts
+  per 15 minutes). Left as-is: an escalating counter risks locking a child out
+  of their own tablet permanently, and with the token no longer usable as a
+  password the PIN is no longer the only thing standing between a found device
+  and a session.
+
+## 2026-08-29 — Cron shared secret (M3/M4), headers (M6), EXIF + signed URLs (L2/L3)
+
+Environment: migration `cron_shared_secret` (repo `00025_...`) applied; Edge
+Functions `fx-daily` (v7), `push-send` (v8), `backup-weekly` (v7),
+`guest-photos` (v7), `guest-gphotos` (v3) deployed. All `verify_jwt` values
+unchanged.
+
+### M3 + M4 — the cron functions are no longer open to the world
+
+`fx-daily`, `push-send` and `backup-weekly` run `verify_jwt = false` because
+pg_cron carries no JWT, which left all three invokable by anyone who knows the
+project URL. The jobs and the two push triggers now send an `x-cron-secret`
+header from `app.settings.cron_secret`; each function compares it against its
+`CRON_SECRET` secret in constant time.
+
+**The check fails OPEN while `CRON_SECRET` is unset.** Shipping it closed would
+have stopped FX, push and backups with nothing surfacing the failure — the
+exact silent breakage `supabase/config.toml` exists to prevent, and precisely
+what had already happened to the backup (below). Enforcement begins when the
+secret is set on both sides; until then behaviour is unchanged.
+
+| Check | Method | Result |
+|---|---|---|
+| `fx-daily` still works through the new header path | fired via `pg_net` with `cron_secret_header()` → `200 {"ok":true,"day":"2026-08-29","count":165,"source":"open.er-api.com"}` | ✅ PASS |
+| `push-send` still works through the new header path | same → `200 {"ok":true,"weather":0,"checkin":0}` | ✅ PASS |
+| `backup-weekly` still works through the new header path | same → `200 {"ok":true,...}` | ✅ PASS |
+| Constant-time comparison, no early return on mismatch | `cronAuthorized()` XORs the full length | ✅ PASS — reviewed |
+| `cron_secret_header()` not callable by client roles | `revoke execute` from public/anon/authenticated, same posture as `functions_base_url()` | ✅ PASS |
+| Enforcement actually rejects a bad secret | needs `CRON_SECRET` set | ⚠️ **PENDING** — see "to activate" below |
+
+**To activate** (two sides, both required):
+
+```
+openssl rand -hex 32
+alter database postgres set app.settings.cron_secret = '<value>';
+# then set CRON_SECRET to the same value for fx-daily, push-send and
+# backup-weekly (dashboard → Edge Functions → Secrets)
+```
+
+Where the secret lives: `app.settings.cron_secret` is readable by any database
+session, same as `app.settings.functions_base_url`. Acceptable here because no
+client role has raw SQL access — kids, guests and owners reach Postgres only
+through PostgREST, which exposes no `current_setting` RPC. Vault would be
+stricter and is more machinery than this app needs.
+
+### 🔴 INCIDENT found while doing the above — the weekly backup had been dead for three weeks
+
+Not a review finding; caught by checking `backup-weekly`'s table list against
+the live schema.
+
+Migration `00021` dropped `saved_recommendations` (superseded by
+`place_options`) on ~2026-08-15. The table stayed in the function's `TABLES`
+array, so every run errored on it and returned 500 **before writing anything**.
+The cron job kept reporting success, because `net.http_post` only queues the
+request — the SQL succeeds whatever the HTTP call does. Nothing surfaced it.
+
+- **Last good backup: 2026-08-09.** The 08-16 and 08-23 runs wrote nothing.
+- The list had also drifted past four newer tables that were never in **any**
+  backup: `document_pin`, `document_passkeys`, `google_photos`, `place_options`
+  — the last of which holds **207 rows**.
+- `document_pin` is the one that would have hurt most: it holds the per-vault
+  salt, and without that row the passphrase cannot re-derive the key, so every
+  locked document would be gone for good.
+
+Two fixes: the list is corrected, and **a failing table no longer aborts the
+run** — it is recorded in `failed_tables` in the snapshot and in the response,
+and everything else is still written. A backup missing one table is worth far
+more than no backup. A run where *every* table fails still returns 500 rather
+than writing an empty snapshot over good history.
+
+| Check | Method | Result |
+|---|---|---|
+| Backup runs again and writes a file | fired via `pg_net` → `200`, `backup-2026-08-29-06-57-15.json` | ✅ PASS |
+| Every table now reads cleanly | response carries no `failed` key | ✅ PASS |
+| Previously-missing tables are captured | `place_options: 207`, `document_pin: 0`, `document_passkeys: 0`, `google_photos: 0` present in `counts` | ✅ PASS |
+| Backup history restored | bucket now holds a 2026-08-29 object after a 20-day gap | ✅ PASS |
+
+**Worth doing separately:** nothing watches whether these jobs actually
+succeed. `cron.job_run_details` reports success for a queued request, so the
+only real signal is `net._http_response`. A weekly check that the newest
+`backups` object is less than 8 days old would have caught this in a week
+instead of three.
+
+### M6 — security headers
+
+`next.config.ts` was empty. Now sends, on every route: `Permissions-Policy`
+(`geolocation=(self), camera=(self), microphone=()`), `Referrer-Policy`
+(`strict-origin-when-cross-origin`), `X-Frame-Options: DENY`,
+`X-Content-Type-Options: nosniff`, plus a `Content-Security-Policy-Report-Only`.
+
+Rationale per header is in the file. Two deliberate omissions: **HSTS** (Vercel
+already sends it; setting `max-age` from the app risks pinning a custom domain
+early), and **an enforced CSP** — a real policy has to accommodate the Google
+Maps JS API and Next's inline bootstrap, and getting it wrong takes the app
+down rather than degrading it. Report-only surfaces violations in the console
+with no user impact. It is a tuning aid, not protection, until someone loads
+the map, photos and recommendations screens, reads the violations, tightens the
+policy and renames the header.
+
+| Check | Method | Result |
+|---|---|---|
+| Headers present on every route | `source: "/:path*"` in `next.config.ts`; `npm run build` passes | ✅ PASS |
+| Geolocation restricted to first party | `Permissions-Policy: geolocation=(self)` | ✅ PASS |
+| Headers observed on the deployed site | needs a Vercel deploy | ⚠️ **PENDING** — verify after deploy |
+
+### L2 — EXIF stripped from map photos
+
+`compressImage()` re-encodes through a canvas, which drops EXIF including the
+GPS tag. It ran only on gallery photos; the two "where's the car" upload paths
+sent the original file. Both now go through it. The bucket is owner-only, so
+this was never an external leak — but there was no reason to keep coordinates
+nobody asked for. Document uploads still go up untouched, deliberately: a
+passport scan is not an image to re-encode.
+
+### L3 — guest signed URLs cut from 60 to 15 minutes
+
+A signed URL needs no auth once minted, so a guest can forward one to anyone.
+An hour was a wide window for photos of the kids; 15 minutes still covers a
+gallery load with room to spare. Both `guest-photos` and `guest-gphotos`.
+
+### Still open from the review
+
+- **M5 (the family wall)** — a decision, not a defect. Guests read and write
+  the same feed as the kids, per DECISIONS #15. Left untouched pending an
+  explicit call: leave it, make guests read-only, or split the feeds.
+- **L1 (`xlsx@0.18.5`)** — left alone on purpose. The fixes exist only on
+  SheetJS's own CDN, not npm, and the alternative is dropping `.xlsx` import,
+  which `strings.ts` advertises as a Google Sheets workflow. Both options are
+  product decisions.
+- **L4 (leaked password protection)** — a dashboard toggle, one click, cannot
+  be set from a migration.
