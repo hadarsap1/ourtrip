@@ -1000,3 +1000,26 @@ revisit if the import ever accepts a file from outside the family.
 | Offline copy of an unlocked document is ciphertext | `makeAvailableOffline` encrypts unless `pin_protected` | ✅ PASS — reviewed |
 | Build / lint / typecheck / 100 unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
 | End-to-end on real devices (two feeds, offline docs) | — | ⚠️ **PENDING** — needs the phones and tablet |
+
+## Sprint: geocode-places paging + provider chain
+
+The fix is a paging bug and a provider chain; it adds one column
+(`place_options.geocode_attempts`) and no new table, endpoint, or role.
+
+Policy coverage: `place_options_owner_all` (from migration 00020) already
+covers every column of `place_options` for owners, and the new column is
+written only through that path — `geocode-places` builds its Supabase client
+from the CALLER's `Authorization` header, never the service role, so RLS
+decides which rows it can read or update even when it is handed another trip's
+`trip_id`. The in-function `current_member_role() = 'owner'` gate still runs
+before any input is parsed, and now also before the `retry_failed` reset.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid / guest cannot invoke `geocode-places` | owner gate runs before body parse; `verify_jwt=true` | ✅ PASS — reviewed |
+| `retry_failed` cannot clear another trip's counters | reset goes through the caller's client, so RLS scopes it | ✅ PASS — reviewed |
+| New column needs no new policy | `place_options_owner_all` is table-wide (`for all`) | ✅ PASS — reviewed |
+| Geocoder responses never become HTML | written to `lat`/`lng`/`place_id`/`location_name` only, rendered through the existing `escapeHtml` in `OptionsMap` | ✅ PASS — reviewed |
+| No key leaves the server | `GOOGLE_MAPS_API_KEY` is read in the Edge Function only; the client gets counts, and a fault as a code, never the key | ✅ PASS — reviewed |
+| Build / lint / 100 unit tests | `npm run build`, `npm run lint`, `npx vitest run` | ✅ PASS |
+| Live run against the real bank (325 unlocated) | — | ⚠️ **PENDING** — needs the migration applied and the function deployed |

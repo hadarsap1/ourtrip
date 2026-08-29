@@ -81,6 +81,9 @@ export function OptionsScreen() {
   const [areaFilter, setAreaFilter] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
   const [locating, setLocating] = useState<string | null>(null);
+  // Places the geocoder gave up on, as reported by the last run. Drives the
+  // "try those again" affordance, so a stuck set is visible rather than silent.
+  const [exhaustedCount, setExhaustedCount] = useState(0);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((m: string) => {
@@ -210,24 +213,61 @@ export function OptionsScreen() {
 
   /** Resolves names to coordinates a batch at a time, reporting progress. The
    *  keyless provider is throttled to about a request a second, so a big bank
-   *  takes a while — showing the remaining count beats a frozen button. */
-  const locate = useCallback(async () => {
-    if (!trip || locating !== null) return;
-    setLocating(s.mapLocating);
-    try {
-      for (let pass = 0; pass < 20; pass++) {
-        const { remaining } = await geocodePlaceOptions(trip.id);
-        await refresh(trip.id);
-        if (remaining === 0) break;
-        setLocating(s.mapLocatingCount.replace("{n}", String(remaining)));
+   *  takes a while — showing the remaining count beats a frozen button.
+   *
+   *  The loop stops when nothing is left to try, and also when a pass moves
+   *  neither counter: that used to be the normal case (the function kept
+   *  handing itself the same twenty unresolved rows), and while the paging fix
+   *  means it shouldn't happen, looping on a stalled server is worse than
+   *  stopping early. `retryFailed` re-queues rows that gave up. */
+  const locate = useCallback(
+    async (retryFailed = false) => {
+      if (!trip || locating !== null) return;
+      setLocating(s.mapLocating);
+      let located = 0;
+      let notFound = 0;
+      let exhausted = 0;
+      let fault: string | null = null;
+      try {
+        for (let pass = 0; pass < 40; pass++) {
+          const result = await geocodePlaceOptions(
+            trip.id,
+            retryFailed && pass === 0
+          );
+          located += result.located;
+          notFound += result.failed;
+          exhausted = result.exhausted;
+          fault = fault ?? result.fault;
+          await refresh(trip.id);
+          if (result.remaining === 0) break;
+          // No movement at all — the server is not making progress, so stop
+          // rather than spending 39 more passes proving it.
+          if (result.located === 0 && result.failed === 0) break;
+          setLocating(s.mapLocatingCount.replace("{n}", String(result.remaining)));
+        }
+        // Say what actually happened. The old toast claimed success even when
+        // every single place had failed, which is how a 100% failure rate went
+        // unnoticed.
+        if (fault) showToast(s.mapLocateFault);
+        else if (located === 0 && notFound > 0) showToast(s.mapLocatedNone);
+        else if (notFound > 0)
+          showToast(
+            s.mapLocatedPartial
+              .replace("{n}", String(located))
+              .replace("{f}", String(notFound))
+          );
+        else if (located > 0)
+          showToast(s.mapLocatedCount.replace("{n}", String(located)));
+        else showToast(s.mapLocated);
+      } catch {
+        showToast(strings.common.error);
+      } finally {
+        setLocating(null);
+        setExhaustedCount(exhausted);
       }
-      showToast(s.mapLocated);
-    } catch {
-      showToast(strings.common.error);
-    } finally {
-      setLocating(null);
-    }
-  }, [locating, refresh, s, showToast, trip]);
+    },
+    [locating, refresh, s, showToast, trip]
+  );
 
   const remove = useCallback(
     async (id: string) => {
@@ -399,7 +439,9 @@ export function OptionsScreen() {
         <OptionsMap
           options={visible}
           unlocatedCount={unlocated}
+          exhaustedCount={exhaustedCount}
           onLocate={() => void locate()}
+          onRetryFailed={() => void locate(true)}
           locating={locating}
         />
       ) : (

@@ -304,24 +304,45 @@ export type ExtractResult = {
 /** Sends pasted post text to the extract-places Edge Function, which asks
  *  Claude for structured candidates. Nothing is saved here — the caller shows
  *  the candidates and saves whichever the owner ticks. */
+export type GeocodeProgress = {
+  located: number;
+  failed: number;
+  /** Rows still worth another call. The caller loops while this is above zero. */
+  remaining: number;
+  /** Rows that used up their attempts and are no longer retried automatically.
+   *  Reported so the UI can say "these 12 could not be found" instead of
+   *  claiming the run succeeded. */
+  exhausted: number;
+  /** Which provider chain ran, for the diagnostic line. */
+  provider: string | null;
+  /** A provider configuration fault (restricted key, API not enabled) rather
+   *  than a plain miss. Non-null means the failures are not the data's fault. */
+  fault: string | null;
+};
+
 /** Asks the geocode-places function to resolve one batch of not-yet-located
  *  options into coordinates. Returns how many are still pending so the caller
- *  can loop with a progress indicator rather than blocking on the whole set. */
+ *  can loop with a progress indicator rather than blocking on the whole set.
+ *
+ *  `retryFailed` clears the attempt counters first, re-queueing rows that had
+ *  given up — for after a country or area is corrected by hand. */
 export async function geocodePlaceOptions(
-  tripId: string
-): Promise<{ located: number; failed: number; remaining: number }> {
+  tripId: string,
+  retryFailed = false
+): Promise<GeocodeProgress> {
   const { data, error } = await requireClient().functions.invoke(
     "geocode-places",
-    { body: { trip_id: tripId } }
+    { body: { trip_id: tripId, retry_failed: retryFailed } }
   );
   if (error) throw new Error((await functionErrorCode(error)) ?? "failed");
-  const payload = data as
-    | { located?: number; failed?: number; remaining?: number }
-    | null;
+  const payload = data as Partial<GeocodeProgress> | null;
   return {
     located: payload?.located ?? 0,
     failed: payload?.failed ?? 0,
     remaining: payload?.remaining ?? 0,
+    exhausted: payload?.exhausted ?? 0,
+    provider: payload?.provider ?? null,
+    fault: payload?.fault ?? null,
   };
 }
 

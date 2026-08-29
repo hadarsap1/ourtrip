@@ -310,6 +310,18 @@ export const strings = {
     mapLocating: "מאתר מקומות…",
     mapLocatingCount: "מאתר… נותרו {n}",
     mapLocated: "האיתור הסתיים",
+    // The run's result, said honestly: "located X, could not find Y".
+    mapLocatedCount: "‏{n} מקומות אותרו",
+    mapLocatedNone: "לא נמצא מיקום לאף מקום בסבב הזה",
+    mapLocatedPartial: "‏{n} אותרו, {f} לא נמצאו",
+    // A provider fault (restricted key / API not enabled) is not the data's
+    // fault, and the fix is in the Google Cloud console — say so instead of
+    // letting it look like the places are simply obscure.
+    mapLocateFault:
+      "שירות המפות דחה את הבקשות — צריך לבדוק את מפתח Google במסוף Google Cloud (Places API ו-Geocoding API מופעלים, והמפתח לא מוגבל לדפדפן).",
+    mapExhausted:
+      "‏{n} מקומות לא נמצאו אחרי כמה ניסיונות. אפשר לתקן להם את האזור או המדינה ולנסות שוב.",
+    mapRetryFailed: "ניסיון נוסף למקומות שלא נמצאו",
 
     categories: {
       hotel: "לינה",

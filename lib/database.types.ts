@@ -1137,6 +1137,7 @@ export type Database = {
           country_code: string | null
           created_at: string
           created_by: string | null
+          geocode_attempts: number
           id: string
           lat: number | null
           lng: number | null
@@ -1160,6 +1161,7 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           created_by?: string | null
+          geocode_attempts?: number
           id?: string
           lat?: number | null
           lng?: number | null
@@ -1183,6 +1185,7 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           created_by?: string | null
+          geocode_attempts?: number
           id?: string
           lat?: number | null
           lng?: number | null

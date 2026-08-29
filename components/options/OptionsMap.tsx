@@ -29,12 +29,19 @@ const CATEGORY_COLOR: Record<string, string> = {
 export function OptionsMap({
   options,
   unlocatedCount,
+  exhaustedCount,
   onLocate,
+  onRetryFailed,
   locating,
 }: {
   options: PlaceOption[];
   unlocatedCount: number;
+  /** Places the geocoder gave up on. Shown separately from the plain unlocated
+   *  count, because "not tried yet" and "tried and not found" need different
+   *  answers from the owner. */
+  exhaustedCount: number;
   onLocate: () => void;
+  onRetryFailed: () => void;
   locating: string | null;
 }) {
   const s = strings.options;
@@ -165,6 +172,11 @@ export function OptionsMap({
           <p className="text-xs text-ink-soft">
             {s.mapUnlocated.replace("{n}", String(unlocatedCount))}
           </p>
+          {exhaustedCount > 0 && (
+            <p className="mt-1 text-xs text-ink-soft">
+              {s.mapExhausted.replace("{n}", String(exhaustedCount))}
+            </p>
+          )}
           <button
             type="button"
             onClick={onLocate}
@@ -173,6 +185,15 @@ export function OptionsMap({
           >
             {locating ?? s.mapLocate}
           </button>
+          {exhaustedCount > 0 && locating === null && (
+            <button
+              type="button"
+              onClick={onRetryFailed}
+              className="mt-2 w-full rounded-xl border border-line py-2 text-sm font-medium text-ink-soft"
+            >
+              {s.mapRetryFailed}
+            </button>
+          )}
         </div>
       )}
     </div>
