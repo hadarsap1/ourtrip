@@ -485,6 +485,8 @@ export const strings = {
   },
 
   common: {
+    noMember: "לא הצלחנו לזהות אתכם — יכול להיות שההתחברות פגה.",
+    signInAgain: "התחברות מחדש",
     save: "שמירה",
     cancel: "ביטול",
     delete: "מחיקה",

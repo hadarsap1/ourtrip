@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
@@ -18,7 +19,7 @@ import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
-  const { member } = useMember();
+  const { member, memberLoading } = useMember();
   // Which feeds this role may open (migration 00027): owners get both and act
   // as the bridge, kids only the family one, guests only theirs. RLS enforces
   // it regardless — this just decides what to render.
@@ -53,7 +54,10 @@ export function MessagesScreen() {
   );
 
   useEffect(() => {
-    if (!member) return;
+    // Nothing to fetch until a member is resolved. When resolution finishes
+    // and produces nobody, `loading` is left as-is on purpose — the render
+    // below only treats it as meaningful once a member exists.
+    if (memberLoading || !member) return;
     let cancelled = false;
     let unsubscribe = () => {};
     let debounce: ReturnType<typeof setTimeout> | null = null;
@@ -88,7 +92,7 @@ export function MessagesScreen() {
       if (debounce) clearTimeout(debounce);
       unsubscribe();
     };
-  }, [member, refresh, showToast, channel]);
+  }, [member, memberLoading, refresh, showToast, channel]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
@@ -111,10 +115,26 @@ export function MessagesScreen() {
     }
   }
 
-  if (loading || !member) {
+  // `loading` only means "this member's data is on its way", so it is only
+  // consulted once there IS a member. Previously the guard was
+  // `loading || !member`, which meant a failed member lookup (an expired
+  // session returns 401) left the screen on "loading…" forever, with nothing
+  // said and nothing to act on — reported from production 2026-08-29.
+  if (memberLoading || (member && loading)) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
+        <Link href="/login" className="font-semibold text-sea underline">
+          {strings.common.signInAgain}
+        </Link>
       </div>
     );
   }
