@@ -1022,4 +1022,7 @@ before any input is parsed, and now also before the `retry_failed` reset.
 | Geocoder responses never become HTML | written to `lat`/`lng`/`place_id`/`location_name` only, rendered through the existing `escapeHtml` in `OptionsMap` | ✅ PASS — reviewed |
 | No key leaves the server | `GOOGLE_MAPS_API_KEY` is read in the Edge Function only; the client gets counts, and a fault as a code, never the key | ✅ PASS — reviewed |
 | Build / lint / 100 unit tests | `npm run build`, `npm run lint`, `npx vitest run` | ✅ PASS |
-| Live run against the real bank (325 unlocated) | — | ⚠️ **PENDING** — needs the migration applied and the function deployed |
+| Migration 00028 applied to production | `place_options.geocode_attempts` present, default 0, partial index created | ✅ PASS — verified live |
+| Function deployed with the owner gate intact | `geocode-places` v2, `verify_jwt=true`, deployed source matches the repo file | ✅ PASS — verified live |
+| No new database advisories from the change | Supabase security advisors after the migration | ✅ PASS — the remaining warnings all predate it and are unrelated to `place_options` |
+| Live run against the real bank (325 unlocated) | — | ⚠️ **PENDING** — needs the owner to press "איתור המקומות על המפה" |
