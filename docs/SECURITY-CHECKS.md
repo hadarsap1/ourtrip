@@ -580,3 +580,106 @@ Notes:
 - **M2 is untouched** by this work: an unlocked document marked "available
   offline" is still stored as plaintext in IndexedDB. The passphrase warning
   covers locked documents only.
+
+## 2026-08-29 — Kid device revocation made real (H1) + offline plaintext warning (M2)
+
+Environment: migration `kid_device_revocation` (repo file `00024_...`),
+`kid-auth` Edge Function rewritten. Closes finding **H1** of
+`docs/SECURITY-REVIEW-2026-08.md`, the one genuine hole the review found.
+
+### What was wrong
+
+Two defects that compounded:
+
+1. `kid_devices.revoked_at` was read in exactly one place — the `unlock`
+   branch of `kid-auth` — and by **no policy**. Once a session existed it never
+   passed through that branch again, so "revoke device" set a timestamp and
+   changed nothing. The tablet kept reading and writing.
+2. The device token **was** the kid's Supabase auth password, and it sits in
+   plaintext `localStorage`. Since the anon key ships to every browser, anyone
+   holding the tablet could read the token and call `signInWithPassword`
+   directly — past the PIN prompt, the attempt counter and the 15-minute
+   lockout, all of which live only in `unlock`.
+
+### What changed
+
+- **`current_member_id()` now refuses to resolve a kid without an active
+  device binding.** That function is the root of every policy in the schema —
+  directly, or via `current_member_role()` / `is_kid_of()` / `is_owner_of()`,
+  and for `storage.objects` too — so revocation now takes effect on the next
+  query everywhere at once. This mirrors how guests always worked
+  (`is_active_guest_of()` re-checks `revoked_at` per query).
+  Fixing `is_kid_of()` instead would **not** have been enough: five policies
+  match on `current_member_id()` without also calling it —
+  `pocket_money_kid_select`, the USING clause of `pocket_expenses_kid_all`,
+  `message_reads_self_all`, `push_subscriptions_self_all`,
+  `members_self_select` — so a revoked kid would have kept reading their pocket
+  money.
+- **The device token is no longer a password.** It identifies the device to
+  `kid-auth` and is stored only as a SHA-256 hash. The auth password is
+  separate, random, never leaves the server, and is **rotated to a fresh value
+  on every unlock** — it exists just long enough to mint one session, so a
+  stolen token has nothing to replay.
+- **`revokeDevice()` goes through the function**, not a direct table UPDATE. A
+  new owner-gated `revoke` action sets `revoked_at` and, once no active device
+  remains for that kid, rotates the auth password to a value nobody knows.
+- **Registration order flipped**: the new binding is inserted *before* old ones
+  are revoked. Under the new rule a kid with zero active devices cannot resolve
+  at all, so the old order would have opened a window where in-flight requests
+  saw nothing.
+
+| Check | Method | Result |
+|---|---|---|
+| Revoking a device stops all reads for that kid (0 rows in itinerary, photos, messages, pocket money, journal) | SQL role emulation with kid claims, before/after `revoked_at` | ⚠️ **PENDING** — migration not applied (see below) |
+| A revoked device's token cannot mint a session via `kid-auth/unlock` | `unlock` filters on `revoked_at is null` → 401 `unknown device` | ✅ PASS — by construction, unchanged from before |
+| A stolen device token cannot sign in directly against Supabase Auth | token is no longer the password; password is random, server-only, rotated per unlock | ✅ PASS — by construction |
+| Owners and guests are unaffected by the new condition | `m.role <> 'kid'` short-circuits; no owner/guest policy touched | ✅ PASS — reviewed |
+| `revoke` rejects a non-owner caller | `ownerCaller()` re-checks `current_member_role() = 'owner'`, same pattern as `create-registration` | ✅ PASS — by construction |
+| `revoke` rejects a device belonging to another trip's kid | trip_id compared against the calling owner's | ✅ PASS — by construction |
+| Policy-evaluation cost of the added EXISTS | partial index `idx_kid_devices_active on kid_devices(member_id) where revoked_at is null` | ✅ PASS — index-backed |
+| Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
+
+### M2 — offline plaintext warning
+
+An offline copy of a **locked** document is ciphertext and safe at rest. An
+**unlocked** one is the file itself, readable from IndexedDB with no passphrase
+in front of it. Marking an unlocked document "available offline" now warns in
+Hebrew and asks for confirmation, naming the passport case and pointing at the
+lock toggle. This is the mitigation the review recommended; it does not change
+where the bytes live. Encrypting every offline copy under the vault key would,
+but it would also make offline access impossible for families who never set a
+passphrase — a behaviour change worth deciding on deliberately rather than
+assuming.
+
+### ⚠️ Before this ships
+
+Live state at the time of writing: **2 kid members, 0 kid devices, 0 vaults, 0
+documents, 0 passkeys.** Nothing is bound yet, so both steps below are
+zero-risk right now and get strictly harder once the tablet is registered.
+
+- **Migration `00024` is not applied.** Applying it was blocked in the session
+  that wrote it (replacing a `SECURITY DEFINER` function is treated as
+  higher-risk than the additive `00023`, which did go through). Until it is
+  applied, revocation still improves — the password rotation and the `unlock`
+  filter both work — but an **already-issued kid session keeps reading until
+  its next cold start**. Apply it, then run the role-emulation check above.
+- **`kid-auth` must be redeployed** (`verify_jwt=false`, per
+  `supabase/config.toml`). The client's `revokeDevice` now calls the new
+  `revoke` action; against the old deployment it returns `unknown action` and
+  revocation fails loudly rather than silently, which is the safe direction.
+- **Order matters**: deploy the function first, then apply the migration. The
+  reverse leaves a window where a kid device cannot re-register.
+
+Notes:
+
+- **`link_member_to_auth_user()` deliberately still returns a role for a
+  revoked kid**, so `AuthGate` renders the shell rather than an error. That is
+  the existing posture for revoked guests too: the gate is client-side routing,
+  RLS is the boundary, and the kid sees empty screens. On the next cold start
+  `needsKidUnlock()` sends them to `/kid-login`, `unlock` returns 401, and
+  `forgetKidDevice()` drops them back to registration with a clear message.
+- **The PIN lockout still resets `failed_attempts` on lock expiry** (5 attempts
+  per 15 minutes). Left as-is: an escalating counter risks locking a child out
+  of their own tablet permanently, and with the token no longer usable as a
+  password the PIN is no longer the only thing standing between a found device
+  and a session.

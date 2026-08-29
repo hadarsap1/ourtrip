@@ -124,6 +124,13 @@ export function DocumentsScreen() {
         });
         showToast(strings.documents.offlineRemoved);
       } else {
+        // An offline copy of a LOCKED document is ciphertext, so it is safe at
+        // rest. An unlocked one is the file itself, sitting readable in
+        // IndexedDB with no passphrase in front of it — a found phone opens it
+        // (security review finding M2). Say so plainly before saving it.
+        if (!doc.pin_protected && !confirm(strings.documents.offlinePlainWarning)) {
+          return;
+        }
         await makeAvailableOffline(doc);
         setOfflineIds((prev) => new Set(prev).add(doc.id));
         showToast(strings.documents.offlineSaved);

@@ -65,12 +65,19 @@ export async function listDevices(): Promise<KidDevice[]> {
   return data;
 }
 
+/**
+ * Revokes a device. This goes through kid-auth rather than updating the row
+ * directly: setting `revoked_at` now stops RLS resolving the kid at all
+ * (migration 00024), and the function additionally rotates the kid's auth
+ * password once no active device is left, so the binding cannot mint a new
+ * session either. A direct table UPDATE would do only half of that.
+ */
 export async function revokeDevice(id: string): Promise<void> {
-  const { error } = await requireClient()
-    .from("kid_devices")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
+  const { status, data } = await invokeKidAuth({
+    action: "revoke",
+    device_id: id,
+  });
+  if (status !== 200 || !data.ok) throw new Error(String(data.error ?? status));
 }
 
 /** Owner generates a one-time registration code (PIN set here). */
