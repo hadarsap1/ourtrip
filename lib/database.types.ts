@@ -198,9 +198,62 @@ export type Database = {
           },
         ]
       }
+      document_passkeys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          credential_id: string
+          id: string
+          label: string
+          last_used_at: string | null
+          trip_id: string
+          wrapped_key_ct: string
+          wrapped_key_iv: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          credential_id: string
+          id?: string
+          label: string
+          last_used_at?: string | null
+          trip_id: string
+          wrapped_key_ct: string
+          wrapped_key_iv: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          credential_id?: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          trip_id?: string
+          wrapped_key_ct?: string
+          wrapped_key_iv?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_passkeys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_passkeys_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_pin: {
         Row: {
           created_at: string
+          iterations: number
+          prf_salt: string | null
           salt: string
           trip_id: string
           updated_at: string
@@ -209,6 +262,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          iterations?: number
+          prf_salt?: string | null
           salt: string
           trip_id: string
           updated_at?: string
@@ -217,6 +272,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          iterations?: number
+          prf_salt?: string | null
           salt?: string
           trip_id?: string
           updated_at?: string

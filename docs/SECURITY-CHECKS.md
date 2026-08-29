@@ -497,3 +497,86 @@ Notes:
   rendered per request and could carry member-specific content; keeping them
   out of the cache removes that question entirely, and was also required to
   stop stale navigation content.
+
+## 2026-08-29 — Vault hardening: passphrase KDF + biometric unlock (M1)
+
+Environment: migration `document_passkeys` (repo file `00023_...`). Closes
+finding **M1** of `docs/SECURITY-REVIEW-2026-08.md` — the vault key was derived
+from a 6–12 digit PIN at PBKDF2-210k, and the salt + verifier are cached
+client-side, so a stolen device allowed an offline brute force of the whole
+10⁶ space in well under a minute.
+
+Two changes, one goal:
+
+1. **Passphrase instead of PIN.** New vaults require ≥10 characters of
+   anything (`MIN_PASSPHRASE_LENGTH`), derived at **600,000** PBKDF2-SHA256
+   iterations. The cost is now stored per vault in `document_pin.iterations`
+   rather than hardcoded, because changing it for an existing vault would make
+   that vault's documents permanently undecryptable. Pre-existing vaults keep
+   `210000` and keep opening with their old PIN — the unlock path deliberately
+   does **not** enforce the new length rule.
+2. **Biometric unlock (WebAuthn PRF).** A device's platform authenticator
+   (Face ID / Touch ID / Android biometric) holds a credential whose PRF
+   extension yields a stable 256-bit secret. That secret AES-GCM-encrypts a
+   copy of the vault key into `document_passkeys.wrapped_key_*`. Day-to-day
+   unlocking therefore costs an attacker 2²⁵⁶, not 10⁶; the passphrase is
+   needed only to enrol a device or to recover one.
+
+**No biometric data is received or stored.** WebAuthn returns a signature and
+the PRF output; face and fingerprint templates never leave the device. There is
+no face-recognition model anywhere in the app, and no new runtime dependency —
+this is `navigator.credentials` plus the existing WebCrypto (CLAUDE.md rule #7).
+
+RLS coverage: `document_passkeys_owner_all` (owner-only, same posture as
+`document_pin`). Kids and guests get no policy → deny-by-default, consistent
+with their zero access to `documents` (rule #2).
+
+**Why the wrapped key is safe to store server-side.** Unlike the PIN's salt +
+verifier — which is exactly what made M1 exploitable — these rows are not
+brute-forceable. The wrapping key is 256 uniformly random bits held in the
+device's secure enclave, so reading the whole table (as an owner, or with the
+entire database) yields nothing without the physical authenticator.
+
+| Check | Method | Result |
+|---|---|---|
+| Wrapped key round-trips to the same vault key; documents sealed before enrolment still open | `lib/docCrypto.test.ts` — wrap → unwrap → decrypt | ✅ PASS |
+| A different PRF secret cannot unwrap the key | unit test, wrong 32-byte secret → rejects | ✅ PASS |
+| Wrapped blob contains no plaintext key material | unit test, asserts ciphertext excludes the raw bits | ✅ PASS |
+| Legacy vaults still open: a vault sealed at 210k does not open at any other iteration count, and the count is read per row rather than assumed | 2 unit tests + `fetchPinRow` reads `document_pin.iterations` | ✅ PASS |
+| Enrolment is impossible while the vault is locked (nothing to wrap) | `enrollPasskey` throws `vault_locked` unless `isVaultUnlocked` | ✅ PASS |
+| PRF secret and cached key bits are zeroed after use | `prfSecret.fill(0)` after wrap/unwrap; `lockVault()` zeroes `cachedBits` | ✅ PASS |
+| Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
+| `document_passkeys` owner-only; kid / guest / anon read zero rows | SQL role emulation, same method as the Sprint 7/8 passes | ⚠️ **PENDING** — migration not yet applied (see below) |
+| Biometric enrol + unlock on the real devices | two phones + the Android tablet | ⚠️ **PENDING** — needs real hardware |
+
+### ⚠️ Before this ships
+
+- **The migration is not applied.** `00023_document_passkeys.sql` exists in the
+  repo but was not run against the project; applying schema changes was not
+  available in the session that wrote it. Until it is applied, `fetchPinRow`'s
+  select on `iterations` / `prf_salt` fails and the vault falls back to its
+  local cache. Apply it, regenerate `lib/database.types.ts` (the new table and
+  columns are currently hand-written to match), then run the role-emulation
+  check above.
+- **PRF support must be verified on the actual devices**, not assumed. It needs
+  a platform authenticator *and* a browser that implements the extension;
+  installed PWAs on iOS are the historically weak spot. Everything
+  feature-detects and fails soft — `isPasskeySupported()` gates the UI,
+  `enrollPrfCredential` throws `prf_unsupported` rather than storing an
+  unusable credential, and the passphrase always works — so an unsupported
+  device degrades to today's behaviour rather than losing access.
+- **Enrolment is per device**, and a lost device is revoked by removing it from
+  the list on the Documents screen. That revocation is real, not cosmetic: the
+  row carrying the wrapped key is deleted, so that authenticator can no longer
+  produce anything useful. (Contrast with kid device revocation — finding H1,
+  still open.)
+
+Notes:
+
+- **Changing the passphrase is still not possible** — it would require
+  re-encrypting every locked document, unchanged from the original design.
+  Enrolling a passkey does not alter that: the passkey wraps the *derived* key,
+  so the passphrase remains the root secret and the sole recovery path.
+- **M2 is untouched** by this work: an unlocked document marked "available
+  offline" is still stored as plaintext in IndexedDB. The passphrase warning
+  covers locked documents only.

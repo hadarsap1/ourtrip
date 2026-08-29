@@ -16,11 +16,18 @@ import {
   unprotectDocument,
 } from "@/lib/data/documents";
 import {
+  enrollPasskey,
   getVaultKey,
   hasDocPin,
+  isThisDeviceEnrolled,
   isVaultUnlocked,
+  listPasskeys,
   lockVault,
+  removePasskey,
+  type VaultPasskey,
 } from "@/lib/data/docPin";
+import { isPasskeySupported } from "@/lib/webauthn";
+import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Document, Trip } from "@/lib/types";
@@ -46,6 +53,13 @@ export function DocumentsScreen() {
   const [pinSheet, setPinSheet] = useState<{ mode: "set" | "enter" } | null>(null);
   const [viewer, setViewer] = useState<{ url: string; mime: string } | null>(null);
   const pendingRef = useRef<((key: CryptoKey) => void) | null>(null);
+
+  // Biometric unlock (WebAuthn): which devices are enrolled, and whether this
+  // one could enrol at all.
+  const [passkeys, setPasskeys] = useState<VaultPasskey[]>([]);
+  const [bioSupported, setBioSupported] = useState(false);
+  const [thisDeviceEnrolled, setThisDeviceEnrolled] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -77,6 +91,9 @@ export function DocumentsScreen() {
         if (!cancelled) {
           setPinExists(await hasDocPin(activeTrip.id));
           setUnlocked(isVaultUnlocked(activeTrip.id));
+          setThisDeviceEnrolled(isThisDeviceEnrolled(activeTrip.id));
+          setPasskeys(await listPasskeys(activeTrip.id));
+          setBioSupported(await isPasskeySupported());
         }
       } catch {
         if (!cancelled) showToast(strings.common.error);
@@ -145,7 +162,44 @@ export function DocumentsScreen() {
     }
   }
 
-  // Runs an action with the vault key, prompting for the PIN first if locked.
+  // Binds this device's authenticator to the vault. Only reachable while the
+  // vault is open — the key has to be in memory to be wrapped.
+  async function enrollThisDevice() {
+    if (!trip || !member || enrolling) return;
+    setEnrolling(true);
+    try {
+      await enrollPasskey(trip.id, member.id);
+      setThisDeviceEnrolled(true);
+      setPasskeys(await listPasskeys(trip.id));
+      showToast(strings.documents.bioEnrollDone);
+    } catch (err) {
+      const reason = (err as Error).message;
+      showToast(
+        reason === "prf_unsupported"
+          ? strings.documents.bioUnsupported
+          : reason === "passkey_cancelled"
+            ? strings.documents.bioCancelled
+            : strings.common.error
+      );
+    } finally {
+      setEnrolling(false);
+    }
+  }
+
+  async function removeDevice(id: string) {
+    if (!trip) return;
+    try {
+      await removePasskey(trip.id, id);
+      setPasskeys(await listPasskeys(trip.id));
+      setThisDeviceEnrolled(isThisDeviceEnrolled(trip.id));
+      showToast(strings.documents.bioRemoved);
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
+  // Runs an action with the vault key, prompting for the passphrase (or a
+  // biometric) first if locked.
   function withKey(action: (key: CryptoKey) => void) {
     if (!trip) return;
     const key = getVaultKey(trip.id);
@@ -373,16 +427,74 @@ export function DocumentsScreen() {
       )}
 
       {!isKid && pinExists && unlocked && (
-        <button
-          type="button"
-          onClick={() => {
-            lockVault();
-            setUnlocked(false);
-          }}
-          className="w-full text-center text-sm font-medium text-ink-soft"
-        >
-          🔒 {strings.documents.lockNow}
-        </button>
+        <>
+          {/* Enrolling needs the key in memory, so it lives behind the unlock. */}
+          {bioSupported && !thisDeviceEnrolled && (
+            <div className="rounded-2xl border border-line bg-white p-4">
+              <h3 className="mb-1 font-semibold text-ink">
+                {strings.documents.bioEnrollTitle}
+              </h3>
+              <p className="mb-3 text-sm text-ink-soft">
+                {strings.documents.bioEnrollBody}
+              </p>
+              <button
+                type="button"
+                disabled={enrolling}
+                onClick={() => void enrollThisDevice()}
+                className="w-full rounded-xl bg-sea py-2.5 font-semibold text-white disabled:opacity-50"
+              >
+                {strings.documents.bioEnroll}
+              </button>
+            </div>
+          )}
+
+          {passkeys.length > 0 && (
+            <div className="rounded-2xl border border-line bg-white p-4">
+              <h3 className="mb-2 font-semibold text-ink">
+                {strings.documents.bioDevicesTitle}
+              </h3>
+              <ul className="space-y-2">
+                {passkeys.map((pk) => (
+                  <li
+                    key={pk.id}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-ink">
+                        {pk.label}
+                      </span>
+                      <span className="block text-xs text-ink-soft">
+                        {pk.lastUsedAt
+                          ? `${strings.documents.bioLastUsed} ${formatDate(
+                              pk.lastUsedAt.slice(0, 10)
+                            )}`
+                          : strings.documents.bioNeverUsed}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void removeDevice(pk.id)}
+                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-rose-600"
+                    >
+                      {strings.documents.bioRemove}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              lockVault();
+              setUnlocked(false);
+            }}
+            className="w-full text-center text-sm font-medium text-ink-soft"
+          >
+            🔒 {strings.documents.lockNow}
+          </button>
+        </>
       )}
 
       {trip && !isKid && (
@@ -403,6 +515,7 @@ export function DocumentsScreen() {
         <DocPinSheet
           mode={pinSheet.mode}
           tripId={trip.id}
+          hasPasskeys={passkeys.length > 0}
           onClose={() => {
             pendingRef.current = null;
             setPinSheet(null);
@@ -411,6 +524,7 @@ export function DocumentsScreen() {
             setPinSheet(null);
             setPinExists(true);
             setUnlocked(true);
+            void listPasskeys(trip.id).then(setPasskeys);
             const key = trip ? getVaultKey(trip.id) : null;
             const action = pendingRef.current;
             pendingRef.current = null;
