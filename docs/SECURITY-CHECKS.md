@@ -546,18 +546,21 @@ entire database) yields nothing without the physical authenticator.
 | Enrolment is impossible while the vault is locked (nothing to wrap) | `enrollPasskey` throws `vault_locked` unless `isVaultUnlocked` | ✅ PASS |
 | PRF secret and cached key bits are zeroed after use | `prfSecret.fill(0)` after wrap/unwrap; `lockVault()` zeroes `cachedBits` | ✅ PASS |
 | Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
-| `document_passkeys` owner-only; kid / guest / anon read zero rows | SQL role emulation, same method as the Sprint 7/8 passes | ⚠️ **PENDING** — migration not yet applied (see below) |
+| `document_passkeys` owner-only; kid / anon read zero rows | SQL role emulation, probe row in a rolled-back transaction: owner **1**, kid **0**, anon **0** (same for `document_pin`) | ✅ PASS (2026-08-29) |
 | Biometric enrol + unlock on the real devices | two phones + the Android tablet | ⚠️ **PENDING** — needs real hardware |
 
-### ⚠️ Before this ships
+### Applied
 
-- **The migration is not applied.** `00023_document_passkeys.sql` exists in the
-  repo but was not run against the project; applying schema changes was not
-  available in the session that wrote it. Until it is applied, `fetchPinRow`'s
-  select on `iterations` / `prf_salt` fails and the vault falls back to its
-  local cache. Apply it, regenerate `lib/database.types.ts` (the new table and
-  columns are currently hand-written to match), then run the role-emulation
-  check above.
+`00023` was applied on 2026-08-29 and verified against the live schema:
+`document_pin.iterations` (not null, default 210000), `document_pin.prf_salt`
+(nullable), and `document_passkeys` with `document_passkeys_owner_all`.
+`lib/database.types.ts` was regenerated — the hand-written entries matched the
+generated output exactly, so no drift. `get_advisors(security)` reports no new
+findings: the new table is not flagged, and only the pre-existing accepted
+WARNs remain.
+
+### ⚠️ Still to verify
+
 - **PRF support must be verified on the actual devices**, not assumed. It needs
   a platform authenticator *and* a browser that implements the extension;
   installed PWAs on iOS are the historically weak spot. Everything
@@ -630,10 +633,10 @@ Two defects that compounded:
 
 | Check | Method | Result |
 |---|---|---|
-| Revoking a device stops all reads for that kid (0 rows in itinerary, photos, messages, pocket money, journal) | SQL role emulation with kid claims, before/after `revoked_at` | ⚠️ **PENDING** — migration not applied (see below) |
+| Revoking a device stops all reads for that kid | SQL role emulation, kid claims, one rolled-back transaction: **active device** → resolves, 227 itinerary days, 1 pocket_money; **revoked** → does not resolve, **0** days, **0** pocket_money | ✅ PASS (2026-08-29) |
 | A revoked device's token cannot mint a session via `kid-auth/unlock` | `unlock` filters on `revoked_at is null` → 401 `unknown device` | ✅ PASS — by construction, unchanged from before |
 | A stolen device token cannot sign in directly against Supabase Auth | token is no longer the password; password is random, server-only, rotated per unlock | ✅ PASS — by construction |
-| Owners and guests are unaffected by the new condition | `m.role <> 'kid'` short-circuits; no owner/guest policy touched | ✅ PASS — reviewed |
+| Owners are unaffected by the new condition | same probe, owner control row: resolves, 227 itinerary days, 1 pocket_money | ✅ PASS (2026-08-29) |
 | `revoke` rejects a non-owner caller | `ownerCaller()` re-checks `current_member_role() = 'owner'`, same pattern as `create-registration` | ✅ PASS — by construction |
 | `revoke` rejects a device belonging to another trip's kid | trip_id compared against the calling owner's | ✅ PASS — by construction |
 | Policy-evaluation cost of the added EXISTS | partial index `idx_kid_devices_active on kid_devices(member_id) where revoked_at is null` | ✅ PASS — index-backed |
@@ -651,24 +654,32 @@ but it would also make offline access impossible for families who never set a
 passphrase — a behaviour change worth deciding on deliberately rather than
 assuming.
 
-### ⚠️ Before this ships
+### Deployed and applied
 
-Live state at the time of writing: **2 kid members, 0 kid devices, 0 vaults, 0
-documents, 0 passkeys.** Nothing is bound yet, so both steps below are
-zero-risk right now and get strictly harder once the tablet is registered.
+Both shipped on 2026-08-29, in the required order:
 
-- **Migration `00024` is not applied.** Applying it was blocked in the session
-  that wrote it (replacing a `SECURITY DEFINER` function is treated as
-  higher-risk than the additive `00023`, which did go through). Until it is
-  applied, revocation still improves — the password rotation and the `unlock`
-  filter both work — but an **already-issued kid session keeps reading until
-  its next cold start**. Apply it, then run the role-emulation check above.
-- **`kid-auth` must be redeployed** (`verify_jwt=false`, per
-  `supabase/config.toml`). The client's `revokeDevice` now calls the new
-  `revoke` action; against the old deployment it returns `unknown action` and
-  revocation fails loudly rather than silently, which is the safe direction.
-- **Order matters**: deploy the function first, then apply the migration. The
-  reverse leaves a window where a kid device cannot re-register.
+1. **`kid-auth` redeployed** — version 7, ACTIVE, `verify_jwt=false` preserved
+   per `supabase/config.toml`.
+2. **Migration `00024` applied** — `current_member_id()` carries the kid-device
+   condition live, and `idx_kid_devices_active` exists.
+
+The pocket-money column of the probe is the one worth keeping: it went to
+**0** on revocation, and that is precisely the row a fix in `is_kid_of()`
+alone would have left readable. `get_advisors(security)` after the change
+reports no new findings.
+
+All probe rows (kid device, pocket money, document pin, passkey) were created
+inside transactions that were rolled back; a follow-up count confirms
+**0 kid_devices, 0 pocket_money, 0 document_passkeys** persist.
+
+### ⚠️ Still to verify
+
+- **Register + unlock + revoke on the real tablet.** The rewritten `kid-auth`
+  changes the credential model, and the whole flow has never run end to end on
+  hardware — the Sprint 6 log still carries a PENDING for PIN unlock, blocked
+  back then on the Email provider being disabled. Bind the tablet, unlock with
+  the PIN, then press revoke in the owner UI and confirm the tablet drops to
+  registration on its next cold start.
 
 Notes:
 
