@@ -14,7 +14,7 @@
 // skips rows that have used up their attempts, so each call takes fresh work.
 //
 // PROVIDER CHAIN, tried in order until one answers:
-//   1. Google Places Text Search — the only one of the three that knows small
+//   1. Places API (New) Text Search — the only one of the three that knows small
 //      businesses. Most of this bank is cafés, homestays and boutique hotels
 //      ("Naia Yoga+Cafe", "Manao Villas"), which is exactly what the previous
 //      Geocoding-only path could not resolve: Geocoding resolves ADDRESSES, and
@@ -25,9 +25,10 @@
 //      resort when the Google calls fail. Nominatim asks callers to stay at
 //      roughly one request a second and to identify themselves, so that path is
 //      throttled and sends a User-Agent.
-// Both Google APIs answer HTTP 200 with an error in the body, so `status` is
-// checked and reported: a disabled API or a browser-restricted key used to look
-// exactly like "this place does not exist" in the logs.
+// The two Google APIs report failure differently — Geocoding answers HTTP 200
+// with the error in the body, Places (New) uses real status codes — so each is
+// checked its own way and both are reported: a disabled API or a
+// browser-restricted key used to look exactly like "this place does not exist".
 //
 // QUERY LADDER: the bank's `country` is a free-text Hebrew label ("ויטנאם") and
 // is sometimes plain wrong (Philippine resorts saved under Vietnam, because the
@@ -138,10 +139,12 @@ function queriesFor(row: Row, countryName: string | null): string[] {
   return out.filter((q) => q !== "");
 }
 
-/** Non-OK Google `status` values worth shouting about, as opposed to a plain
- *  miss. These are configuration faults — the key is restricted to browser
- *  referrers, or the API is not enabled on the project — and they previously
- *  read as "place not found" in the logs, which sent debugging the wrong way. */
+/** Geocoding `status` values worth shouting about, as opposed to a plain miss
+ *  (which is ZERO_RESULTS). These are configuration faults — the key is
+ *  restricted to browser referrers, or the API is not enabled on the project —
+ *  and they previously read as "place not found" in the logs, which sent
+ *  debugging the wrong way. Places (New) needs no such list: it fails with a
+ *  real HTTP status. */
 const GOOGLE_FAULTS = new Set([
   "REQUEST_DENIED",
   "OVER_QUERY_LIMIT",
@@ -151,6 +154,8 @@ const GOOGLE_FAULTS = new Set([
 
 type GoogleOutcome = { hit: Hit | null; fault: string | null };
 
+/** Fetch + fault check for the classic query-string Google APIs, which answer
+ *  HTTP 200 and put the error in the body. Only Geocoding uses this now. */
 async function googleJson(url: string): Promise<{ data: any; fault: string | null }> {
   try {
     const res = await fetch(url);
@@ -168,34 +173,69 @@ async function googleJson(url: string): Promise<{ data: any; fault: string | nul
   }
 }
 
-/** Places Text Search: resolves business names, which is what most of this
- *  bank is. Region-biased by the row's country when we know its ISO code. */
+/** Places API (New) Text Search: resolves business names, which is what most of
+ *  this bank is. Region-biased by the row's country when we know its ISO code.
+ *
+ *  The NEW API, not the legacy `/maps/api/place/textsearch/json`: Google no
+ *  longer lets recently-created Cloud projects enable legacy Places, so on this
+ *  project that endpoint cannot be turned on at all. Three things differ and
+ *  all three matter here — it is a POST, the key travels in a header, and a
+ *  field mask must name every field read (Google bills by the fields asked
+ *  for). It also returns real HTTP status codes, so unlike Geocoding a refused
+ *  key is a non-200 rather than a 200 carrying an error string; an empty result
+ *  is a 200 with no `places` key. */
 async function placesText(
   query: string,
   key: string,
   regionCode: string | null
 ): Promise<GoogleOutcome> {
-  const url =
-    `https://maps.googleapis.com/maps/api/place/textsearch/json` +
-    `?query=${encodeURIComponent(query)}&key=${key}` +
-    (regionCode ? `&region=${encodeURIComponent(regionCode.toLowerCase())}` : "");
-  const { data, fault } = await googleJson(url);
-  if (fault) return { hit: null, fault };
-  const r = data?.results?.[0];
-  const loc = r?.geometry?.location;
-  if (typeof loc?.lat !== "number" || typeof loc?.lng !== "number") {
-    return { hit: null, fault: null };
+  try {
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask":
+          "places.id,places.location,places.formattedAddress,places.displayName",
+      },
+      body: JSON.stringify({
+        textQuery: query,
+        maxResultCount: 1,
+        ...(regionCode ? { regionCode: regionCode.toUpperCase() } : {}),
+      }),
+    });
+
+    if (!res.ok) {
+      // PERMISSION_DENIED here is the browser-restricted key or the API not
+      // being enabled — the two faults that used to read as "place not found".
+      const body = await res.json().catch(() => null);
+      const err = body?.error;
+      return {
+        hit: null,
+        fault: `${err?.status ?? `http_${res.status}`}: ${err?.message ?? ""}`.trim(),
+      };
+    }
+
+    const data = await res.json();
+    const p = data?.places?.[0];
+    const lat = p?.location?.latitude;
+    const lng = p?.location?.longitude;
+    if (typeof lat !== "number" || typeof lng !== "number") {
+      return { hit: null, fault: null };
+    }
+    return {
+      hit: {
+        lat,
+        lng,
+        placeId: p?.id ?? null,
+        label: p?.formattedAddress ?? p?.displayName?.text ?? null,
+        provider: "places",
+      },
+      fault: null,
+    };
+  } catch (e) {
+    return { hit: null, fault: `fetch_failed: ${(e as Error).message}` };
   }
-  return {
-    hit: {
-      lat: loc.lat,
-      lng: loc.lng,
-      placeId: r?.place_id ?? null,
-      label: r?.formatted_address ?? r?.name ?? null,
-      provider: "places",
-    },
-    fault: null,
-  };
 }
 
 /** Geocoding: addresses and administrative places — provinces, parks, communes

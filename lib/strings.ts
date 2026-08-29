@@ -318,7 +318,7 @@ export const strings = {
     // fault, and the fix is in the Google Cloud console — say so instead of
     // letting it look like the places are simply obscure.
     mapLocateFault:
-      "שירות המפות דחה את הבקשות — צריך לבדוק את מפתח Google במסוף Google Cloud (Places API ו-Geocoding API מופעלים, והמפתח לא מוגבל לדפדפן).",
+      "שירות המפות דחה את הבקשות — צריך לבדוק את מפתח Google במסוף Google Cloud (Places API (New) ו-Geocoding API מופעלים, והמפתח לא מוגבל לדפדפן).",
     mapExhausted:
       "‏{n} מקומות לא נמצאו אחרי כמה ניסיונות. אפשר לתקן להם את האזור או המדינה ולנסות שוב.",
     mapRetryFailed: "ניסיון נוסף למקומות שלא נמצאו",
