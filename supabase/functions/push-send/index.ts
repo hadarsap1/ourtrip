@@ -104,23 +104,33 @@ async function familyIds(tripId: string): Promise<string[]> {
 async function handleWallMessage(messageId: string): Promise<number> {
   const { data: msg } = await service
     .from("messages")
-    .select("id, body, sender_id, trip_id")
+    .select("id, body, sender_id, trip_id, channel")
     .eq("id", messageId)
     .maybeSingle();
   if (!msg) return 0;
 
   const { data: members } = await service
     .from("members")
-    .select("id, display_name")
+    .select("id, display_name, role")
     .eq("trip_id", msg.trip_id);
   const sender = members?.find((m) => m.id === msg.sender_id);
+
+  // Notify only the roles that can actually READ this feed (migration 00027).
+  // Without this the split would leak by notification: a guest would get a
+  // push preview of a message the policies forbid them to open.
+  const audience = msg.channel === "guests"
+    ? ["owner", "guest"]
+    : ["owner", "kid"];
   const recipients = (members ?? [])
-    .map((m) => m.id)
-    .filter((id) => id !== msg.sender_id);
+    .filter((m) => audience.includes(m.role) && m.id !== msg.sender_id)
+    .map((m) => m.id);
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;
   return pushToMembers(recipients, {
-    title: "הודעה חדשה בקיר המשפחתי 💬",
+    title:
+      msg.channel === "guests"
+        ? "הודעה חדשה בקיר האורחים 💬"
+        : "הודעה חדשה בקיר המשפחתי 💬",
     body: sender ? `${sender.display_name}: ${preview}` : preview,
     url: "/messages",
     tag: "wall",

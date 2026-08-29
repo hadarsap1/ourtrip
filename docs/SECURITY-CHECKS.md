@@ -922,3 +922,81 @@ inside the permission error — it was never stored anywhere, but it is burned.
 Generate a fresh one.
 
 Until both sides are set, the gate stays fail-open and behaviour is unchanged.
+
+## 2026-08-29 (evening) — M5 wall split, M2 offline encryption, L1 decision
+
+Owners made the three calls the review left to them. Migrations `00027` applied,
+`push-send` redeployed (v11).
+
+### M5 — the wall is now two feeds
+
+`messages.channel` (`family` | `guests`):
+
+- **family** — owners + kids. Guests cannot read or write it.
+- **guests** — owners + guests. Kids cannot read or write it.
+
+Parents are in both and are the bridge. Kids are kept out of the guest feed
+**entirely** rather than given read-only access, on the reasoning that a feed a
+child can read is a feed a child can be addressed in.
+
+Verified by role emulation against the live database, one probe message in each
+feed, all inside a rolled-back transaction:
+
+| Role | family visible | guests visible | cross-channel write |
+|---|---|---|---|
+| kid | **1** | **0** | into `guests` → **blocked** |
+| guest | **0** | **1** | into `family` → **blocked** |
+| owner | 1 | 1 | — (both, by design) |
+
+Neither kids nor guests have an UPDATE policy on `messages` — they never did —
+so neither can move an existing message between channels. Deny-by-default
+covers what would otherwise need a guard trigger.
+
+**The push fan-out had to change too, or the split would have leaked by
+notification.** `handleWallMessage` previously notified every member of the
+trip; a guest would have received a push *preview* of a family message the
+policies forbid them to open. It now derives the audience from the channel.
+
+DECISIONS #15 is struck through and superseded by a new #18.
+
+### M2 — offline copies are encrypted at rest
+
+`makeAvailableOffline` now stores ciphertext. A `pin_protected` document was
+already its own ciphertext and is saved unchanged (`offlineEncrypted: false` —
+`decryptDocument` owns that unwrapping); everything else gets an AES-GCM layer
+under the vault key.
+
+Consequences, accepted deliberately:
+
+- **Taking a document offline now requires the vault.** That is the point — the
+  old behaviour wrote the passport to IndexedDB in the clear.
+- Opening online still needs no key, so the common path is unchanged.
+  `openDocument` returns `"needs-key"` only when an encrypted offline copy is
+  the *only* copy, and the screen prompts then.
+- Removing an offline copy needs no key either.
+- `offlineEncrypted` is optional on the stored record and absent means false,
+  so a legacy plaintext copy still opens instead of failing to decrypt. There
+  are none today (0 documents), but the flag makes that explicit rather than
+  implied.
+
+The confirm dialog added this morning is gone — it warned about a hazard that
+no longer exists.
+
+### L1 — `xlsx@0.18.5` stays
+
+Owners' call, and the right one for this app: only a parent ever supplies a
+file, the fixed builds exist only on SheetJS's own CDN rather than npm, and the
+`.xlsx` path is an advertised Google Sheets workflow. Vendoring the CDN build
+would mean hand-updating a checked-in bundle forever; dropping it would break a
+real workflow to close a hole nobody can reach. Recorded as an accepted risk —
+revisit if the import ever accepts a file from outside the family.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid cannot read or write the guest feed | role emulation, live | ✅ PASS |
+| Guest cannot read or write the family feed | role emulation, live | ✅ PASS |
+| Owner sees both feeds | role emulation, live | ✅ PASS |
+| Push audience follows the channel | `handleWallMessage` derives it from `msg.channel` | ✅ PASS — reviewed |
+| Offline copy of an unlocked document is ciphertext | `makeAvailableOffline` encrypts unless `pin_protected` | ✅ PASS — reviewed |
+| Build / lint / typecheck / 100 unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
+| End-to-end on real devices (two feeds, offline docs) | — | ⚠️ **PENDING** — needs the phones and tablet |
