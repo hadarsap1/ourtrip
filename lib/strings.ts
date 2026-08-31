@@ -297,6 +297,14 @@ export const strings = {
     groupExplore: "בסביבה",
     groupMemories: "זיכרונות",
     groupFamily: "משפחה וניהול",
+    // redesign 3b
+    emergencyMeta: "‏112 · שגרירות · ביטוח",
+    checklistState: "{done} מתוך {total}",
+    devicesState: "‏{n} טאבלטים",
+    guestsState: "‏{n} מוזמנים",
+    notificationsState: "התראות ותזכורות",
+    pocketState: "דמי כיס לילדים",
+    memoryBookState: "יומן ותמונות להדפסה",
   },
 
   memoryBook: {
