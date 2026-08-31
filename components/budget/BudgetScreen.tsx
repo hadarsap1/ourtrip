@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { TicketIcon } from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
+import { getTodayCountryCode } from "@/lib/data/today";
+import { currencyForCountry } from "@/lib/currencies";
 import { listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { resolveBudgetTotals } from "@/lib/budget";
@@ -38,6 +40,8 @@ export function BudgetScreen() {
   } | null>(null);
   const [editingTotal, setEditingTotal] = useState(false);
   const [quickLines, setQuickLines] = useState(false);
+  // Today's local currency, so a new expense opens in the money you're holding.
+  const [localCurrency, setLocalCurrency] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -64,6 +68,11 @@ export function BudgetScreen() {
         return;
       }
       setTrip(activeTrip);
+      void getTodayCountryCode(activeTrip.id)
+        .then((code) => {
+          if (!cancelled) setLocalCurrency(currencyForCountry(code));
+        })
+        .catch(() => {});
       try {
         await refresh(activeTrip.id);
       } catch {
@@ -465,6 +474,7 @@ export function BudgetScreen() {
         open={expenseForm !== null}
         expense={expenseForm?.expense ?? null}
         categories={categories}
+        localCurrency={localCurrency}
         onClose={() => setExpenseForm(null)}
         onDone={(message) => {
           setExpenseForm(null);

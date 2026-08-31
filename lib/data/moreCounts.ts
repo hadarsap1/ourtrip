@@ -1,6 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import { getActiveTrip } from "@/lib/data/trip";
-import { todayISO } from "@/lib/format";
+import { getTodayCountryCode } from "@/lib/data/today";
 
 export type MoreCounts = {
   recommendations: number;
@@ -124,7 +124,7 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     countChecklistItems(supabase, trip.id, true),
     countKidDevices(supabase, trip.id),
     countGuests(supabase, trip.id),
-    todaysCountry(supabase, trip.id),
+    getTodayCountryCode(trip.id).catch(() => null),
   ]);
 
   return {
@@ -205,30 +205,5 @@ async function countGuests(supabase: Client, tripId: string): Promise<number> {
     return count ?? 0;
   } catch {
     return 0;
-  }
-}
-
-/**
- * The country we're in today, so the emergency row can name it. Multi-country
- * by construction (CLAUDE.md rule #9): it comes from today's itinerary day, not
- * from a configured destination.
- */
-async function todaysCountry(
-  supabase: Client,
-  tripId: string
-): Promise<string | null> {
-  try {
-    const { data } = await supabase
-      .from("itinerary_days")
-      .select("country_code")
-      .eq("trip_id", tripId)
-      .lte("date", todayISO())
-      .not("country_code", "is", null)
-      .order("date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data?.country_code ?? null;
-  } catch {
-    return null;
   }
 }

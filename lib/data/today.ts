@@ -72,3 +72,35 @@ export async function loadToday(): Promise<{
     };
   }
 }
+
+/**
+ * The country we're in today, as a 2-letter code. Falls back to the offline
+ * snapshot, then to the most recent past day with a country set — so it still
+ * answers on a travel day that has no itinerary row of its own.
+ *
+ * Multi-country by construction (CLAUDE.md rule #9): it reads the itinerary,
+ * never a configured destination.
+ */
+export async function getTodayCountryCode(
+  tripId: string
+): Promise<string | null> {
+  const date = todayISO();
+  try {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error("unavailable");
+    const { data } = await supabase
+      .from("itinerary_days")
+      .select("country_code")
+      .eq("trip_id", tripId)
+      .lte("date", date)
+      .not("country_code", "is", null)
+      .order("date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data?.country_code) return data.country_code;
+  } catch {
+    // offline — fall through to the snapshot
+  }
+  const snapshot = await readTodaySnapshot();
+  return snapshot?.day?.country_code ?? null;
+}

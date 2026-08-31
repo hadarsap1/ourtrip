@@ -215,6 +215,10 @@ export const strings = {
     currency: "מטבע",
     category: "קטגוריה",
     categoryTapHint: "בחירת קטגוריה שומרת את ההוצאה",
+    // redesign 3d
+    approxIls: "≈ {ils}",
+    rateToday: "שער {rate} מהיום",
+    localCurrencyHint: "המטבע המקומי נבחר אוטומטית לפי המדינה שבה אתם היום",
     description: "תיאור (לא חובה)",
     date: "תאריך",
     expenseSaved: "ההוצאה נשמרה",
@@ -804,6 +808,10 @@ export const strings = {
     deleteConfirm: "למחוק את הרשומה?",
     sharedWithGuests: "משותף עם האורחים",
     shareToggle: "שיתוף עם אורחים",
+    // redesign 3c
+    todayEyebrow: "היומן של היום",
+    wroteCount: "{n} מתוך {total} כתבו",
+    photoAttached: "תמונה צורפה",
   },
 
   photos: {
