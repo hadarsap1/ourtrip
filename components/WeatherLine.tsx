@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { describeWeather, getDayWeather, type DayWeather } from "@/lib/data/weather";
+import { RainDropIcon, WarningIcon, WeatherIcon } from "@/components/icons";
+import { getDayWeather, type DayWeather } from "@/lib/data/weather";
 import { strings } from "@/lib/strings";
 
 // Compact per-day forecast line (timeline + Today). When the day has outdoor
@@ -30,24 +31,27 @@ export function WeatherLine({
   }, [date, lat, lng]);
 
   if (!weather) return null;
-  const { icon } = describeWeather(weather.weatherCode);
   const rainWarning = hasOutdoor && weather.precipitationChance > 50;
 
   return (
     <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
-      <span aria-hidden="true">{icon}</span>
+      <WeatherIcon code={weather.weatherCode} className="h-3.5 w-3.5 text-sun" />
       <span dir="ltr">
         {weather.tempMin}–{weather.tempMax}°
       </span>
       {weather.precipitationChance >= 20 && (
-        <span dir="ltr">💧{weather.precipitationChance}%</span>
+        <span className="inline-flex items-center gap-0.5">
+          <RainDropIcon className="h-3 w-3 text-sea" />
+          <span dir="ltr">{weather.precipitationChance}%</span>
+        </span>
       )}
       {rainWarning && (
         <span
-          className="rounded-full bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-700"
+          className="inline-flex items-center gap-1 rounded-full bg-sun-tint px-1.5 py-0.5 font-bold text-sun-deep"
           title={strings.weather.rainAlert}
         >
-          ⚠️ {strings.weather.rain}
+          <WarningIcon className="h-3 w-3" />
+          {strings.weather.rain}
         </span>
       )}
     </span>

@@ -1,24 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
+import {
+  AttractionIcon,
+  BedIcon,
+  CalendarIcon,
+  CarIcon,
+  FileIcon,
+  type IconProps,
+  LinkIcon,
+  PinIcon,
+  PlaneIcon,
+  TrainIcon,
+} from "@/components/icons";
 import { getBookingFileUrl } from "@/lib/data/bookings";
 import { formatDate, formatMoney } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import type { Booking, BookingStatus, BookingType } from "@/lib/types";
 
-const TYPE_ICON: Record<BookingType, string> = {
-  flight: "✈️",
-  hotel: "🏨",
-  train: "🚆",
-  attraction: "🎡",
-  car_rental: "🚗",
-  other: "📌",
+const TYPE_ICON: Record<BookingType, ComponentType<IconProps>> = {
+  flight: PlaneIcon,
+  hotel: BedIcon,
+  train: TrainIcon,
+  attraction: AttractionIcon,
+  car_rental: CarIcon,
+  other: PinIcon,
 };
 
 const STATUS_CLASS: Record<BookingStatus, string> = {
-  booked: "bg-sky-100 text-sky-700",
-  paid: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-rose-100 text-rose-600",
+  booked: "bg-paper-deep text-ink-soft",
+  paid: "bg-sea-tint text-sea-deep",
+  cancelled: "bg-alert-tint text-alert",
 };
 
 export function BookingsList({
@@ -53,7 +65,7 @@ export function BookingsList({
       <button
         type="button"
         onClick={onAdd}
-        className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+        className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-white hover:bg-sea-deep"
       >
         {strings.bookings.add}
       </button>
@@ -73,6 +85,7 @@ function BookingCard({
   onError: () => void;
 }) {
   const [opening, setOpening] = useState(false);
+  const TypeIcon = TYPE_ICON[booking.type];
 
   async function openFile() {
     if (!booking.file_path || opening) return;
@@ -88,14 +101,16 @@ function BookingCard({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+    <section className="rounded-[18px] border border-line bg-white p-3">
       <button
         type="button"
         onClick={onEdit}
         className="flex w-full items-start justify-between gap-2 text-start"
       >
-        <span className="flex min-w-0 items-baseline gap-2">
-          <span aria-hidden="true">{TYPE_ICON[booking.type]}</span>
+        <span className="flex min-w-0 items-start gap-2.5">
+          <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-sea-tint text-sea-deep">
+            <TypeIcon className="h-[17px] w-[17px]" strokeWidth={1.7} />
+          </span>
           <span className="min-w-0">
             <span className="block truncate font-semibold text-ink">
               {booking.title}
@@ -142,9 +157,10 @@ function BookingCard({
             type="button"
             onClick={() => void openFile()}
             disabled={opening}
-            className="rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line disabled:opacity-50"
           >
-            📄 {strings.bookings.openFile}
+            <FileIcon className="h-3.5 w-3.5" />
+            {strings.bookings.openFile}
           </button>
         )}
         {booking.link_url && (
@@ -152,17 +168,19 @@ function BookingCard({
             href={booking.link_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line"
+            className="flex items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line"
           >
-            🔗 {strings.bookings.openLink}
+            <LinkIcon className="h-3.5 w-3.5" />
+            {strings.bookings.openLink}
           </a>
         )}
         <button
           type="button"
           onClick={onAddToDay}
-          className="rounded-lg bg-sea-tint px-2.5 py-1.5 text-sea hover:bg-sea-tint"
+          className="flex items-center gap-1.5 rounded-lg bg-sea-tint px-2.5 py-1.5 text-sea hover:bg-sea-tint"
         >
-          📅 {strings.bookings.addToDay}
+          <CalendarIcon className="h-3.5 w-3.5" />
+          {strings.bookings.addToDay}
         </button>
       </div>
     </section>

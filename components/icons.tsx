@@ -345,6 +345,52 @@ export const TicketIcon = (p: IconProps) => (
 
 export const FileIcon = DocumentIcon;
 
+export const TrainIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <rect x="6" y="3.5" width="12" height="12.5" rx="3" />
+    <path d="M6.5 10h11" />
+    <path d="M9.5 13h.01M14.5 13h.01" />
+    <path d="M8.5 16 6.5 20M15.5 16l2 4" />
+  </Glyph>
+);
+
+export const CarIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M4 16.5v-3.2l1.8-4.4A1.6 1.6 0 0 1 7.3 8h9.4a1.6 1.6 0 0 1 1.5 1l1.8 4.3v3.2" />
+    <path d="M4 13.5h16" />
+    <path d="M6.5 16.5v1.8M17.5 16.5v1.8" />
+    <path d="M7.5 16h.01M16.5 16h.01" />
+  </Glyph>
+);
+
+export const AttractionIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <circle cx="12" cy="10.5" r="6.5" />
+    <path d="M12 4v13M5.5 10.5h13M7.4 5.9l9.2 9.2M16.6 5.9l-9.2 9.2" />
+    <path d="M9 21h6l-3-4z" />
+  </Glyph>
+);
+
+export const RainDropIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M12 3.5s5 5.7 5 9a5 5 0 0 1-10 0c0-3.3 5-9 5-9z" />
+  </Glyph>
+);
+
+export const LinkIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.8}>
+    <path d="M10 13.5a3.6 3.6 0 0 0 5.2.3l2.6-2.6a3.6 3.6 0 0 0-5.1-5.1l-1.4 1.4" />
+    <path d="M14 10.5a3.6 3.6 0 0 0-5.2-.3l-2.6 2.6a3.6 3.6 0 0 0 5.1 5.1l1.4-1.4" />
+  </Glyph>
+);
+
+export const CalendarIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.8}>
+    <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+    <path d="M3.5 10h17M8 3.5v4M16 3.5v4" />
+  </Glyph>
+);
+
 export const ShareIcon = (p: IconProps) => (
   <Glyph {...p}>
     <path d="M12 15V4" />

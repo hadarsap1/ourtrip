@@ -14,8 +14,6 @@ import { useIsKidDevice } from "@/lib/useKidDevice";
 import { useMember } from "@/lib/useMember";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 
-export const RAIL_WIDTH = 216;
-
 function RailRow({
   item,
   active,

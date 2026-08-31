@@ -69,17 +69,20 @@ export async function getDayWeather(
   }
 }
 
-/** WMO weather code → emoji + Hebrew label. */
-export function describeWeather(code: number): { icon: string; label: string } {
+/**
+ * WMO weather code → Hebrew label. The picture is drawn, not emoji, and lives
+ * in components/icons.tsx as WeatherIcon — the two share this grouping.
+ */
+export function describeWeather(code: number): { label: string } {
   const w = strings.weather;
-  if (code === 0) return { icon: "☀️", label: w.clear };
-  if (code <= 2) return { icon: "🌤️", label: w.partlyCloudy };
-  if (code === 3) return { icon: "☁️", label: w.cloudy };
-  if (code <= 48) return { icon: "🌫️", label: w.fog };
-  if (code <= 57) return { icon: "🌦️", label: w.drizzle };
-  if (code <= 67) return { icon: "🌧️", label: w.rain };
-  if (code <= 77) return { icon: "🌨️", label: w.snow };
-  if (code <= 82) return { icon: "🌧️", label: w.showers };
-  if (code <= 86) return { icon: "🌨️", label: w.snow };
-  return { icon: "⛈️", label: w.thunderstorm };
+  if (code === 0) return { label: w.clear };
+  if (code <= 2) return { label: w.partlyCloudy };
+  if (code === 3) return { label: w.cloudy };
+  if (code <= 48) return { label: w.fog };
+  if (code <= 57) return { label: w.drizzle };
+  if (code <= 67) return { label: w.rain };
+  if (code <= 77) return { label: w.snow };
+  if (code <= 82) return { label: w.showers };
+  if (code <= 86) return { label: w.snow };
+  return { label: w.thunderstorm };
 }
