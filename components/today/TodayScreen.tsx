@@ -225,7 +225,7 @@ export function TodayScreen() {
       </header>
 
       {result?.fromCache && (
-        <p className="rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun">
+        <p className="rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun-deep">
           {strings.offline.fromCache}
           {data && ` · ${strings.today.snapshotFrom} ${formatDate(data.date)}`}
         </p>

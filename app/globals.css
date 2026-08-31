@@ -16,9 +16,18 @@
   --color-sea-tint: #e3efeb;
   --color-sun: #d9931e;
   --color-sun-tint: #fbedcf;
+  /* Text on sun-tint surfaces: --color-sun itself fails contrast on #fbedcf. */
+  --color-sun-deep: #9c6a0e;
   --color-line: #ece3d3;
+  /* Lighter than ink-soft, for text that must recede: inactive nav labels,
+     completed itinerary rows, placeholders. */
+  --color-ink-faint: #8d968f;
+  /* Emergency only — never decorative. */
+  --color-alert: #c8123c;
+  --color-alert-tint: #fdecef;
 
-  --radius-stamp: 1.5rem;
+  /* Cards sit at 20px. Anything softer made every card read as the same weight. */
+  --radius-stamp: 1.25rem;
   --shadow-card: 0 1px 2px rgba(34, 49, 46, 0.05), 0 10px 26px -14px rgba(34, 49, 46, 0.18);
 }
 
@@ -39,6 +48,14 @@ body {
   font-family: var(--font-heebo), system-ui, sans-serif;
 }
 
+/* The browser default is a cold blue that clashes with every warm surface here.
+   Keyboard-only, so pointer users never see a ring on tap. */
+:focus-visible {
+  outline: 2px solid var(--color-sea);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Reusable primitives. Plain CSS (not @apply) so they stay robust regardless of
    utility ordering, and can be dropped onto any screen for a consistent look. */
 .ot-card {
@@ -50,9 +67,9 @@ body {
 
 /* Small colored label that sits above a section title — a travel-log "eyebrow". */
 .ot-kicker {
-  font-size: 0.7rem;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--color-sun);
 }
 
