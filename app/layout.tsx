@@ -3,6 +3,7 @@ import { Heebo } from "next/font/google";
 import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
 import { BottomNav } from "@/components/BottomNav";
+import { SideRail } from "@/components/SideRail";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
@@ -40,10 +41,13 @@ export default function RootLayout({
     <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-paper text-ink">
         <OfflineBanner />
-        <main className="flex-1 pb-20 pt-[env(safe-area-inset-top)]">
+        {/* ps at lg leaves room for the fixed rail, which sits at the
+            inline-start (right) edge. pb-20 clears the bottom bar below lg. */}
+        <main className="flex-1 pb-20 pt-[env(safe-area-inset-top)] lg:pb-0 lg:ps-[216px]">
           <AuthGate>{children}</AuthGate>
         </main>
         <BottomNav />
+        <SideRail />
         <OfflineSync />
         <RegisterSW />
       </body>
