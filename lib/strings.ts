@@ -161,6 +161,14 @@ export const strings = {
   budget: {
     totalSpent: "סה״כ הוצאות",
     totalPlanned: "מתוך תקציב",
+    // dashboard redesign
+    kpiSpent: "הוצאנו",
+    kpiRemaining: "נותר",
+    kpiPerDay: "ליום",
+    kpiOver: "חריגה",
+    paceTitle: "‏{n}% מהתקציב נוצל",
+    byCategory: "לפי קטגוריה",
+    noBudgetSet: "עוד לא נקבע תקציב — כל הסכומים כאן הם מה שהוצאנו בפועל",
     burnRate: "קצב יומי",
     projection: "צפי לסוף הטיול",
     tripNotStarted: "הטיול טרם התחיל",

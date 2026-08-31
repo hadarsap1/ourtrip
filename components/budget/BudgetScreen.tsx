@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
+import { TicketIcon } from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
 import { listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { resolveBudgetTotals } from "@/lib/budget";
 import { strings } from "@/lib/strings";
+import { tripPosition } from "@/lib/tripDay";
 import type { BudgetCategory, Expense, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
@@ -136,49 +138,140 @@ export function BudgetScreen() {
   const categoryLabel = (id: string) =>
     categories.find((c) => c.id === id)?.label_he ?? "";
 
+  const position = tripPosition(trip?.start_date, trip?.end_date, today);
+  const remaining = budgetForProgress - spent;
+  const usedPct =
+    budgetForProgress > 0 ? Math.round((spent / budgetForProgress) * 100) : 0;
+
+  // The pace bar is segmented by category rather than one solid fill: at a
+  // glance it says not only how much is gone but what it went on. Fills are
+  // ordered largest first, the leader in sun and the rest in descending sea.
+  const SEGMENT_TONES = [
+    "var(--color-sun)",
+    "var(--color-sea)",
+    "var(--color-sea-deep)",
+    "color-mix(in oklab, var(--color-sea) 55%, white)",
+    "color-mix(in oklab, var(--color-sea) 30%, white)",
+  ];
+  const segments = categories
+    .map((cat) => ({
+      id: cat.id,
+      label: cat.label_he,
+      amount: spentByCategory.get(cat.id) ?? 0,
+    }))
+    .filter((seg) => seg.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      {/* totals */}
-      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-ink-soft">{strings.budget.totalSpent}</span>
-          <span className="text-sm text-ink-soft">{strings.budget.plannedLabel}</span>
-        </div>
-        <div className="mt-1 flex items-baseline justify-between gap-2">
-          <span className="text-2xl font-bold text-ink" dir="ltr">
+    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
+      <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.budget}</h1>
+
+      {/* Three numbers, three cards — spent, left, per day. The old screen made
+          you read a paragraph of a card to find any of them. */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
+          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
+            {strings.budget.kpiSpent}
+          </p>
+          <p className="mt-1 text-[17px] font-extrabold leading-none text-ink">
             {formatMoney(Math.round(spent), "ILS")}
-          </span>
-          {/* The headline is the categories' sum, so editing a category moves
-              it straight away. The declared target lives on its own line
-              below — two numbers about the same money, with the relationship
-              between them visible instead of implied. */}
-          <span className="text-lg font-semibold text-ink-soft" dir="ltr">
-            {formatMoney(Math.round(planned), "ILS")}
-          </span>
+          </p>
         </div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-paper-deep">
-          <div
-            className={`h-full rounded-full ${
-              budgetForProgress > 0 && spent > budgetForProgress
-                ? "bg-rose-500"
-                : "bg-sea"
+        <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
+          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
+            {remaining < 0 ? strings.budget.kpiOver : strings.budget.kpiRemaining}
+          </p>
+          <p
+            className={`mt-1 text-[17px] font-extrabold leading-none ${
+              remaining < 0 ? "text-alert" : "text-ink"
             }`}
-            style={{
-              width: `${
-                budgetForProgress > 0
-                  ? Math.min((spent / budgetForProgress) * 100, 100)
-                  : 0
-              }%`,
-            }}
-          />
+          >
+            {budgetForProgress > 0
+              ? formatMoney(Math.abs(Math.round(remaining)), "ILS")
+              : "—"}
+          </p>
         </div>
-        {/* The declared budget, and how the plan sits against it. Tappable
-            whether or not one is set — setting the first one has to start
-            somewhere. */}
+        {/* the screen's single sun-filled surface */}
+        <div className="rounded-2xl border border-sun/20 bg-sun-tint px-3 py-2.5">
+          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-sun-deep">
+            {strings.budget.kpiPerDay}
+          </p>
+          <p className="mt-1 text-[17px] font-extrabold leading-none text-sun-deep">
+            {burnPerDay === null
+              ? "—"
+              : formatMoney(Math.round(burnPerDay), "ILS")}
+          </p>
+        </div>
+      </div>
+
+      {/* pace: how much is gone, how far through the trip we are, and what it
+          projects to */}
+      <section className="rounded-[18px] border border-line bg-white px-3.5 py-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-[12.5px] font-bold text-ink">
+            {budgetForProgress > 0
+              ? strings.budget.paceTitle.replace("{n}", String(usedPct))
+              : strings.budget.totalSpent}
+          </p>
+          {position && (
+            <span className="shrink-0 text-[11px] text-ink-soft">
+              {strings.today.dayOf
+                .replace("{n}", String(position.day))
+                .replace("{total}", String(position.total))}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-2 flex h-[7px] gap-px overflow-hidden rounded-full bg-line">
+          {segments.length === 0 ? null : (
+            segments.map((seg, i) => (
+              <span
+                key={seg.id}
+                title={seg.label}
+                className="h-full first:rounded-s-full last:rounded-e-full"
+                style={{
+                  width: `${
+                    budgetForProgress > 0
+                      ? Math.min((seg.amount / budgetForProgress) * 100, 100)
+                      : (seg.amount / Math.max(spent, 1)) * 100
+                  }%`,
+                  background: SEGMENT_TONES[Math.min(i, SEGMENT_TONES.length - 1)],
+                }}
+              />
+            ))
+          )}
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[11px] text-ink-soft">
+          <span>
+            {strings.budget.projection}{" "}
+            <span className="font-bold text-ink" dir="ltr">
+              {projection === null
+                ? "—"
+                : formatMoney(Math.round(projection), "ILS")}
+            </span>
+          </span>
+          {preTripSpent > 0 && (
+            <span>
+              {strings.budget.beforeTrip}{" "}
+              <span className="font-bold text-ink" dir="ltr">
+                {formatMoney(Math.round(preTripSpent), "ILS")}
+              </span>
+            </span>
+          )}
+        </div>
+        {notStarted && (
+          <p className="mt-1 text-[11px] text-ink-faint">
+            {strings.budget.tripNotStarted}
+          </p>
+        )}
+
+        {/* The declared target, and how the plan sits against it. Tappable
+            whether or not one is set — the first one has to start somewhere. */}
         <button
           type="button"
           onClick={() => setEditingTotal(true)}
-          className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-xs hover:bg-paper-deep"
+          className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[11px] hover:bg-paper-deep"
         >
           <span className="text-ink-soft">
             {hasTarget
@@ -186,157 +279,155 @@ export function BudgetScreen() {
               : strings.budget.setTarget}
           </span>
           {hasTarget && (
-            <span className={overTarget ? "font-semibold text-rose-600" : "text-ink-soft"}>
+            <span
+              className={
+                overTarget ? "font-bold text-alert" : "text-ink-soft"
+              }
+            >
               {overTarget
                 ? `${strings.budget.overTarget} ₪${Math.abs(Math.round(gap)).toLocaleString("he-IL")}`
                 : `${strings.budget.leftToAllocate} ₪${Math.round(gap).toLocaleString("he-IL")}`}
             </span>
           )}
         </button>
-
-        {(burnPerDay !== null || projection !== null) && (
-          <div className="mt-3 flex justify-between border-t border-line pt-3 text-sm">
-            <span className="text-ink-soft">
-              {strings.budget.burnRate}{" "}
-              <span className="font-semibold text-ink" dir="ltr">
-                {notStarted || burnPerDay === null
-                  ? "—"
-                  : formatMoney(Math.round(burnPerDay), "ILS")}
-              </span>
-              {!notStarted && burnPerDay !== null && (
-                <span className="text-xs text-ink-soft"> {strings.budget.perDay}</span>
-              )}
-            </span>
-            <span className="text-ink-soft">
-              {strings.budget.projection}{" "}
-              <span className="font-semibold text-ink" dir="ltr">
-                {projection === null ? "—" : formatMoney(Math.round(projection), "ILS")}
-              </span>
-            </span>
-          </div>
-        )}
-        {notStarted && (
-          <p className="mt-1 text-xs text-ink-soft">{strings.budget.tripNotStarted}</p>
-        )}
-        {preTripSpent > 0 && (
-          <p className="mt-1 flex items-baseline justify-between text-xs text-ink-soft">
-            <span>
-              {strings.budget.beforeTrip}{" "}
-              <span className="font-semibold text-ink" dir="ltr">
-                {formatMoney(Math.round(preTripSpent), "ILS")}
-              </span>
-            </span>
-            {!notStarted && <span>{strings.budget.beforeTripHint}</span>}
-          </p>
-        )}
       </section>
 
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => setExpenseForm({ expense: null })}
-          className="rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
-        >
-          {strings.budget.addExpense}
-        </button>
-        <button
-          type="button"
-          onClick={() => setQuickLines(true)}
-          disabled={categories.length === 0}
-          className="rounded-2xl border border-line bg-white py-3 font-semibold text-ink-soft disabled:opacity-50"
-        >
-          {strings.budget.quickLines}
-        </button>
-      </div>
-
-      {/* category bars; tap → edit planned amount */}
-      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink-soft">
-            {strings.budget.categories}
+      {/* category rows, ruled rather than carded; tap → edit planned amount */}
+      <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+        <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
+          <h2 className="text-xs font-bold text-ink">
+            {strings.budget.byCategory}
           </h2>
           <button
             type="button"
             onClick={() => setCategoryForm({ category: null })}
-            className="rounded-full bg-paper-deep px-3 py-1 text-xs font-medium text-ink"
+            className="rounded-full bg-white px-2.5 py-1 text-[10.5px] font-bold text-sea"
           >
             + {strings.budget.addCategory}
           </button>
-        </div>
-        {categories.length === 0 && (
-          <p className="text-sm text-ink-soft">{strings.budget.emptyCategories}</p>
-        )}
-        <ul className="space-y-3">
-          {categories.map((cat) => {
-            const catSpent = spentByCategory.get(cat.id) ?? 0;
-            const over = cat.planned_amount > 0 && catSpent > cat.planned_amount;
-            return (
-              <li key={cat.id}>
-                <button
-                  type="button"
-                  onClick={() => setCategoryForm({ category: cat })}
-                  className="block w-full text-start"
-                >
-                  <span className="flex items-baseline justify-between text-sm">
-                    <span className="font-medium text-ink">{cat.label_he}</span>
-                    <span className={over ? "font-semibold text-rose-600" : "text-ink-soft"} dir="ltr">
-                      {formatMoney(Math.round(catSpent), "ILS")} / {formatMoney(Math.round(cat.planned_amount), "ILS")}
+        </header>
+        {categories.length === 0 ? (
+          <p className="px-3.5 py-4 text-[13px] text-ink-faint">
+            {strings.budget.emptyCategories}
+          </p>
+        ) : (
+          <ul>
+            {categories.map((cat) => {
+              const catSpent = spentByCategory.get(cat.id) ?? 0;
+              const over =
+                cat.planned_amount > 0 && catSpent > cat.planned_amount;
+              const pct =
+                cat.planned_amount > 0
+                  ? Math.round((catSpent / cat.planned_amount) * 100)
+                  : null;
+              return (
+                <li key={cat.id} className="border-t border-line">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryForm({ category: cat })}
+                    className="block w-full px-3.5 py-2.5 text-start"
+                  >
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="flex min-w-0 items-baseline gap-1.5">
+                        <span className="truncate text-[14px] font-medium text-ink">
+                          {cat.label_he}
+                        </span>
+                        {pct !== null && (
+                          <span
+                            className={`shrink-0 text-[10.5px] font-bold ${
+                              over ? "text-sun-deep" : "text-ink-faint"
+                            }`}
+                            dir="ltr"
+                          >
+                            {pct}%
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`shrink-0 text-[13.5px] font-bold ${
+                          over ? "text-sun-deep" : "text-ink"
+                        }`}
+                        dir="ltr"
+                      >
+                        {formatMoney(Math.round(catSpent), "ILS")}
+                        <span className="font-medium text-ink-faint">
+                          {" / "}
+                          {formatMoney(Math.round(cat.planned_amount), "ILS")}
+                        </span>
+                      </span>
                     </span>
-                  </span>
-                  <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-paper-deep">
-                    <span
-                      className={`block h-full rounded-full ${over ? "bg-rose-500" : "bg-sea"}`}
-                      style={{
-                        width: `${
-                          cat.planned_amount > 0
-                            ? Math.min((catSpent / cat.planned_amount) * 100, 100)
-                            : catSpent > 0
-                              ? 100
-                              : 0
-                        }%`,
-                      }}
-                    />
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                    {/* Only the category running ahead of plan takes sun;
+                        colouring every bar would leave nothing to notice. */}
+                    <span className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-line">
+                      <span
+                        className={`block h-full rounded-full ${
+                          over ? "bg-sun" : "bg-sea"
+                        }`}
+                        style={{
+                          width: `${
+                            cat.planned_amount > 0
+                              ? Math.min(
+                                  (catSpent / cat.planned_amount) * 100,
+                                  100
+                                )
+                              : catSpent > 0
+                                ? 100
+                                : 0
+                          }%`,
+                        }}
+                      />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <ConverterCard />
 
       {/* recent expenses */}
-      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-        <h2 className="mb-2 text-sm font-semibold text-ink-soft">
-          {strings.budget.recentExpenses}
-        </h2>
+      <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+        <header className="bg-paper-deep px-3.5 py-2.5">
+          <h2 className="text-xs font-bold text-ink">
+            {strings.budget.recentExpenses}
+          </h2>
+        </header>
         {expenses.length === 0 ? (
-          <p className="py-2 text-sm text-ink-soft">{strings.budget.emptyExpenses}</p>
+          <p className="px-3.5 py-4 text-[13px] text-ink-faint">
+            {strings.budget.emptyExpenses}
+          </p>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul>
             {expenses.map((expense) => (
-              <li key={expense.id}>
+              <li key={expense.id} className="border-t border-line">
                 <button
                   type="button"
                   onClick={() => setExpenseForm({ expense })}
-                  className="flex w-full items-baseline justify-between gap-2 py-2.5 text-start"
+                  className="flex w-full items-baseline justify-between gap-2 px-3.5 py-2.5 text-start"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-ink">
+                    <span className="block truncate text-[13.5px] font-medium text-ink">
                       {expense.description || categoryLabel(expense.category_id)}
                     </span>
-                    <span className="text-xs text-ink-soft">
-                      {formatShortDate(expense.spent_on)} · {categoryLabel(expense.category_id)}
-                      {expense.booking_id && <span aria-hidden="true"> · 🎫</span>}
+                    <span className="flex items-center gap-1 text-[10.5px] text-ink-soft">
+                      {categoryLabel(expense.category_id)} ·{" "}
+                      <span dir="ltr">{formatShortDate(expense.spent_on)}</span>
+                      {expense.booking_id && (
+                        <TicketIcon className="h-3 w-3 shrink-0 text-sea" />
+                      )}
                     </span>
                   </span>
                   <span className="shrink-0 text-end">
-                    <span className="block text-sm font-semibold text-ink" dir="ltr">
+                    <span
+                      className="block text-[13.5px] font-bold text-ink"
+                      dir="ltr"
+                    >
                       {formatMoney(expense.amount_ils, "ILS")}
                     </span>
                     {expense.currency !== "ILS" && (
-                      <span className="text-xs text-ink-soft" dir="ltr">
+                      <span className="text-[10.5px] text-ink-soft" dir="ltr">
                         {formatMoney(expense.amount, expense.currency)}
                       </span>
                     )}
@@ -347,6 +438,26 @@ export function BudgetScreen() {
           </ul>
         )}
       </section>
+
+      {/* The action the screen exists for sits last and within thumb reach. */}
+      <div className="mt-auto grid grid-cols-2 gap-2.5 pt-1">
+        <button
+          type="button"
+          onClick={() => setExpenseForm({ expense: null })}
+          className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+          style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
+        >
+          {strings.budget.addExpense}
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickLines(true)}
+          disabled={categories.length === 0}
+          className="rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft disabled:opacity-50"
+        >
+          {strings.budget.quickLines}
+        </button>
+      </div>
 
       {/* ---------- sheets ---------- */}
 
