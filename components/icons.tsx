@@ -282,4 +282,64 @@ export const ShareIcon = (p: IconProps) => (
   </Glyph>
 );
 
+/* ---- weather -------------------------------------------------------------
+   WMO code groups, drawn rather than emoji so the warm palette holds and the
+   glyph doesn't change shape between Android and iOS. `describeWeather` still
+   owns the Hebrew label; this owns the picture. */
+
+export const CloudIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 18.5a4 4 0 0 1-.4-8A5.5 5.5 0 0 1 17.3 11a3.8 3.8 0 0 1-.3 7.5z" />
+  </Glyph>
+);
+
+export const PartlyCloudyIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M8.5 7.2A3.6 3.6 0 1 1 13 11.6" />
+    <path d="M6.5 4.2v1.4M3.2 7.5h1.4M4.6 4.6l1 1" />
+    <path d="M8 19.5a3.5 3.5 0 0 1-.3-7 4.8 4.8 0 0 1 9.2 1.2 3.3 3.3 0 0 1-.4 5.8z" />
+  </Glyph>
+);
+
+export const RainIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 15.5a3.8 3.8 0 0 1-.4-7.6 5.2 5.2 0 0 1 10.1.4 3.6 3.6 0 0 1-.2 7.2z" />
+    <path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5" />
+  </Glyph>
+);
+
+export const SnowIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 15.5a3.8 3.8 0 0 1-.4-7.6 5.2 5.2 0 0 1 10.1.4 3.6 3.6 0 0 1-.2 7.2z" />
+    <path d="M9 19h.01M12.5 20.5h.01M16 19h.01" />
+  </Glyph>
+);
+
+export const StormIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 15.5a3.8 3.8 0 0 1-.4-7.6 5.2 5.2 0 0 1 10.1.4 3.6 3.6 0 0 1-.2 7.2z" />
+    <path d="M13 17l-3 3.2h3l-1 2.3" />
+  </Glyph>
+);
+
+export const FogIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M7 13.5a3.8 3.8 0 0 1-.4-7.6 5.2 5.2 0 0 1 10.1.4 3.6 3.6 0 0 1-.2 7.2z" />
+    <path d="M5 17h14M7 20h10" />
+  </Glyph>
+);
+
+/** WMO code → drawn glyph, mirroring describeWeather's grouping. */
+export function WeatherIcon({ code, ...p }: IconProps & { code: number }) {
+  if (code === 0) return <SunIcon {...p} />;
+  if (code <= 2) return <PartlyCloudyIcon {...p} />;
+  if (code === 3) return <CloudIcon {...p} />;
+  if (code <= 48) return <FogIcon {...p} />;
+  if (code <= 67) return <RainIcon {...p} />;
+  if (code <= 77) return <SnowIcon {...p} />;
+  if (code <= 82) return <RainIcon {...p} />;
+  if (code <= 86) return <SnowIcon {...p} />;
+  return <StormIcon {...p} />;
+}
+
 export const CameraIcon = PhotosIcon;
