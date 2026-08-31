@@ -59,6 +59,7 @@ function DocumentForm({
   const [title, setTitle] = useState(doc?.title ?? "");
   const [tag, setTag] = useState(doc?.tag ?? "passport");
   const [notes, setNotes] = useState(doc?.notes ?? "");
+  const [expiresAt, setExpiresAt] = useState(doc?.expires_at ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -81,6 +82,7 @@ function DocumentForm({
           title: title.trim(),
           tag,
           notes: notes.trim() || null,
+          expires_at: expiresAt || null,
         });
       } else {
         await uploadDocument({
@@ -88,6 +90,7 @@ function DocumentForm({
           title: title.trim(),
           tag,
           notes: notes.trim() || null,
+          expiresAt: expiresAt || null,
           file: file!,
         });
       }
@@ -163,6 +166,23 @@ function DocumentForm({
         </div>
 
         <div>
+          <label htmlFor="doc-expires" className={labelClass}>
+            {strings.documents.expiresAt}
+          </label>
+          <input
+            id="doc-expires"
+            type="date"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
+            className={inputClass}
+            dir="ltr"
+          />
+          <p className="mt-1 text-xs text-ink-soft">
+            {strings.documents.expiresAtHint}
+          </p>
+        </div>
+
+        <div>
           <label htmlFor="doc-notes" className={labelClass}>
             {strings.documents.notes}
           </label>
@@ -188,7 +208,7 @@ function DocumentForm({
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="rounded-xl border border-rose-200 px-4 py-3 font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+              className="rounded-xl border border-alert/25 px-4 py-3 font-semibold text-alert hover:bg-alert-tint disabled:opacity-60"
             >
               {strings.common.delete}
             </button>

@@ -159,6 +159,7 @@ create table documents (
   tag text not null, -- passport/insurance/vaccine/visa/other
   file_path text not null,
   notes text,
+  expires_at date, -- optional; warns when a document lapses before end_date
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

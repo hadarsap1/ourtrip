@@ -294,6 +294,7 @@ export type Database = {
         Row: {
           created_at: string
           enc_mime: string | null
+          expires_at: string | null
           file_path: string
           id: string
           notes: string | null
@@ -307,6 +308,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enc_mime?: string | null
+          expires_at?: string | null
           file_path: string
           id?: string
           notes?: string | null
@@ -320,6 +322,7 @@ export type Database = {
         Update: {
           created_at?: string
           enc_mime?: string | null
+          expires_at?: string | null
           file_path?: string
           id?: string
           notes?: string | null

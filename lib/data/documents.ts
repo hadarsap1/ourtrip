@@ -40,6 +40,8 @@ export async function uploadDocument(input: {
   title: string;
   tag: string;
   notes: string | null;
+  /** Optional expiry (passport, visa, insurance); null when it has none. */
+  expiresAt: string | null;
   file: File;
 }): Promise<void> {
   const supabase = requireClient();
@@ -55,6 +57,7 @@ export async function uploadDocument(input: {
     title: input.title.trim(),
     tag: input.tag,
     notes: input.notes?.trim() || null,
+    expires_at: input.expiresAt || null,
     file_path: path,
   });
   if (error) throw new Error(error.message);
@@ -62,7 +65,12 @@ export async function uploadDocument(input: {
 
 export async function updateDocument(
   id: string,
-  patch: { title: string; tag: string; notes: string | null }
+  patch: {
+    title: string;
+    tag: string;
+    notes: string | null;
+    expires_at: string | null;
+  }
 ): Promise<void> {
   const { error } = await requireClient()
     .from("documents")

@@ -1000,3 +1000,43 @@ revisit if the import ever accepts a file from outside the family.
 | Offline copy of an unlocked document is ciphertext | `makeAvailableOffline` encrypts unless `pin_protected` | ✅ PASS — reviewed |
 | Build / lint / typecheck / 100 unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
 | End-to-end on real devices (two feeds, offline docs) | — | ⚠️ **PENDING** — needs the phones and tablet |
+
+## 2026-08-31 — Redesign: `documents.expires_at`
+
+The redesign's מסמכים screen leads with a warning that a passport expires
+before the trip ends. `documents` had nowhere to record that, so migration
+`00028_documents_expires_at.sql` adds a nullable `expires_at date`.
+
+### Which policies cover it
+
+None are added, and none needed to be. `documents` carries two SELECT policies
+and a column inherits whichever of them lets a caller see the row at all:
+
+- `documents_owner_all` (00001) — owners, full access.
+- `documents_kid_select` (00014) — kids, and only where `shared_with_kids` is
+  true. Kids have no INSERT/UPDATE/DELETE policy on the table, so a kid can
+  neither set an expiry nor flip the share flag.
+
+Guests have no policy on `documents` at all, so deny-by-default keeps the whole
+table — expiry included — out of the guest portal. The new column therefore
+cannot widen anyone's visibility: a role that could not read the row before
+still cannot read it, and a role that could already saw every other column on
+it.
+
+The value itself is a date on a document the reader can already open. It is not
+a new class of secret.
+
+### The comparison is client-side
+
+The screen compares `expires_at` against `trips.end_date` in the browser. Both
+values are already in the rows RLS handed over, so no view, function or policy
+is involved and nothing new is exposed by the comparison.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid cannot set or change a document's expiry | no kid INSERT/UPDATE policy on `documents` | ✅ PASS — reviewed |
+| Kid sees expiry only on documents shared with kids | column inherits `documents_kid_select` | ✅ PASS — reviewed |
+| Guest sees no document row, expiry included | no guest policy; deny by default | ✅ PASS — reviewed |
+| Index does not leak across trips | partial index keyed on `(trip_id, expires_at)` | ✅ PASS — reviewed |
+| Build / lint / typecheck / unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
+| Applied against the live database | — | ⚠️ **PENDING** — migration not yet run |
