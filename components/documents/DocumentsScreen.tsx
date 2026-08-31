@@ -355,13 +355,13 @@ export function DocumentsScreen() {
       </header>
 
       <div className="relative">
-        <SearchIcon className="pointer-events-none absolute inset-y-0 end-3.5 my-auto h-[17px] w-[17px] text-ink-faint" />
+        <SearchIcon className="pointer-events-none absolute inset-y-0 start-3.5 my-auto h-[17px] w-[17px] text-ink-faint" />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={strings.documents.searchFull}
-          className="w-full rounded-[14px] border border-line bg-white py-[11px] pe-10 ps-3.5 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+          className="w-full rounded-[14px] border border-line bg-white py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
         />
       </div>
 

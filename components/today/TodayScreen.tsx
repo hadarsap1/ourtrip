@@ -375,8 +375,10 @@ export function TodayScreen() {
   const upcoming = nextUp(activeItems, now);
   const lodging = data ? tonightsLodging(data.bookings) : null;
   const remaining = dashboard ? dashboard.budget - dashboard.spentTotal : null;
+  // Built from what actually loaded: with no snapshot there is no date to
+  // format, and formatting an empty one printed "Invalid Date" into the bar.
   const dayLine = [
-    `${formatWeekday(data?.date ?? "")} ${data ? formatDate(data.date) : ""}`.trim(),
+    data ? `${formatWeekday(data.date)} ${formatDate(data.date)}` : null,
     position
       ? strings.today.dayOf
           .replace("{n}", String(position.day))
@@ -397,7 +399,7 @@ export function TodayScreen() {
             <h1 className="flex items-center gap-1.5 text-[19px] font-extrabold leading-tight">
               <PinIcon className="h-[17px] w-[17px] shrink-0 text-white/80" />
               <span className="truncate">
-                {data?.day?.location_name ?? strings.kidHome.noLocation}
+                {data?.day?.location_name ?? strings.today.noPlace}
                 {data?.day?.country_code ? `, ${data.day.country_code}` : ""}
               </span>
             </h1>

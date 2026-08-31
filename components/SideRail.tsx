@@ -78,7 +78,7 @@ export function SideRail() {
     <nav
       // border-e is the rail's content-facing edge in RTL.
       className="fixed inset-y-0 start-0 z-40 hidden w-[216px] flex-col gap-[26px] overflow-y-auto border-e border-line bg-[#f7f1e6] px-[18px] py-[26px] lg:flex"
-      aria-label={strings.appName}
+      aria-label={strings.nav.railLabel}
     >
       <div className="flex items-center gap-[9px] ps-1.5">
         <span

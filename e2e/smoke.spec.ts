@@ -36,7 +36,9 @@ test.describe("app shell", () => {
 
   test("bottom nav shows the five Hebrew owner tabs", async ({ page }) => {
     await page.goto("/");
-    const nav = page.getByRole("navigation");
+    // Two navigation landmarks exist from lg up (bottom bar + side rail), so
+    // this addresses the bottom bar by name.
+    const nav = page.getByRole("navigation", { name: "ניווט ראשי" });
     await expect(nav).toBeVisible();
     for (const label of ["היום", "מסלול", "תקציב", "מסמכים", "עוד"]) {
       await expect(nav.getByText(label, { exact: true })).toBeVisible();
@@ -45,12 +47,16 @@ test.describe("app shell", () => {
 
   test("tapping a nav tab navigates and marks it active", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("navigation").getByText("תקציב", { exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "ניווט ראשי" })
+      .getByText("תקציב", { exact: true })
+      .click();
     await expect(page).toHaveURL(/\/budget$/);
   });
 
   test("nav is hidden on the login screens", async ({ page }) => {
     await page.goto("/login");
+    // Neither the bottom bar nor the rail renders on the login screens.
     await expect(page.getByRole("navigation")).toHaveCount(0);
   });
 

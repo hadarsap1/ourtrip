@@ -119,8 +119,8 @@ export const SparkleIcon = (p: IconProps) => (
 
 export const PhrasebookIcon = (p: IconProps) => (
   <Glyph {...p}>
-    <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h5.5v9H8l-4 3.5z" />
-    <path d="M12 8.5h5.5A2.5 2.5 0 0 1 20 11v5.5A2.5 2.5 0 0 1 17.5 19H16l-3 2.5V19h-1z" />
+    <path d="M3.5 6.5A2.5 2.5 0 0 1 6 4h12a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 18 16H9l-5.5 4z" />
+    <path d="M7.5 8h9M7.5 11.5h5.5" />
   </Glyph>
 );
 

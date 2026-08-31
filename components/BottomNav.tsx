@@ -24,7 +24,7 @@ export function BottomNav() {
     // background. Hidden from lg up, where the side rail takes over.
     <nav
       className="fixed bottom-0 inset-x-0 z-50 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
-      aria-label={strings.appName}
+      aria-label={strings.nav.bottomBarLabel}
     >
       <ul className="flex items-start gap-0.5 px-1.5 pt-[9px] pb-3">
         {tabs.map((tab) => {

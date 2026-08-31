@@ -6,6 +6,10 @@ export const strings = {
   appDescription: "הטיול המשפחתי שלנו מסביב לעולם",
 
   nav: {
+    // Two navigation landmarks now exist — the bottom bar on mobile and the
+    // side rail from lg up. They need distinct accessible names.
+    bottomBarLabel: "ניווט ראשי",
+    railLabel: "ניווט צדדי",
     today: "היום",
     itinerary: "מסלול",
     budget: "תקציב",
@@ -36,6 +40,7 @@ export const strings = {
     agenda: "לוח היום",
     agendaCount: "{n} פעילויות",
     noLodging: "לא נרשמה לינה",
+    noPlace: "אין יעד להיום",
     noBudget: "לא הוגדר תקציב",
     photosToday: "{n} תמונות מהיום",
     seeAll: "הכל",
