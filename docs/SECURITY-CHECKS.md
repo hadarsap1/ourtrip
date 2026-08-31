@@ -1039,4 +1039,13 @@ is involved and nothing new is exposed by the comparison.
 | Guest sees no document row, expiry included | no guest policy; deny by default | ✅ PASS — reviewed |
 | Index does not leak across trips | partial index keyed on `(trip_id, expires_at)` | ✅ PASS — reviewed |
 | Build / lint / typecheck / unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
-| Applied against the live database | — | ⚠️ **PENDING** — migration not yet run |
+| Applied against the live database | `apply_migration` on project `xeqfcrxrpfjlqhkijrwd`, 2026-08-31 | ✅ PASS — applied |
+| Column landed as intended | `information_schema.columns` → `expires_at`, `date`, nullable | ✅ PASS — verified live |
+| No policy added by the migration | `pg_policies` on `documents` → exactly `documents_owner_all`, `documents_kid_select` | ✅ PASS — verified live |
+| Advisors clean after the DDL | `get_advisors(security)` → no new finding on `documents` | ✅ PASS — verified live |
+
+The migration was applied **before** the code deployed, deliberately. The new
+client writes `expires_at` on document upload and edit, so shipping the code
+first would have left a window where both failed with PGRST204 (column not
+found). The column is invisible to the previously deployed code, so applying it
+first breaks nothing in either direction.
