@@ -16,7 +16,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { WeatherLine } from "@/components/WeatherLine";
-import { formatDate, formatTime, formatWeekday } from "@/lib/format";
+import {
+  DragHandleIcon,
+  EditIcon,
+  MoveIcon,
+  SunIcon,
+  TicketIcon,
+  TrashIcon,
+} from "@/components/icons";
+import { formatDate, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import type { Booking, ItemStatus, ItineraryDay, ItineraryItem } from "@/lib/types";
 
@@ -28,8 +36,8 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
 
 const STATUS_CLASS: Record<ItemStatus, string> = {
   planned: "bg-paper-deep text-ink-soft",
-  done: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-rose-100 text-rose-600",
+  done: "bg-sea-tint text-sea-deep",
+  cancelled: "bg-alert-tint text-alert",
 };
 
 export function DayCard({
@@ -71,39 +79,46 @@ export function DayCard({
     onReorder(arrayMove(ids, from, to));
   }
 
+  const isToday = day.date === todayISO();
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-      <div className="flex items-center gap-1 bg-sea-tint pe-2">
+    <section className="overflow-hidden rounded-[20px] border border-line bg-white">
+      {/* Day header on paper-deep rather than sea-tint: the tint now means
+          "happening now" and shouldn't mark every day on the screen. */}
+      <div className="flex items-center gap-1 bg-paper-deep pe-1.5">
       <button
         type="button"
         onClick={onEditDay}
-        className="flex min-w-0 flex-1 items-baseline justify-between gap-2 px-4 py-3 text-start"
+        className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 px-3.5 py-2.5 text-start"
       >
-        <span>
-          <span className="font-bold text-sea">
-            {formatWeekday(day.date)} {formatDate(day.date)}
-          </span>
-          {day.location_name && (
-            <span className="mr-2 text-sm text-sea">
-              {day.location_name}
-            </span>
-          )}
-          {day.lat != null && day.lng != null && (
-            <span className="mr-2">
-              <WeatherLine
-                date={day.date}
-                lat={day.lat}
-                lng={day.lng}
-                hasOutdoor={items.some(
-                  (i) => i.is_outdoor && i.status !== "cancelled"
-                )}
-              />
-            </span>
-          )}
+        <span className="text-[11.5px] font-extrabold text-sea-deep">
+          {formatWeekday(day.date)} {formatDate(day.date)}
         </span>
+        {day.location_name && (
+          <span className="truncate text-[11.5px] font-semibold text-sea-deep/80">
+            {day.location_name}
+          </span>
+        )}
+        {isToday && (
+          <span className="rounded-full bg-sun-tint px-1.5 py-px text-[9.5px] font-extrabold text-sun-deep">
+            {strings.itinerary.todayChip}
+          </span>
+        )}
         {day.country_code && (
-          <span className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-sea">
+          <span className="rounded bg-white px-1.5 py-px text-[10px] font-bold text-sea">
             {day.country_code}
+          </span>
+        )}
+        {day.lat != null && day.lng != null && (
+          <span className="ms-auto">
+            <WeatherLine
+              date={day.date}
+              lat={day.lat}
+              lng={day.lng}
+              hasOutdoor={items.some(
+                (i) => i.is_outdoor && i.status !== "cancelled"
+              )}
+            />
           </span>
         )}
       </button>
@@ -115,26 +130,22 @@ export function DayCard({
         type="button"
         onClick={onEditDay}
         aria-label={strings.itinerary.editDay}
-        className="shrink-0 rounded-lg p-2 text-sea/70 hover:bg-white hover:text-sea"
+        className="shrink-0 rounded-lg p-1.5 text-sea/70 hover:bg-white hover:text-sea"
       >
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-        </svg>
+        <EditIcon className="h-4 w-4" />
       </button>
       <button
         type="button"
         onClick={onDeleteDay}
         aria-label={strings.itinerary.deleteDay}
-        className="shrink-0 rounded-lg p-2 text-rose-500/80 hover:bg-white hover:text-rose-600"
+        className="shrink-0 rounded-lg p-1.5 text-alert/70 hover:bg-white hover:text-alert"
       >
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.2v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-        </svg>
+        <TrashIcon className="h-4 w-4" />
       </button>
       </div>
 
       {items.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-ink-soft">
+        <p className="px-3.5 py-3 text-[13px] text-ink-faint">
           {strings.itinerary.emptyDayItems}
         </p>
       ) : (
@@ -170,7 +181,7 @@ export function DayCard({
       <button
         type="button"
         onClick={onAddItem}
-        className="w-full border-t border-line py-2.5 text-sm font-semibold text-sea hover:bg-sea-tint"
+        className="w-full border-t border-line py-2.5 text-[13px] font-bold text-sea hover:bg-sea-tint"
       >
         + {strings.itinerary.addItem}
       </button>
@@ -202,11 +213,13 @@ function SortableItem({
     isDragging,
   } = useSortable({ id: item.id });
 
+  const done = item.status === "done";
+
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-1 bg-white px-2 py-2.5 ${
+      className={`flex items-center gap-1 bg-white px-2.5 py-2.5 ${
         isDragging ? "relative z-10 shadow-lg" : ""
       }`}
     >
@@ -215,72 +228,70 @@ function SortableItem({
         {...attributes}
         {...listeners}
         aria-label={strings.itinerary.dragHandle}
-        className="cursor-grab touch-none p-1.5 text-line active:cursor-grabbing"
+        className="cursor-grab touch-none p-1 text-line active:cursor-grabbing"
       >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-          <circle cx="7" cy="4" r="1.5" />
-          <circle cx="13" cy="4" r="1.5" />
-          <circle cx="7" cy="10" r="1.5" />
-          <circle cx="13" cy="10" r="1.5" />
-          <circle cx="7" cy="16" r="1.5" />
-          <circle cx="13" cy="16" r="1.5" />
-        </svg>
+        <DragHandleIcon className="h-4 w-4" />
       </button>
 
+      {/* Fixed 42px time gutter, so the titles line up down the whole day and
+          the eye reads a schedule rather than a ragged list. */}
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 flex-1 text-start"
+        className="flex min-w-0 flex-1 items-start gap-2.5 text-start"
       >
-        <span className="flex items-baseline gap-2">
-          {item.start_time && (
-            <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-soft" dir="ltr">
-              {formatTime(item.start_time)}
-              {item.end_time ? `–${formatTime(item.end_time)}` : ""}
-            </span>
-          )}
+        <span
+          className={`w-[42px] shrink-0 pt-px text-[12.5px] font-bold tabular-nums ${
+            done ? "text-ink-faint" : "text-sea"
+          }`}
+          dir="ltr"
+        >
+          {item.start_time ? formatTime(item.start_time) : "—"}
+        </span>
+        <span className="min-w-0 flex-1">
           <span
-            className={`truncate font-medium ${
-              item.status === "cancelled"
-                ? "text-ink-soft line-through"
-                : "text-ink"
+            className={`block truncate text-[13.5px] ${
+              item.status === "cancelled" || done
+                ? "text-ink-faint line-through"
+                : "font-medium text-ink"
             }`}
           >
             {item.title}
           </span>
+          {(item.location_name ||
+            hasBooking ||
+            item.is_outdoor ||
+            item.end_time) && (
+            <span className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-ink-soft">
+              {item.end_time && (
+                <span className="shrink-0 tabular-nums" dir="ltr">
+                  {formatTime(item.start_time ?? "")}–{formatTime(item.end_time)}
+                </span>
+              )}
+              {item.location_name && (
+                <span className="truncate">{item.location_name}</span>
+              )}
+              {item.is_outdoor && (
+                <SunIcon
+                  className="h-3.5 w-3.5 shrink-0 text-sun"
+                  aria-label={strings.itinerary.outdoor}
+                />
+              )}
+              {hasBooking && (
+                <TicketIcon className="h-3.5 w-3.5 shrink-0 text-sea" />
+              )}
+            </span>
+          )}
         </span>
-        {(item.location_name || hasBooking || item.is_outdoor) && (
-          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-soft">
-            {item.location_name && (
-              <span className="truncate">{item.location_name}</span>
-            )}
-            {item.is_outdoor && <span aria-hidden="true">🌤️</span>}
-            {hasBooking && <span aria-hidden="true">🎫</span>}
-          </span>
-        )}
       </button>
 
       <button
         type="button"
         onClick={onMove}
         aria-label={strings.itinerary.moveItem}
-        className="p-1.5 text-ink-soft hover:text-sea"
+        className="p-1.5 text-ink-faint hover:text-sea"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.8}
-          stroke="currentColor"
-          className="h-4.5 w-4.5"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
-          />
-        </svg>
+        <MoveIcon className="h-[18px] w-[18px]" />
       </button>
 
       {/* Move was on the row while delete was only inside the edit sheet, so
@@ -289,25 +300,15 @@ function SortableItem({
         type="button"
         onClick={onDelete}
         aria-label={strings.itinerary.deleteItem}
-        className="p-1.5 text-ink-soft hover:text-rose-600"
+        className="p-1.5 text-ink-faint hover:text-alert"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.8}
-          stroke="currentColor"
-          className="h-4.5 w-4.5"
-          aria-hidden="true"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.2v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-        </svg>
+        <TrashIcon className="h-[18px] w-[18px]" />
       </button>
 
       <button
         type="button"
         onClick={onCycleStatus}
-        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLASS[item.status]}`}
+        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_CLASS[item.status]}`}
       >
         {STATUS_LABEL[item.status]}
       </button>

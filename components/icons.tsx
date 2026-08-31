@@ -274,6 +274,49 @@ export const WarningIcon = (p: IconProps) => (
   </Glyph>
 );
 
+export const EditIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M16.5 4.2a1.9 1.9 0 0 1 2.7 2.7L9.6 16.5l-3.6 1 1-3.6z" />
+    <path d="M14.8 6 18 9.2" />
+  </Glyph>
+);
+
+export const TrashIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M4.5 6.5h15" />
+    <path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7" />
+    <path d="M6.5 6.5l.9 12.4a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5l.9-12.4" />
+    <path d="M10.3 10v7M13.7 10v7" />
+  </Glyph>
+);
+
+export const DragHandleIcon = (p: IconProps) => (
+  <Glyph {...p} strokeLinejoin={undefined}>
+    <circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none" />
+  </Glyph>
+);
+
+export const MoveIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M7.5 20.5 3 16m0 0 4.5-4.5M3 16h13.5" />
+    <path d="M16.5 3.5 21 8m0 0-4.5 4.5M21 8H7.5" />
+  </Glyph>
+);
+
+export const TicketIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h13A1.5 1.5 0 0 1 20 8.5v1.9a1.8 1.8 0 0 0 0 3.2v1.9A1.5 1.5 0 0 1 18.5 17h-13A1.5 1.5 0 0 1 4 15.5v-1.9a1.8 1.8 0 0 0 0-3.2z" />
+    <path d="M13 7.5v9" />
+  </Glyph>
+);
+
+export const FileIcon = DocumentIcon;
+
 export const ShareIcon = (p: IconProps) => (
   <Glyph {...p}>
     <path d="M12 15V4" />

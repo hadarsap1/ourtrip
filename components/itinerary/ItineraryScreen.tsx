@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
+import { CloseIcon, FileIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
@@ -29,6 +31,7 @@ import type {
   Trip,
 } from "@/lib/types";
 import { DayCard } from "./DayCard";
+import { DayStrip } from "./DayStrip";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
 import { CalendarView } from "./CalendarView";
@@ -43,7 +46,11 @@ const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
 };
 
 export function ItineraryScreen() {
-  const [tab, setTab] = useState<"plan" | "bookings" | "search">("plan");
+  // One layer of tabs, never two: the old plan/bookings/search row above a
+  // list/calendar row collapsed into a single three-way control. Search left
+  // the row entirely and became a header action.
+  const [view, setView] = useState<"list" | "calendar" | "bookings">("list");
+  const [searching, setSearching] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [items, setItems] = useState<ItineraryItem[]>([]);
@@ -52,9 +59,9 @@ export function ItineraryScreen() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [planView, setPlanView] = useState<"list" | "calendar">("list");
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const pendingScroll = useRef<string | null>(null);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   // open sheets
   const [dayForm, setDayForm] = useState<{ day: ItineraryDay | null; date?: string } | null>(null);
@@ -164,7 +171,7 @@ export function ItineraryScreen() {
 
   // after the calendar jumps to a day, scroll its card into view
   useEffect(() => {
-    if (planView !== "list") return;
+    if (view !== "list") return;
     const id = pendingScroll.current;
     if (!id) return;
     const el = dayRefs.current[id];
@@ -172,7 +179,7 @@ export function ItineraryScreen() {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       pendingScroll.current = null;
     }
-  }, [planView, days]);
+  }, [view, days]);
 
   // tap a date in the calendar: open an existing day, or add that date
   const handleCalendarSelect = useCallback(
@@ -180,7 +187,8 @@ export function ItineraryScreen() {
       const existing = days.find((d) => d.date === date);
       if (existing) {
         pendingScroll.current = existing.id;
-        setPlanView("list");
+        setSelectedDayId(existing.id);
+        setView("list");
       } else {
         setDayForm({ day: null, date });
       }
@@ -216,140 +224,62 @@ export function ItineraryScreen() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
+      <div className="mx-auto max-w-lg px-4 pt-8 sm:max-w-2xl">
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
       </div>
     );
   }
 
+  // Tap a day in the strip: put its card at the top of the viewport. Not
+  // scrollIntoView — that also scrolls any ancestor, which drags the whole page
+  // when the strip is near the bottom of a short screen.
+  const jumpToDay = (day: ItineraryDay) => {
+    setSelectedDayId(day.id);
+    const el = dayRefs.current[day.id];
+    if (!el) return;
+    window.scrollTo({ top: el.offsetTop - 12, behavior: "smooth" });
+  };
+
   return (
-    <div className="mx-auto max-w-lg px-4 pt-6">
-      {/* segmented control: itinerary / bookings / search */}
-      <div className="mb-4 grid grid-cols-3 rounded-xl bg-line p-1 text-sm font-semibold">
-        {(
-          [
-            ["plan", strings.itinerary.tabPlan],
-            ["bookings", strings.itinerary.tabBookings],
-            ["search", strings.itinerary.tabSearch],
-          ] as const
-        ).map(([key, label]) => (
+    <div className="mx-auto max-w-lg px-4 pt-6 sm:max-w-2xl lg:max-w-4xl">
+      <header className="mb-3 flex items-center justify-between gap-2">
+        <h1 className="text-[22px] font-extrabold text-ink">
+          {strings.nav.itinerary}
+        </h1>
+        <div className="flex items-center gap-1.5">
+          {/* Search used to occupy a third of the tab row for something that is
+              an action, not a view. */}
           <button
-            key={key}
             type="button"
-            onClick={() => setTab(key)}
-            className={`rounded-lg py-2 transition-colors ${
-              tab === key ? "bg-white text-sea shadow" : "text-ink-soft"
+            onClick={() => setSearching((open) => !open)}
+            aria-label={
+              searching ? strings.itinerary.closeSearch : strings.itinerary.tabSearch
+            }
+            aria-pressed={searching}
+            className={`grid h-8 w-8 place-items-center rounded-[11px] transition-colors ${
+              searching
+                ? "bg-sea text-white"
+                : "bg-paper-deep text-ink-soft active:bg-line"
             }`}
           >
-            {label}
+            {searching ? (
+              <CloseIcon className="h-[17px] w-[17px]" />
+            ) : (
+              <SearchIcon className="h-[17px] w-[17px]" />
+            )}
           </button>
-        ))}
-      </div>
-
-      {tab === "plan" ? (
-        <div className="space-y-4 pb-8">
-          {/* list / calendar view toggle */}
-          <div className="grid grid-cols-2 rounded-xl bg-line p-1 text-sm font-semibold">
-            {(
-              [
-                ["list", strings.itinerary.viewList],
-                ["calendar", strings.itinerary.viewCalendar],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setPlanView(key)}
-                className={`rounded-lg py-1.5 transition-colors ${
-                  planView === key ? "bg-white text-sea shadow" : "text-ink-soft"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {planView === "calendar" ? (
-            <CalendarView days={days} items={items} onSelectDate={handleCalendarSelect} />
-          ) : (
-            <>
-              {days.length === 0 && (
-                <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
-                  {strings.itinerary.emptyDays}
-                </p>
-              )}
-              {days.map((day) => (
-                <div
-                  key={day.id}
-                  ref={(el) => {
-                    dayRefs.current[day.id] = el;
-                  }}
-                  className="scroll-mt-4"
-                >
-                  <DayCard
-                    day={day}
-                    items={itemsOf(day.id)}
-                    bookings={bookings}
-                    onEditDay={() => setDayForm({ day })}
-                    onDeleteDay={() => {
-                      // Say what goes with it: deleting a day takes its
-                      // activities too, and that is easy to not expect.
-                      const count = itemsOf(day.id).length;
-                      const question =
-                        count > 0
-                          ? strings.itinerary.deleteDayWithItemsConfirm.replace(
-                              "{n}",
-                              String(count)
-                            )
-                          : strings.itinerary.deleteDayConfirm;
-                      if (!confirm(question)) return;
-                      void run(() => deleteDay(day.id), strings.itinerary.dayDeleted);
-                    }}
-                    onAddItem={() => setItemForm({ dayId: day.id, item: null })}
-                    onItemClick={(item) => setItemForm({ dayId: day.id, item })}
-                    onMoveItem={setMovingItem}
-                    onDeleteItem={(item) => {
-                      if (!confirm(strings.itinerary.deleteItemConfirm)) return;
-                      void run(
-                        () => deleteItem(item.id),
-                        strings.itinerary.itemDeleted
-                      );
-                    }}
-                    onCycleStatus={(item) =>
-                      void run(() =>
-                        updateItem(item.id, { status: NEXT_STATUS[item.status] })
-                      )
-                    }
-                    onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
-                  />
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setDayForm({ day: null })}
-                className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
-              >
-                {strings.itinerary.addDay}
-              </button>
-              <button
-                type="button"
-                onClick={() => setImporting(true)}
-                className="w-full rounded-2xl border border-line bg-white py-3 font-semibold text-ink-soft"
-              >
-                <span aria-hidden="true">📄</span> {strings.itinerary.importFromFile}
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={() => setDayForm({ day: null })}
+            aria-label={strings.itinerary.addDay}
+            className="grid h-8 w-8 place-items-center rounded-[11px] bg-sea text-white active:bg-sea-deep"
+          >
+            <PlusIcon className="h-[17px] w-[17px]" />
+          </button>
         </div>
-      ) : tab === "bookings" ? (
-        <BookingsList
-          bookings={bookings}
-          onAdd={() => setBookingForm({ booking: null })}
-          onEdit={(booking) => setBookingForm({ booking })}
-          onAddToDay={setDayPickFor}
-          onError={() => showToast(strings.common.error)}
-        />
-      ) : (
+      </header>
+
+      {searching ? (
         trip && (
           <TravelSearch
             tripId={trip.id}
@@ -364,6 +294,133 @@ export function ItineraryScreen() {
             onError={(message) => showToast(message)}
           />
         )
+      ) : (
+        <>
+          <SegmentedControl
+            ariaLabel={strings.itinerary.viewsAria}
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "list", label: strings.itinerary.viewList },
+              { value: "calendar", label: strings.itinerary.viewCalendar },
+              { value: "bookings", label: strings.itinerary.tabBookings },
+            ]}
+          />
+
+          <div className="mt-3.5 pb-8">
+            {view === "calendar" ? (
+              <CalendarView
+                days={days}
+                items={items}
+                onSelectDate={handleCalendarSelect}
+              />
+            ) : view === "bookings" ? (
+              <BookingsList
+                bookings={bookings}
+                onAdd={() => setBookingForm({ booking: null })}
+                onEdit={(booking) => setBookingForm({ booking })}
+                onAddToDay={setDayPickFor}
+                onError={() => showToast(strings.common.error)}
+              />
+            ) : (
+              <>
+                {days.length === 0 ? (
+                  <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+                    {strings.itinerary.emptyDays}
+                  </p>
+                ) : (
+                  <DayStrip
+                    days={days}
+                    items={items}
+                    selectedId={selectedDayId}
+                    onSelect={jumpToDay}
+                  />
+                )}
+
+                <div className="space-y-3 pt-3">
+                  {days.map((day) => (
+                    <div
+                      key={day.id}
+                      ref={(el) => {
+                        dayRefs.current[day.id] = el;
+                      }}
+                      className="scroll-mt-4"
+                    >
+                      <DayCard
+                        day={day}
+                        items={itemsOf(day.id)}
+                        bookings={bookings}
+                        onEditDay={() => setDayForm({ day })}
+                        onDeleteDay={() => {
+                          // Say what goes with it: deleting a day takes its
+                          // activities too, and that is easy to not expect.
+                          const count = itemsOf(day.id).length;
+                          const question =
+                            count > 0
+                              ? strings.itinerary.deleteDayWithItemsConfirm.replace(
+                                  "{n}",
+                                  String(count)
+                                )
+                              : strings.itinerary.deleteDayConfirm;
+                          if (!confirm(question)) return;
+                          void run(
+                            () => deleteDay(day.id),
+                            strings.itinerary.dayDeleted
+                          );
+                        }}
+                        onAddItem={() =>
+                          setItemForm({ dayId: day.id, item: null })
+                        }
+                        onItemClick={(item) =>
+                          setItemForm({ dayId: day.id, item })
+                        }
+                        onMoveItem={setMovingItem}
+                        onDeleteItem={(item) => {
+                          if (!confirm(strings.itinerary.deleteItemConfirm)) return;
+                          void run(
+                            () => deleteItem(item.id),
+                            strings.itinerary.itemDeleted
+                          );
+                        }}
+                        onCycleStatus={(item) =>
+                          void run(() =>
+                            updateItem(item.id, {
+                              status: NEXT_STATUS[item.status],
+                            })
+                          )
+                        }
+                        onReorder={(orderedIds) =>
+                          handleReorder(day.id, orderedIds)
+                        }
+                      />
+                    </div>
+                  ))}
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setDayForm({ day: null })}
+                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+                      style={{
+                        boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)",
+                      }}
+                    >
+                      {strings.itinerary.addDay}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImporting(true)}
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
+                    >
+                      <FileIcon className="h-[17px] w-[17px]" />
+                      {strings.itinerary.importFromFile}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {/* ---------- sheets ---------- */}
