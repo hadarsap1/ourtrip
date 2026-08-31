@@ -2,6 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
+import {
+  CheckIcon,
+  DocumentIcon,
+  DownloadIcon,
+  ExternalIcon,
+  type IconProps,
+  LockIcon,
+  PassportIcon,
+  PersonIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  UnlockIcon,
+  VaccineIcon,
+  VisaIcon,
+  WarningIcon,
+} from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   DOCUMENT_TAGS,
@@ -30,9 +46,20 @@ import { isPasskeySupported } from "@/lib/webauthn";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
+import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
 import { DocPinSheet } from "./DocPinSheet";
 import { DocumentFormSheet } from "./DocumentFormSheet";
+
+// A document's kind, drawn. A row of identical file icons told you nothing;
+// the shape is the fastest thing on the row to read.
+const TAG_ICON: Record<string, ComponentType<IconProps>> = {
+  passport: PassportIcon,
+  insurance: ShieldCheckIcon,
+  vaccine: VaccineIcon,
+  visa: VisaIcon,
+  other: DocumentIcon,
+};
 
 export function DocumentsScreen() {
   const { member } = useMember();
@@ -288,49 +315,114 @@ export function DocumentsScreen() {
     if (!query) return true;
     return (
       doc.title.toLowerCase().includes(query) ||
-      (doc.notes ?? "").toLowerCase().includes(query)
+      (doc.notes ?? "").toLowerCase().includes(query) ||
+      (strings.documents.tags[doc.tag] ?? doc.tag).toLowerCase().includes(query)
     );
   });
 
-  return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      {isKid && (
-        <h1 className="text-2xl font-bold">{strings.documents.kidTitle}</h1>
-      )}
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder={strings.documents.searchPlaceholder}
-        className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-      />
+  // Counts on the chips, so you know whether there is anything under a filter
+  // before tapping it.
+  const countByTag = new Map<string, number>();
+  for (const doc of docs) {
+    countByTag.set(doc.tag, (countByTag.get(doc.tag) ?? 0) + 1);
+  }
 
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+  // The screen's most valuable block: documents that lapse before the trip
+  // ends. Compared against the trip's own end date, so it means "this will
+  // expire while we are away" rather than "this expired".
+  const expiring = trip?.end_date
+    ? docs
+        .filter((d) => d.expires_at && d.expires_at <= trip.end_date!)
+        .sort((a, b) => (a.expires_at ?? "").localeCompare(b.expires_at ?? ""))
+    : [];
+  const soonest = expiring[0] ?? null;
+  const offlineCount = docs.filter((d) => offlineIds.has(d.id)).length;
+
+  return (
+    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
+      <header className="flex items-center justify-between gap-2">
+        <h1 className="text-[22px] font-extrabold text-ink">
+          {isKid ? strings.documents.kidTitle : strings.nav.documents}
+        </h1>
+        {/* The PIN is reassurance, not only a challenge — say the vault is
+            protected on the way in, not just when it blocks you. */}
+        {!isKid && pinExists && (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[11px] font-bold text-sea-deep">
+            <LockIcon className="h-3 w-3" />
+            {strings.documents.pinBadge}
+          </span>
+        )}
+      </header>
+
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute inset-y-0 end-3.5 my-auto h-[17px] w-[17px] text-ink-faint" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={strings.documents.searchFull}
+          className="w-full rounded-[14px] border border-line bg-white py-[11px] pe-10 ps-3.5 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+        />
+      </div>
+
+      <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
         <button
           type="button"
           onClick={() => setTagFilter(null)}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-            tagFilter === null ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+            tagFilter === null
+              ? "bg-sea-deep text-white"
+              : "bg-paper-deep text-ink-soft"
           }`}
         >
-          {strings.documents.allTags}
+          {strings.documents.allTags} {docs.length}
         </button>
-        {DOCUMENT_TAGS.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-              tagFilter === tag ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
-            }`}
-          >
-            {strings.documents.tags[tag]}
-          </button>
-        ))}
+        {DOCUMENT_TAGS.map((tag) => {
+          const count = countByTag.get(tag) ?? 0;
+          return (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+                tagFilter === tag
+                  ? "bg-sea-deep text-white"
+                  : "bg-paper-deep text-ink-soft"
+              }`}
+            >
+              {strings.documents.tags[tag]}
+              {count > 0 && ` ${count}`}
+            </button>
+          );
+        })}
       </div>
 
+      {soonest && trip?.end_date && (
+        <div className="flex items-start gap-2.5 rounded-[16px] bg-sun-tint px-3.5 py-3">
+          <WarningIcon className="mt-px h-[18px] w-[18px] shrink-0 text-sun-deep" />
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-bold text-sun-deep">
+              {strings.documents.expiryWarnTitle.replace(
+                "{title}",
+                soonest.title
+              )}
+            </p>
+            <p className="mt-0.5 text-[11px] text-sun-deep/85">
+              {strings.documents.expiryWarnBody
+                .replace("{expiry}", formatDate(soonest.expires_at!))
+                .replace("{end}", formatDate(trip.end_date))}
+              {expiring.length > 1 &&
+                ` · ${strings.documents.expiryWarnMore.replace(
+                  "{n}",
+                  String(expiring.length - 1)
+                )}`}
+            </p>
+          </div>
+        </div>
+      )}
+
       {visible.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-faint">
           {docs.length === 0
             ? isKid
               ? strings.documents.kidEmpty
@@ -338,111 +430,154 @@ export function DocumentsScreen() {
             : strings.documents.noResults}
         </p>
       ) : (
-        <ul className="space-y-2">
-          {visible.map((doc) => {
-            const isOffline = offlineIds.has(doc.id);
-            const busy = busyIds.has(doc.id);
-            return (
-              <li
-                key={doc.id}
-                className="flex items-center gap-2 rounded-2xl border border-line bg-white px-3 py-2.5 shadow-sm"
-              >
-                <button
-                  type="button"
-                  onClick={() => (isKid ? void handleOpen(doc) : setForm({ doc }))}
-                  className="min-w-0 flex-1 text-start"
+        <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+          <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
+            <h2 className="text-xs font-bold text-ink">
+              {strings.documents.offlineHeader}
+            </h2>
+            <span className="text-[10.5px] text-ink-soft">
+              {strings.documents.offlineCount
+                .replace("{n}", String(offlineCount))
+                .replace("{total}", String(docs.length))}
+            </span>
+          </header>
+          <ul>
+            {visible.map((doc) => {
+              const isOffline = offlineIds.has(doc.id);
+              const busy = busyIds.has(doc.id);
+              const expires = Boolean(
+                doc.expires_at && trip?.end_date && doc.expires_at <= trip.end_date
+              );
+              const TagIcon = TAG_ICON[doc.tag] ?? DocumentIcon;
+              return (
+                <li
+                  key={doc.id}
+                  className="flex items-center gap-2.5 border-t border-line px-3.5 py-2.5"
                 >
-                  <span className="block truncate font-medium text-ink">
-                    {doc.pin_protected && (
-                      <span className="mr-1" aria-label={strings.documents.lockedBadge}>
-                        🔒
-                      </span>
-                    )}
-                    {doc.shared_with_kids && (
-                      <span className="mr-1" aria-label={strings.documents.sharedBadge}>
-                        🧒
-                      </span>
-                    )}
-                    {doc.title}
-                  </span>
-                  <span className="text-xs text-ink-soft">
-                    {strings.documents.tags[doc.tag] ?? doc.tag}
-                    {doc.notes ? ` · ${doc.notes}` : ""}
-                  </span>
-                </button>
-                {!isKid && (
-                  <button
-                    type="button"
-                    onClick={() => toggleLock(doc)}
-                    aria-label={strings.documents.lock}
-                    aria-pressed={doc.pin_protected}
-                    className={`rounded-full p-2 ${
-                      doc.pin_protected
-                        ? "bg-rose-100 text-rose-700"
-                        : "bg-paper-deep text-ink-soft"
+                  <span
+                    className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] ${
+                      expires
+                        ? "bg-sun-tint text-sun-deep"
+                        : "bg-sea-tint text-sea-deep"
                     }`}
                   >
-                    <span className="block h-4 w-4 text-center text-sm leading-4" aria-hidden="true">
-                      {doc.pin_protected ? "🔒" : "🔓"}
-                    </span>
-                  </button>
-                )}
-                {!isKid && !doc.pin_protected && (
+                    <TagIcon className="h-[17px] w-[17px]" strokeWidth={1.7} />
+                  </span>
+
                   <button
                     type="button"
-                    onClick={() => void toggleShareWithKids(doc)}
-                    aria-label={strings.documents.shareWithKids}
-                    aria-pressed={doc.shared_with_kids}
-                    className={`rounded-full p-2 ${
-                      doc.shared_with_kids
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-paper-deep text-ink-soft"
-                    }`}
+                    onClick={() =>
+                      isKid ? void handleOpen(doc) : setForm({ doc })
+                    }
+                    className="min-w-0 flex-1 text-start"
                   >
-                    <span className="block h-4 w-4 text-center text-sm leading-4" aria-hidden="true">
-                      🧒
+                    <span className="flex items-center gap-1">
+                      {doc.pin_protected && (
+                        <LockIcon
+                          className="h-3 w-3 shrink-0 text-ink-soft"
+                          aria-label={strings.documents.lockedBadge}
+                        />
+                      )}
+                      {doc.shared_with_kids && (
+                        <PersonIcon
+                          className="h-3 w-3 shrink-0 text-sea"
+                          aria-label={strings.documents.sharedBadge}
+                        />
+                      )}
+                      <span className="truncate text-[13.5px] font-semibold text-ink">
+                        {doc.title}
+                      </span>
+                    </span>
+                    <span
+                      className={`block truncate text-[10.5px] ${
+                        expires ? "font-semibold text-sun-deep" : "text-ink-soft"
+                      }`}
+                    >
+                      {strings.documents.tags[doc.tag] ?? doc.tag}
+                      {doc.expires_at
+                        ? ` · ${strings.documents.expiresOn.replace(
+                            "{date}",
+                            formatDate(doc.expires_at)
+                          )}`
+                        : doc.notes
+                          ? ` · ${doc.notes}`
+                          : ""}
                     </span>
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void toggleOffline(doc)}
-                  disabled={busy}
-                  aria-label={strings.documents.offlineToggle}
-                  aria-pressed={isOffline}
-                  className={`rounded-full p-2 disabled:opacity-40 ${
-                    isOffline ? "bg-sea-tint text-sea" : "bg-paper-deep text-ink-soft"
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
+
+                  {!isKid && (
+                    <button
+                      type="button"
+                      onClick={() => toggleLock(doc)}
+                      aria-label={strings.documents.lock}
+                      aria-pressed={doc.pin_protected}
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
+                        doc.pin_protected
+                          ? "bg-alert-tint text-alert"
+                          : "bg-paper-deep text-ink-faint"
+                      }`}
+                    >
+                      {doc.pin_protected ? (
+                        <LockIcon className="h-[15px] w-[15px]" />
+                      ) : (
+                        <UnlockIcon className="h-[15px] w-[15px]" />
+                      )}
+                    </button>
+                  )}
+                  {!isKid && !doc.pin_protected && (
+                    <button
+                      type="button"
+                      onClick={() => void toggleShareWithKids(doc)}
+                      aria-label={strings.documents.shareWithKids}
+                      aria-pressed={doc.shared_with_kids}
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
+                        doc.shared_with_kids
+                          ? "bg-sun-tint text-sun-deep"
+                          : "bg-paper-deep text-ink-faint"
+                      }`}
+                    >
+                      <PersonIcon className="h-[15px] w-[15px]" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void toggleOffline(doc)}
+                    disabled={busy}
+                    aria-label={strings.documents.offlineToggle}
+                    aria-pressed={isOffline}
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg disabled:opacity-40 ${
+                      isOffline
+                        ? "bg-sea-tint text-sea"
+                        : "bg-paper-deep text-ink-faint"
+                    }`}
+                  >
                     {isOffline ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      <CheckIcon className="h-[15px] w-[15px]" />
                     ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      <DownloadIcon className="h-[15px] w-[15px]" />
                     )}
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openDoc(doc)}
-                  aria-label={strings.documents.open}
-                  className="rounded-full bg-paper-deep p-2 text-ink-soft hover:bg-line"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openDoc(doc)}
+                    aria-label={strings.documents.open}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-paper-deep text-ink-faint hover:bg-line"
+                  >
+                    <ExternalIcon className="h-[15px] w-[15px]" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {!isKid && (
         <button
           type="button"
           onClick={() => setForm({ doc: null })}
-          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+          className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+          style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
         >
           {strings.documents.upload}
         </button>
@@ -496,7 +631,7 @@ export function DocumentsScreen() {
                     <button
                       type="button"
                       onClick={() => void removeDevice(pk.id)}
-                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-rose-600"
+                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-alert"
                     >
                       {strings.documents.bioRemove}
                     </button>
@@ -512,9 +647,10 @@ export function DocumentsScreen() {
               lockVault();
               setUnlocked(false);
             }}
-            className="w-full text-center text-sm font-medium text-ink-soft"
+            className="flex w-full items-center justify-center gap-1.5 text-sm font-bold text-ink-soft"
           >
-            🔒 {strings.documents.lockNow}
+            <LockIcon className="h-4 w-4" />
+            {strings.documents.lockNow}
           </button>
         </>
       )}

@@ -274,6 +274,34 @@ export const WarningIcon = (p: IconProps) => (
   </Glyph>
 );
 
+export const CheckIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 2.2}>
+    <path d="M4.5 12.5l5 5 10-11" />
+  </Glyph>
+);
+
+export const DownloadIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 2}>
+    <path d="M12 3.5v11" />
+    <path d="M8 11l4 4 4-4" />
+    <path d="M4.5 16.5v2.2a1.3 1.3 0 0 0 1.3 1.3h12.4a1.3 1.3 0 0 0 1.3-1.3v-2.2" />
+  </Glyph>
+);
+
+export const ExternalIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 2}>
+    <path d="M13.5 5.5H5.8A1.3 1.3 0 0 0 4.5 6.8v11.4a1.3 1.3 0 0 0 1.3 1.3h11.4a1.3 1.3 0 0 0 1.3-1.3V10.5" />
+    <path d="M20 4l-8.5 8.5M20 4h-4.8M20 4v4.8" />
+  </Glyph>
+);
+
+export const UnlockIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 2.2} strokeLinejoin={undefined}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8.5 11V8a3.5 3.5 0 0 1 6.7-1.4" />
+  </Glyph>
+);
+
 export const EditIcon = (p: IconProps) => (
   <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
     <path d="M16.5 4.2a1.9 1.9 0 0 1 2.7 2.7L9.6 16.5l-3.6 1 1-3.6z" />
