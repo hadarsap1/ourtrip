@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { isKidDevice, registerDevice, unlockWithPin } from "@/lib/data/kids";
+import { CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useIsKidDevice, useKidDisplayName } from "@/lib/useKidDevice";
 
@@ -148,7 +149,7 @@ export function KidLoginScreen() {
               aria-label={strings.kidLogin.delete}
               className="rounded-2xl bg-paper-deep py-4 text-lg font-bold text-ink-soft"
             >
-              ✕
+              <CloseIcon className="mx-auto h-5 w-5" />
             </button>
             <button
               type="button"
@@ -164,7 +165,7 @@ export function KidLoginScreen() {
               disabled={busy || pin.length < 4}
               className="rounded-2xl bg-sea py-4 text-lg font-bold text-white disabled:opacity-40"
             >
-              ✓
+              <CheckIcon className="mx-auto h-5 w-5" />
             </button>
           </div>
         </>

@@ -19,6 +19,7 @@ import {
   type PhotoWithUrl,
 } from "@/lib/data/photos";
 import { formatDate } from "@/lib/format";
+import { CameraIcon, CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
@@ -258,7 +259,8 @@ function FamilyPhotosView() {
         disabled={uploading}
         className="w-full rounded-2xl bg-sea py-3 font-bold text-white shadow hover:bg-sea-deep disabled:opacity-60"
       >
-        📷 {uploading ? strings.photos.uploading : strings.photos.upload}
+        <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+        {uploading ? strings.photos.uploading : strings.photos.upload}
       </button>
       <input
         ref={fileRef}
@@ -295,14 +297,16 @@ function FamilyPhotosView() {
                     onClick={() => member && void run(() => approvePhoto(photo.id, member.id))}
                     className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-bold text-white"
                   >
-                    ✓ {strings.photos.approve}
+                    <CheckIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
+                    {strings.photos.approve}
                   </button>
                   <button
                     type="button"
                     onClick={() => member && void run(() => rejectPhoto(photo.id, member.id))}
                     className="flex-1 rounded-lg bg-rose-100 py-2 text-sm font-bold text-rose-600"
                   >
-                    ✕ {strings.photos.reject}
+                    <CloseIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
+                    {strings.photos.reject}
                   </button>
                 </div>
               </li>

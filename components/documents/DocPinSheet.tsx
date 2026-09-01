@@ -9,6 +9,7 @@ import {
   unlockWithPasskey,
 } from "@/lib/data/docPin";
 import { isPasskeySupported } from "@/lib/webauthn";
+import { WarningIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
 // mode "set": first-time passphrase creation (with the unrecoverable warning).
@@ -132,7 +133,7 @@ export function DocPinSheet({
         {mode === "set" && (
           <>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              ⚠️ {s.pinWarning}
+              <WarningIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.pinWarning}
             </div>
             <p className="text-sm text-ink-soft">{s.pinHint}</p>
           </>

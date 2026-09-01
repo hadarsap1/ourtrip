@@ -14,6 +14,7 @@ import {
   type WallMessage,
 } from "@/lib/data/messages";
 import { formatShortDate } from "@/lib/format";
+import { MessagesIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
@@ -147,7 +148,8 @@ export function MessagesScreen() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col px-4 pt-4">
       <h1 className="mb-3 text-2xl font-bold">
-        💬 {channel === "guests" ? strings.wall.guestTitle : strings.wall.title}
+        <MessagesIcon className="inline-block h-5 w-5 align-text-bottom text-sea" />{" "}
+          {channel === "guests" ? strings.wall.guestTitle : strings.wall.title}
       </h1>
 
       {/* Owners are the only role with more than one feed to switch between. */}

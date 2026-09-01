@@ -10,6 +10,7 @@ import {
   saveCarPin,
   updateCarPhoto,
 } from "@/lib/data/map";
+import { CameraIcon, CarIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import type { MapPin, Trip } from "@/lib/types";
 
@@ -116,7 +117,7 @@ export function CarCard({
     <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-ink">
-          🚗 {strings.map.car}
+          <CarIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.map.car}
         </h2>
         {carPin && (
           <button
@@ -159,7 +160,8 @@ export function CarCard({
                 disabled={busy}
                 className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line disabled:opacity-50"
               >
-                📷 {strings.map.carPhoto}
+                <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                {strings.map.carPhoto}
               </button>
             </div>
           </div>

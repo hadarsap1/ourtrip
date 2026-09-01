@@ -10,6 +10,12 @@ import {
   isStandalone,
   type PushState,
 } from "@/lib/push";
+import {
+  CameraIcon,
+  MessagesIcon,
+  PlaneIcon,
+  RainIcon,
+} from "@/components/icons";
 import { strings } from "@/lib/strings";
 
 export function NotificationsScreen() {
@@ -66,10 +72,22 @@ export function NotificationsScreen() {
       <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold text-ink">{s.whatTitle}</h2>
         <ul className="space-y-1.5 text-sm text-ink-soft">
-          <li>{s.whatWeather}</li>
-          <li>{s.whatCheckin}</li>
-          <li>{s.whatWall}</li>
-          <li>{s.whatPhoto}</li>
+          <li className="flex items-center gap-2">
+            <RainIcon className="h-4 w-4 shrink-0 text-sea" />
+            {s.whatWeather}
+          </li>
+          <li className="flex items-center gap-2">
+            <PlaneIcon className="h-4 w-4 shrink-0 text-sea" />
+            {s.whatCheckin}
+          </li>
+          <li className="flex items-center gap-2">
+            <MessagesIcon className="h-4 w-4 shrink-0 text-sea" />
+            {s.whatWall}
+          </li>
+          <li className="flex items-center gap-2">
+            <CameraIcon className="h-4 w-4 shrink-0 text-sea" />
+            {s.whatPhoto}
+          </li>
         </ul>
       </section>
 

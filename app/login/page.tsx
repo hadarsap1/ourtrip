@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
+import { SuitcaseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
 export default function LoginPage() {
@@ -24,7 +25,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-5 pb-16">
       <div className="ot-postcard mb-8 p-7 text-center">
-        <p className="relative z-10 text-5xl" aria-hidden="true">🧳</p>
+        <SuitcaseIcon className="relative z-10 mx-auto h-12 w-12 text-sea" />
         <h1 className="relative z-10 mt-3 text-3xl font-bold">{strings.appName}</h1>
         <p className="relative z-10 mt-1 text-white/80">{strings.appDescription}</p>
       </div>

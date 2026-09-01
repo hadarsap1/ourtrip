@@ -22,20 +22,51 @@ import {
 } from "@/lib/data/placeOptions";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
+import type { ComponentType } from "react";
+import {
+  AttractionIcon,
+  BackpackIcon,
+  BagIcon,
+  BedIcon,
+  BusIcon,
+  CityIcon,
+  type IconProps,
+  LeafIcon,
+  PinIcon,
+  RestaurantIcon,
+} from "@/components/icons";
+import {
+  CheckIcon,
+  ClipboardIcon,
+  GlobeIcon,
+  StarIcon,
+} from "@/components/icons";
 import { useMember } from "@/lib/useMember";
 import type { PlaceOption, PlaceOptionStatus, Trip } from "@/lib/types";
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  hotel: "🏨",
-  restaurant: "🍜",
-  attraction: "🎡",
-  activity: "🎒",
-  city: "🏙️",
-  nature: "🌿",
-  transport: "🚌",
-  shop: "🛍️",
-  other: "📍",
+const CATEGORY_ICON: Record<string, ComponentType<IconProps>> = {
+  hotel: BedIcon,
+  restaurant: RestaurantIcon,
+  attraction: AttractionIcon,
+  activity: BackpackIcon,
+  city: CityIcon,
+  nature: LeafIcon,
+  transport: BusIcon,
+  shop: BagIcon,
+  other: PinIcon,
 };
+
+/** Category glyph by key, falling back to the neutral pin. */
+function CategoryIcon({
+  category,
+  className,
+}: {
+  category: string | null | undefined;
+  className?: string;
+}) {
+  const Icon = CATEGORY_ICON[category ?? "other"] ?? PinIcon;
+  return <Icon className={className} />;
+}
 
 const STATUS_CLASS: Record<PlaceOptionStatus, string> = {
   option: "bg-paper-deep text-ink-soft",
@@ -286,7 +317,7 @@ export function OptionsScreen() {
           onClick={() => setExtracting(true)}
           className="rounded-2xl border border-sea bg-white py-3 font-semibold text-sea shadow-sm"
         >
-          📋 {s.importTitle}
+          <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.importTitle}
         </button>
       </div>
 
@@ -379,7 +410,11 @@ export function OptionsScreen() {
                   categoryFilter === c ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
                 }`}
               >
-                {CATEGORY_EMOJI[c]} {s.categories[c]}
+                <CategoryIcon
+                  category={c}
+                  className="inline-block h-3.5 w-3.5 align-text-bottom"
+                />{" "}
+                {s.categories[c]}
               </button>
             )
           )}
@@ -406,7 +441,10 @@ export function OptionsScreen() {
         <div className="space-y-5">
           {grouped.map((g) => (
             <section key={g.country}>
-              <h2 className="mb-2 text-sm font-bold text-sea">🌍 {g.country}</h2>
+              <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-sea">
+                    <GlobeIcon className="h-4 w-4" />
+                    {g.country}
+                  </h2>
               <div className="space-y-3">
                 {g.areas.map((a) => (
                   <div key={a.area || "_"}>
@@ -426,7 +464,10 @@ export function OptionsScreen() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <p className="font-semibold text-ink">
-                                  {CATEGORY_EMOJI[o.category ?? "other"] ?? "📍"}{" "}
+                                  <CategoryIcon
+                                    category={o.category}
+                                    className="inline-block h-4 w-4 align-text-bottom"
+                                  />{" "}
                                   {o.title}
                                 </p>
                                 {o.note && (
@@ -502,12 +543,12 @@ export function OptionsScreen() {
                                   onClick={() => void changeStatus(o, "shortlist")}
                                   className="rounded-full bg-sun/20 px-3 py-1 font-medium"
                                 >
-                                  ⭐ {s.markShortlist}
+                                  <StarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.markShortlist}
                                 </button>
                               )}
                               {status === "booked" ? (
                                 <span className="rounded-full bg-sea/15 px-3 py-1 font-medium text-sea">
-                                  ✓ {s.alreadyBooked}
+                                  <CheckIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.alreadyBooked}
                                 </span>
                               ) : (
                                 <button

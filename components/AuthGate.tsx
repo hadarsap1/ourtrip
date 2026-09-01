@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { needsKidUnlock } from "@/lib/data/kids";
 import { getSupabase } from "@/lib/supabase";
+import { SuitcaseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
 type GateState = "loading" | "allowed" | "rejected" | "redirecting";
@@ -119,7 +120,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         role="status"
         aria-live="polite"
       >
-        <p className="text-4xl" aria-hidden="true">🧳</p>
+        <SuitcaseIcon className="mx-auto h-10 w-10 text-sea" />
         <p className="mt-3 text-ink-soft">{strings.common.loading}</p>
       </div>
     );

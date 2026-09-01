@@ -17,6 +17,8 @@ import {
   isGooglePhotosConfigured,
   preloadGis,
 } from "@/lib/gphotos/picker";
+import { CameraIcon, PlusIcon, UsersIcon } from "@/components/icons";
+import { CarIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import type { MapPin } from "@/lib/types";
 
@@ -178,7 +180,8 @@ export function GooglePhotosSection({
             onClick={() => setSheetOpen(true)}
             className="shrink-0 rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white shadow-sm"
           >
-            ➕ {strings.googlePhotos.import}
+            <PlusIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+            {strings.googlePhotos.import}
           </button>
         )}
       </div>
@@ -219,10 +222,14 @@ export function GooglePhotosSection({
                   {/* status badges */}
                   <div className="pointer-events-none absolute bottom-1 start-1 flex gap-1 text-[10px]">
                     {photo.map_pin_id && (
-                      <span className="rounded-full bg-black/55 px-1.5 py-0.5 text-white">📷</span>
+                      <span className="rounded-full bg-black/55 p-1 text-white">
+                        <CameraIcon className="h-3 w-3" />
+                      </span>
                     )}
                     {photo.shared_with_guests && (
-                      <span className="rounded-full bg-sea/85 px-1.5 py-0.5 text-white">👥</span>
+                      <span className="rounded-full bg-sea/85 p-1 text-white">
+                        <UsersIcon className="h-3 w-3" />
+                      </span>
                     )}
                   </div>
                 </li>
@@ -282,7 +289,12 @@ export function GooglePhotosSection({
                   ? strings.googlePhotos.picking
                   : phase === "importing"
                     ? strings.googlePhotos.importing
-                    : `📷 ${strings.googlePhotos.start}`}
+                    : (
+                        <>
+                          <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                          {strings.googlePhotos.start}
+                        </>
+                      )}
             </button>
 
             {phase === "picking" && pickerUri && (
@@ -329,7 +341,8 @@ export function GooglePhotosSection({
             </button>
 
             <label className="flex items-center justify-between rounded-xl bg-paper-deep px-3 py-2.5 text-sm font-medium text-ink">
-              👥 {strings.googlePhotos.shareToggle}
+              <UsersIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+              {strings.googlePhotos.shareToggle}
               <input
                 type="checkbox"
                 checked={actionPhoto.shared_with_guests}
@@ -343,7 +356,8 @@ export function GooglePhotosSection({
               onClick={() => setAttaching(actionPhoto)}
               className="flex w-full items-center justify-between rounded-xl bg-paper-deep px-3 py-2.5 text-sm font-medium text-ink"
             >
-              📷 {strings.googlePhotos.attachToPin}
+              <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+              {strings.googlePhotos.attachToPin}
               <span className="text-xs text-ink-soft">
                 {actionPhoto.map_pin_id
                   ? (pins.find((p) => p.id === actionPhoto.map_pin_id)?.label ??
@@ -382,7 +396,8 @@ export function GooglePhotosSection({
                 onClick={() => void attachToPin(attaching, null)}
                 className="w-full rounded-xl bg-rose-50 px-3 py-2.5 text-start text-sm font-semibold text-rose-600"
               >
-                ✕ {strings.googlePhotos.detach}
+                <CloseIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
+                  {strings.googlePhotos.detach}
               </button>
             )}
             {pins.length === 0 ? (
@@ -401,7 +416,12 @@ export function GooglePhotosSection({
                       : "bg-paper-deep text-ink"
                   }`}
                 >
-                  {pin.kind === "car" ? "🚗" : "📍"} {pin.label}
+                  {pin.kind === "car" ? (
+                    <CarIcon className="inline-block h-4 w-4 align-text-bottom" />
+                  ) : (
+                    <PinIcon className="inline-block h-4 w-4 align-text-bottom" />
+                  )}{" "}
+                  {pin.label}
                 </button>
               ))
             )}

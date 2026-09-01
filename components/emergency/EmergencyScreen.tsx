@@ -13,6 +13,7 @@ import {
   type EmergencyPage,
 } from "@/lib/data/emergency";
 import { useMember } from "@/lib/useMember";
+import { EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import type { Trip } from "@/lib/types";
 import { EmergencyEditSheet } from "./EmergencyEditSheet";
@@ -139,7 +140,10 @@ export function EmergencyScreen() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-rose-700">
-          🆘 {strings.emergency.title}
+          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]">
+            {strings.emergency.sos}
+          </span>{" "}
+          {strings.emergency.title}
         </h1>
         {trip && (
           <button
@@ -147,7 +151,7 @@ export function EmergencyScreen() {
             onClick={() => setEditing({ countryCode: selected })}
             className="rounded-xl border border-line px-3 py-1.5 text-sm font-semibold text-ink-soft"
           >
-            <span aria-hidden="true">✏️</span> {strings.emergency.editTitle}
+            <EditIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.emergency.editTitle}
           </button>
         )}
       </div>
@@ -203,7 +207,8 @@ export function EmergencyScreen() {
                     disabled={autofilling}
                     className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm disabled:opacity-50"
                   >
-                    ✨ {autofilling ? strings.emergency.autofilling : strings.emergency.autofill}
+                    <SparkleIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                    {autofilling ? strings.emergency.autofilling : strings.emergency.autofill}
                   </button>
                   <p className="text-xs text-ink-soft">{strings.emergency.autofillHint}</p>
                 </>

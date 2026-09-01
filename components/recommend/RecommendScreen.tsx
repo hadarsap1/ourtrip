@@ -14,7 +14,14 @@ import {
 } from "@/lib/data/recommendations";
 import { getActiveTrip } from "@/lib/data/trip";
 import { formatShortDate, todayISO } from "@/lib/format";
-import { categoryIcon, RECOMMEND_CATEGORIES } from "@/lib/recommendCategories";
+import { RECOMMEND_CATEGORIES } from "@/lib/recommendCategories";
+import {
+  CalendarIcon,
+  MapIcon,
+  PinIcon,
+  RecommendCategoryIcon,
+  StarIcon,
+} from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { ItineraryDay, PlaceOption, Trip } from "@/lib/types";
@@ -212,7 +219,11 @@ export function RecommendScreen() {
                 cats.has(cat) ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
               }`}
             >
-              {categoryIcon(cat)} {s.filterLabels[i]}
+              <RecommendCategoryIcon
+                category={cat}
+                className="inline-block h-3.5 w-3.5 align-text-bottom"
+              />{" "}
+              {s.filterLabels[i]}
             </button>
           ))}
         </div>
@@ -226,12 +237,12 @@ export function RecommendScreen() {
           disabled={loading}
           className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
         >
-          📍 {s.useLocation}
+          <PinIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.useLocation}
         </button>
         {daysWithPlace.length > 0 && (
           <details className="rounded-2xl border border-line bg-white">
             <summary className="cursor-pointer list-none px-4 py-3 font-medium text-ink">
-              🗓️ {s.useDay}
+              <CalendarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.useDay}
             </summary>
             <ul className="divide-y divide-line">
               {daysWithPlace.map((d) => (
@@ -270,7 +281,12 @@ export function RecommendScreen() {
               className="rounded-2xl border border-line bg-white p-4 shadow-sm"
             >
               <div className="flex items-start gap-2">
-                <span className="text-2xl" aria-hidden="true">{categoryIcon(rec.category)}</span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sea-tint text-sea-deep">
+                  <RecommendCategoryIcon
+                    category={rec.category}
+                    className="h-[18px] w-[18px]"
+                  />
+                </span>
                 <div className="flex-1">
                   <h3 className="font-semibold text-ink">{rec.title}</h3>
                   {rec.location_name && (
@@ -294,7 +310,7 @@ export function RecommendScreen() {
                   onClick={() => onSaveMaybe(rec)}
                   className="rounded-xl border border-line px-3 py-1.5 text-sm font-medium text-ink-soft"
                 >
-                  ☆ {s.saveMaybe}
+                  <StarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.saveMaybe}
                 </button>
                 {rec.maps_url && (
                   <a
@@ -303,7 +319,8 @@ export function RecommendScreen() {
                     rel="noopener noreferrer"
                     className="rounded-xl border border-line px-3 py-1.5 text-sm font-medium text-ink-soft"
                   >
-                    🗺️ {s.openInMaps}
+                    <MapIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                    {s.openInMaps}
                   </a>
                 )}
               </div>
@@ -315,7 +332,7 @@ export function RecommendScreen() {
       {/* maybe-list */}
       <section>
         <h2 className="mb-2 mt-2 text-sm font-semibold text-ink">
-          ☆ {s.maybeListTitle}
+          <StarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.maybeListTitle}
         </h2>
         {saved.length === 0 ? (
           <p className="text-sm text-ink-soft">{s.maybeEmpty}</p>
@@ -328,7 +345,11 @@ export function RecommendScreen() {
               >
                 <div className="flex-1">
                   <p className="font-medium text-ink">
-                    {categoryIcon(r.category)} {r.title}
+                    <RecommendCategoryIcon
+                      category={r.category}
+                      className="inline-block h-4 w-4 align-text-bottom"
+                    />{" "}
+                    {r.title}
                   </p>
                   {r.note && (
                     <p className="text-xs text-ink-soft">{r.note}</p>

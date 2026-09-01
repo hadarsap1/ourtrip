@@ -11,6 +11,7 @@ import {
   type GuestAllowlistRow,
 } from "@/lib/data/guests";
 import { formatDate } from "@/lib/format";
+import { ClipboardIcon, MailIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import type { Trip } from "@/lib/types";
 
@@ -119,7 +120,7 @@ export function GuestsAdminScreen() {
         onClick={() => setInviteOpen(true)}
         className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
       >
-        ✉️ {strings.guests.invite}
+        <MailIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.invite}
       </button>
 
       {inviteOpen && (
@@ -182,7 +183,8 @@ function InviteSheet({
             }}
             className="w-full rounded-xl bg-sea py-3 font-semibold text-white"
           >
-            📋 {strings.guests.copyLink}
+            <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+            {strings.guests.copyLink}
           </button>
           <button
             type="button"

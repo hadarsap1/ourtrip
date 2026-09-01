@@ -22,6 +22,7 @@ import {
 } from "@/lib/data/googlePhotos";
 import { loadGoogleMaps } from "@/lib/places";
 import { formatShortDate } from "@/lib/format";
+import { EditIcon, PinIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type {
@@ -403,14 +404,14 @@ export function MapScreen() {
                 onClick={() => setMode("addPin")}
                 className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line"
               >
-                📍 {strings.map.addPin}
+                <PinIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.map.addPin}
               </button>
               <button
                 type="button"
                 onClick={startDraw}
                 className="rounded-xl bg-paper-deep px-3 py-2 text-ink hover:bg-line"
               >
-                ✏️ {strings.map.drawRoute}
+                <EditIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.map.drawRoute}
               </button>
               <button
                 type="button"
@@ -471,7 +472,7 @@ export function MapScreen() {
             {customPins.map((pin) => (
               <li key={pin.id} className="flex items-center justify-between gap-2 px-1 py-2">
                 <span className="min-w-0 truncate text-sm font-medium text-ink">
-                  📍 {pin.label}
+                  <PinIcon className="inline-block h-4 w-4 align-text-bottom" /> {pin.label}
                 </span>
                 <span className="flex shrink-0 gap-2 text-xs font-semibold">
                   <a

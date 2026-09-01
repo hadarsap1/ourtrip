@@ -16,6 +16,8 @@ import {
   type PocketMoney,
 } from "@/lib/data/pocket";
 import { formatMoney, formatShortDate } from "@/lib/format";
+import { BagIcon, CoinIcon } from "@/components/icons";
+import { CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
@@ -115,7 +117,7 @@ export function PocketScreen() {
 
       {isOwner && shownKids.length === 0 && (
         <section className="ot-card p-8 text-center">
-          <p className="mb-3 text-4xl" aria-hidden="true">🪙</p>
+          <CoinIcon className="mx-auto mb-3 h-10 w-10 text-line" />
           <h2 className="mb-2 text-lg font-semibold">{strings.pocket.noKids}</h2>
           <p className="mb-4 text-sm text-ink-soft">{strings.pocket.noKidsBody}</p>
           <Link
@@ -142,7 +144,8 @@ export function PocketScreen() {
           >
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-bold text-ink">
-                🪙 {isOwner ? kid.display_name : strings.pocket.allowance}
+                <CoinIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                {isOwner ? kid.display_name : strings.pocket.allowance}
               </h2>
               {isOwner && (
                 <button
@@ -190,7 +193,8 @@ export function PocketScreen() {
                 onClick={() => setAddFor(kid.id)}
                 className="mt-3 w-full rounded-xl bg-sea py-3 font-bold text-white hover:bg-sea-deep"
               >
-                🛍️ {strings.pocket.addExpense}
+                <BagIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                {strings.pocket.addExpense}
               </button>
             )}
 
@@ -207,7 +211,7 @@ export function PocketScreen() {
                   >
                     <span className="min-w-0 truncate text-ink">
                       {formatShortDate(expense.spent_on)} ·{" "}
-                      {expense.description || "🛍️"}
+                      {expense.description || strings.pocket.noDescription}
                     </span>
                     <span className="flex shrink-0 items-baseline gap-2">
                       <strong dir="ltr">{formatMoney(expense.amount, "ILS")}</strong>
@@ -220,9 +224,10 @@ export function PocketScreen() {
                               .then(() => trip && refresh(trip.id, isOwner))
                               .catch(() => showToast(strings.common.error));
                           }}
-                          className="text-xs text-rose-400"
+                          className="text-ink-faint hover:text-alert"
+                          aria-label={strings.common.delete}
                         >
-                          ✕
+                          <CloseIcon className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </span>

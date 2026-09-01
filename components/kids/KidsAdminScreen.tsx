@@ -13,6 +13,7 @@ import {
   type KidDevice,
 } from "@/lib/data/kids";
 import { formatDate } from "@/lib/format";
+import { CheckIcon, LockIcon, PersonIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import type { Member, Trip } from "@/lib/types";
 
@@ -95,7 +96,8 @@ export function KidsAdminScreen() {
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-ink">
-                🧒 {kid.display_name}
+                <PersonIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                {kid.display_name}
               </h2>
               <button
                 type="button"
@@ -113,7 +115,17 @@ export function KidsAdminScreen() {
                       locked ? "text-amber-600" : "text-emerald-600"
                     }`}
                   >
-                    {locked ? "🔒 " + strings.kids.deviceLocked : "✓ " + strings.kids.deviceActive}
+                    {locked ? (
+                      <>
+                        <LockIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
+                        {strings.kids.deviceLocked}
+                      </>
+                    ) : (
+                      <>
+                        <CheckIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
+                        {strings.kids.deviceActive}
+                      </>
+                    )}
                     <span className="mr-1 font-normal text-ink-soft">
                       · {strings.kids.connectedAt}{" "}
                       {formatDate(device.created_at.slice(0, 10))}
