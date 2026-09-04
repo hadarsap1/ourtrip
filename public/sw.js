@@ -11,7 +11,7 @@
 //   4. Navigations are network-first with a short timeout, so a slow mobile
 //      connection falls back to the cached shell instead of hanging.
 
-const SHELL_CACHE = "ourtrip-shell-v11";
+const SHELL_CACHE = "ourtrip-shell-v12";
 const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs — safe to keep
 const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
@@ -26,8 +26,13 @@ const SHELL_URLS = [
   "/", "/itinerary", "/budget", "/documents", "/more", "/checklists",
   "/emergency", "/map", "/phrasebook", "/journal", "/photos", "/pocket",
   "/messages", "/recommend", "/notifications", "/options", "/memory-book",
-  "/manifest.webmanifest",
+  "/offline", "/manifest.webmanifest",
 ];
+
+// Served for a navigation that is neither cached nor reachable. Serving "/"
+// there instead would show the Today screen under someone else's URL, which
+// reads as a bug; this page names the screens that do work offline.
+const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -98,6 +103,7 @@ async function assetFirst(request) {
 async function navigateWithFallback(request) {
   const fallback = async () =>
     (await caches.match(request, { cacheName: SHELL_CACHE })) ??
+    (await caches.match(OFFLINE_URL, { cacheName: SHELL_CACHE })) ??
     (await caches.match("/", { cacheName: SHELL_CACHE })) ??
     Response.error();
 

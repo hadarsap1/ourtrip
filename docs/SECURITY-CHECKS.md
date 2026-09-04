@@ -1049,3 +1049,64 @@ client writes `expires_at` on document upload and edit, so shipping the code
 first would have left a window where both failed with PGRST204 (column not
 found). The column is invisible to the previously deployed code, so applying it
 first breaks nothing in either direction.
+
+---
+
+## 2026-09-04 — CORS on the four browser-called Edge Functions
+
+Reported symptom: tapping "יצירת קוד חיבור" on `/kids` showed the generic
+"משהו השתבש, נסו שוב". Not a permissions problem, and not a Supabase outage.
+
+### What was actually happening
+
+`function_edge_logs` showed `POST | 200` at 11:48:55, 11:49:00 and 11:49:06 UTC
+— exactly the moments of the failed taps — and `kid_device_registrations` held
+four fresh rows with `used_at: null`, one per attempt. The server did the work
+every time. The browser then refused to hand the response to the page, because
+`kid-auth` returned no `Access-Control-Allow-Origin`. supabase-js reports that
+as an opaque failure, and the screen mapped every failure to one Hebrew
+sentence, so a working server looked identical to a broken one.
+
+Four functions are called from the browser and had no CORS headers at all:
+`kid-auth`, `guest-invite`, `guest-photos`, `guest-gphotos`. Every other
+browser-called function (`recommend`, `travel-search`, `phrasebook-generate`,
+`extract-places`, `geocode-places`, `emergency-autofill`, `gphotos`) already
+had them. The three cron-only functions (`fx-daily`, `push-send`,
+`backup-weekly`) correctly need none.
+
+### Why every previous check passed
+
+**Every check in this log was run with a probe** — a direct HTTP call from a
+server or a script. A probe is not a browser: it sends no `Origin`, performs no
+preflight and enforces no same-origin policy, so it never exercises CORS. The
+Sprint 6 line "`kid-auth` register probe → 200 with device token" was true and
+is still true; it simply could not have caught this. The pending item "register
++ unlock + revoke on the real tablet" is where it would have surfaced.
+
+**A probe passing is not evidence that the app can call the function.** Any
+future Edge Function check has to state which of the two it verified.
+
+### Fix
+
+Same constant and the same `OPTIONS` early return already used by the seven
+working functions, added to all four. Response bodies, status codes and auth
+gates are untouched.
+
+| Check | Method | Result |
+|---|---|---|
+| Deployed source matched git before overwriting | `get_edge_function` vs `git show HEAD` | ✅ PASS — identical, no live drift |
+| `verify_jwt` preserved per function | deploy response | ✅ PASS — `kid-auth` false; the three guest functions true |
+| Deployed content round-tripped intact (Hebrew, em dashes, CORS block) | `get_edge_function` on `guest-invite` after deploy | ✅ PASS — byte-identical to the repo file |
+| Auth gates unchanged | diff is additive: headers + `OPTIONS` only | ✅ PASS — reviewed |
+| Build / lint / typecheck / unit / e2e | `npm run build`, `lint`, `tsc --noEmit`, `test`, `test:e2e` | ✅ PASS |
+| Owner can generate a kid code from a browser | **not verified here** | ⚠️ PENDING — needs one tap on the real phone |
+
+### Note on `Access-Control-Allow-Origin: *`
+
+`*` matches the seven functions that already worked, and is what preview
+deployments need (their URLs are generated per build, so no fixed allowlist
+covers them). It does not weaken the auth model: CORS never blocked the request
+itself, only the reading of the reply, so a hostile page could always reach
+these functions and still gets nothing without a valid JWT (`create-registration`
+and `revoke` are owner-gated in-function) or a valid one-time code, device token
+and PIN. Worth revisiting only if the deployment ever settles on a fixed domain.

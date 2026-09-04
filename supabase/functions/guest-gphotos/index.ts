@@ -10,14 +10,27 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // gallery load with room to spare (review finding L3).
 const SIGNED_URL_TTL_SECONDS = 15 * 60;
 
+// Browser calls this cross-origin (Vercel -> *.supabase.co), so every response
+// - including the CORS preflight - must carry these headers. Without them the
+// function still runs and still writes to the database; the browser simply
+// refuses to hand the reply to the page, so supabase-js reports a network
+// failure and the screen shows a generic "try again" that no retry can fix.
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...CORS },
   });
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+
   const caller = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,

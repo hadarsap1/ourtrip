@@ -17,6 +17,24 @@ import { CheckIcon, LockIcon, PersonIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import type { Member, Trip } from "@/lib/types";
 
+/** Turns a kid-auth failure into something worth reading. The function
+ *  answers with a stable code; anything unrecognised keeps the generic text. */
+function kidErrorMessage(error: unknown): string {
+  const code = error instanceof Error ? error.message : "";
+  switch (code) {
+    case "network":
+      return strings.kids.errorNetwork;
+    case "forbidden":
+      return strings.kids.errorForbidden;
+    case "bad pin":
+      return strings.kids.errorBadPin;
+    case "bad member":
+      return strings.kids.errorBadMember;
+    default:
+      return strings.common.error;
+  }
+}
+
 export function KidsAdminScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [kids, setKids] = useState<Member[]>([]);
@@ -137,7 +155,7 @@ export function KidsAdminScreen() {
                       if (!confirm(strings.kids.revokeConfirm)) return;
                       void revokeDevice(device.id)
                         .then(() => trip && refresh(trip.id))
-                        .catch(() => showToast(strings.common.error));
+                        .catch((err) => showToast(kidErrorMessage(err)));
                     }}
                     className="font-semibold text-rose-500"
                   >
@@ -162,7 +180,7 @@ export function KidsAdminScreen() {
           setNewName("");
           void addKid(trip.id, name)
             .then(() => refresh(trip.id))
-            .catch(() => showToast(strings.common.error));
+            .catch((err) => showToast(kidErrorMessage(err)));
         }}
       >
         <input
@@ -184,7 +202,7 @@ export function KidsAdminScreen() {
         <GenerateCodeSheet
           kid={codeFor}
           onClose={() => setCodeFor(null)}
-          onError={() => showToast(strings.common.error)}
+          onError={(err) => showToast(kidErrorMessage(err))}
         />
       )}
 
@@ -200,7 +218,7 @@ function GenerateCodeSheet({
 }: {
   kid: Member;
   onClose: () => void;
-  onError: () => void;
+  onError: (error: unknown) => void;
 }) {
   const [pin, setPin] = useState("");
   const [code, setCode] = useState<string | null>(null);
@@ -212,8 +230,8 @@ function GenerateCodeSheet({
     setBusy(true);
     try {
       setCode(await createRegistration(kid.id, pin));
-    } catch {
-      onError();
+    } catch (err) {
+      onError(err);
       onClose();
     } finally {
       setBusy(false);
