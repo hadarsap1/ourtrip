@@ -20,6 +20,7 @@ import {
   updateItem,
 } from "@/lib/data/itinerary";
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
+import { planFromOption } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { strings } from "@/lib/strings";
 import type {
@@ -37,6 +38,7 @@ import { DayPickerSheet } from "./DayPickerSheet";
 import { CalendarView } from "./CalendarView";
 import { ImportItinerarySheet } from "./ImportItinerarySheet";
 import { ItemFormSheet } from "./ItemFormSheet";
+import { OptionsPickerSheet } from "./OptionsPickerSheet";
 import { TravelSearch } from "./TravelSearch";
 
 const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
@@ -74,6 +76,8 @@ export function ItineraryScreen() {
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
   const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
+  // The day that is currently pulling from the options bank.
+  const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -371,6 +375,7 @@ export function ItineraryScreen() {
                         onAddItem={() =>
                           setItemForm({ dayId: day.id, item: null })
                         }
+                        onAddFromBank={() => setBankFor(day)}
                         onItemClick={(item) =>
                           setItemForm({ dayId: day.id, item })
                         }
@@ -512,18 +517,31 @@ export function ItineraryScreen() {
           const booking = dayPickFor;
           setDayPickFor(null);
           if (!booking) return;
-          void run(
-            () =>
-              createItem({
-                day_id: day.id,
-                title: booking.title,
-                booking_id: booking.id,
-                sort_order: itemsOf(day.id).length,
-              }),
-            strings.bookings.addedToDay
-          );
+          void run(async () => {
+            await createItem({
+              day_id: day.id,
+              title: booking.title,
+              booking_id: booking.id,
+              sort_order: itemsOf(day.id).length,
+            });
+          }, strings.bookings.addedToDay);
         }}
       />
+
+      {bankFor && trip && (
+        <OptionsPickerSheet
+          tripId={trip.id}
+          day={bankFor}
+          onClose={() => setBankFor(null)}
+          onPick={(option) => {
+            const day = bankFor;
+            setBankFor(null);
+            void run(async () => {
+              await planFromOption(option, day.id, itemsOf(day.id).length);
+            }, strings.options.planned);
+          }}
+        />
+      )}
 
       {importing && trip && (
         <ImportItinerarySheet

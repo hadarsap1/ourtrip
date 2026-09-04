@@ -1110,3 +1110,78 @@ itself, only the reading of the reply, so a hostile page could always reach
 these functions and still gets nothing without a valid JWT (`create-registration`
 and `revoke` are owner-gated in-function) or a valid one-time code, device token
 and PIN. Worth revisiting only if the deployment ever settles on a fixed domain.
+
+---
+
+## 2026-09-04 — Options bank: `planned` status, day picker, data cleanup
+
+Migrations `00029` (schema) and `00030` (data) applied live; `geocode-places`
+redeployed (v5). The bank held 343 options of which **every single one** was
+still status `option` — the lifecycle had never fired once — because the only
+exit created a booking, and you do not reserve a viewpoint.
+
+### Security surface
+
+Nothing new is exposed. `place_options` keeps exactly one policy,
+`place_options_owner_all` (`for all using/with check is_owner_of(trip_id)`),
+verified live after the migrations. Kids and guests have **no policy at all** on
+the table, so deny-by-default keeps planning content away from them
+(CLAUDE.md rule #2), and the two new columns inherit that with nothing to add.
+
+`itinerary_item_id` points at `itinerary_items`, which kids can already read for
+days shared with them. That is not a widening: the option row carrying the id is
+unreadable to a kid, and the item it points at was already visible on its own
+terms.
+
+| Check | Method | Result |
+|---|---|---|
+| `place_options` policy set unchanged by the migrations | `pg_policies` after apply | ✅ PASS — exactly `place_options_owner_all` |
+| Kid / guest still cannot read the bank | no policy on the table, deny by default | ✅ PASS — reviewed |
+| New FK does not widen kid visibility | `itinerary_item_id` sits on an owner-only row | ✅ PASS — reviewed |
+| Advisors clean after the DDL | `get_advisors(security)` | ✅ PASS — only the pre-existing warnings (pg_net in public, the RLS helper functions, leaked-password protection); nothing new |
+| Build / lint / typecheck / unit / e2e | `npm run build`, `lint`, `tsc --noEmit`, `test` (115), `test:e2e` (32) | ✅ PASS |
+| Owner can add from the bank on a real day | **not verified here** | ⚠️ PENDING — needs a signed-in session; this environment has no Supabase env |
+
+### Data cleanup, with the numbers
+
+Previewed with SELECTs before anything was written, and every rename is
+reversible from the new `area_original` column.
+
+| | Before | After |
+|---|---|---|
+| Options | 343 | 325 |
+| Distinct area spellings | 59 | 39 |
+| Options whose country matches a planned itinerary day | 325 | **325 of 325** |
+| Options pinned to a shared fallback coordinate | 83 | 0 |
+
+- **18 rows deleted**, from 15 groups sharing a title AND coordinates to 4dp
+  (Dragon Bridge x3, Paradise Cave x2, …). Notes and every distinct source URL
+  were folded into the survivor first.
+- **`place_id` was deliberately NOT used to deduplicate.** 98 rows share an id
+  with another, which looks like an obvious merge and is a trap: the largest
+  group is 23 *different* places all carrying Vietnam's own place_id, because
+  the geocoder answered a restaurant query with the country. Merging on it
+  would have destroyed 98 real options.
+- **9 options were filed under the wrong country** (Siargao and General Luna
+  under ויטנאם rather than פיליפינים; צאנג מאי under ויטנאם rather than תאילנד)
+  and could never have lined up with an itinerary day.
+
+### Why the map was lying, and what stops it now
+
+`geocodeGoogle` took `results[0].geometry.location` without inspecting what came
+back. Google's Geocoding API always answers *something*, so unresolvable names
+landed on country and city centroids: 24% of the bank sat on 8 points. The
+redeployed function looks up named places through Places Text Search first,
+constrains geocoding with `components=country:XX` instead of a Hebrew country
+name in the query string, and refuses any answer whose `types` are
+country/admin-level — or merely locality-level for a row that names a business.
+A refused answer leaves the row unlocated, which is honest.
+
+### Schema drift found and reconciled
+
+`place_options.geocode_attempts` existed on the live table but in **no migration
+and no code** — added straight to the database at some point, which CLAUDE.md
+forbids because the repo then stops describing reality. It was all zeros. It is
+now recorded in `00029` and actually used: with the precision guard, an
+unresolvable name fails instead of silently landing on a country, so without a
+cap those rows would be retried on every run forever.

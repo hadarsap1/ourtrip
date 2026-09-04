@@ -1,6 +1,17 @@
 # Proposal: turning the options bank into something you act on
 
-**Status: PROPOSAL. No code, and no migration applied.** Raised 2026-09-04.
+**Status: BUILT, 2026-09-04.** Migrations `00029` and `00030` applied to the
+live project, `geocode-places` redeployed (v5). What actually changed:
+
+| | Before | After |
+|---|---|---|
+| Options | 343 | 325 (18 real duplicates merged) |
+| Area spellings | 59 | 39 (167 values canonicalised) |
+| Options matching a planned day | 325 of 343 | **325 of 325** |
+| Pinned to a country/city centroid | 83 | 0 (75 now awaiting re-location) |
+| Ways out of `option` | booking only | booking **or** an itinerary item |
+
+The remaining open questions at the bottom are still open.
 
 The bank works. 343 candidate places went in from 28 Facebook posts in two
 weeks. The problem is that nothing has ever come out of it.

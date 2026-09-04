@@ -6,6 +6,7 @@ import {
   mapsSearchUrl,
   normalizeUrl,
   PLACE_CATEGORIES,
+  tallyByArea,
 } from "./placeOptions";
 import { strings } from "@/lib/strings";
 import type { PlaceOption } from "@/lib/types";
@@ -215,5 +216,43 @@ describe("boundsOf", () => {
   it("is null when nothing can be placed", () => {
     expect(boundsOf([])).toBeNull();
     expect(boundsOf([at(null, null)])).toBeNull();
+  });
+});
+
+// The per-area tally is what turns "ויטנאם (249)" into something a person can
+// act on, so the matching rules it depends on are worth pinning down.
+describe("tallyByArea", () => {
+  const option = (area: string | null, status = "option"): PlaceOption =>
+    ({ area, status }) as PlaceOption;
+
+  it("counts options and planned ones per area", () => {
+    const t = tallyByArea(
+      [
+        option("הוי אן"),
+        option("הוי אן", "planned"),
+        option("האנוי"),
+      ],
+      []
+    );
+    expect(t.get("הוי אן")).toEqual({ days: 0, options: 2, planned: 1 });
+    expect(t.get("האנוי")).toEqual({ days: 0, options: 1, planned: 0 });
+  });
+
+  it("matches itinerary days to the area by name, ignoring case and padding", () => {
+    const t = tallyByArea(
+      [option("Hoi An")],
+      [{ location_name: " hoi an " }, { location_name: "HOI AN" }]
+    );
+    expect(t.get("hoi an")?.days).toBe(2);
+  });
+
+  it("ignores options with no area rather than inventing a bucket", () => {
+    const t = tallyByArea([option(null), option("  ")], []);
+    expect(t.size).toBe(0);
+  });
+
+  it("reports zero days for an area the itinerary never visits", () => {
+    const t = tallyByArea([option("סאפה")], [{ location_name: "האנוי" }]);
+    expect(t.get("סאפה")?.days).toBe(0);
   });
 });

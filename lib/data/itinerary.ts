@@ -220,11 +220,18 @@ export async function listItems(dayIds: string[]): Promise<ItineraryItem[]> {
   return data;
 }
 
+/** Returns the new item's id. Callers that only wanted the side effect can
+ *  ignore it; the options bank needs it to record what an option became. */
 export async function createItem(
   item: TablesInsert<"itinerary_items">
-): Promise<void> {
-  const { error } = await requireClient().from("itinerary_items").insert(item);
+): Promise<string> {
+  const { data, error } = await requireClient()
+    .from("itinerary_items")
+    .insert(item)
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
+  return data.id;
 }
 
 export async function updateItem(

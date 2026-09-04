@@ -47,6 +47,7 @@ export function DayCard({
   onEditDay,
   onDeleteDay,
   onAddItem,
+  onAddFromBank,
   onItemClick,
   onMoveItem,
   onDeleteItem,
@@ -59,6 +60,7 @@ export function DayCard({
   onEditDay: () => void;
   onDeleteDay: () => void;
   onAddItem: () => void;
+  onAddFromBank: () => void;
   onItemClick: (item: ItineraryItem) => void;
   onMoveItem: (item: ItineraryItem) => void;
   onDeleteItem: (item: ItineraryItem) => void;
@@ -178,13 +180,25 @@ export function DayCard({
         </DndContext>
       )}
 
-      <button
-        type="button"
-        onClick={onAddItem}
-        className="w-full border-t border-line py-2.5 text-[13px] font-bold text-sea hover:bg-sea-tint"
-      >
-        + {strings.itinerary.addItem}
-      </button>
+      {/* Two ways to fill a day: type something new, or take one of the
+          places already collected in the bank. Before the second button
+          existed, 343 options had no way onto a day at all. */}
+      <div className="grid grid-cols-2 border-t border-line">
+        <button
+          type="button"
+          onClick={onAddItem}
+          className="py-2.5 text-[13px] font-bold text-sea hover:bg-sea-tint"
+        >
+          + {strings.itinerary.addItem}
+        </button>
+        <button
+          type="button"
+          onClick={onAddFromBank}
+          className="border-s border-line py-2.5 text-[13px] font-bold text-sea hover:bg-sea-tint"
+        >
+          {strings.options.fromBank}
+        </button>
+      </div>
     </section>
   );
 }

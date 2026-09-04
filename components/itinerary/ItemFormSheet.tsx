@@ -98,7 +98,10 @@ function ItemForm({
     onSubmit(
       item
         ? () => updateItem(item.id, payload)
-        : () => createItem({ day_id: dayId, sort_order: itemCount, ...payload })
+        : async () => {
+            // createItem now returns the new id; this caller does not need it.
+            await createItem({ day_id: dayId, sort_order: itemCount, ...payload });
+          }
     );
   }
 

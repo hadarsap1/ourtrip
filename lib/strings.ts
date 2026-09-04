@@ -381,9 +381,29 @@ export const strings = {
     status: {
       option: "אפשרות",
       shortlist: "מועדף",
+      planned: "במסלול",
       booked: "הוזמן",
       rejected: "פסלנו",
     },
+    // Per-area line on the bank. This is what makes 41 options in הוי אן feel
+    // finite: it says how many days you actually have there and how many of
+    // the candidates you have already placed.
+    areaTally: "{days} ימים · {options} אפשרויות · {planned} במסלול",
+    areaNoDays: "אין ימים מתוכננים",
+    // the day picker (migration 00029)
+    fromBank: "הוספה מבנק האפשרויות",
+    pickForDay: "מה מוסיפים ל{date}?",
+    pickEmpty: "אין אפשרויות פתוחות במדינה של היום הזה",
+    pickEmptyBody: "אפשר להוסיף אפשרות חדשה מבנק האפשרויות, או להדביק פוסט ולחלץ ממנו מקומות.",
+    pickNearby: "‏{n} ק״מ מהיעד של היום",
+    pickHere: "באזור של היום",
+    pickNoLocation: "עדיין בלי מיקום",
+    pickSearch: "חיפוש בבנק…",
+    planned: "נוסף למסלול",
+    planFailed: "לא הצלחנו להוסיף למסלול",
+    plannedBadge: "במסלול",
+    unplan: "הוצאה מהמסלול",
+    unplanned: "האפשרות חזרה לבנק",
     markShortlist: "סימון כמועדף",
     markOption: "החזרה לאפשרות",
     markRejected: "פסילה",

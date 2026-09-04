@@ -20,7 +20,13 @@ export type PlaceOption = Tables<"place_options">;
 
 /** place_options.status is a text column with a CHECK constraint rather than a
  *  PG enum, so the union lives here (see 00020_place_options.sql). */
-export type PlaceOptionStatus = "option" | "shortlist" | "booked" | "rejected";
+export type PlaceOptionStatus =
+  | "option"
+  | "shortlist"
+  /** On a day: the option became an itinerary item (migration 00029). */
+  | "planned"
+  | "booked"
+  | "rejected";
 
 export type ItemStatus = Enums<"item_status">;
 export type BookingType = Enums<"booking_type">;
