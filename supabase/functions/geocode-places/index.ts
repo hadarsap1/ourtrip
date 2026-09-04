@@ -71,34 +71,50 @@ type Row = {
 
 type Coords = { lat: number; lng: number; placeId?: string };
 
-// Categories that name a settlement or a region rather than somewhere with a
-// front door. For these a locality-level answer is the correct answer; for a
-// restaurant it means the geocoder gave up.
-const AREA_LIKE = new Set(["city", "nature", "transport"]);
+// An option whose category IS a place-on-the-map: a town, a province, a region.
+// For these an administrative or locality answer is not the geocoder giving up,
+// it is the right answer.
+const PLACE_LIKE = new Set(["city"]);
 
-// Google result types that are too coarse to pin anything on. `locality` is
-// judged per row (see isPreciseEnough) because it is right for a city option
-// and wrong for a cafe.
-const TOO_COARSE = new Set([
-  "country",
+// Categories that sit somewhere real but may only be known at town granularity:
+// a national park, a bus route. They must not resolve to a whole province, but
+// a locality-level answer is acceptable.
+const WIDE_OK = new Set(["nature", "transport"]);
+
+// Nothing is ever pinned on a whole country.
+const NEVER = new Set(["country", "continent", "political"]);
+
+// Province / state / district. Too coarse for a restaurant; exactly right for
+// an option that names a province.
+const ADMIN = new Set([
   "administrative_area_level_1",
   "administrative_area_level_2",
   "administrative_area_level_3",
-  "continent",
 ]);
 
-/** The guard that was missing. `types` describes what Google actually matched,
- *  so a country-level answer to a restaurant query can be refused instead of
- *  written to the map. */
+/** Is this answer specific enough to pin, GIVEN what the option claims to be?
+ *
+ *  The first version of this guard judged every row by the same yardstick and
+ *  refused anything administrative, which silently dropped Da Nang, Sapa, Hà
+ *  Giang and Bohol — the towns the trip actually visits. Vietnam files Da Nang
+ *  as a municipality and Sapa as a province, so an administrative answer there
+ *  is not the geocoder failing, it is the correct one. A restaurant answered
+ *  with a province still is a failure. Hence: the bar depends on the row. */
 function isPreciseEnough(types: unknown, row: Row): boolean {
   if (!Array.isArray(types) || types.length === 0) return false;
   const t = types as string[];
-  if (t.some((x) => TOO_COARSE.has(x))) return false;
-  if (!AREA_LIKE.has(row.category ?? "")) {
-    // A named business that resolved only to its town is not located.
-    if (t.some((x) => x === "locality" || x === "postal_code")) return false;
-  }
-  return true;
+  const category = row.category ?? "";
+
+  // "political" alone means a boundary with no other classification; paired
+  // with locality or an admin level it is just noise, so it only disqualifies
+  // an answer that offers nothing else.
+  if (t.every((x) => NEVER.has(x))) return false;
+  if (t.includes("country") || t.includes("continent")) return false;
+
+  if (PLACE_LIKE.has(category)) return true; // a town or region: admin is right
+  if (t.some((x) => ADMIN.has(x))) return false; // everything else: too coarse
+  if (WIDE_OK.has(category)) return true; // a park or a route: a town is fine
+  return !t.some((x) => x === "locality" || x === "postal_code");
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -196,9 +212,13 @@ async function geocodeNominatim(query: string, row: Row): Promise<Coords | null>
     // Same guard as the Google path, in Nominatim's vocabulary: without it the
     // keyless path would happily pin a cafe to a country outline.
     const kind = String(hit?.addresstype ?? hit?.type ?? "");
-    if (["country", "state", "region", "province"].includes(kind)) return null;
-    if (!AREA_LIKE.has(row.category ?? "") && ["city", "town", "municipality"].includes(kind)) {
-      return null;
+    const category = row.category ?? "";
+    if (kind === "country") return null;
+    if (!PLACE_LIKE.has(category)) {
+      if (["state", "region", "province"].includes(kind)) return null;
+      if (!WIDE_OK.has(category) && ["city", "town", "municipality"].includes(kind)) {
+        return null;
+      }
     }
     return { lat, lng };
   } catch {
