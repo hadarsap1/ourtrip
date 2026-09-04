@@ -19,6 +19,7 @@ import {
   PhrasebookIcon,
   SparkleIcon,
 } from "@/components/icons";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { strings } from "@/lib/strings";
@@ -197,6 +198,10 @@ export function MoreScreen() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-4 px-4 pt-6 pb-4 sm:max-w-2xl lg:max-w-4xl">
       <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.more}</h1>
+
+      {/* Renders only while the app is not installed yet, so it disappears for
+          good once it is on the home screen. */}
+      <InstallPrompt />
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>

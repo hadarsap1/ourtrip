@@ -134,6 +134,37 @@ and the offline fallbacks. Unit tests sit next to the pure ones
 the Hebrew banner. The offline-critical set is locked by DECISIONS #9:
 flagged documents, today's itinerary, the emergency page, the phrasebook.
 
+A navigation to a route the shell cache never held falls back to `/offline`
+(`components/OfflineScreen.tsx`), which names the four screens above rather
+than dead-ending. `/offline` bypasses `AuthGate`: it is served exactly when no
+round-trip can succeed, and it shows no trip data.
+
+### PWA install
+
+- `public/manifest.webmanifest` — `id`/`scope`/`start_url` at `/`, Hebrew RTL,
+  `theme_color` `#0e7c6b` (must stay equal to the `viewport` themeColor in
+  `app/layout.tsx`; an e2e test asserts it), four shortcuts, and screenshots in
+  both form factors so Chrome shows the full install dialog rather than the
+  mini-infobar.
+- Icons are generated, never hand-edited: `node scripts/generate-icons.mjs`
+  renders `public/icons/*` and `app/apple-icon.png` from one vector definition.
+  The maskable icon is full-bleed on purpose — Android crops it to the
+  launcher's shape.
+- Screenshots: `npm run build && npm run start`, then
+  `node scripts/generate-screenshots.mjs`. Run it against a dev server with
+  `.env.local` and a signed-in session to capture real trip data instead of
+  empty states. The declared `sizes` must match the real pixel dimensions or
+  the browser silently ignores the screenshot; `e2e/smoke.spec.ts`
+  ("installability") checks every icon and screenshot against its PNG header.
+- The in-app install button lives on `/more` (`components/InstallPrompt.tsx`).
+  `beforeinstallprompt` is captured in the app shell (`lib/install.ts`, started
+  from `RegisterSW`) because the event fires once, seconds after load, and a
+  component mounted later would miss it. iOS gets written share-sheet steps
+  instead, since Safari fires no such event.
+- A service worker update claims the page immediately (`skipWaiting`), so
+  `RegisterSW` shows a Hebrew "יש גרסה חדשה" bar with a refresh button rather
+  than reloading under someone's hands.
+
 ---
 
 ## 4. Environment variables

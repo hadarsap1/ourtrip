@@ -51,10 +51,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Bypass cases need no async check: the login pages themselves, and local
-  // dev before the Supabase env is wired up (shell should still render).
+  // Bypass cases need no async check: the login pages themselves, the offline
+  // fallback (it is served precisely when no round-trip can succeed, and it
+  // shows no trip data), and local dev before the Supabase env is wired up
+  // (shell should still render).
   const bypass =
-    pathname === "/login" || pathname === "/kid-login" || !getSupabase();
+    pathname === "/login" ||
+    pathname === "/kid-login" ||
+    pathname === "/offline" ||
+    !getSupabase();
 
   const [state, setState] = useState<GateState>(() => decided ?? "loading");
 

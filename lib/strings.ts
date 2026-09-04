@@ -920,4 +920,35 @@ export const strings = {
     syncFailed: "חלק מההוצאות שנרשמו לא מקוון לא נשמרו — כדאי לרשום אותן מחדש",
     fromCache: "מוצג מהעותק השמור במכשיר",
   },
+
+  // The /offline route: the service worker serves it when a screen that was
+  // never cached is opened with no connection. It has to say which screens
+  // DO work right now, otherwise it is just a dead end.
+  offlinePage: {
+    title: "המסך הזה לא נשמר במכשיר",
+    body: "אין כרגע חיבור לאינטרנט. אלה המסכים שעובדים גם עכשיו:",
+    retry: "ניסיון נוסף",
+    today: "היום",
+    documents: "מסמכים",
+    emergency: "דף חירום",
+    phrasebook: "שיחון",
+  },
+
+  install: {
+    title: "התקנה במסך הבית",
+    body: "נפתח מיד כמו אפליקציה רגילה, עובד גם בלי אינטרנט, ומאפשר לקבל התראות.",
+    button: "התקנה",
+    working: "פותח את חלון ההתקנה…",
+    iosTitle: "התקנה באייפון או באייפד",
+    iosStep1: "פותחים את האפליקציה ב-Safari",
+    iosStep2: "מקישים על כפתור השיתוף בסרגל התחתון",
+    iosStep3: "בוחרים ״הוספה למסך הבית״",
+    iosStep4: "פותחים את OurTrip מהאייקון החדש",
+  },
+
+  update: {
+    ready: "יש גרסה חדשה של האפליקציה",
+    action: "רענון",
+    dismiss: "אחר כך",
+  },
 } as const;

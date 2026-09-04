@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { startInstallCapture } from "@/lib/install";
+import { strings } from "@/lib/strings";
 
 // A stale chunk reference is the classic PWA white screen: the page was loaded
 // from one build, a new one shipped, and the next lazily-loaded chunk 404s.
@@ -30,7 +32,14 @@ function recoverFromStaleBuild(): void {
 }
 
 export function RegisterSW() {
+  const [updateReady, setUpdateReady] = useState(false);
+
   useEffect(() => {
+    // `beforeinstallprompt` fires once, seconds after load, and only the app
+    // shell is guaranteed to be mounted then — so capture starts here rather
+    // than in the card on /more, which would usually miss it.
+    startInstallCapture();
+
     const onError = (event: ErrorEvent) => {
       if (CHUNK_ERROR.test(event.message ?? "")) recoverFromStaleBuild();
     };
@@ -43,6 +52,24 @@ export function RegisterSW() {
 
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
+
+    // A new service worker calls skipWaiting(), so it activates and claims this
+    // page immediately — but the JS already running here is still the old
+    // build. Reloading unasked would drop half-typed forms, so say so and let
+    // whoever is holding the phone pick the moment. `hadController` keeps the
+    // very first install (claim with no previous controller) from announcing
+    // an "update" on someone's first visit.
+    const hasSW = "serviceWorker" in navigator;
+    const hadController = hasSW && navigator.serviceWorker.controller !== null;
+    const onControllerChange = () => {
+      if (hadController) setUpdateReady(true);
+    };
+    if (hasSW) {
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        onControllerChange,
+      );
+    }
 
     // Registering during the first paint competes with the screen's own data
     // fetches for a phone's limited connection — wait for idle.
@@ -64,11 +91,40 @@ export function RegisterSW() {
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
+      if (hasSW) {
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          onControllerChange,
+        );
+      }
       if (idle === null) return;
       if (typeof idleCallback === "function") window.cancelIdleCallback(idle);
       else clearTimeout(idle);
     };
   }, []);
 
-  return null;
+  if (!updateReady) return null;
+
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-4 bottom-20 z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-white shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
+    >
+      <span className="flex-1 text-sm font-medium">{strings.update.ready}</span>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="shrink-0 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-bold text-ink"
+      >
+        {strings.update.action}
+      </button>
+      <button
+        type="button"
+        onClick={() => setUpdateReady(false)}
+        className="shrink-0 text-[13px] font-medium text-white/70"
+      >
+        {strings.update.dismiss}
+      </button>
+    </div>
+  );
 }
