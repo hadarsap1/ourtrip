@@ -904,6 +904,13 @@ export const strings = {
     revoke: "ניתוק המכשיר",
     revokeConfirm: "לנתק את המכשיר? יידרש קוד חיבור חדש",
     connectedAt: "חובר",
+    // One generic "try again" for every failure meant a connectivity problem
+    // and a rejected PIN looked identical, and only one of them is worth
+    // retrying.
+    errorNetwork: "לא הצלחנו להגיע לשרת. בדקו את החיבור לאינטרנט ונסו שוב",
+    errorForbidden: "רק הורים יכולים ליצור קוד חיבור",
+    errorBadPin: "הקוד הסודי צריך להיות 4 עד 6 ספרות",
+    errorBadMember: "הילד/ה לא נמצאו בטיול הזה",
   },
 
   auth: {

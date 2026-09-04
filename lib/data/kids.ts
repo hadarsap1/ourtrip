@@ -29,7 +29,13 @@ async function invokeKidAuth(body: Record<string, string>): Promise<{
         .catch(() => ({}))) as Record<string, unknown>;
       return { status: error.context.status, data: payload };
     }
-    throw new Error(error.message);
+    // Anything else (FunctionsFetchError / FunctionsRelayError) means no
+    // readable reply at all: the request never completed, or it completed and
+    // the browser refused to hand the response to the page. supabase-js
+    // reports both as the same opaque failure, and `error.message` for them is
+    // boilerplate, so normalise to a code the UI can actually say something
+    // about.
+    throw new Error("network");
   }
   return { status: 200, data: data as Record<string, unknown> };
 }
