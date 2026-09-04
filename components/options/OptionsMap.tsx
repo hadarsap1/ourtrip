@@ -29,11 +29,14 @@ const CATEGORY_COLOR: Record<string, string> = {
 export function OptionsMap({
   options,
   unlocatedCount,
+  gaveUpCount,
   onLocate,
   locating,
 }: {
   options: PlaceOption[];
   unlocatedCount: number;
+  /** Of those, how many the geocoder has already tried and refused. */
+  gaveUpCount: number;
   onLocate: () => void;
   locating: string | null;
 }) {
@@ -165,6 +168,11 @@ export function OptionsMap({
           <p className="text-xs text-ink-soft">
             {s.mapUnlocated.replace("{n}", String(unlocatedCount))}
           </p>
+          {gaveUpCount > 0 && (
+            <p className="mt-1 text-xs text-ink-faint">
+              {s.mapGaveUp.replace("{n}", String(gaveUpCount))}
+            </p>
+          )}
           <button
             type="button"
             onClick={onLocate}

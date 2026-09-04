@@ -326,6 +326,23 @@ export async function geocodePlaceOptions(
   };
 }
 
+/** Clears the failure counter on everything still unlocated.
+ *
+ *  geocode-places skips a row once it has failed GEOCODE_MAX_ATTEMPTS times, so
+ *  a name nothing can resolve stops eating a slot in every batch. That is right
+ *  for the automatic loop and wrong for a deliberate tap: without this, the
+ *  button would report "done" while the screen still said 49 places have no
+ *  pin, which reads as broken. A tap means "try these again", so it does. */
+export async function resetGeocodeAttempts(tripId: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("place_options")
+    .update({ geocode_attempts: 0 })
+    .eq("trip_id", tripId)
+    .is("lat", null)
+    .gt("geocode_attempts", 0);
+  if (error) throw new Error(error.message);
+}
+
 export async function extractPlacesFromText(
   text: string,
   hints: { country: string | null; area: string | null }
@@ -378,7 +395,7 @@ export type DayOption = PlaceOption & {
 /** Orders the bank for one day: options already tagged with this day's area
  *  first, then by distance from where the day actually is, then everything
  *  with no coordinates. A place we cannot locate is still worth offering —
- *  after migration 00030 there are 75 of those waiting to be re-geocoded —
+ *  the cleanup migrations left a batch of those waiting to be re-geocoded —
  *  it just cannot claim to be nearby. */
 export function rankForDay(
   options: PlaceOption[],
