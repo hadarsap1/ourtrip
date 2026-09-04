@@ -1132,6 +1132,7 @@ export type Database = {
       }
       place_options: {
         Row: {
+          area_original: string | null
           area: string | null
           booking_id: string | null
           booking_url: string | null
@@ -1140,7 +1141,9 @@ export type Database = {
           country_code: string | null
           created_at: string
           created_by: string | null
+          geocode_attempts: number
           id: string
+          itinerary_item_id: string | null
           lat: number | null
           lng: number | null
           location_name: string | null
@@ -1155,6 +1158,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          area_original?: string | null
           area?: string | null
           booking_id?: string | null
           booking_url?: string | null
@@ -1163,7 +1167,9 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           created_by?: string | null
+          geocode_attempts?: number
           id?: string
+          itinerary_item_id?: string | null
           lat?: number | null
           lng?: number | null
           location_name?: string | null
@@ -1178,6 +1184,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          area_original?: string | null
           area?: string | null
           booking_id?: string | null
           booking_url?: string | null
@@ -1186,7 +1193,9 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           created_by?: string | null
+          geocode_attempts?: number
           id?: string
+          itinerary_item_id?: string | null
           lat?: number | null
           lng?: number | null
           location_name?: string | null
@@ -1213,6 +1222,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_options_itinerary_item_id_fkey"
+            columns: ["itinerary_item_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_items"
             referencedColumns: ["id"]
           },
           {

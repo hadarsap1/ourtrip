@@ -10,6 +10,7 @@
 // visible to kids or guests.
 
 import { createBooking } from "@/lib/data/bookings";
+import { createItem } from "@/lib/data/itinerary";
 import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
 import type { Booking, PlaceOption, PlaceOptionStatus } from "@/lib/types";
@@ -338,4 +339,190 @@ export async function extractPlacesFromText(
   if (error) throw new Error((await functionErrorCode(error)) ?? "failed");
   const payload = data as { places?: ExtractedPlace[]; partial?: boolean } | null;
   return { places: payload?.places ?? [], partial: payload?.partial === true };
+}
+
+// ---------------------------------------------------------------------------
+// The day pulls from the bank (migration 00029).
+//
+// Measured 2026-09-04: 343 options, every one still status 'option'. Not a
+// single row had ever left, because the only exit was promoteToBooking() —
+// right for a hotel, useless for the attractions, restaurants and viewpoints
+// that are most of the bank. Everything below exists to give an option
+// somewhere to go in one tap, from the screen where the decision is actually
+// made: a day.
+// ---------------------------------------------------------------------------
+
+/** Great-circle distance in km. Sorting a few hundred options client-side is
+ *  cheaper than a PostGIS dependency for a bank this size (CLAUDE.md rule #7). */
+export function distanceKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+export type DayOption = PlaceOption & {
+  /** km from the day's own location, when both ends are known. */
+  distanceKm: number | null;
+};
+
+/** Orders the bank for one day: options already tagged with this day's area
+ *  first, then by distance from where the day actually is, then everything
+ *  with no coordinates. A place we cannot locate is still worth offering —
+ *  after migration 00030 there are 75 of those waiting to be re-geocoded —
+ *  it just cannot claim to be nearby. */
+export function rankForDay(
+  options: PlaceOption[],
+  day: { area?: string | null; location_name: string | null; lat: number | null; lng: number | null }
+): DayOption[] {
+  const origin =
+    day.lat != null && day.lng != null ? { lat: day.lat, lng: day.lng } : null;
+  const dayArea = (day.area ?? day.location_name ?? "").trim().toLowerCase();
+
+  return options
+    .map((o) => ({
+      ...o,
+      distanceKm:
+        origin && o.lat != null && o.lng != null
+          ? distanceKm(origin, { lat: o.lat, lng: o.lng })
+          : null,
+    }))
+    .sort((a, b) => {
+      const aArea = dayArea !== "" && (a.area ?? "").trim().toLowerCase() === dayArea;
+      const bArea = dayArea !== "" && (b.area ?? "").trim().toLowerCase() === dayArea;
+      if (aArea !== bArea) return aArea ? -1 : 1;
+      if (a.distanceKm == null) return b.distanceKm == null ? 0 : 1;
+      if (b.distanceKm == null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+}
+
+/** The undecided bank for one country. Anything already planned, booked or
+ *  rejected is left out: the picker is for deciding, not for browsing. */
+export async function listOptionsForCountry(
+  tripId: string,
+  countryCode: string | null
+): Promise<PlaceOption[]> {
+  let q = requireClient()
+    .from("place_options")
+    .select("*")
+    .eq("trip_id", tripId)
+    .in("status", ["option", "shortlist"]);
+  // A day with no country still gets the whole undecided bank rather than
+  // nothing, which is the more useful failure.
+  if (countryCode) q = q.eq("country_code", countryCode);
+  const { data, error } = await q.order("title");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/** Categories that belong outdoors, so the rain alert (SPEC 2.7) can warn
+ *  about them without anyone ticking a box by hand. */
+function isOutdoorCategory(category: string | null): boolean {
+  return category === "nature" || category === "activity";
+}
+
+/**
+ * The missing exit: turn an option into an item on a day.
+ *
+ * Deliberately NOT a booking. You do not reserve a viewpoint, and requiring a
+ * booking is exactly why 343 options never moved. The option stays in the bank
+ * marked 'planned' and linked to the item it became, mirroring how
+ * promoteToBooking leaves it behind marked 'booked' — planning history is kept
+ * either way, and 00029's FK is ON DELETE SET NULL so removing the item from
+ * the day does not erase that the place was considered.
+ */
+export async function planFromOption(
+  option: PlaceOption,
+  dayId: string,
+  sortOrder: number
+): Promise<string> {
+  const itemId = await createItem({
+    day_id: dayId,
+    title: option.title,
+    location_name: option.location_name ?? option.area ?? null,
+    lat: option.lat,
+    lng: option.lng,
+    place_id: option.place_id,
+    notes: option.note,
+    is_outdoor: isOutdoorCategory(option.category),
+    sort_order: sortOrder,
+  });
+
+  const { error } = await requireClient()
+    .from("place_options")
+    .update({ status: "planned", itinerary_item_id: itemId })
+    .eq("id", option.id);
+  if (error) throw new Error(error.message);
+
+  return itemId;
+}
+
+/** Undoes planFromOption from the bank's side: the option becomes undecided
+ *  again. The itinerary item is left alone — deleting it is the itinerary
+ *  screen's business, and 00029 nulls the link automatically if that happens. */
+export async function unplanOption(id: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("place_options")
+    .update({ status: "option", itinerary_item_id: null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export type AreaTally = {
+  /** Itinerary days whose location matches this area. */
+  days: number;
+  options: number;
+  planned: number;
+};
+
+/** Per-area counts for the bank's headers.
+ *
+ *  This is the line that makes a bank of hundreds feel finite: "הוי אן · 3
+ *  ימים · 41 אפשרויות · 2 במסלול" tells you at a glance that the area needs
+ *  deciding, while an area with no planned days can be ignored entirely.
+ *  Without it every area looks identical and there is no reason to start
+ *  anywhere.
+ *
+ *  Matching is by name because that is all the two tables share: a day carries
+ *  `location_name`, an option carries `area`. Migration 00030 canonicalised the
+ *  area spellings, which is what makes this comparison meaningful at all — it
+ *  would have missed two thirds of Hoi An when the town was spelled three ways.
+ */
+export function tallyByArea(
+  options: PlaceOption[],
+  days: { location_name: string | null }[]
+): Map<string, AreaTally> {
+  const key = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
+
+  const dayCounts = new Map<string, number>();
+  for (const day of days) {
+    const k = key(day.location_name);
+    if (k === "") continue;
+    dayCounts.set(k, (dayCounts.get(k) ?? 0) + 1);
+  }
+
+  const tally = new Map<string, AreaTally>();
+  for (const option of options) {
+    const k = key(option.area);
+    if (k === "") continue;
+    const entry = tally.get(k) ?? {
+      days: dayCounts.get(k) ?? 0,
+      options: 0,
+      planned: 0,
+    };
+    entry.options += 1;
+    if (option.status === "planned") entry.planned += 1;
+    tally.set(k, entry);
+  }
+  return tally;
 }

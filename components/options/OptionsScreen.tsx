@@ -11,6 +11,7 @@ import {
   createPlaceOptions,
   deletePlaceOption,
   filterOptions,
+  tallyByArea,
   geocodePlaceOptions,
   listPlaceOptions,
   promoteToBooking,
@@ -20,6 +21,7 @@ import {
   PLACE_CATEGORIES,
   type PlaceOptionInput,
 } from "@/lib/data/placeOptions";
+import { listDays } from "@/lib/data/itinerary";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
 import type { ComponentType } from "react";
@@ -71,6 +73,7 @@ function CategoryIcon({
 const STATUS_CLASS: Record<PlaceOptionStatus, string> = {
   option: "bg-paper-deep text-ink-soft",
   shortlist: "bg-sun/20 text-ink",
+  planned: "bg-sea-tint text-sea-deep",
   booked: "bg-sea/15 text-sea",
   rejected: "bg-paper-deep text-ink-soft line-through",
 };
@@ -112,6 +115,10 @@ export function OptionsScreen() {
   const [areaFilter, setAreaFilter] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
   const [locating, setLocating] = useState<string | null>(null);
+  // Itinerary days, purely to answer "how many days are we even there?" next
+  // to each area. Loaded once; a failure just leaves the tally showing zero
+  // days rather than blocking the bank.
+  const [days, setDays] = useState<{ location_name: string | null }[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((m: string) => {
@@ -134,6 +141,13 @@ export function OptionsScreen() {
       }
       setTrip(t);
       await refresh(t.id);
+      // Best-effort: the tally is a nicety, so a failure here must not stop
+      // the bank from rendering.
+      void listDays(t.id)
+        .then((d) => {
+          if (!cancelled) setDays(d);
+        })
+        .catch(() => {});
       if (!cancelled) setLoading(false);
     })();
     return () => {
@@ -147,6 +161,8 @@ export function OptionsScreen() {
     },
     []
   );
+
+  const tally = useMemo(() => tallyByArea(options, days), [options, days]);
 
   const countries = useMemo(
     () =>
@@ -449,8 +465,22 @@ export function OptionsScreen() {
                 {g.areas.map((a) => (
                   <div key={a.area || "_"}>
                     {a.area && (
-                      <h3 className="mb-1 pr-1 text-xs font-semibold text-ink-soft">
+                      <h3 className="mb-1 flex flex-wrap items-baseline gap-x-1.5 pr-1 text-xs font-semibold text-ink-soft">
                         {a.area}
+                        {(() => {
+                          const t = tally.get(a.area.trim().toLowerCase());
+                          if (!t) return null;
+                          return (
+                            <span className="font-normal text-ink-faint">
+                              {t.days === 0
+                                ? s.areaNoDays
+                                : s.areaTally
+                                    .replace("{days}", String(t.days))
+                                    .replace("{options}", String(t.options))
+                                    .replace("{planned}", String(t.planned))}
+                            </span>
+                          );
+                        })()}
                       </h3>
                     )}
                     <ul className="space-y-2">

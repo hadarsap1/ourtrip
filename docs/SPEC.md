@@ -63,7 +63,11 @@
   - **facebook** — paste the *text* of a post; an Edge Function (`extract-places`) asks Claude for structured candidates and the owner ticks which to keep. Fetching a Facebook post server-side is not possible (login wall) and scraping breaches their terms, so pasting is the supported path. The post URL is kept on each option as `source_url`
   - **ai** — saved from "מה בסביבה" (2.8), which now parks its maybe-list here instead of a separate table
 - Each option carries an optional `booking_url` for actually reserving it
-- Lifecycle: `option` → `shortlist` → `booked` | `rejected`. Promoting an option creates a real booking (2.3), links the two, and marks the option `booked` — the option stays in the bank as planning history rather than being consumed
+- Lifecycle: `option` → `shortlist` → `planned` | `booked` | `rejected`. Two exits, because one was never enough:
+  - **`planned`** — from an itinerary day, "הוספה מבנק האפשרויות" lists that day's country ordered by area then distance from the day's own location, and one tap creates an itinerary item and links it (`itinerary_item_id`). This is the exit for attractions, restaurants, viewpoints and walks — everything you do not reserve
+  - **`booked`** — promoting an option creates a real booking (2.3) and links the two. The exit for hotels
+  - Either way the option stays in the bank as planning history rather than being consumed, and both FKs are `ON DELETE SET NULL`
+- Each area header shows days planned there, options collected and how many are already on the itinerary, so a bank of hundreds reads as a set of finite decisions rather than a feed
 - Replaces the earlier `saved_links` and `saved_recommendations`, which were two half-versions of this split by how an item was created
 
 ### 2.8 Local recommendations
