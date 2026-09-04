@@ -361,6 +361,7 @@ export const strings = {
     noneForCutBody: "נסו להסיר חלק מהסינונים.",
     mapUnavailable: "המפה לא זמינה כרגע (חסר מפתח Google Maps או אין חיבור).",
     mapUnlocated: "‏{n} מקומות עדיין בלי מיקום על המפה — הם לא מוצגים כסיכה.",
+    mapGaveUp: "‏{n} מהם כבר נוסו ולא נמצאו. אפשר לנסות שוב, אבל ייתכן שהשם פשוט לא מזוהה.",
     mapLocate: "איתור המקומות על המפה",
     mapLocating: "מאתר מקומות…",
     mapLocatingCount: "מאתר… נותרו {n}",

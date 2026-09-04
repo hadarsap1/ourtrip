@@ -13,6 +13,7 @@ import {
   filterOptions,
   tallyByArea,
   geocodePlaceOptions,
+  resetGeocodeAttempts,
   listPlaceOptions,
   promoteToBooking,
   mapsSearchUrl,
@@ -262,6 +263,10 @@ export function OptionsScreen() {
     if (!trip || locating !== null) return;
     setLocating(s.mapLocating);
     try {
+      // A tap means "try these again". Without this the run would skip every
+      // row that already used up its attempts and report success while the
+      // banner still said N places have no pin — a button that does nothing.
+      await resetGeocodeAttempts(trip.id);
       for (let pass = 0; pass < 20; pass++) {
         const { remaining } = await geocodePlaceOptions(trip.id);
         await refresh(trip.id);
@@ -307,6 +312,11 @@ export function OptionsScreen() {
   });
   const grouped = group(visible, s.ungrouped);
   const unlocated = visible.filter((o) => o.lat == null || o.lng == null).length;
+  // Named but unresolvable is a real outcome, not a pending one: say so rather
+  // than implying one more tap will find them.
+  const gaveUp = visible.filter(
+    (o) => o.lat == null && o.geocode_attempts >= 3
+  ).length;
   const activeCuts =
     (categoryFilter ? 1 : 0) +
     (statusFilter ? 1 : 0) +
@@ -450,6 +460,7 @@ export function OptionsScreen() {
         <OptionsMap
           options={visible}
           unlocatedCount={unlocated}
+          gaveUpCount={gaveUp}
           onLocate={() => void locate()}
           locating={locating}
         />

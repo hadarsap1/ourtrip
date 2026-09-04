@@ -1185,3 +1185,58 @@ forbids because the repo then stops describing reality. It was all zeros. It is
 now recorded in `00029` and actually used: with the precision guard, an
 unresolvable name fails instead of silently landing on a country, so without a
 cap those rows would be retried on every run forever.
+
+---
+
+## 2026-09-04 (later) — Two corrections found by looking at the map
+
+Reading the deployed map screenshot caught a mistake of mine and a UX dead end.
+Migration `00031`, no schema change, no policy change: `place_options` still
+carries exactly `place_options_owner_all`.
+
+### I moved five Vietnamese places to Thailand
+
+`00030` reassigned every option tagged `area = 'צאנג מאי'` to Thailand, reading
+it as Chiang Mai. Three rows tagged `Chiang Mai` really are in Chiang Mai
+(lat ~18.8) and were fine. The five tagged in Hebrew were not: **Ban Gioc,
+Nguom Ngao, God's Eye Mountain, קאו בנג לופ and הא ג'יאנג לופ** all come from one
+Facebook post about northern Vietnam, and the four carrying coordinates sit at
+lat ~22.8, lng ~106.5 — Cao Bằng province, about 1,500 km from Chiang Mai. The
+extractor had mis-tagged the area and the migration compounded it.
+
+They are back in Vietnam under `קאו בנג` and `הא ג'יאנג`. `area_original` is
+what made this recoverable and is exactly why `00030` kept it: the Hebrew-tagged
+rows were precisely the wrong ones.
+
+**The lesson for the next cleanup:** a canonicalisation map keyed on what a
+label *looks like* is a guess. Checking the resulting coordinates against the
+country they were assigned to would have caught it in the same session; that
+check is now written down here.
+
+### The fallback rule was too narrow
+
+`00030` unpinned coordinate groups holding 4+ different places. Six groups of
+3+ survived, 29 rows, and they were the same defect: 12 unrelated places stacked
+on Tam Coc's town centre (an Indian restaurant, a spa, a cafe), three Japanese
+convenience-store chains on one point in Nagano, three Thai places on a spot
+near Pattaya that is nowhere near Khao Sok. All unpinned and their attempt
+counters reset. Zero stacked points remain.
+
+### The retry button did nothing
+
+`geocode-places` skips a row once it has failed `GEOCODE_MAX_ATTEMPTS` times,
+which is right for the automatic batch loop. But the screen counted every
+unlocated row, so it said "49 places have no pin" beside a button that would
+immediately report finished — all 49 had exhausted their attempts. A deliberate
+tap now clears the counter first, and the banner separately says how many have
+already been tried and refused, so an unresolvable name reads as an outcome
+rather than something one more tap will fix.
+
+| Check | Method | Result |
+|---|---|---|
+| Every located option now falls inside its country's bounds | bounding-box query per `country_code` | ✅ PASS — 0 outliers |
+| No coordinate shared by 3+ different places | grouped query | ✅ PASS — 0 groups |
+| Chiang Mai holds only real Chiang Mai places | live query | ✅ PASS — 3 rows, all lat ~18.8 |
+| RLS unchanged | `pg_policies` on `place_options` | ✅ PASS — exactly `place_options_owner_all` |
+| Build / lint / typecheck / unit / e2e | full suite | ✅ PASS — 115 unit, 32 e2e |
+| Geocoder actually resolves the freed rows | **not verified here** | ⚠️ PENDING — needs a tap on "איתור המקומות"; the previous run resolved 26 of 75 |
