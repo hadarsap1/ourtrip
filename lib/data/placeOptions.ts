@@ -557,3 +557,74 @@ export function tallyByArea(
   }
   return tally;
 }
+
+export type DayOptionGroup = {
+  /** null groups everything with no area at all. */
+  area: string | null;
+  options: DayOption[];
+};
+
+/**
+ * Groups the day's candidates by area, best group first.
+ *
+ * WHY GROUPING RATHER THAN A FLAT NEAREST-FIRST LIST. rankForDay orders by
+ * distance from `itinerary_days.lat/lng`, and on this trip **no day has
+ * coordinates at all** — checked live 2026-09-05, all 227 rows. Worse, the days
+ * are 14 long stretches rather than towns: 38 days called "תאילנד", 35 called
+ * "וייטנאם - דרום ומרכז". So the area match misses too, and the picker was
+ * showing Vietnam's 229 options as one unordered scroll.
+ *
+ * A person planning "וייטנאם - צפון" does not want 229 rows sorted by nothing.
+ * They want to open הוי אן, see its 41, and pick. Grouping works with the data
+ * that exists instead of the data the ranking assumed.
+ */
+export function groupForDay(
+  options: PlaceOption[],
+  day: { location_name: string | null; lat: number | null; lng: number | null }
+): DayOptionGroup[] {
+  const ranked = rankForDay(options, day);
+  const dayArea = (day.location_name ?? "").trim().toLowerCase();
+
+  const byArea = new Map<string, DayOption[]>();
+  for (const option of ranked) {
+    const key = (option.area ?? "").trim();
+    const list = byArea.get(key);
+    if (list) list.push(option);
+    else byArea.set(key, [option]);
+  }
+
+  return [...byArea.entries()]
+    .map(([area, list]) => ({ area: area === "" ? null : area, options: list }))
+    .sort((a, b) => {
+      // The stretch's own name first when it happens to match an area.
+      const aMatch = dayArea !== "" && (a.area ?? "").toLowerCase() === dayArea;
+      const bMatch = dayArea !== "" && (b.area ?? "").toLowerCase() === dayArea;
+      if (aMatch !== bMatch) return aMatch ? -1 : 1;
+      // Then the areas with the most to choose from, since those are where the
+      // planning actually happens. Unfiled options sink to the bottom.
+      if ((a.area === null) !== (b.area === null)) return a.area === null ? 1 : -1;
+      return b.options.length - a.options.length;
+    });
+}
+
+/**
+ * The batch form of planFromOption: several options onto one day in one go.
+ *
+ * The picker used to close after a single pick, so putting four places on a day
+ * meant opening it four times. Sort order continues from what the day already
+ * holds, so the new items land after the existing ones rather than on top.
+ */
+export async function planFromOptions(
+  options: PlaceOption[],
+  dayId: string,
+  startSortOrder: number
+): Promise<number> {
+  let order = startSortOrder;
+  let planned = 0;
+  for (const option of options) {
+    await planFromOption(option, dayId, order);
+    order += 1;
+    planned += 1;
+  }
+  return planned;
+}

@@ -3,6 +3,7 @@ import {
   boundsOf,
   bookingTypeForCategory,
   filterOptions,
+  groupForDay,
   mapsSearchUrl,
   normalizeUrl,
   PLACE_CATEGORIES,
@@ -277,5 +278,46 @@ describe("filterOptions excludeRejected", () => {
   it("leaves every other status alone", () => {
     const rows = [opt("option"), opt("shortlist"), opt("planned"), opt("booked")];
     expect(filterOptions(rows, { excludeRejected: true })).toHaveLength(4);
+  });
+});
+
+// The picker's ordering has to work with the data this trip actually has: no
+// day carries coordinates, and the days are long stretches ("תאילנד", 38 days)
+// rather than towns. Distance ranking is therefore dead and grouping carries
+// the whole load.
+describe("groupForDay", () => {
+  const opt = (title: string, area: string | null): PlaceOption =>
+    ({ id: title, title, area, status: "option", lat: null, lng: null }) as PlaceOption;
+  const stretch = { location_name: "תאילנד", lat: null, lng: null };
+
+  it("puts the biggest area first when nothing matches the stretch", () => {
+    const groups = groupForDay(
+      [opt("a", "הואה הין"), opt("b", "צ'אנג מאי"), opt("c", "הואה הין")],
+      stretch
+    );
+    expect(groups[0].area).toBe("הואה הין");
+    expect(groups[0].options).toHaveLength(2);
+  });
+
+  it("puts the stretch's own area first even when it is smaller", () => {
+    const groups = groupForDay(
+      [opt("a", "בנגקוק"), opt("b", "בנגקוק"), opt("c", "תאילנד")],
+      stretch
+    );
+    expect(groups[0].area).toBe("תאילנד");
+  });
+
+  it("sinks the options with no area to the bottom", () => {
+    const groups = groupForDay(
+      [opt("a", null), opt("b", null), opt("c", null), opt("d", "הואה הין")],
+      stretch
+    );
+    expect(groups[groups.length - 1].area).toBeNull();
+  });
+
+  it("keeps every option exactly once", () => {
+    const rows = [opt("a", "x"), opt("b", null), opt("c", "y"), opt("d", "x")];
+    const groups = groupForDay(rows, stretch);
+    expect(groups.flatMap((g) => g.options)).toHaveLength(rows.length);
   });
 });
