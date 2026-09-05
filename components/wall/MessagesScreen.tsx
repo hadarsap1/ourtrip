@@ -20,7 +20,7 @@ import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   // Which feeds this role may open (migration 00027): owners get both and act
   // as the bridge, kids only the family one, guests only theirs. RLS enforces
   // it regardless - this just decides what to render.
@@ -125,6 +125,23 @@ export function MessagesScreen() {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  // A lookup that failed is not an expired session: offer a retry, not a
+  // sign-out (see lib/useMember.ts).
+  if (memberFailed) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <p className="mb-3 text-ink-soft">{strings.common.memberFailed}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="font-semibold text-sea underline"
+        >
+          {strings.common.retry}
+        </button>
       </div>
     );
   }

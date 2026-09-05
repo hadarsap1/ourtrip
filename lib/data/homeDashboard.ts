@@ -12,6 +12,7 @@
 
 import { resolveBudgetTotals, type BudgetTotals } from "@/lib/budget";
 import { listDestinations, type Destination } from "@/lib/data/facts";
+import { listDayIdsWithItems } from "@/lib/data/itinerary";
 import { getSupabase } from "@/lib/supabase";
 
 function requireClient() {
@@ -139,16 +140,10 @@ export async function loadHomeSummary(
         .order("sort_order")
     : { data: [] as { id: string; label: string; checked: boolean }[] };
 
-  // Which days carry something, folded back onto their stretch.
+  // Which days carry something, folded back onto their stretch. Chunked by
+  // listDayIdsWithItems - the whole trip's days go into this filter.
   const dayRows = days.data ?? [];
-  const withItems =
-    dayRows.length === 0
-      ? { data: [] as { day_id: string }[] }
-      : await client
-          .from("itinerary_items")
-          .select("day_id")
-          .in("day_id", dayRows.map((d) => d.id));
-  const plannedDayIds = new Set((withItems.data ?? []).map((i) => i.day_id));
+  const plannedDayIds = await listDayIdsWithItems(dayRows.map((d) => d.id));
 
   const daysWithItemsByKey = new Map<string, number>();
   for (const d of dayRows) {

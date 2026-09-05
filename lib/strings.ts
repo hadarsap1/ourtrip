@@ -622,6 +622,10 @@ export const strings = {
 
   common: {
     noMember: "לא הצלחנו לזהות אתכם - יכול להיות שההתחברות פגה.",
+    // Shown instead of noMember when the lookup itself failed. Nothing is
+    // wrong with the account, so it must not offer to sign out and back in.
+    memberFailed: "לא הצלחנו לבדוק מי מחובר - כנראה אין חיבור כרגע.",
+    retry: "ניסיון נוסף",
     signInAgain: "התחברות מחדש",
     save: "שמירה",
     cancel: "ביטול",
