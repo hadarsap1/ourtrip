@@ -104,3 +104,59 @@ export const COMMON_LANGUAGES = [
   "ja", "th", "vi", "zh", "ko", "id", "hi", "el",
   "tr", "es", "pt", "fr", "it", "de", "nl", "ar",
 ] as const;
+
+/**
+ * Filters the phrasebook as you type.
+ *
+ * Matches the Hebrew, the local script AND the transliteration, because all
+ * three are things you might half-remember: you know it started with "sumimasen"
+ * but not which category it was filed under. Pure and case-insensitive; it runs
+ * on the already-loaded rows so it works offline, which is where the phrasebook
+ * matters most.
+ */
+export function filterEntries<
+  T extends {
+    category: string;
+    phrase_he: string;
+    phrase_local: string;
+    phonetic_he: string | null;
+  },
+>(entries: T[], query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (q === "") return entries;
+  return entries.filter((e) =>
+    [e.phrase_he, e.phrase_local, e.phonetic_he ?? "", e.category].some((field) =>
+      field.toLowerCase().includes(q)
+    )
+  );
+}
+
+export type LiveTranslation = {
+  phrase_he: string;
+  phrase_local: string;
+  phonetic_he: string | null;
+};
+
+/**
+ * Translates one phrase on the spot. Owner-gated server-side; needs a network.
+ * Throws the function's own error code so the screen can say which failure it
+ * was - out of credit is not the same as try again.
+ */
+export async function translatePhrase(
+  text: string,
+  language: string
+): Promise<LiveTranslation> {
+  const { data, error } = await requireClient().functions.invoke(
+    "translate-phrase",
+    { body: { text, language } }
+  );
+  if (error) {
+    throw new Error((await functionErrorCode(error)) ?? "translate_failed");
+  }
+  if (!data?.ok) throw new Error(data?.error ?? "translate_failed");
+  return {
+    phrase_he: String(data.phrase_he ?? text),
+    phrase_local: String(data.phrase_local ?? ""),
+    phonetic_he: data.phonetic_he ? String(data.phonetic_he) : null,
+  };
+}

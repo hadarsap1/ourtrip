@@ -6,15 +6,23 @@ import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   COMMON_LANGUAGES,
+  filterEntries,
   generateLanguage,
   languageName,
   listEntries,
   listLanguages,
+  translatePhrase,
+  type LiveTranslation,
 } from "@/lib/data/phrasebook";
+import { SearchIcon } from "@/components/icons";
+import { TranslateBox } from "./TranslateBox";
+import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 import type { PhrasebookEntry, Trip } from "@/lib/types";
 
 export function PhrasebookScreen() {
+  const { member } = useMember();
+  const isOwner = member?.role === "owner";
   const [trip, setTrip] = useState<Trip | null>(null);
   const [languages, setLanguages] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -23,8 +31,18 @@ export function PhrasebookScreen() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [showEntry, setShowEntry] = useState<PhrasebookEntry | null>(null);
+  // Only the three fields the fullscreen view draws, so a live translation -
+  // which is not a saved row - can be shown to a local the same way.
+  const [showEntry, setShowEntry] = useState<{
+    phrase_he: string;
+    phrase_local: string;
+    phonetic_he: string | null;
+  } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [draft, setDraft] = useState("");
+  const [translation, setTranslation] = useState<LiveTranslation | null>(null);
+  const [translating, setTranslating] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -90,6 +108,31 @@ export function PhrasebookScreen() {
     }
   }
 
+  async function handleTranslate() {
+    const text = draft.trim();
+    if (text === "" || !selected || translating) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      showToast(strings.phrasebook.translateOffline);
+      return;
+    }
+    setTranslating(true);
+    setTranslation(null);
+    try {
+      setTranslation(await translatePhrase(text, selected));
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      showToast(
+        code === "not_configured"
+          ? strings.phrasebook.notConfigured
+          : code === "no_credit"
+            ? strings.phrasebook.translateNoCredit
+            : strings.phrasebook.translateFailed
+      );
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
@@ -99,8 +142,9 @@ export function PhrasebookScreen() {
   }
 
   // group by category, preserving entry order
+  const visible = filterEntries(entries, query);
   const grouped = new Map<string, PhrasebookEntry[]>();
-  for (const entry of entries) {
+  for (const entry of visible) {
     const list = grouped.get(entry.category) ?? [];
     list.push(entry);
     grouped.set(entry.category, list);
@@ -158,8 +202,36 @@ export function PhrasebookScreen() {
         </button>
       )}
 
+      {/* Owner-only because it spends API credit, so the box is hidden rather
+          than shown to a kid and then refused. */}
+      {isOwner && selected && (
+        <TranslateBox
+          draft={draft}
+          onDraftChange={setDraft}
+          onTranslate={() => void handleTranslate()}
+          translating={translating}
+          translation={translation}
+          onShow={setShowEntry}
+        />
+      )}
+
       {selected && entries.length > 0 && (
         <>
+          <label className="flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2">
+            <SearchIcon className="h-4 w-4 shrink-0 text-ink-faint" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={strings.phrasebook.search}
+              className="min-w-0 flex-1 bg-transparent text-base focus:outline-none"
+            />
+          </label>
+          {query.trim() !== "" && visible.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+              {strings.phrasebook.searchNone}
+            </p>
+          )}
           <p className="text-xs text-ink-soft">{strings.phrasebook.showToLocalHint}</p>
           {[...grouped.entries()].map(([category, categoryEntries]) => (
             <section
@@ -194,7 +266,7 @@ export function PhrasebookScreen() {
               </ul>
             </section>
           ))}
-          {trip && !fromCache && (
+          {trip && !fromCache && query.trim() === "" && (
             <button
               type="button"
               onClick={() => void handleGenerate(selected)}

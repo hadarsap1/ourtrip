@@ -561,6 +561,20 @@ export const strings = {
     showToLocalHint: "לחיצה על משפט מציגה אותו גדול - נוח להראות למקומיים",
     phonetic: "הגייה",
     emptyLanguage: "אין משפטים בשפה הזו",
+    // search over the loaded rows - works offline, which is the point
+    search: "חיפוש בשיחון",
+    searchNone: "לא נמצאו משפטים",
+    // live translation of anything the phrasebook does not cover
+    translateTitle: "לתרגם משפט",
+    translateHint: "כותבים משפט בעברית ומקבלים אותו בשפה המקומית, עם הגייה",
+    translatePlaceholder: "מה רוצים להגיד?",
+    translateCta: "תרגום",
+    translating: "מתרגם…",
+    translateFailed: "התרגום נכשל - נסו שוב",
+    translateOffline: "התרגום החי צריך אינטרנט. השיחון עצמו עובד גם בלי.",
+    translateNoCredit: "אין יתרה בחשבון ה-AI - צריך לטעון קרדיט ב-Anthropic. השיחון עצמו עובד רגיל.",
+    translateResult: "התרגום",
+    translateShow: "הצגה בגדול",
   },
 
   // "הידעת" - facts about each destination, written for the kids. Keyed by
