@@ -22,6 +22,7 @@ const ROUTES = [
   "/memory-book",
   "/notifications",
   "/options",
+  "/ready",
   "/offline",
   "/login",
   "/kid-login",

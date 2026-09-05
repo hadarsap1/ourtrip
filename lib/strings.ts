@@ -942,6 +942,67 @@ export const strings = {
     missingEnv: "חסרים משתני סביבה של Supabase — ראו .env.local.example",
   },
 
+  // "מוכנות ליציאה". One screen that adds up what every other screen only
+  // knows about itself.
+  ready: {
+    title: "מוכנות ליציאה",
+    menu: "מוכנות ליציאה",
+    countdown: "‏{n} ימים ליציאה",
+    countdownToday: "יוצאים היום",
+    started: "הטיול בעיצומו",
+    noDate: "לא הוגדר תאריך יציאה",
+    outstanding: "‏{n} דברים פתוחים",
+    allDone: "הכול מוכן ליציאה",
+    // With no trip loaded there is nothing to judge, and "everything is ready"
+    // would be the exact false reassurance this screen exists to prevent.
+    noTrip: "לא נטען טיול פעיל",
+    ok: "תקין",
+    groups: {
+      documents: "מסמכים",
+      start: "הימים הראשונים",
+      trip: "כל המסע",
+      people: "אנשים ומכשירים",
+    },
+    checks: {
+      doc_passport: { label: "דרכונים", detail: "‏{n} בכספת" },
+      doc_insurance: { label: "ביטוח נסיעות", detail: "‏{n} בכספת" },
+      doc_expiring: {
+        label: "תוקף מסמכים",
+        detail: "‏{n} פגים לפני סוף הטיול",
+        okDetail: "אף מסמך לא פג במהלך הטיול",
+      },
+      first_days_planned: {
+        label: "השבועיים הראשונים",
+        detail: "‏{empty} מתוך {total} ימים בלי שום פעילות",
+        okDetail: "לכל היום הראשונים יש תוכנית",
+      },
+      bookings: { label: "הזמנות", detail: "‏{n} רשומות במערכת" },
+      days_planned: {
+        label: "ימים עם תוכנית",
+        detail: "‏{empty} מתוך {total} ימים ריקים",
+        okDetail: "לכל יום יש משהו",
+      },
+      bank_coverage: {
+        label: "כיסוי בבנק האפשרויות",
+        detail: "אין אף אפשרות ל־{countries} · {days} ימים",
+        okDetail: "לכל מדינה יש אפשרויות שמורות",
+      },
+      emergency: {
+        label: "דפי חירום",
+        detail: "חסר ל־{countries}",
+        okDetail: "לכל מדינה יש דף",
+      },
+      phrasebook: {
+        label: "שיחון",
+        detail: "חסר ל־{countries}",
+        okDetail: "לכל מדינה יש שיחון",
+      },
+      kid_devices: { label: "טאבלט הילדים", detail: "‏{n} מכשירים מחוברים" },
+      guests: { label: "אורחים", detail: "‏{n} מוזמנים" },
+      push: { label: "התראות", detail: "‏{n} מכשירים רשומים" },
+    } as Record<string, { label: string; detail: string; okDetail?: string }>,
+  },
+
   offline: {
     banner: "אין חיבור לאינטרנט — חלק מהמסכים לא זמינים",
     synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
