@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/kids";
 import { formatDate } from "@/lib/format";
 import { CheckIcon, LockIcon, PersonIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Member, Trip } from "@/lib/types";
 
@@ -151,8 +152,8 @@ export function KidsAdminScreen() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!confirm(strings.kids.revokeConfirm)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm(strings.kids.revokeConfirm))) return;
                       void revokeDevice(device.id)
                         .then(() => trip && refresh(trip.id))
                         .catch((err) => showToast(kidErrorMessage(err)));

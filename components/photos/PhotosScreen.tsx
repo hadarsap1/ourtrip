@@ -20,6 +20,7 @@ import {
 } from "@/lib/data/photos";
 import { formatDate } from "@/lib/format";
 import { CameraIcon, CheckIcon, CloseIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
@@ -374,8 +375,8 @@ function FamilyPhotosView() {
                 {isOwner && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!confirm(strings.photos.deleteConfirm)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm(strings.photos.deleteConfirm))) return;
                       void run(() => deletePhoto(photo));
                     }}
                     className="font-semibold text-rose-500"

@@ -173,7 +173,7 @@ export function EmergencyScreen() {
               key={code}
               type="button"
               onClick={() => setSelected(code)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === code
                   ? "bg-rose-600 text-white"
                   : "bg-white text-ink-soft shadow-sm"

@@ -134,11 +134,12 @@ export function MessagesScreen() {
   if (memberFailed) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold">{strings.wall.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.memberFailed}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="font-semibold text-sea underline"
+          className="inline-flex min-h-[44px] items-center font-semibold text-sea underline"
         >
           {strings.common.retry}
         </button>
@@ -149,8 +150,9 @@ export function MessagesScreen() {
   if (!member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold">{strings.wall.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
-        <Link href="/login" className="font-semibold text-sea underline">
+        <Link href="/login" className="inline-flex min-h-[44px] items-center font-semibold text-sea underline">
           {strings.common.signInAgain}
         </Link>
       </div>

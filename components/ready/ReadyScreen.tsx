@@ -97,9 +97,11 @@ export function ReadyScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8 sm:max-w-2xl">
       <header className="ot-postcard px-4 py-5">
-        <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/70">
+        {/* The screen's heading, not decoration: /ready was the one route that
+            mounted with no h1 at all, so nothing announced it on arrival. */}
+        <h1 className="text-xs font-bold uppercase tracking-[0.08em] text-white/70">
           {s.title}
-        </p>
+        </h1>
         <p className="mt-1 text-[26px] font-extrabold leading-tight">
           {left == null
             ? s.noDate

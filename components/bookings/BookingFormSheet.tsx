@@ -9,6 +9,7 @@ import {
   updateBooking,
   uploadBookingFile,
 } from "@/lib/data/bookings";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Booking, BookingStatus, BookingType } from "@/lib/types";
 
@@ -143,9 +144,9 @@ function BookingForm({
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!booking || saving) return;
-    if (!confirm(strings.bookings.deleteConfirm)) return;
+    if (!(await askConfirm(strings.bookings.deleteConfirm))) return;
     setSaving(true);
     deleteBooking(booking.id)
       .then(() => onSaved(booking, false))

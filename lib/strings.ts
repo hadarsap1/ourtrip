@@ -5,6 +5,37 @@ export const strings = {
   appName: "OurTrip",
   appDescription: "הטיול המשפחתי שלנו מסביב לעולם",
 
+  // Browser-tab / history titles, one per route. All 24 routes used to share
+  // the single title "OurTrip", so the back-history was two dozen identical
+  // entries and a screen reader announced nothing on arrival. The root layout
+  // appends " · OurTrip" through a title template.
+  pageTitles: {
+    today: "היום",
+    itinerary: "מסלול",
+    budget: "תקציב",
+    documents: "מסמכים",
+    more: "עוד",
+    map: "מפה",
+    photos: "תמונות",
+    checklists: "רשימות",
+    emergency: "חירום",
+    phrasebook: "שיחון",
+    recommend: "מה בסביבה",
+    journal: "יומן",
+    kids: "ילדים ומכשירים",
+    guests: "אורחים",
+    pocket: "דמי כיס",
+    messages: "הקיר המשפחתי",
+    memoryBook: "ספר זיכרונות",
+    notifications: "התראות",
+    options: "בנק אפשרויות",
+    ready: "מוכנות ליציאה",
+    facts: "הידעת?",
+    offline: "אין חיבור",
+    login: "כניסה",
+    kidLogin: "כניסת ילדים",
+  },
+
   nav: {
     // Two navigation landmarks now exist - the bottom bar on mobile and the
     // side rail from lg up. They need distinct accessible names.
@@ -627,6 +658,8 @@ export const strings = {
     memberFailed: "לא הצלחנו לבדוק מי מחובר - כנראה אין חיבור כרגע.",
     retry: "ניסיון נוסף",
     signInAgain: "התחברות מחדש",
+    confirmTitle: "רק לוודא",
+    confirmYes: "כן, ממשיכים",
     save: "שמירה",
     cancel: "ביטול",
     delete: "מחיקה",
@@ -864,6 +897,10 @@ export const strings = {
     codePlaceholder: "הקוד",
     connect: "חיבור",
     invalidCode: "הקוד לא נכון או שפג תוקפו - מבקשים קוד חדש",
+    // The code was accepted and the server failed anyway. A new code will not
+    // help, so it must not say "ask for another one".
+    registerFailed: "הקוד בסדר, אבל החיבור נכשל בצד השרת - מראים את ההודעה הזאת לאמא או אבא",
+    registerNetwork: "אין חיבור לאינטרנט - מנסים שוב כשיש רשת",
     pinTitle: "שלום",
     pinHint: "מקלידים את הקוד הסודי",
     wrongPin: "הקוד הסודי לא נכון",

@@ -137,13 +137,46 @@ export function forgetKidDevice(): void {
   }
 }
 
-export async function registerDevice(code: string): Promise<string> {
-  const { status, data } = await invokeKidAuth({ action: "register", code });
-  if (status !== 200 || !data.ok) throw new Error("invalid_code");
-  const member = data.member as { display_name: string };
-  localStorage.setItem(DEVICE_TOKEN_KEY, data.device_token as string);
-  localStorage.setItem(KID_NAME_KEY, member.display_name);
-  return member.display_name;
+export type RegisterResult =
+  | { status: "ok"; displayName: string }
+  /** The code itself was rejected: wrong, already used, or expired. */
+  | { status: "invalid" }
+  /** The code was fine and the server failed anyway - creating the kid's auth
+   *  user, linking it, or writing the device row. `detail` is the server's own
+   *  message; it is the only thing that says which. */
+  | { status: "server"; detail: string }
+  | { status: "network" };
+
+/**
+ * Redeems a one-time registration code and binds this device.
+ *
+ * Every failure used to collapse into one thrown "invalid_code", so the tablet
+ * said "the code is wrong" whatever had actually gone wrong. On the live
+ * project six codes were issued on 2026-09-04 and every one expired unused,
+ * with no kid ever getting an auth user - a server-side `register` failure
+ * that the screen could only describe as a bad code, so the family kept asking
+ * for another one. The cause has to survive to the UI.
+ */
+export async function registerDevice(code: string): Promise<RegisterResult> {
+  let status: number;
+  let data: Record<string, unknown>;
+  try {
+    ({ status, data } = await invokeKidAuth({ action: "register", code }));
+  } catch {
+    return { status: "network" };
+  }
+
+  if (status === 200 && data.ok) {
+    const member = data.member as { display_name: string };
+    localStorage.setItem(DEVICE_TOKEN_KEY, data.device_token as string);
+    localStorage.setItem(KID_NAME_KEY, member.display_name);
+    return { status: "ok", displayName: member.display_name };
+  }
+
+  // 400 "bad code" and 401 "invalid code" are both about the code. Anything
+  // else is the server failing on a code it accepted.
+  if (status === 400 || status === 401) return { status: "invalid" };
+  return { status: "server", detail: String(data.error ?? status) };
 }
 
 export type UnlockResult =

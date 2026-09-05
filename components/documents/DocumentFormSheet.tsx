@@ -8,6 +8,7 @@ import {
   updateDocument,
   uploadDocument,
 } from "@/lib/data/documents";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Document } from "@/lib/types";
 
@@ -101,9 +102,9 @@ function DocumentForm({
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!doc || saving) return;
-    if (!confirm(strings.documents.deleteConfirm)) return;
+    if (!(await askConfirm(strings.documents.deleteConfirm))) return;
     setSaving(true);
     deleteDocument(doc)
       .then(onDone)
@@ -155,7 +156,7 @@ function DocumentForm({
                 key={t}
                 type="button"
                 onClick={() => setTag(t)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+                className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
                   tag === t ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
                 }`}
               >
