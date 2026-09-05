@@ -1,6 +1,6 @@
 // Google Maps JS API loader for Places autocomplete. When the key is missing
 // (or the script fails to load, e.g. offline) callers fall back to free-text
-// location input — the feature degrades, never blocks.
+// location input - the feature degrades, never blocks.
 
 declare global {
   interface Window {

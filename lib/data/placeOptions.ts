@@ -1,4 +1,4 @@
-// "בנק אפשרויות" — the options bank. One row per candidate place (hotel,
+// "בנק אפשרויות" - the options bank. One row per candidate place (hotel,
 // restaurant, attraction) the owners are considering for a destination,
 // however it arrived: typed in by hand, pulled out of a Facebook post, or
 // saved from the AI recommender.
@@ -6,7 +6,7 @@
 // Replaces saved_links + saved_recommendations, which were two half-versions
 // of this same idea split by how the item was created.
 //
-// Owner-only (RLS policy place_options_owner_all) — planning content is never
+// Owner-only (RLS policy place_options_owner_all) - planning content is never
 // visible to kids or guests.
 
 import { createBooking } from "@/lib/data/bookings";
@@ -23,7 +23,7 @@ function requireClient() {
 }
 
 /** Categories the UI offers. Stored as free text, so the family can invent
- *  more mid-trip without a migration — this list only drives the picker. */
+ *  more mid-trip without a migration - this list only drives the picker. */
 export const PLACE_CATEGORIES = [
   "hotel",
   "restaurant",
@@ -117,7 +117,7 @@ export async function createPlaceOption(
   if (error) throw new Error(error.message);
 }
 
-/** Bulk insert — used when saving several candidates extracted from one post. */
+/** Bulk insert - used when saving several candidates extracted from one post. */
 export async function createPlaceOptions(
   tripId: string,
   inputs: PlaceOptionInput[],
@@ -185,7 +185,7 @@ export function bookingTypeForCategory(
 /** Promote an option into a real booking: creates the booking, then marks the
  *  option 'booked' and links the two.
  *
- *  The option deliberately stays in the bank rather than being deleted — the
+ *  The option deliberately stays in the bank rather than being deleted - the
  *  fact that this hotel was one of four considered is planning history worth
  *  keeping, and the booking FK is ON DELETE SET NULL so cancelling a booking
  *  leaves the option behind rather than erasing it. */
@@ -221,7 +221,7 @@ export type ExtractedPlace = {
   area: string | null;
   note: string | null;
   /** A link the post itself gave for this place. Null when the post named no
-   *  URL — the model is told never to invent one. */
+   *  URL - the model is told never to invent one. */
   url: string | null;
 };
 
@@ -247,7 +247,7 @@ export function mapsSearchUrl(
 
 /** The cuts the bank can be sliced by. Every field is optional; an unset field
  *  means "don't filter on this". Shared by the list and the map so both always
- *  show the same set — a pin that isn't in the list would be a lie. */
+ *  show the same set - a pin that isn't in the list would be a lie. */
 export type OptionFilter = {
   category?: string | null;
   status?: PlaceOptionStatus | null;
@@ -259,8 +259,8 @@ export type OptionFilter = {
    *
    *  Rejecting an option was doing almost nothing visible: the row still drew a
    *  pin and still counted toward "N places have no location", so the one
-   *  action available for the ~15 rows that are not places at all — 12go Asia,
-   *  Vietnam Airlines, an ethnic group the extractor swept out of a post —
+   *  action available for the ~15 rows that are not places at all - 12go Asia,
+   *  Vietnam Airlines, an ethnic group the extractor swept out of a post -
    *  never actually cleared them off the map. The screen sets this whenever the
    *  reader is not deliberately looking AT the rejected pile. */
   excludeRejected?: boolean;
@@ -313,7 +313,7 @@ export type ExtractResult = {
 };
 
 /** Sends pasted post text to the extract-places Edge Function, which asks
- *  Claude for structured candidates. Nothing is saved here — the caller shows
+ *  Claude for structured candidates. Nothing is saved here - the caller shows
  *  the candidates and saves whichever the owner ticks. */
 /** Asks the geocode-places function to resolve one batch of not-yet-located
  *  options into coordinates. Returns how many are still pending so the caller
@@ -376,7 +376,7 @@ export async function extractPlacesFromText(
 // The day pulls from the bank (migration 00029).
 //
 // Measured 2026-09-04: 343 options, every one still status 'option'. Not a
-// single row had ever left, because the only exit was promoteToBooking() —
+// single row had ever left, because the only exit was promoteToBooking() -
 // right for a hotel, useless for the attractions, restaurants and viewpoints
 // that are most of the bank. Everything below exists to give an option
 // somewhere to go in one tap, from the screen where the decision is actually
@@ -408,8 +408,8 @@ export type DayOption = PlaceOption & {
 
 /** Orders the bank for one day: options already tagged with this day's area
  *  first, then by distance from where the day actually is, then everything
- *  with no coordinates. A place we cannot locate is still worth offering —
- *  the cleanup migrations left a batch of those waiting to be re-geocoded —
+ *  with no coordinates. A place we cannot locate is still worth offering -
+ *  the cleanup migrations left a batch of those waiting to be re-geocoded -
  *  it just cannot claim to be nearby. */
 export function rankForDay(
   options: PlaceOption[],
@@ -468,7 +468,7 @@ function isOutdoorCategory(category: string | null): boolean {
  * Deliberately NOT a booking. You do not reserve a viewpoint, and requiring a
  * booking is exactly why 343 options never moved. The option stays in the bank
  * marked 'planned' and linked to the item it became, mirroring how
- * promoteToBooking leaves it behind marked 'booked' — planning history is kept
+ * promoteToBooking leaves it behind marked 'booked' - planning history is kept
  * either way, and 00029's FK is ON DELETE SET NULL so removing the item from
  * the day does not erase that the place was considered.
  */
@@ -499,7 +499,7 @@ export async function planFromOption(
 }
 
 /** Undoes planFromOption from the bank's side: the option becomes undecided
- *  again. The itinerary item is left alone — deleting it is the itinerary
+ *  again. The itinerary item is left alone - deleting it is the itinerary
  *  screen's business, and 00029 nulls the link automatically if that happens. */
 export async function unplanOption(id: string): Promise<void> {
   const { error } = await requireClient()
@@ -526,7 +526,7 @@ export type AreaTally = {
  *
  *  Matching is by name because that is all the two tables share: a day carries
  *  `location_name`, an option carries `area`. Migration 00030 canonicalised the
- *  area spellings, which is what makes this comparison meaningful at all — it
+ *  area spellings, which is what makes this comparison meaningful at all - it
  *  would have missed two thirds of Hoi An when the town was spelled three ways.
  */
 export function tallyByArea(
@@ -569,7 +569,7 @@ export type DayOptionGroup = {
  *
  * WHY GROUPING RATHER THAN A FLAT NEAREST-FIRST LIST. rankForDay orders by
  * distance from `itinerary_days.lat/lng`, and on this trip **no day has
- * coordinates at all** — checked live 2026-09-05, all 227 rows. Worse, the days
+ * coordinates at all** - checked live 2026-09-05, all 227 rows. Worse, the days
  * are 14 long stretches rather than towns: 38 days called "תאילנד", 35 called
  * "וייטנאם - דרום ומרכז". So the area match misses too, and the picker was
  * showing Vietnam's 229 options as one unordered scroll.

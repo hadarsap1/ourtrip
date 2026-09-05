@@ -67,7 +67,7 @@ describe("nextUp", () => {
     expect(nextUp(items, 11 * 60 + 15)?.item.id).toBe("lunch");
   });
 
-  it("skips items with no start time — nothing to count down to", () => {
+  it("skips items with no start time - nothing to count down to", () => {
     expect(nextUp([item("no-time", null)], 600)).toBeNull();
   });
 

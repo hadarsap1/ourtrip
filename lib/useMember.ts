@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { getCurrentMember } from "@/lib/data/trip";
 import type { Member } from "@/lib/types";
 
-/** Current member row (cached module-side). Role gates are cosmetic —
+/** Current member row (cached module-side). Role gates are cosmetic -
  *  real access control is RLS. */
 
 // BottomNav plus whichever screen is mounted both call this. With per-hook

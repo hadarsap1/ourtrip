@@ -1,9 +1,9 @@
 // Guest invitation (SPEC 2.10, DECISIONS #17). Owner-gated (in-function).
 // Adds/re-activates the allowlist row + guest member, ensures an auth user,
 // and generates a magic sign-in link. If RESEND_API_KEY is configured the
-// link is emailed via Resend (custom SMTP per DECISIONS #17 — Supabase's
+// link is emailed via Resend (custom SMTP per DECISIONS #17 - Supabase's
 // built-in SMTP is rate-limited); otherwise the link is returned to the
-// owner UI for manual sharing (WhatsApp etc.) — the feature degrades,
+// owner UI for manual sharing (WhatsApp etc.) - the feature degrades,
 // never blocks.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -138,9 +138,9 @@ Deno.serve(async (req) => {
           html:
             `<div dir="rtl" style="font-family:sans-serif">` +
             `<h2>שלום ${displayName}!</h2>` +
-            `<p>הוזמנתם לפורטל הטיול המשפחתי שלנו — תמונות, יומן מסע ומפה.</p>` +
+            `<p>הוזמנתם לפורטל הטיול המשפחתי שלנו - תמונות, יומן מסע ומפה.</p>` +
             `<p><a href="${link}" style="background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold">כניסה לפורטל</a></p>` +
-            `<p style="color:#64748b;font-size:12px">הקישור אישי — לא להעביר הלאה.</p>` +
+            `<p style="color:#64748b;font-size:12px">הקישור אישי - לא להעביר הלאה.</p>` +
             `</div>`,
         }),
       });

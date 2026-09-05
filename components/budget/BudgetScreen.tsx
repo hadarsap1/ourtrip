@@ -112,7 +112,7 @@ export function BudgetScreen() {
   }
 
   // Spending done BEFORE departure (vaccinations, visas, gear, flights bought
-  // in advance) is real budget but not a daily pace — averaging it into the
+  // in advance) is real budget but not a daily pace - averaging it into the
   // burn rate once the trip starts would wildly inflate both burn and
   // projection. So it is tracked separately and excluded from the pace math,
   // while still counting toward the totals.
@@ -175,7 +175,7 @@ export function BudgetScreen() {
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
       <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.budget}</h1>
 
-      {/* Three numbers, three cards — spent, left, per day. The old screen made
+      {/* Three numbers, three cards - spent, left, per day. The old screen made
           you read a paragraph of a card to find any of them. */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
@@ -197,7 +197,7 @@ export function BudgetScreen() {
           >
             {budgetForProgress > 0
               ? formatMoney(Math.abs(Math.round(remaining)), "ILS")
-              : "—"}
+              : "-"}
           </p>
         </div>
         {/* the screen's single sun-filled surface */}
@@ -207,7 +207,7 @@ export function BudgetScreen() {
           </p>
           <p className="mt-1 text-[17px] font-extrabold leading-none text-sun-deep">
             {burnPerDay === null
-              ? "—"
+              ? "-"
               : formatMoney(Math.round(burnPerDay), "ILS")}
           </p>
         </div>
@@ -256,7 +256,7 @@ export function BudgetScreen() {
             {strings.budget.projection}{" "}
             <span className="font-bold text-ink" dir="ltr">
               {projection === null
-                ? "—"
+                ? "-"
                 : formatMoney(Math.round(projection), "ILS")}
             </span>
           </span>
@@ -276,7 +276,7 @@ export function BudgetScreen() {
         )}
 
         {/* The declared target, and how the plan sits against it. Tappable
-            whether or not one is set — the first one has to start somewhere. */}
+            whether or not one is set - the first one has to start somewhere. */}
         <button
           type="button"
           onClick={() => setEditingTotal(true)}

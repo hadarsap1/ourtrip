@@ -260,7 +260,7 @@ export async function deleteItem(id: string): Promise<void> {
  * Only the rows that actually moved are written. Dragging one item used to
  * issue an UPDATE per item in the day, and since every update echoes back
  * through the realtime channel, each one triggered another full refetch of
- * every day, item and booking — which is what made dragging feel like the app
+ * every day, item and booking - which is what made dragging feel like the app
  * had locked up.
  */
 export async function reorderItems(

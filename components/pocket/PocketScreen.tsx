@@ -52,7 +52,7 @@ export function PocketScreen() {
 
   useEffect(() => {
     // Nothing to fetch until a member is resolved. When resolution finishes
-    // and produces nobody, `loading` is left as-is on purpose — the render
+    // and produces nobody, `loading` is left as-is on purpose - the render
     // below only treats it as meaningful once a member exists.
     if (memberLoading || !member) return;
     let cancelled = false;
@@ -80,7 +80,7 @@ export function PocketScreen() {
   // consulted once there IS a member. Previously the guard was
   // `loading || !member`, which meant a failed member lookup (an expired
   // session returns 401) left the screen on "loading…" forever, with nothing
-  // said and nothing to act on — reported from production 2026-08-29.
+  // said and nothing to act on - reported from production 2026-08-29.
   if (memberLoading || (member && loading)) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
@@ -357,7 +357,7 @@ function AllowanceSheet({
     <Sheet
       open
       onClose={onClose}
-      title={`${strings.pocket.setAllowance} — ${kid.display_name}`}
+      title={`${strings.pocket.setAllowance} - ${kid.display_name}`}
     >
       <form
         className="space-y-4"

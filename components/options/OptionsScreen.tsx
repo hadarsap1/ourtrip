@@ -258,14 +258,14 @@ export function OptionsScreen() {
 
   /** Resolves names to coordinates a batch at a time, reporting progress. The
    *  keyless provider is throttled to about a request a second, so a big bank
-   *  takes a while — showing the remaining count beats a frozen button. */
+   *  takes a while - showing the remaining count beats a frozen button. */
   const locate = useCallback(async () => {
     if (!trip || locating !== null) return;
     setLocating(s.mapLocating);
     try {
       // A tap means "try these again". Without this the run would skip every
       // row that already used up its attempts and report success while the
-      // banner still said N places have no pin — a button that does nothing.
+      // banner still said N places have no pin - a button that does nothing.
       await resetGeocodeAttempts(trip.id);
       for (let pass = 0; pass < 20; pass++) {
         const { remaining } = await geocodePlaceOptions(trip.id);
@@ -303,7 +303,7 @@ export function OptionsScreen() {
     );
   }
 
-  // One filter, both views — a pin the list doesn't show would be a lie.
+  // One filter, both views - a pin the list doesn't show would be a lie.
   const visible = filterOptions(options, {
     category: categoryFilter,
     status: statusFilter,

@@ -1,4 +1,4 @@
-// Flight & hotel search (SPEC addition — "search best flights and hotels").
+// Flight & hotel search (SPEC addition - "search best flights and hotels").
 // Owner-gated (deployed verify_jwt=true; additionally re-checks role='owner'
 // in-function, same pattern as recommend / phrasebook-generate).
 //

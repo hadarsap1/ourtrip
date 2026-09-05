@@ -18,7 +18,7 @@ import {
   randomPrfSaltB64,
 } from "@/lib/webauthn";
 
-// The vault key lives in memory only, for the session — unlocking once opens
+// The vault key lives in memory only, for the session - unlocking once opens
 // the vault until reload or an explicit lock. The salt, iteration count and
 // verifier are cached in localStorage so a passphrase can still be checked
 // offline (a lost device is the whole point of the vault).
@@ -44,7 +44,7 @@ function localKey(tripId: string): string {
   return `ourtrip-docpin-${tripId}`;
 }
 
-/** Local hint for "is THIS device enrolled" — UI only, never a security check. */
+/** Local hint for "is THIS device enrolled" - UI only, never a security check. */
 function localCredKey(tripId: string): string {
   return `ourtrip-docpasskey-${tripId}`;
 }
@@ -193,7 +193,7 @@ export async function listPasskeys(tripId: string): Promise<VaultPasskey[]> {
   }));
 }
 
-/** True when this specific device believes it has enrolled — a UI hint only. */
+/** True when this specific device believes it has enrolled - a UI hint only. */
 export function isThisDeviceEnrolled(tripId: string): boolean {
   try {
     return !!localStorage.getItem(localCredKey(tripId));
@@ -270,7 +270,7 @@ export type PasskeyUnlockResult =
 
 /**
  * Opens the vault with a device biometric. The authenticator returns a secret
- * that decrypts the stored copy of the vault key — the server never sees
+ * that decrypts the stored copy of the vault key - the server never sees
  * either, and no passphrase is involved.
  */
 export async function unlockWithPasskey(tripId: string): Promise<PasskeyUnlockResult> {
@@ -311,7 +311,7 @@ export async function unlockWithPasskey(tripId: string): Promise<PasskeyUnlockRe
     );
     remember(tripId, bits, await importVaultKey(bits));
   } catch {
-    // wrapped key does not match this credential — treat as unusable
+    // wrapped key does not match this credential - treat as unusable
     return "unsupported";
   } finally {
     result.prfSecret.fill(0);
@@ -325,7 +325,7 @@ export async function unlockWithPasskey(tripId: string): Promise<PasskeyUnlockRe
   return "ok";
 }
 
-/** Removes an enrolled device — the revocation path for a lost phone. */
+/** Removes an enrolled device - the revocation path for a lost phone. */
 export async function removePasskey(tripId: string, id: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) throw new Error("supabase not configured");

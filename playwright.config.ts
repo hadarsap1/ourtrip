@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // End-to-end smoke tests. These boot the real Next.js app with NO Supabase env
-// wired up — in that mode AuthGate bypasses (see components/AuthGate.tsx) and the
+// wired up - in that mode AuthGate bypasses (see components/AuthGate.tsx) and the
 // full Hebrew RTL shell renders, so we can verify every route mounts, the bottom
 // nav works, and the offline/PWA plumbing is present without needing credentials
 // or seeded data. Deeper data-driven flows are covered by the unit tests in lib/.

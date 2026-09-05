@@ -72,7 +72,7 @@ export function ImportChecklistSheet({
             value={target}
             onChange={(e) => setTarget(e.target.value)}
           >
-            <option value="__new__">— {s.importTargetNew} —</option>
+            <option value="__new__">- {s.importTargetNew} -</option>
             {nonTemplateLists.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.title}

@@ -37,7 +37,7 @@ export async function listPhotos(tripId: string): Promise<PhotoWithUrl[]> {
 /**
  * Compress + upload + insert row. Kid uploads land as pending/unshared no
  * matter what (00001 trigger); owner uploads default to approved
- * (SCHEMA rule: owner uploads may skip approval — sharing stays a separate
+ * (SCHEMA rule: owner uploads may skip approval - sharing stays a separate
  * explicit step, DECISIONS #5).
  */
 export async function uploadPhoto(input: {

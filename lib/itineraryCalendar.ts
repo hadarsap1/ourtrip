@@ -38,7 +38,7 @@ export function legEndISO(day: ItineraryDay): string | null {
 
 /** What one date cell needs to render without opening the day. */
 export type CalendarCell = {
-  /** The day this date belongs to — its own, or the leg that covers it. */
+  /** The day this date belongs to - its own, or the leg that covers it. */
   dayId: string;
   /** ISO date to open when tapped (the leg's start, for a covered date). */
   opensDate: string;
@@ -47,7 +47,7 @@ export type CalendarCell = {
   /** Short label of the plan: the location, falling back to the country code. */
   label: string | null;
   countryCode: string | null;
-  /** Activities on the day. Only start dates carry them — items belong to the
+  /** Activities on the day. Only start dates carry them - items belong to the
    *  day row, not to each date its leg spans. */
   itemCount: number;
 };
@@ -64,7 +64,7 @@ export type CalendarRange = {
   monthsBefore?: number;
   /** Months to show after the trip's last month, same reason. */
   monthsAfter?: number;
-  /** ISO date the grid centres on when the itinerary is empty — without it
+  /** ISO date the grid centres on when the itinerary is empty - without it
    *  there is no span to derive months from, and the calendar has nothing to
    *  render at all. */
   anchorDate?: string;
@@ -121,7 +121,7 @@ export function buildCalendarIndex(
       cursor.setDate(cursor.getDate() + 1);
       const key = iso(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
       if (!cells.has(key)) {
-        // Covered dates carry the leg's label but not its activity count —
+        // Covered dates carry the leg's label but not its activity count -
         // showing "5 activities" on all 22 days of a leg would be a lie.
         cells.set(key, { ...base, isStart: false, itemCount: 0 });
       }
@@ -129,7 +129,7 @@ export function buildCalendarIndex(
     }
   }
 
-  // With no days there is no span, so the grid hangs off the anchor instead —
+  // With no days there is no span, so the grid hangs off the anchor instead -
   // otherwise an empty itinerary renders no months and offers nowhere to start.
   const firstISO = sorted.length > 0 ? sorted[0].date : range.anchorDate;
   const lastISO = sorted.length > 0 ? lastCoveredISO : range.anchorDate;

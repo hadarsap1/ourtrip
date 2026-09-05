@@ -65,7 +65,7 @@ export function MemoryBookScreen() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-6 pb-10">
-      {/* controls — hidden when printing */}
+      {/* controls - hidden when printing */}
       <div className="no-print mb-6">
         <h1 className="text-2xl font-bold">{s.title}</h1>
         <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>

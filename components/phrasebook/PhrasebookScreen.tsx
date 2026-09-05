@@ -42,7 +42,7 @@ export function PhrasebookScreen() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      // offline-critical: trip may be unreachable — cached languages still load
+      // offline-critical: trip may be unreachable - cached languages still load
       const activeTrip = await getActiveTrip();
       if (!cancelled) setTrip(activeTrip);
       const tripId = activeTrip?.id ?? "";
@@ -203,7 +203,7 @@ export function PhrasebookScreen() {
             >
               {generating
                 ? strings.phrasebook.generating
-                : `${strings.phrasebook.regenerate} — ${languageName(selected)}`}
+                : `${strings.phrasebook.regenerate} - ${languageName(selected)}`}
             </button>
           )}
         </>

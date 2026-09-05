@@ -123,7 +123,7 @@ function BookingCard({
                   <span dir="ltr">
                     {formatDate(booking.start_date)}
                     {booking.end_date && booking.end_date !== booking.start_date
-                      ? ` – ${formatDate(booking.end_date)}`
+                      ? ` - ${formatDate(booking.end_date)}`
                       : ""}
                   </span>
                 </>

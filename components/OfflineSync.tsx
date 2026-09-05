@@ -23,7 +23,7 @@ export function OfflineSync() {
       if (!navigator.onLine) return;
       void replayPendingWrites().then(({ replayed, dropped }) => {
         // A dropped entry couldn't be saved at all (e.g. its category was
-        // removed) — tell the family so they can re-enter it, rather than
+        // removed) - tell the family so they can re-enter it, rather than
         // letting it vanish or block the queue.
         if (dropped > 0) flash(strings.offline.syncFailed);
         else if (replayed > 0) flash(strings.offline.synced);

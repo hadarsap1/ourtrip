@@ -37,7 +37,7 @@ export function WeatherLine({
     <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
       <WeatherIcon code={weather.weatherCode} className="h-3.5 w-3.5 text-sun" />
       <span dir="ltr">
-        {weather.tempMin}–{weather.tempMax}°
+        {weather.tempMin}-{weather.tempMax}°
       </span>
       {weather.precipitationChance >= 20 && (
         <span className="inline-flex items-center gap-0.5">

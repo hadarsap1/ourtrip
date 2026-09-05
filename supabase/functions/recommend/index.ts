@@ -1,4 +1,4 @@
-// Sprint 8 — "מה בסביבה" local recommendations (SPEC 2.8). Owner-gated
+// Sprint 8 - "מה בסביבה" local recommendations (SPEC 2.8). Owner-gated
 // (deployed verify_jwt=true; additionally re-checks role='owner' in-function,
 // same pattern as phrasebook-generate).
 //
@@ -18,7 +18,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Browser calls this cross-origin (Vercel → *.supabase.co), so every response
-// — including the CORS preflight — must carry these headers.
+// - including the CORS preflight - must carry these headers.
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -70,7 +70,7 @@ function buildSchema(categories: string[]) {
 }
 
 /** Keyless reverse geocoding (OpenStreetMap/Nominatim) so the model knows the
- *  actual city/area for a coordinate instead of guessing from raw lat/lng —
+ *  actual city/area for a coordinate instead of guessing from raw lat/lng -
  *  without this it tends to default to a famous tourist city (e.g. Eilat).
  *  Global coverage, no API key; best-effort. */
 async function reverseGeocode(
@@ -97,7 +97,7 @@ async function reverseGeocode(
   }
 }
 
-/** Real nearby POIs from OpenStreetMap via the Overpass API — keyless, global.
+/** Real nearby POIs from OpenStreetMap via the Overpass API - keyless, global.
  *  Used to ground recommendations in places that actually exist (so the model
  *  curates instead of inventing business names) when no Google Places key is
  *  set. Best-effort: returns [] on any error/timeout. */
@@ -168,7 +168,7 @@ async function fetchPlaces(
         });
       }
     } catch {
-      // one type failed — keep whatever we have
+      // one type failed - keep whatever we have
     }
   }
   return out;
@@ -264,14 +264,14 @@ Deno.serve(async (req) => {
 
   const candidateBlock =
     candidates.length > 0
-      ? `Here are real, verified nearby places (index — name — address):\n` +
-        candidates.map((c, i) => `${i}. ${c.name} — ${c.address}`).join("\n") +
+      ? `Here are real, verified nearby places (index - name - address):\n` +
+        candidates.map((c, i) => `${i}. ${c.name} - ${c.address}`).join("\n") +
         `\n\nChoose the 6-8 best of these for a family with two young kids. ` +
         `Set candidate_index to the number of the place you chose and copy its ` +
         `name into title. You MAY also add up to 2 general tips (category "טיפ", ` +
         `candidate_index null).`
       : `No verified place list is available for ${resolvedArea || "this location"}. ` +
-        `Do NOT invent specific business names — made-up restaurants/shops are worse ` +
+        `Do NOT invent specific business names - made-up restaurants/shops are worse ` +
         `than none. Instead give practical, GENERIC family guidance for this exact ` +
         `area (e.g. "look for a neighbourhood park", "a mall food court is an easy ` +
         `kid meal", well-known national chains that are genuinely widespread here), ` +
@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
   try {
     response = await anthropic.messages.create({
       // Haiku 4.5: fast (a few seconds vs. ~40s on Opus) and plenty capable
-      // for kid-friendly local picks — the previous Opus latency read as a hang.
+      // for kid-friendly local picks - the previous Opus latency read as a hang.
       model: "claude-haiku-4-5-20251001",
       max_tokens: 2500,
       tools: [

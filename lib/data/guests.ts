@@ -51,7 +51,7 @@ export async function listAllowlist(
   return data;
 }
 
-/** Sets revoked_at — every guest policy re-checks it per query, so access
+/** Sets revoked_at - every guest policy re-checks it per query, so access
  *  disappears immediately (Sprint 7 acceptance). */
 export async function revokeGuest(tripId: string, email: string): Promise<void> {
   const { error } = await requireClient()

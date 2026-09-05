@@ -7,7 +7,7 @@ import { strings } from "@/lib/strings";
 // A stale chunk reference is the classic PWA white screen: the page was loaded
 // from one build, a new one shipped, and the next lazily-loaded chunk 404s.
 // React unmounts the tree and the family sees nothing until they refresh by
-// hand. Detect it and refresh for them — once, so a genuinely broken build
+// hand. Detect it and refresh for them - once, so a genuinely broken build
 // can't put the app in a reload loop.
 const CHUNK_ERROR =
   /ChunkLoadError|Loading chunk \S+ failed|dynamically imported module|Importing a module script failed/i;
@@ -19,7 +19,7 @@ function recoverFromStaleBuild(): void {
   try {
     last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) ?? 0);
   } catch {
-    // sessionStorage unavailable (private mode) — one reload is still better
+    // sessionStorage unavailable (private mode) - one reload is still better
     // than a permanent white screen.
   }
   if (Date.now() - last < RELOAD_GUARD_MS) return;
@@ -36,7 +36,7 @@ export function RegisterSW() {
 
   useEffect(() => {
     // `beforeinstallprompt` fires once, seconds after load, and only the app
-    // shell is guaranteed to be mounted then — so capture starts here rather
+    // shell is guaranteed to be mounted then - so capture starts here rather
     // than in the card on /more, which would usually miss it.
     startInstallCapture();
 
@@ -54,7 +54,7 @@ export function RegisterSW() {
     window.addEventListener("unhandledrejection", onRejection);
 
     // A new service worker calls skipWaiting(), so it activates and claims this
-    // page immediately — but the JS already running here is still the old
+    // page immediately - but the JS already running here is still the old
     // build. Reloading unasked would drop half-typed forms, so say so and let
     // whoever is holding the phone pick the moment. `hadController` keeps the
     // very first install (claim with no previous controller) from announcing
@@ -72,7 +72,7 @@ export function RegisterSW() {
     }
 
     // Registering during the first paint competes with the screen's own data
-    // fetches for a phone's limited connection — wait for idle.
+    // fetches for a phone's limited connection - wait for idle.
     let idle: number | null = null;
     const register = () => {
       if (!("serviceWorker" in navigator)) return;

@@ -1,7 +1,7 @@
 // How the budget screen reconciles two numbers that are about the same money.
 //
 // PLANNED is what the categories add up to. It is the headline figure, and it
-// moves the moment a category's planned amount changes — that immediacy is the
+// moves the moment a category's planned amount changes - that immediacy is the
 // point: a total that sat still while you edited a category read as though
 // nothing had happened, and the two numbers drifted apart with no visible
 // relationship between them.

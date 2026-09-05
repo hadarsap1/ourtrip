@@ -168,7 +168,7 @@ export async function renameCategory(
 
 /** Deleting a category that still has expenses is refused by the FK (23503).
  *  Surfaced as a named error so the UI can explain it rather than showing a
- *  Postgres code — losing the expenses silently would be far worse. */
+ *  Postgres code - losing the expenses silently would be far worse. */
 export async function deleteCategory(categoryId: string): Promise<void> {
   const { error } = await requireClient()
     .from("budget_categories")
@@ -288,7 +288,7 @@ export function isConnectivityError(e: unknown): boolean {
 
 /**
  * Fast-entry path: tries to save, and when the failure looks like lost
- * connectivity (incl. "fx" — offline means no rate source is reachable)
+ * connectivity (incl. "fx" - offline means no rate source is reachable)
  * queues the expense for replay on reconnect. Genuine online errors
  * (validation, RLS, FX provider outage) still throw.
  */

@@ -23,7 +23,7 @@ import type { Trip } from "@/lib/types";
 //
 // The trip starts 03.11.2026. Until then there is no itinerary day for "today",
 // so the Today dashboard had nothing to show and every open of the app landed
-// on an empty card — for 59 days running. This replaces it with the only
+// on an empty card - for 59 days running. This replaces it with the only
 // question that matters in that window: what still has to happen before we fly.
 //
 // It deliberately shows a FEW rows rather than the full checklist. /ready has

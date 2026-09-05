@@ -26,7 +26,7 @@ const PHOTO_BUCKET = "photos";
  * separate from `loadToday`: that one is offline-critical and snapshot-backed
  * (today's itinerary must render with the network off), while these are an
  * enhancement. On any failure this returns null and the tiles that depend on it
- * simply don't render — the itinerary above them is unaffected.
+ * simply don't render - the itinerary above them is unaffected.
  */
 export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
   try {
@@ -61,7 +61,7 @@ export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
 
 /**
  * Photos from one day, with signed URLs. RLS scopes the rows by role, and the
- * guest-visible policy still requires approved + shared_with_guests — this adds
+ * guest-visible policy still requires approved + shared_with_guests - this adds
  * no visibility of its own.
  */
 export async function listPhotosForDate(

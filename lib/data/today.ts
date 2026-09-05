@@ -75,7 +75,7 @@ export async function loadToday(): Promise<{
 
 /**
  * The country we're in today, as a 2-letter code. Falls back to the offline
- * snapshot, then to the most recent past day with a country set — so it still
+ * snapshot, then to the most recent past day with a country set - so it still
  * answers on a travel day that has no itinerary row of its own.
  *
  * Multi-country by construction (CLAUDE.md rule #9): it reads the itinerary,
@@ -99,7 +99,7 @@ export async function getTodayCountryCode(
       .maybeSingle();
     if (data?.country_code) return data.country_code;
   } catch {
-    // offline — fall through to the snapshot
+    // offline - fall through to the snapshot
   }
   const snapshot = await readTodaySnapshot();
   return snapshot?.day?.country_code ?? null;

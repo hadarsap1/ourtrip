@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // caller must be an owner — resolve via the caller's own JWT + RLS helpers
+  // caller must be an owner - resolve via the caller's own JWT + RLS helpers
   const authHeader = req.headers.get("Authorization") ?? "";
   const callerClient = createClient(
     Deno.env.get("SUPABASE_URL")!,

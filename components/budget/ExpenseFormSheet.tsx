@@ -92,7 +92,7 @@ function ExpenseForm({
     try {
       localStorage.setItem(LAST_CURRENCY_KEY, c);
     } catch {
-      // private mode etc. — non-essential
+      // private mode etc. - non-essential
     }
   }
 
@@ -190,7 +190,7 @@ function ExpenseForm({
       title={isNew ? strings.budget.addExpense : strings.budget.editExpense}
     >
       <div className="space-y-4">
-        {/* 1. amount — the sheet's one focused element, so the eye lands where
+        {/* 1. amount - the sheet's one focused element, so the eye lands where
             typing starts. Numeric keypad, pre-focused. */}
         <div className="rounded-[20px] border-[1.5px] border-sea bg-white px-4 py-3.5">
           <label htmlFor="exp-amount" className="sr-only">
@@ -232,7 +232,7 @@ function ExpenseForm({
           )}
         </div>
 
-        {/* 2. currency — today's local currency leads the row and is
+        {/* 2. currency - today's local currency leads the row and is
             preselected; the rest follow in trip-relevance order. */}
         <div>
           <span className={labelClass}>{strings.budget.currency}</span>
@@ -259,7 +259,7 @@ function ExpenseForm({
           )}
         </div>
 
-        {/* 3. category — on a new expense, tapping saves immediately */}
+        {/* 3. category - on a new expense, tapping saves immediately */}
         <div>
           <span className={labelClass}>
             {strings.budget.category}

@@ -143,7 +143,7 @@ function AgendaCard({
                   }`}
                   dir="ltr"
                 >
-                  {item.start_time ? formatTime(item.start_time) : "—"}
+                  {item.start_time ? formatTime(item.start_time) : "-"}
                 </span>
                 <span
                   aria-hidden="true"
@@ -224,7 +224,7 @@ export function TodayScreen() {
         else if (url) URL.revokeObjectURL(url);
       });
     });
-    // budget/photo tiles are an enhancement — null when offline, and the
+    // budget/photo tiles are an enhancement - null when offline, and the
     // itinerary above them renders regardless
     void loadTodayDashboard().then((d) => {
       if (!cancelled) setDashboard(d);
@@ -330,7 +330,7 @@ export function TodayScreen() {
                 className="h-6 w-6 opacity-90"
               />
               <span dir="ltr">
-                {weather.tempMin}–{weather.tempMax}°
+                {weather.tempMin}-{weather.tempMax}°
               </span>
             </p>
           )}
@@ -345,7 +345,7 @@ export function TodayScreen() {
                     className="w-14 shrink-0 text-sm font-bold tabular-nums text-sea"
                     dir="ltr"
                   >
-                    {item.start_time ? formatTime(item.start_time) : "—"}
+                    {item.start_time ? formatTime(item.start_time) : "-"}
                   </span>
                   <span
                     className={`text-lg font-medium ${
@@ -393,7 +393,7 @@ export function TodayScreen() {
 
   /* ---------- owner, before departure: the countdown ----------
      Until 03.11.2026 the itinerary has no day for "today", so the dashboard
-     below renders an empty card — which is what every open of the app has
+     below renders an empty card - which is what every open of the app has
      shown for weeks. Between now and then the useful home screen is what still
      has to happen before the flight. Switches over on its own on the day the
      trip starts; no setting to forget. */
@@ -552,7 +552,7 @@ export function TodayScreen() {
                       className="text-[19px] font-extrabold leading-none text-ink"
                       dir="ltr"
                     >
-                      {weather.tempMin}–{weather.tempMax}°
+                      {weather.tempMin}-{weather.tempMax}°
                     </span>
                   </p>
                   <p className="mt-1 truncate text-[11px] text-ink-soft">

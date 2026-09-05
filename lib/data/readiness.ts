@@ -1,10 +1,10 @@
-// "מוכנות ליציאה" — the one screen that answers "what is missing before we fly".
+// "מוכנות ליציאה" - the one screen that answers "what is missing before we fly".
 //
 // WHY THIS EXISTS. Measured on the live project 2026-09-05, 59 days before
 // departure: 227 itinerary days and ZERO itinerary items, zero bookings, zero
 // documents, two test expenses. Every screen in the app works; almost every
 // table is empty. The risk between now and 03.11.2026 is not a missing feature,
-// it is flying with an empty app — and nothing in the app says so, because each
+// it is flying with an empty app - and nothing in the app says so, because each
 // screen only shows its own emptiness and none of them add up.
 //
 // The checks below are deliberately things the database can answer. No advice,
@@ -311,7 +311,7 @@ export async function loadReadiness(
  *
  * /ready lists everything; the home screen has to pick. Missing beats warning,
  * and within a status the order buildReadiness already returns is the priority
- * order — documents, then the opening days, then the whole trip, then people
+ * order - documents, then the opening days, then the whole trip, then people
  * and devices. A passport you do not have outranks a guest you have not
  * invited, and this keeps that true without a second ranking to maintain.
  */

@@ -76,7 +76,7 @@ export function ExtractSheet({
       setPhase("review");
     } catch (err) {
       // The message here is the function's own error CODE (see
-      // lib/functionError.ts) — an exact match, not a substring guess.
+      // lib/functionError.ts) - an exact match, not a substring guess.
       const code = (err as Error).message ?? "";
       setError(
         code === "not_configured"

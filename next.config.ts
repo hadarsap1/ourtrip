@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Security headers (security review 2026-08, finding M6 — the config was
+// Security headers (security review 2026-08, finding M6 - the config was
 // previously empty). Applied to every route.
 //
 // The four enforced headers below are zero-risk for this app and each closes
@@ -12,8 +12,8 @@ import type { NextConfig } from "next";
 //                        party can never prompt for the family's location.
 //                        Camera stays available for photo capture; the
 //                        microphone is never used, so it is denied outright.
-//   Referrer-Policy      without it the full URL — and therefore which screen
-//                        and sometimes which record is open — rides along in
+//   Referrer-Policy      without it the full URL - and therefore which screen
+//                        and sometimes which record is open - rides along in
 //                        the Referer to Google, OSM and Open-Meteo on every
 //                        map, geocode and weather call.
 //   X-Frame-Options +    the photo-approval screen is a one-tap action that
@@ -31,7 +31,7 @@ import type { NextConfig } from "next";
 // CSP ships REPORT-ONLY on purpose. A real policy has to accommodate the
 // Google Maps JS API, Google Identity Services and Next's inline bootstrap,
 // and getting that wrong takes the app down rather than degrading it.
-// Report-only surfaces violations in the browser console with no user impact —
+// Report-only surfaces violations in the browser console with no user impact -
 // load the map, the photos screen and the recommendations screen, read what it
 // complains about, tighten, then switch the header name to
 // Content-Security-Policy. It is a tuning aid until then, not protection.
@@ -40,7 +40,7 @@ import type { NextConfig } from "next";
 // code actually reaches, not guessed. Worth keeping that way: the Google
 // Photos picker pulls accounts.google.com/gsi/client as a SCRIPT and runs its
 // token flow in an IFRAME, so an enforced policy without those directives
-// would silently break photo import — the kind of breakage that only shows up
+// would silently break photo import - the kind of breakage that only shows up
 // the first time someone tries to use it.
 const CSP_REPORT_ONLY = [
   "default-src 'self'",

@@ -16,12 +16,12 @@
 // The raw key BITS matter as well as the CryptoKey: a device passkey unlocks
 // the vault by holding an encrypted copy of those bits (see lib/webauthn.ts
 // and lib/data/docPin.ts), so deriveKeyBits/importVaultKey are separated and
-// the imported key stays non-extractable — the bits are handled explicitly
+// the imported key stays non-extractable - the bits are handled explicitly
 // where wrapping needs them, never pulled back out of a live key.
 
 /** PBKDF2 cost for vaults created before the 2026-08 hardening. */
 export const LEGACY_ITERATIONS = 210_000;
-/** PBKDF2 cost for new vaults — current OWASP guidance for PBKDF2-SHA256. */
+/** PBKDF2 cost for new vaults - current OWASP guidance for PBKDF2-SHA256. */
 export const CURRENT_ITERATIONS = 600_000;
 
 const VERIFIER_TOKEN = "ourtrip-doc-pin-v1";
@@ -127,8 +127,8 @@ export type WrappedKey = { iv: string; ct: string };
 
 /**
  * Encrypts the vault key bits under a wrapping secret, for storage in
- * document_passkeys. The secret is the WebAuthn PRF output — 256 uniformly
- * random bits produced inside the authenticator — so it is used as AES-GCM
+ * document_passkeys. The secret is the WebAuthn PRF output - 256 uniformly
+ * random bits produced inside the authenticator - so it is used as AES-GCM
  * key material directly; there is no low-entropy input here to stretch.
  */
 export async function wrapKeyBits(

@@ -14,7 +14,7 @@ function requireClient() {
   return supabase;
 }
 
-// Day pin colors — cycled by day index on the map screen.
+// Day pin colors - cycled by day index on the map screen.
 export const DAY_COLORS = [
   "#0d9488", "#2563eb", "#d97706", "#dc2626", "#7c3aed",
   "#db2777", "#65a30d", "#0891b2", "#ea580c", "#4f46e5",
@@ -97,7 +97,7 @@ export async function saveCarPin(input: {
   let photoPath: string | null = null;
   if (input.photo) {
     photoPath = `car/${Date.now()}.jpg`;
-    // Re-encoded via canvas, which drops EXIF — including the GPS tag and
+    // Re-encoded via canvas, which drops EXIF - including the GPS tag and
     // capture timestamp the phone embeds (review finding L2). The bucket is
     // owner-only, so this was never an external leak, but there is no reason
     // to keep coordinates we did not ask for.
@@ -211,7 +211,7 @@ export function routePath(route: SavedRoute): [number, number][] {
  * Fetches a Static Maps image of today's item area, caches it in IndexedDB,
  * and returns an object URL. Offline (or if the Static Maps API is not
  * enabled on the key) it falls back to the cached snapshot; null hides the
- * mini-map entirely — the feature degrades, never blocks.
+ * mini-map entirely - the feature degrades, never blocks.
  */
 export async function getTodayMapSnapshotUrl(
   items: Pick<ItineraryItem, "lat" | "lng">[]

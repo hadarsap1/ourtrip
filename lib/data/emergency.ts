@@ -128,11 +128,11 @@ export async function ensureEmergencyForCountry(
     .eq("trip_id", tripId)
     .eq("country_code", countryCode.toUpperCase())
     .maybeSingle();
-  if (data) return; // already has a page — don't auto-run
+  if (data) return; // already has a page - don't auto-run
   await autofillEmergency(countryCode.toUpperCase()).catch(() => {});
 }
 
-/** Country of today's itinerary day — the default emergency page. */
+/** Country of today's itinerary day - the default emergency page. */
 export async function getTodayCountryCode(tripId: string): Promise<string | null> {
   try {
     const { data } = await requireClient()
@@ -163,7 +163,7 @@ export async function listCountryOptions(tripId: string): Promise<string[]> {
       if (row.country_code) codes.add(row.country_code);
     }
   } catch {
-    // offline — cached pages below still populate the list
+    // offline - cached pages below still populate the list
   }
   return [...codes].sort();
 }

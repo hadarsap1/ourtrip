@@ -1,6 +1,6 @@
 // Airport typeahead over the full OurAirports dataset (lazy-loaded) blended with
 // the curated Hebrew shortlist so Hebrew searches still find major cities and
-// show Hebrew labels. Pure functions — the component owns the loaded data.
+// show Hebrew labels. Pure functions - the component owns the loaded data.
 import { AIRPORTS } from "./airports";
 import type { FullAirport } from "./airportsData";
 

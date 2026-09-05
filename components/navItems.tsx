@@ -20,7 +20,7 @@ export type NavItem = {
   Icon: ComponentType<IconProps>;
 };
 
-// Kid tablet variant: kid-relevant destinations only (cosmetic — kids are
+// Kid tablet variant: kid-relevant destinations only (cosmetic - kids are
 // locked out of owner data by RLS regardless). Phrasebook stays reachable from
 // the kid home tile.
 export const kidTabs: NavItem[] = [

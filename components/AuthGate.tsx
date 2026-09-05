@@ -34,7 +34,7 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
   // Link auth user ↔ seeded member row; null role = not allowed.
   const { data: role, error } = await supabase.rpc("link_member_to_auth_user");
 
-  // Network failure (offline etc.) — can't verify. A locally stored session is
+  // Network failure (offline etc.) - can't verify. A locally stored session is
   // enough to render the shell: real security is RLS, and the offline-critical
   // screens must open with no connectivity.
   if (error) return "allowed";
@@ -46,7 +46,7 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
   return "allowed";
 }
 
-// Client-side routing gate only — real security is RLS in the database.
+// Client-side routing gate only - real security is RLS in the database.
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -79,7 +79,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     inFlight ??= decide().catch(() => "allowed" as const);
 
     // Unblock the UI if the check is slow, but keep waiting for the answer
-    // below — an optimistic render must never become a cached verdict.
+    // below - an optimistic render must never become a cached verdict.
     const timer = setTimeout(() => {
       if (!cancelled) setState((s) => (s === "loading" ? "allowed" : s));
     }, GATE_TIMEOUT_MS);

@@ -4,7 +4,7 @@ Both are configuration, not code. Neither needs a deploy. Measured on the live
 project 2026-09-05: `kid_devices` = 0 and `push_subscriptions` = 0, and in both
 cases the reason is a setting that was never turned on.
 
-Do them in this order — the first one is the one you were hitting last night.
+Do them in this order - the first one is the one you were hitting last night.
 
 ---
 
@@ -30,7 +30,7 @@ blocking ever since.
    `email_confirm: true`, so no mail is ever sent.
 5. Save.
 
-**Why this is safe.** The kid accounts are `kid-<uuid>@kids.ourtrip.app` — a
+**Why this is safe.** The kid accounts are `kid-<uuid>@kids.ourtrip.app` - a
 domain that receives no mail and that nobody can sign up on with signups off.
 Their password is random, server-only, and rotated on **every** unlock, so
 there is no standing credential even if someone reads the device token off the
@@ -61,7 +61,7 @@ the first wall; this setting is the second.
 harmlessly when they are missing, so no notification has ever been delivered.
 `/notifications` will show the toggle and the subscription will never work.
 
-**The fix, part A — generate the key pair.** On your machine:
+**The fix, part A - generate the key pair.** On your machine:
 
 ```
 npx web-push generate-vapid-keys
@@ -71,7 +71,7 @@ That prints a **Public Key** and a **Private Key**. They are a matched pair;
 using a public key from one pair with a private key from another fails
 silently, so copy both from the same output.
 
-**Part B — three secrets on the Edge Functions.** Supabase dashboard →
+**Part B - three secrets on the Edge Functions.** Supabase dashboard →
 **Edge Functions → Secrets** (or `supabase secrets set`):
 
 | Name | Value |
@@ -80,17 +80,17 @@ silently, so copy both from the same output.
 | `VAPID_PRIVATE_KEY` | the private key from above |
 | `VAPID_SUBJECT` | `mailto:hadarsap@gmail.com` |
 
-`VAPID_SUBJECT` must be a `mailto:` or `https:` URL — push services reject a
+`VAPID_SUBJECT` must be a `mailto:` or `https:` URL - push services reject a
 bare address.
 
-**Part C — the public key on Vercel.** Vercel → the `ourtrip` project →
+**Part C - the public key on Vercel.** Vercel → the `ourtrip` project →
 **Settings → Environment Variables**:
 
 | Name | Value | Environments |
 |---|---|---|
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the **same public key** | Production, Preview, Development |
 
-Then **redeploy** — `NEXT_PUBLIC_*` values are baked in at build time, so an
+Then **redeploy** - `NEXT_PUBLIC_*` values are baked in at build time, so an
 existing deployment will not pick this up on its own.
 
 **How to check it worked.** Open `/notifications` on the Android tablet and

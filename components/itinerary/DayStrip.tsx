@@ -6,7 +6,7 @@ import type { ItineraryDay, ItineraryItem } from "@/lib/types";
 
 /**
  * A week of the trip at a glance, above the day list. Each day shows its
- * weekday letter, its date, and a dot saying whether anything is planned — so
+ * weekday letter, its date, and a dot saying whether anything is planned - so
  * you can see an empty day without scrolling to it.
  *
  * Tapping a day scrolls its group into view. The caller sets `scrollTop` from
@@ -28,7 +28,7 @@ export function DayStrip({
 
   const today = todayISO();
   // Centre the window on today when the trip is under way, otherwise start it
-  // at the first day — a strip showing seven days that have already happened is
+  // at the first day - a strip showing seven days that have already happened is
   // no use mid-trip.
   const todayIndex = days.findIndex((d) => d.date >= today);
   const anchor = todayIndex < 0 ? days.length - 7 : todayIndex - 3;

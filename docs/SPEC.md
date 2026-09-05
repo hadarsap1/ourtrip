@@ -11,7 +11,7 @@
 ### Auth flows
 - **Owners**: Supabase Auth with Google OAuth. On first login, email must exist in `members` with role `owner`, otherwise sign out with an error page. The two owner emails are seeded in the initial migration (placeholder values - Hadar fills real emails in `.env` seed step).
 - **Kids**: A kid session is a device-bound profile, not a full auth user. Owner registers the tablet from their own logged-in session (generates a device token stored in the DB + tablet localStorage). Kid unlocks with a 4-digit PIN (server-side verification, rate-limited via `failed_attempts`/`locked_until`). All kid API access goes through the device token, mapped server-side to a restricted `kid` role. **Design note (decide in Sprint 1, build in Sprint 6):** kid sessions are minted as Supabase-compatible JWTs by an Edge Function (device token + PIN → JWT with a `member_id` claim); the `current_member()` RLS helper must resolve both regular auth users and kid JWTs from day one.
-- **Guests**: Owner adds guest email → system sends magic link (Supabase OTP over custom SMTP — see DECISIONS #17). On login, email must match the invited list and not be revoked. Sharing a forwarded link with a different email fails.
+- **Guests**: Owner adds guest email → system sends magic link (Supabase OTP over custom SMTP - see DECISIONS #17). On login, email must match the invited list and not be revoked. Sharing a forwarded link with a different email fails.
 
 ## 2. Features
 
@@ -37,7 +37,7 @@
 - Categories: flights, lodging, food, attractions, transport, shopping, misc (Hebrew labels in UI)
 - Planned amount per category vs. actual
 - Fast expense entry (target: 3 taps): amount → currency → category. Description optional
-- Currency: expense stored in original currency + ILS conversion at that day's rate. Base currency ILS. **FX provider: open.er-api.com / exchangerate.host (global coverage — round-the-world trip crosses many non-ECB currencies), Frankfurter fallback, last-known-rate final fallback; rate cached daily in DB**
+- Currency: expense stored in original currency + ILS conversion at that day's rate. Base currency ILS. **FX provider: open.er-api.com / exchangerate.host (global coverage - round-the-world trip crosses many non-ECB currencies), Frankfurter fallback, last-known-rate final fallback; rate cached daily in DB**
 - Dashboard: total vs. budget, per-category bars, daily burn rate, projected end-of-trip total
 - Live rates widget + quick converter
 
@@ -56,16 +56,16 @@
 - Open-Meteo per itinerary day location, cached; shown in today view and timeline
 - In-app alert if rain probability > 50% on a day with an outdoor-tagged item
 
-### 2.7a Options bank ("בנק אפשרויות") — owners only
+### 2.7a Options bank ("בנק אפשרויות") - owners only
 - A per-destination bank of candidate places (`place_options`): hotels, restaurants, attractions, activities, transport, shops. Grouped country → area, filterable by category
 - Three ways in, one list out:
-  - **manual** — typed in
-  - **facebook** — paste the *text* of a post; an Edge Function (`extract-places`) asks Claude for structured candidates and the owner ticks which to keep. Fetching a Facebook post server-side is not possible (login wall) and scraping breaches their terms, so pasting is the supported path. The post URL is kept on each option as `source_url`
-  - **ai** — saved from "מה בסביבה" (2.8), which now parks its maybe-list here instead of a separate table
+  - **manual** - typed in
+  - **facebook** - paste the *text* of a post; an Edge Function (`extract-places`) asks Claude for structured candidates and the owner ticks which to keep. Fetching a Facebook post server-side is not possible (login wall) and scraping breaches their terms, so pasting is the supported path. The post URL is kept on each option as `source_url`
+  - **ai** - saved from "מה בסביבה" (2.8), which now parks its maybe-list here instead of a separate table
 - Each option carries an optional `booking_url` for actually reserving it
 - Lifecycle: `option` → `shortlist` → `planned` | `booked` | `rejected`. Two exits, because one was never enough:
-  - **`planned`** — from an itinerary day, "הוספה מבנק האפשרויות" lists that day's country ordered by area then distance from the day's own location, and one tap creates an itinerary item and links it (`itinerary_item_id`). This is the exit for attractions, restaurants, viewpoints and walks — everything you do not reserve
-  - **`booked`** — promoting an option creates a real booking (2.3) and links the two. The exit for hotels
+  - **`planned`** - from an itinerary day, "הוספה מבנק האפשרויות" lists that day's country ordered by area then distance from the day's own location, and one tap creates an itinerary item and links it (`itinerary_item_id`). This is the exit for attractions, restaurants, viewpoints and walks - everything you do not reserve
+  - **`booked`** - promoting an option creates a real booking (2.3) and links the two. The exit for hotels
   - Either way the option stays in the bank as planning history rather than being consumed, and both FKs are `ON DELETE SET NULL`
 - Each area header shows days planned there, options collected and how many are already on the itinerary, so a bank of hundreds reads as a set of finite decisions rather than a feed
 - Replaces the earlier `saved_links` and `saved_recommendations`, which were two half-versions of this split by how an item was created
@@ -77,10 +77,10 @@
 
 ### 2.9 Kids experience
 - Journal: text + mood emoji + optional photo (stored in `photos` with `journal_entry_id`, so it flows through the same approval pipeline), auto-tagged with date + location; gentle daily prompt notification on the tablet
-- Photo pipeline — approval and sharing are separate:
+- Photo pipeline - approval and sharing are separate:
   - Kid uploads always start `pending` (server-enforced trigger) → owner approval queue → `approved` (visible to family) or `rejected` (visible to owners only)
-  - Guests see a photo only when `status='approved'` **and** an owner explicitly set `shared_with_guests=true`. Owner uploads may skip approval but still require the explicit share step — nothing is guest-visible by default (DECISIONS #5)
-- Messages: one shared family wall (guests, kids, owners — see DECISIONS #15); unread badges via `message_reads`
+  - Guests see a photo only when `status='approved'` **and** an owner explicitly set `shared_with_guests=true`. Owner uploads may skip approval but still require the explicit share step - nothing is guest-visible by default (DECISIONS #5)
+- Messages: one shared family wall (guests, kids, owners - see DECISIONS #15); unread badges via `message_reads`
 - Pocket money: each kid has a trip allowance (set by owner); kid logs purchases, sees remaining balance with a fun progress visual; owner sees it in the budget screen as an info section (not counted in family budget totals)
 
 ### 2.10 Guest portal

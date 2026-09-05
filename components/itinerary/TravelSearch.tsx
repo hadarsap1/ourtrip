@@ -76,7 +76,7 @@ export function TravelSearch({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
 
-  // passengers (shared) — defaults to the family: 2 adults + 2 kids aged 6 & 8,
+  // passengers (shared) - defaults to the family: 2 adults + 2 kids aged 6 & 8,
   // fully editable. Booking Live uses these; the flights API prices the whole
   // cabin and ignores counts.
   const [adults, setAdults] = useState(2);
@@ -452,7 +452,7 @@ export function TravelSearch({
           )}
         </div>
 
-        {/* autocomplete sources — airport lists are filtered to the top matches
+        {/* autocomplete sources - airport lists are filtered to the top matches
             for each field from the full ~4k dataset */}
         <datalist id="ts-airports-origin">
           {originOptions.map((o) => (

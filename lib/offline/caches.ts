@@ -1,5 +1,5 @@
 // Read/write helpers over the offline stores. All helpers no-op (or return
-// empty) when IndexedDB is unavailable — callers treat cache misses as "no
+// empty) when IndexedDB is unavailable - callers treat cache misses as "no
 // offline copy", never as errors.
 
 import {

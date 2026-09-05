@@ -14,12 +14,12 @@ export type OfflineDocument = {
   savedAt: string;
   /**
    * True when WE added a layer of AES-GCM under the vault key before storing
-   * (security review finding M2 — an offline copy used to be the file itself,
+   * (security review finding M2 - an offline copy used to be the file itself,
    * readable straight out of IndexedDB with no passphrase).
    *
    * False for a pin_protected document: those bytes are already the
    * document's own ciphertext, and decryptDocument owns unwrapping them.
-   * Absent on records written before this existed — treated as false so a
+   * Absent on records written before this existed - treated as false so a
    * legacy plaintext copy still opens rather than failing to decrypt.
    */
   offlineEncrypted?: boolean;

@@ -1,7 +1,7 @@
 // OurTrip service worker.
 //
 // Caching rules, in priority order:
-//   1. Never touch anything that isn't a same-origin GET — Supabase, Google
+//   1. Never touch anything that isn't a same-origin GET - Supabase, Google
 //      Maps and Open-Meteo must reach the network untouched.
 //   2. Never cache React Server Component payloads (`?_rsc=`). They are tied
 //      to one build; a stale one makes tab switches render old data or fail.
@@ -12,7 +12,7 @@
 //      connection falls back to the cached shell instead of hanging.
 
 const SHELL_CACHE = "ourtrip-shell-v13";
-const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs — safe to keep
+const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
 const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
 // Cap the asset cache so months on the road don't fill the device.
@@ -142,7 +142,7 @@ self.addEventListener("fetch", (event) => {
   // Rule 1: leave every other origin alone.
   if (url.origin !== self.location.origin) return;
 
-  // Rule 2: RSC payloads and route prefetches are build-specific — always live.
+  // Rule 2: RSC payloads and route prefetches are build-specific - always live.
   if (url.searchParams.has("_rsc") || request.headers.get("RSC") === "1") return;
 
   if (request.mode === "navigate") {

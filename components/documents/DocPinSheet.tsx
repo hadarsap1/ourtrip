@@ -13,7 +13,7 @@ import { WarningIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
 // mode "set": first-time passphrase creation (with the unrecoverable warning).
-// mode "enter": unlock the vault for this session — by biometric if this
+// mode "enter": unlock the vault for this session - by biometric if this
 // family has enrolled a device, otherwise by passphrase.
 //
 // Only "set" enforces the length rule. Vaults created before the 2026-08

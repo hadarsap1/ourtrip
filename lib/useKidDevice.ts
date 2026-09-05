@@ -7,7 +7,7 @@ import { isKidDevice, kidDisplayName } from "@/lib/data/kids";
 // the server can't see. Reading it straight from a render body made the server
 // HTML ("owner") disagree with the client ("kid"), and React answered a
 // hydration mismatch by throwing away the server tree and re-rendering the
-// whole shell — a visible stall on exactly the device that can least afford
+// whole shell - a visible stall on exactly the device that can least afford
 // it. useSyncExternalStore keeps the first client render matching the server
 // and applies the real value right after.
 const noopSubscribe = () => () => {};

@@ -36,7 +36,7 @@ const EMPTY: MoreCounts = {
 
 /**
  * Counts for the "עוד" screen. Every row carries a number, so you can tell
- * whether there is anything behind it without tapping — which is the whole
+ * whether there is anything behind it without tapping - which is the whole
  * point of a menu screen.
  *
  * These are `head: true` count queries: Postgres returns the count and no rows,
@@ -145,7 +145,7 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
 
 type Client = NonNullable<ReturnType<typeof getSupabase>>;
 
-/** checklist_items has no trip_id — it hangs off checklists, which does. */
+/** checklist_items has no trip_id - it hangs off checklists, which does. */
 async function countChecklistItems(
   supabase: Client,
   tripId: string,
@@ -194,7 +194,7 @@ async function countKidDevices(
   }
 }
 
-/** Guests still invited — a revoked invitation isn't a guest. */
+/** Guests still invited - a revoked invitation isn't a guest. */
 async function countGuests(supabase: Client, tripId: string): Promise<number> {
   try {
     const { count } = await supabase

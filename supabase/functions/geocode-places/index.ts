@@ -2,7 +2,7 @@
 // drawn on a map.
 //
 // WHY THIS IS A SEPARATE STEP: extract-places gets its places out of post text,
-// which gives names and nothing else — "Roving chill house", "Slow cafe". A map
+// which gives names and nothing else - "Roving chill house", "Slow cafe". A map
 // needs lat/lng, so somebody has to resolve one into the other. Doing it during
 // extraction would make that call slow and would geocode places the owner then
 // discards, so it happens here, after saving, over the rows that still have no
@@ -19,7 +19,7 @@
 // for "Aroma Indian Restaurant, Tam Coc, ויטנאם" it answered with the CENTRE OF
 // VIETNAM, and because the old code took results[0].geometry.location without
 // looking at what had come back, 83 of 343 options ended up stacked on 8
-// country and city centroids — a map that looked populated and was wrong.
+// country and city centroids - a map that looked populated and was wrong.
 // Two changes stop that: named places are looked up through Places Text Search
 // (which is built for business names and returns a real place_id), and every
 // answer, from either API, must pass `isPreciseEnough` before it is written.
@@ -29,7 +29,7 @@
 // in-function). The gate runs BEFORE input validation, as in extract-places.
 //
 // Reads and writes go through the CALLER's client, not the service role, so
-// RLS still decides which rows are touchable — this function cannot reach
+// RLS still decides which rows are touchable - this function cannot reach
 // another trip's options even if it is handed their ids.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -96,7 +96,7 @@ const ADMIN = new Set([
  *
  *  The first version of this guard judged every row by the same yardstick and
  *  refused anything administrative, which silently dropped Da Nang, Sapa, Hà
- *  Giang and Bohol — the towns the trip actually visits. Vietnam files Da Nang
+ *  Giang and Bohol - the towns the trip actually visits. Vietnam files Da Nang
  *  as a municipality and Sapa as a province, so an administrative answer there
  *  is not the geocoder failing, it is the correct one. A restaurant answered
  *  with a province still is a failure. Hence: the bar depends on the row. */
@@ -168,7 +168,7 @@ async function geocodeGoogle(
 ): Promise<Coords | null> {
   try {
     // components=country narrows the search rather than adding a term that can
-    // itself be matched — which is how a restaurant became a whole country.
+    // itself be matched - which is how a restaurant became a whole country.
     const components = row.country_code
       ? `&components=country:${encodeURIComponent(row.country_code)}`
       : "";

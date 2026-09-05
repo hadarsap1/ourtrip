@@ -81,7 +81,7 @@ describe("buildCalendarIndex", () => {
   });
 
   it("labels covered dates but never repeats the activity count across them", () => {
-    // "5 activities" shown on all 22 days of a leg would be a lie — the
+    // "5 activities" shown on all 22 days of a leg would be a lie - the
     // activities belong to the day row, not to each date it spans.
     const d = day({ date: "2026-11-01", notes: "1.11 - 5.11", location_name: "דה לאט" });
     const { cells } = buildCalendarIndex([d], [item(d.id), item(d.id)]);
@@ -136,7 +136,7 @@ describe("buildCalendarIndex", () => {
 // The grid used to stop dead at the first and last planned day, so a date
 // outside the span could not be tapped and the trip could not be extended
 // from the calendar. It now reaches past both ends.
-describe("buildCalendarIndex — month range", () => {
+describe("buildCalendarIndex - month range", () => {
   const nov = day({ id: "a", date: "2026-11-10" });
 
   it("pads a month either side of the trip by default", () => {

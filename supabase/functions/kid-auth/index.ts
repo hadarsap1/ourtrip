@@ -1,6 +1,6 @@
 // Kid device auth (SPEC 2.9, ROADMAP Sprint 6). Four actions:
 //
-//   create-registration  (owner JWT required — checked in-function)
+//   create-registration  (owner JWT required - checked in-function)
 //     owner picks a kid member + PIN → one-time 6-char code, 15 min expiry
 //   register             (unauthenticated by design: the tablet has no JWT yet)
 //     code → binds the device: returns a 256-bit device token, revokes
@@ -9,13 +9,13 @@
 //     device_token + PIN → server-side PIN check with lockout (5 wrong PINs
 //     → 15 min lock, persisted in kid_devices) → real Supabase session, so
 //     refresh/realtime/storage all work normally
-//   revoke               (owner JWT required — checked in-function)
+//   revoke               (owner JWT required - checked in-function)
 //     cuts a device off for good
 //
 // SECURITY NOTE (review 2026-08, finding H1). The device token used to BE the
 // kid's Supabase auth password, and it is stored in plaintext localStorage on
 // the tablet. Since the anon key ships to every browser, anyone holding the
-// device could read the token and call signInWithPassword directly — walking
+// device could read the token and call signInWithPassword directly - walking
 // straight past the PIN prompt, the attempt counter and the 15-minute
 // lockout, all of which live in the `unlock` branch below.
 //
@@ -23,7 +23,7 @@
 //   * the device token identifies the device to THIS function, and is stored
 //     only as a SHA-256 hash;
 //   * the auth password is random, never leaves the server, and is rotated to
-//     a fresh value on every unlock — it exists just long enough to mint one
+//     a fresh value on every unlock - it exists just long enough to mint one
 //     session, so there is no standing password for a stolen token to use.
 // Revocation additionally rotates it to a value nobody knows, and migration
 // 00024 makes `current_member_id()` refuse to resolve a kid whose device is
@@ -51,7 +51,7 @@ function fromHex(hex: string): Uint8Array {
   return new Uint8Array(hex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
 }
 
-/** 256 bits of randomness, hex encoded — device tokens and auth passwords. */
+/** 256 bits of randomness, hex encoded - device tokens and auth passwords. */
 function randomSecret(): string {
   return toHex(crypto.getRandomValues(new Uint8Array(32)));
 }
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
       .single();
     if (!member) return json({ ok: false, error: "member missing" }, 500);
 
-    // The token the tablet keeps. It is NOT the auth password — it only ever
+    // The token the tablet keeps. It is NOT the auth password - it only ever
     // identifies the device to this function, and is stored hashed.
     const deviceToken = randomSecret();
     const email = kidEmail(member.id);
@@ -396,7 +396,7 @@ Deno.serve(async (req) => {
   // ---------- revoke (owner only) ----------
   // Marking revoked_at is now enough to stop RLS resolving the kid (00024),
   // but rotating the password as well means the binding can never mint a new
-  // session either — belt and braces, and it makes the revocation independent
+  // session either - belt and braces, and it makes the revocation independent
   // of any one policy staying correct.
   if (body.action === "revoke") {
     const callerId = await ownerCaller(req);
@@ -431,7 +431,7 @@ Deno.serve(async (req) => {
       .is("revoked_at", null);
     if (error) return json({ ok: false, error: error.message }, 500);
 
-    // Only rotate once the kid has no active device left — otherwise revoking
+    // Only rotate once the kid has no active device left - otherwise revoking
     // an old binding would break the current one's next unlock.
     const { count } = await service
       .from("kid_devices")

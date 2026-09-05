@@ -1,10 +1,10 @@
 // Airport + city suggestions for the flight/hotel search autocomplete.
 //
-// These power native <datalist> hints — they do NOT restrict input:
+// These power native <datalist> hints - they do NOT restrict input:
 //   • Flights need an airport, so the field submits an IATA code; any valid
 //     code can be typed directly even if it's not in this list.
 //   • Hotels take a free-text city, so ANY city works (e.g. "Beer Sheva")
-//     whether or not it appears here — the list is only a convenience.
+//     whether or not it appears here - the list is only a convenience.
 //
 // Multi-country by design (CLAUDE.md rule #9): spread across every region for a
 // round-the-world trip, no single destination assumed.

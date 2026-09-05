@@ -23,7 +23,7 @@ export function MessagesScreen() {
   const { member, memberLoading } = useMember();
   // Which feeds this role may open (migration 00027): owners get both and act
   // as the bridge, kids only the family one, guests only theirs. RLS enforces
-  // it regardless — this just decides what to render.
+  // it regardless - this just decides what to render.
   const channels = channelsFor(member?.role);
   const [channel, setChannel] = useState<MessageChannel>(channels[0]);
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -56,7 +56,7 @@ export function MessagesScreen() {
 
   useEffect(() => {
     // Nothing to fetch until a member is resolved. When resolution finishes
-    // and produces nobody, `loading` is left as-is on purpose — the render
+    // and produces nobody, `loading` is left as-is on purpose - the render
     // below only treats it as meaningful once a member exists.
     if (memberLoading || !member) return;
     let cancelled = false;
@@ -120,7 +120,7 @@ export function MessagesScreen() {
   // consulted once there IS a member. Previously the guard was
   // `loading || !member`, which meant a failed member lookup (an expired
   // session returns 401) left the screen on "loading…" forever, with nothing
-  // said and nothing to act on — reported from production 2026-08-29.
+  // said and nothing to act on - reported from production 2026-08-29.
   if (memberLoading || (member && loading)) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">

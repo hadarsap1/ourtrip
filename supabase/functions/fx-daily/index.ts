@@ -1,6 +1,6 @@
 // Daily FX fetch into fx_rates (DECISIONS #7 provider order):
 // open.er-api.com (global, ~160 currencies) → Frankfurter (ECB) fallback.
-// Writes with the service role — fx_rates has no client write policy.
+// Writes with the service role - fx_rates has no client write policy.
 // Deployed with verify_jwt=false so pg_cron can invoke it without a key.
 // Anonymous invocation used to be an accepted risk; since migration 00025
 // the cron job sends a shared secret and cronAuthorized() checks it.
@@ -15,7 +15,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
 // before the secret exists would stop this job with nothing surfacing the
 // failure, which is the silent breakage supabase/config.toml exists to
-// prevent. Setting CRON_SECRET (both sides — see 00025) switches it on.
+// prevent. Setting CRON_SECRET (both sides - see 00025) switches it on.
 function cronAuthorized(req: Request): boolean {
   const expected = Deno.env.get("CRON_SECRET");
   if (!expected) return true;
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
 
   const fetched = await fetchRates();
   if (!fetched) {
-    // fx_rates keeps yesterday's rows — clients fall back to last known rate
+    // fx_rates keeps yesterday's rows - clients fall back to last known rate
     return new Response(
       JSON.stringify({ ok: false, error: "all FX providers failed" }),
       { status: 502, headers: { "content-type": "application/json" } }

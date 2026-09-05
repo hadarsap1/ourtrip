@@ -98,7 +98,7 @@ export function languageName(code: string): string {
   }
 }
 
-// Shortlist for the "new language" picker (multi-country trip — free-text
+// Shortlist for the "new language" picker (multi-country trip - free-text
 // code entry also supported in the UI).
 export const COMMON_LANGUAGES = [
   "ja", "th", "vi", "zh", "ko", "id", "hi", "el",

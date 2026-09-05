@@ -25,7 +25,7 @@ const CATEGORY_COLOR: Record<string, string> = {
  *  It deliberately takes the ALREADY-FILTERED list: the parent owns the cuts,
  *  so the map and the list can never disagree about what is showing. Whenever
  *  that list changes the view refits to it, which is what "focus on an area"
- *  actually means here — narrow the cut, the map follows. */
+ *  actually means here - narrow the cut, the map follows. */
 export function OptionsMap({
   options,
   unlocatedCount,
@@ -187,7 +187,7 @@ export function OptionsMap({
   );
 }
 
-/** InfoWindow takes an HTML string, and titles/notes come from pasted posts —
+/** InfoWindow takes an HTML string, and titles/notes come from pasted posts -
  *  untrusted text. Escape rather than interpolate raw. */
 function escapeHtml(value: string): string {
   return value

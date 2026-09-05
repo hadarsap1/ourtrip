@@ -50,7 +50,7 @@ export async function fetchRecommendations(
     setTimeout(() => reject(new Error("timeout")), 45000)
   );
   const { data, error } = await Promise.race([invoke, timeout]);
-  // supabase-js hides the function's JSON body behind error.context — without
+  // supabase-js hides the function's JSON body behind error.context - without
   // this the UI can never distinguish "no API key" from a transient failure.
   if (error) throw new Error((await functionErrorCode(error)) ?? "recommend failed");
   if (!data?.ok) throw new Error(data?.error ?? "recommend failed");
@@ -58,7 +58,7 @@ export async function fetchRecommendations(
 }
 
 // The maybe-list now lives in place_options alongside manually-added and
-// Facebook-extracted options — one bank per destination rather than a separate
+// Facebook-extracted options - one bank per destination rather than a separate
 // AI-only list (00020_place_options.sql). These three keep their names and
 // shapes so the recommend screen is unchanged apart from the row type.
 

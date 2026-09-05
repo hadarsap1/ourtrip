@@ -1,7 +1,7 @@
 // Auto-fills the country-knowable parts of an emergency page (SPEC 2.12):
 // local emergency numbers + the Israeli embassy/consulate. Owner-gated
 // (verify_jwt=true + in-function role check). Only fills GENERIC fields that
-// are currently empty — the owner's trip-specific fields (insurance, hotel,
+// are currently empty - the owner's trip-specific fields (insurance, hotel,
 // medical notes) are never touched. Triggered automatically when a country is
 // added to the itinerary, and from a button on the emergency page.
 //
@@ -31,7 +31,7 @@ function json(body: unknown, status = 200): Response {
 const GENERIC_FIELDS = ["police", "ambulance", "fire", "embassy_phone", "embassy_address"] as const;
 
 // Cities with a RESIDENT Israeli embassy/mission (Hebrew name). Keeps the model
-// from pointing at a neighbouring country. Best-effort but conservative — only
+// from pointing at a neighbouring country. Best-effort but conservative - only
 // entries we're confident about; unknown countries fall through to the model.
 const RESIDENT_EMBASSY: Record<string, string> = {
   PT: "ליסבון", ES: "מדריד", FR: "פריז", IT: "רומא", DE: "ברלין", GB: "לונדון",
@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       `Israel has a resident embassy in ${countryNameEn}. If it does, give that ` +
       `mission's phone and address (in Hebrew). If Israel has NO mission there, ` +
       `you may give the nearest accredited Israeli embassy and note in Hebrew ` +
-      `which country it is in. If unsure, use "" — never guess.`;
+      `which country it is in. If unsure, use "" - never guess.`;
 
   let response;
   try {
