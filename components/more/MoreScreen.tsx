@@ -5,6 +5,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import {
   BellIcon,
   ChecklistIcon,
+  PlaneIcon,
   ChevronForwardIcon,
   CoinIcon,
   type IconProps,
@@ -192,6 +193,12 @@ export function MoreScreen() {
       label: strings.more.menuNotifications,
       Icon: BellIcon,
       state: strings.more.notificationsState,
+    },
+    {
+      href: "/ready",
+      label: strings.ready.menu,
+      Icon: PlaneIcon,
+      state: null,
     },
   ];
 
