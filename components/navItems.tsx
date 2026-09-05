@@ -11,6 +11,7 @@ import {
   MoreIcon,
   PhotosIcon,
   RouteIcon,
+  SparkleIcon,
 } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
@@ -25,6 +26,7 @@ export type NavItem = {
 // the kid home tile.
 export const kidTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
+  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
   { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
   { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },

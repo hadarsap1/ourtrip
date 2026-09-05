@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CountdownHome } from "./CountdownHome";
+import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
   BedIcon,
   CameraIcon,
@@ -16,6 +17,7 @@ import {
   PinIcon,
   PlusIcon,
   RouteIcon,
+  SparkleIcon,
   WeatherIcon,
 } from "@/components/icons";
 import { loadToday, type TodayData } from "@/lib/data/today";
@@ -295,6 +297,11 @@ export function TodayScreen() {
         label: strings.kidHome.tilePhrasebook,
       },
       {
+        href: "/facts",
+        Icon: SparkleIcon,
+        label: strings.kidHome.tileFacts,
+      },
+      {
         href: "/documents",
         Icon: DocumentIcon,
         label: strings.kidHome.tileDocuments,
@@ -361,6 +368,10 @@ export function TodayScreen() {
             </ul>
           </section>
         )}
+
+        {/* One fact about where they are, or nothing at all when there is no
+            fact for this destination yet. */}
+        {trip?.id && <KidFactCard tripId={trip.id} />}
 
         {/* daily journal prompt */}
         <Link

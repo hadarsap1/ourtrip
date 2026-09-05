@@ -12,6 +12,7 @@ export type EmergencyInfo = Tables<"emergency_info">;
 export type MapPin = Tables<"map_pins">;
 export type SavedRoute = Tables<"routes">;
 export type PhrasebookEntry = Tables<"phrasebook_entries">;
+export type DestinationFact = Tables<"destination_facts">;
 export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
 export type SavedRecommendation = Tables<"saved_recommendations">;

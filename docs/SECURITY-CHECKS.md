@@ -1240,3 +1240,38 @@ rather than something one more tap will fix.
 | RLS unchanged | `pg_policies` on `place_options` | ✅ PASS - exactly `place_options_owner_all` |
 | Build / lint / typecheck / unit / e2e | full suite | ✅ PASS - 115 unit, 32 e2e |
 | Geocoder actually resolves the freed rows | **not verified here** | ⚠️ PENDING - needs a tap on "איתור המקומות"; the previous run resolved 26 of 75 |
+
+---
+
+## Sprint 8 - "הידעת" destination facts (`destination_facts`, migration 00032)
+
+New table, new Edge Function `facts-generate`, new route `/facts`. The point of
+the feature is that the KIDS open it themselves, so the interesting question is
+not whether they can read it - it is whether reading is all they can do.
+
+Kids have no auth users yet, but `current_member_id()` also accepts a
+`member_id` JWT claim, so a kid session can be simulated exactly. The probe ran
+inside a transaction that ends in a deliberate `raise`, so every row it created
+(a `kid_devices` row, which `current_member_id()` requires since 00024, and one
+fact) was rolled back. Verified afterwards: `destination_facts` 0 rows,
+`kid_devices` 0 rows, nothing named "RLS probe" anywhere.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid can READ facts | simulated kid JWT, `select` | ✅ PASS - 1 row |
+| Kid cannot INSERT | simulated kid JWT, `insert` | ✅ PASS - refused, `insufficient_privilege` |
+| Kid cannot UPDATE | simulated kid JWT, `update` | ✅ PASS - 0 rows changed |
+| Kid cannot DELETE | simulated kid JWT, `delete` | ✅ PASS - 0 rows removed |
+| Anonymous cannot read | `set role anon`, `select` | ✅ PASS - 0 rows |
+| Anonymous cannot write | `set role anon`, `insert` | ✅ PASS - refused |
+| Guests have no access at all | `pg_policies` on `destination_facts` | ✅ PASS - only `_owner_all` and `_kid_select` exist, so RLS denies guests by default |
+| Generation is owner-only | function checks `current_member_role() = 'owner'` before spending credit | ✅ PASS - by inspection; `verify_jwt=true` on top |
+| Probe left nothing behind | count query after rollback | ✅ PASS - 0 rows in both tables |
+| Build / lint / typecheck / unit / e2e | full suite | ✅ PASS - 151 unit (12 new), 34 e2e |
+
+Note that UPDATE and DELETE fail *silently* for a kid - they change zero rows
+rather than raising - because a restrictive `USING` clause makes the rows
+invisible to the statement rather than rejecting it. That is the correct
+Postgres behaviour and the reason the probe asserts on `row_count` rather than
+on an exception being thrown; asserting on an exception there would have passed
+while the kid was quietly deleting things.

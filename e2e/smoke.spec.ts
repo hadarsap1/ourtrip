@@ -23,6 +23,7 @@ const ROUTES = [
   "/notifications",
   "/options",
   "/ready",
+  "/facts",
   "/offline",
   "/login",
   "/kid-login",

@@ -64,6 +64,19 @@ export type PhrasebookSnapshot = {
   savedAt: string;
 };
 
+/** One destination's facts, so "הידעת" works on a plane or in a car - which is
+ *  exactly where a kid opens it. Keyed by the same country+location pair the
+ *  table uses. */
+export type FactsSnapshot = {
+  key: string;
+  facts: {
+    id: string;
+    fact: string;
+    emoji: string | null;
+  }[];
+  savedAt: string;
+};
+
 export type MapSnapshot = {
   key: string; // constant "today"
   blob: Blob;
@@ -78,13 +91,14 @@ interface OurTripDB extends DBSchema {
   phrasebook: { key: string; value: PhrasebookSnapshot };
   pending_writes: { key: number; value: PendingWrite };
   map_snapshot: { key: string; value: MapSnapshot };
+  destination_facts: { key: string; value: FactsSnapshot };
 }
 
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 2, {
+  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 3, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore("documents_offline", { keyPath: "id" });
@@ -98,6 +112,9 @@ export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
       }
       if (oldVersion < 2) {
         db.createObjectStore("map_snapshot", { keyPath: "key" });
+      }
+      if (oldVersion < 3) {
+        db.createObjectStore("destination_facts", { keyPath: "key" });
       }
     },
   });

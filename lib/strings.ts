@@ -563,6 +563,41 @@ export const strings = {
     emptyLanguage: "אין משפטים בשפה הזו",
   },
 
+  // "הידעת" - facts about each destination, written for the kids. Keyed by
+  // stretch of the itinerary, so Kyoto and Tokyo each get their own.
+  facts: {
+    title: "הידעת?",
+    navLabel: "הידעת",
+    subtitle: "עובדות מעניינות על המקומות שאנחנו מבקרים בהם",
+    kidCardTitle: "הידעת?",
+    kidCardMore: "עוד עובדות",
+    destinations: "היעדים שלנו",
+    pickDestination: "בחירת יעד",
+    daysThere: "‏{n} ימים",
+    factCount: "‏{n} עובדות",
+    noFactsYet: "עוד אין עובדות",
+    empty: "עוד אין עובדות על המקום הזה",
+    emptyKid: "עוד לא הוספנו עובדות על המקום הזה. בקרוב!",
+    emptyOwner: "לוחצים על יצירת עובדות, ואז עוברים עליהן ומתקנים מה שצריך",
+    generate: "יצירת עובדות",
+    regenerate: "יצירה מחדש",
+    generating: "יוצר עובדות… זה לוקח כמה שניות",
+    generated: "נוצרו ‏{n} עובדות - כדאי לעבור עליהן",
+    generateFailed: "יצירת העובדות נכשלה - נסו שוב",
+    notConfigured: "שירות היצירה עדיין לא מוגדר (חסר מפתח ANTHROPIC_API_KEY בשרת)",
+    noCredit: "אין יתרה בחשבון ה-AI - צריך לטעון קרדיט ב-Anthropic. אפשר להוסיף עובדות ידנית בינתיים.",
+    // Regeneration is destructive for the AI batch, so say so before doing it.
+    regenerateConfirm: "היצירה מחדש תמחק את העובדות שנוצרו אוטומטית ותיצור חדשות. עובדות שכתבתם בעצמכם יישארו.",
+    addFact: "הוספת עובדה",
+    editFact: "עריכת עובדה",
+    factLabel: "העובדה",
+    factPlaceholder: "משהו מעניין שהילדים ישמחו לדעת…",
+    emojiLabel: "אימוג'י",
+    deleteConfirm: "למחוק את העובדה?",
+    byHand: "נכתב על ידכם",
+    verifyHint: "העובדות נוצרו אוטומטית - כדאי לעבור עליהן לפני שהילדים קוראים.",
+  },
+
   common: {
     noMember: "לא הצלחנו לזהות אתכם - יכול להיות שההתחברות פגה.",
     signInAgain: "התחברות מחדש",
@@ -823,6 +858,7 @@ export const strings = {
     tilePhotos: "התמונות שלנו",
     tilePocket: "דמי הכיס שלי",
     tilePhrasebook: "שיחון",
+    tileFacts: "הידעת?",
     tileDocuments: "המסמכים שלנו",
   },
 
