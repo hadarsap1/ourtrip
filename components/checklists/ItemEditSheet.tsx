@@ -6,6 +6,7 @@ import {
   deleteChecklistItem,
   updateChecklistItem,
 } from "@/lib/data/checklists";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { ChecklistItem, Member } from "@/lib/types";
 
@@ -58,8 +59,8 @@ function ItemEdit({
     );
   }
 
-  function handleDelete() {
-    if (!confirm(strings.checklists.deleteItemConfirm)) return;
+  async function handleDelete() {
+    if (!(await askConfirm(strings.checklists.deleteItemConfirm))) return;
     onSubmit(() => deleteChecklistItem(item.id));
   }
 

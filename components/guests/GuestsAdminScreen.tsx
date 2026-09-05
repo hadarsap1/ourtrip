@@ -12,6 +12,7 @@ import {
 } from "@/lib/data/guests";
 import { formatDate } from "@/lib/format";
 import { ClipboardIcon, MailIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Trip } from "@/lib/types";
 
@@ -98,8 +99,8 @@ export function GuestsAdminScreen() {
                 {!revoked && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!confirm(strings.guests.revokeConfirm)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm(strings.guests.revokeConfirm))) return;
                       void revokeGuest(row.trip_id, row.email)
                         .then(() => trip && refresh(trip.id))
                         .catch(() => showToast(strings.common.error));

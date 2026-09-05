@@ -58,12 +58,21 @@ async function fetchCurrentMember(): Promise<Member | null> {
   const uid = sessionData.session?.user?.id;
   if (!uid) return null;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("members")
     .select("*")
     .eq("auth_user_id", uid)
     .limit(1)
     .maybeSingle();
+
+  // A failed lookup is NOT "we could not identify you". Swallowing the error
+  // and returning null made every screen that gates on a member tell the
+  // family their session had expired and offer a sign-in link - on a trip
+  // where the usual reason is a dead connection, and signing out is the one
+  // thing that actually loses them their offline data. Throw instead, so the
+  // caller can say "no connection" and offer a retry.
+  if (error) throw new Error(error.message);
+
   cachedMember = data;
   return data;
 }

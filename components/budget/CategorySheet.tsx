@@ -8,6 +8,7 @@ import {
   renameCategory,
   updateCategoryPlanned,
 } from "@/lib/data/expenses";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory } from "@/lib/types";
 
@@ -66,7 +67,7 @@ export function CategorySheet({
 
   async function remove() {
     if (!category) return;
-    if (!confirm(s.deleteCategoryConfirm)) return;
+    if (!(await askConfirm(s.deleteCategoryConfirm))) return;
     setBusy(true);
     try {
       await deleteCategory(category.id);

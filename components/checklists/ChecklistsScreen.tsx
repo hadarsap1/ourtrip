@@ -12,6 +12,7 @@ import {
   setItemChecked,
   subscribeChecklists,
 } from "@/lib/data/checklists";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Checklist, ChecklistItem, Member, Trip } from "@/lib/types";
 import { ImportChecklistSheet } from "./ImportChecklistSheet";
@@ -147,8 +148,8 @@ export function ChecklistsScreen() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (!confirm(strings.checklists.deleteListConfirm)) return;
+              onClick={async () => {
+                if (!(await askConfirm(strings.checklists.deleteListConfirm))) return;
                 setOpenListId(null);
                 void run(() => deleteChecklist(openList.id));
               }}

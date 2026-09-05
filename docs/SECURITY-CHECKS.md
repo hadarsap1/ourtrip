@@ -1275,3 +1275,53 @@ invisible to the statement rather than rejecting it. That is the correct
 Postgres behaviour and the reason the probe asserts on `row_count` rather than
 on an exception being thrown; asserting on an exception there would have passed
 while the kid was quietly deleting things.
+
+---
+
+## QA review 2026-09 - the kid/guest/anon matrix, probed live
+
+Ran during the QA review (`docs/QA-REVIEW-2026-09.md`) against the live project,
+inside a single transaction that ends in a deliberate `raise` so everything it
+created rolls back. Verified afterwards: `kid_devices` 0, `documents` 0,
+`photos` 0, `guests_allowlist` 0, `members` still 4, no guest rows.
+
+The probe seeds what each role needs in order to exist at all - a `kid_devices`
+row (since 00024 `current_member_id()` will not resolve a kid without one), a
+document, and a guest member paired with a `guests_allowlist` entry - then
+switches role with `set local role` plus a `member_id` JWT claim.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid resolves as a member once a device exists | `current_member_id()` / `current_member_role()` | ✅ PASS - resolves, `role=kid` |
+| **Kid upload is forced to pending and unshared** | kid JWT, `insert into photos` | ✅ PASS - `status=pending`, `shared_with_guests=false` |
+| **Kid cannot approve or share their own photo** | kid JWT, `update photos set status='approved', shared_with_guests=true` | ✅ PASS - row still `pending` / `false` |
+| Kid cannot read documents | kid JWT, `select` | ✅ PASS - 0 rows (the probe doc is not `shared_with_kids`) |
+| Kid cannot read expenses | kid JWT, `select` | ✅ PASS - 0 rows |
+| Kid cannot read budget categories | kid JWT, `select` | ✅ PASS - 0 rows |
+| Kid cannot write an expense | kid JWT, `insert` | ✅ PASS - refused, `42501` |
+| Guest cannot see a pending photo | guest JWT, `select from photos` | ✅ PASS - 0 rows |
+| Guest cannot read documents / expenses / budget | guest JWT, `select` | ✅ PASS - 0 rows each |
+| Guest cannot read the options bank | guest JWT, `select from place_options` | ✅ PASS - 0 rows |
+| Guest sees only days carrying a shared, done item | guest JWT, `select from itinerary_days` | ✅ PASS - 0 rows (none are shared yet) |
+| Anonymous sees nothing, anywhere | `set role anon` on trips, documents, itinerary_days, members, phrasebook | ✅ PASS - 0 rows on all five |
+
+### Why CLAUDE.md rule #3 holds, and what it actually rests on
+
+Worth stating plainly, because reading the policy alone gives the wrong answer.
+`photos_kid_update_own` permits a kid to UPDATE their own photo row, and RLS has
+no column-level grant - so the policy by itself would let a kid set
+`status='approved'` and `shared_with_guests=true`.
+
+What stops it is a pair of `SECURITY DEFINER` triggers:
+
+- `photos_enforce_kid_rules` (BEFORE INSERT) pins `status='pending'`,
+  `shared_with_guests=false`, `approved_by=null` for anything a kid uploads;
+- `photos_guard_update` (BEFORE UPDATE) restores all three from the old row
+  whenever `current_member_role() = 'kid'`.
+
+`journal_guard_kid` does the same for `journal_entries.shared_with_guests`.
+
+**Do not remove or "simplify" these triggers.** They are the enforcement of a
+hard rule, not housekeeping, and the probe rows above are what proves they work.
+Migration 00033 additionally makes the policy's WITH CHECK re-assert
+`is_kid_of(trip_id)`, so a kid cannot move a photo of theirs to another trip.

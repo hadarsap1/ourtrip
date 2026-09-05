@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { Sheet } from "@/components/Sheet";
 import { createDay, deleteDay, updateDay } from "@/lib/data/itinerary";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { ItineraryDay } from "@/lib/types";
 
@@ -79,9 +80,9 @@ function DayForm({
     );
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!day) return;
-    if (!confirm(strings.itinerary.deleteDayConfirm)) return;
+    if (!(await askConfirm(strings.itinerary.deleteDayConfirm))) return;
     onSubmit(() => deleteDay(day.id));
   }
 

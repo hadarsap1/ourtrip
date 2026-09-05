@@ -27,15 +27,24 @@ export function KidLoginScreen() {
     if (busy || code.trim().length < 6) return;
     setBusy(true);
     setMessage(null);
-    try {
-      await registerDevice(code.trim());
+    const result = await registerDevice(code.trim()).catch(
+      () => ({ status: "network" }) as const
+    );
+    if (result.status === "ok") {
       setPhase("pin");
       setPin("");
-    } catch {
+    } else if (result.status === "invalid") {
       setMessage(strings.kidLogin.invalidCode);
-    } finally {
-      setBusy(false);
+    } else if (result.status === "network") {
+      setMessage(strings.kidLogin.registerNetwork);
+    } else {
+      // Not the child's problem and not the code's: show the server's own
+      // words, because that string is what tells a parent which switch to
+      // flip. Hiding it behind "the code is wrong" is what made this
+      // unfixable from the tablet.
+      setMessage(`${strings.kidLogin.registerFailed} (${result.detail})`);
     }
+    setBusy(false);
   }
 
   async function submitPin(fullPin: string) {
@@ -182,7 +191,7 @@ export function KidLoginScreen() {
 
       <Link
         href="/login"
-        className="mt-8 text-center text-sm text-ink-soft underline"
+        className="mt-8 inline-flex min-h-[44px] items-center justify-center self-center text-sm text-ink-soft underline"
       >
         {strings.kidLogin.backToParents}
       </Link>

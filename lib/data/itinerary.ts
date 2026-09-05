@@ -9,6 +9,45 @@ function requireClient() {
   return supabase;
 }
 
+/**
+ * How many day ids may go into one `in(...)` filter.
+ *
+ * PostgREST reads these as a GET, so every id is ~36 characters of query
+ * string. This trip is 227 days long: asked in one request that is ~8.5 KB of
+ * URL, past the 8 KB request line most gateways accept, and the failure is
+ * silent - the query comes back empty and the screen renders as though the
+ * trip had no plans at all. 100 keeps any single request well under it however
+ * long the trip grows.
+ */
+const DAY_IDS_PER_REQUEST = 100;
+
+export function chunkDayIds(dayIds: string[]): string[][] {
+  const chunks: string[][] = [];
+  for (let i = 0; i < dayIds.length; i += DAY_IDS_PER_REQUEST) {
+    chunks.push(dayIds.slice(i, i + DAY_IDS_PER_REQUEST));
+  }
+  return chunks;
+}
+
+/**
+ * Which of these days carry at least one item. Used by the screens that only
+ * need "is this day planned", not the items themselves.
+ */
+export async function listDayIdsWithItems(
+  dayIds: string[]
+): Promise<Set<string>> {
+  const found = new Set<string>();
+  for (const batch of chunkDayIds(dayIds)) {
+    const { data, error } = await requireClient()
+      .from("itinerary_items")
+      .select("day_id")
+      .in("day_id", batch);
+    if (error) throw new Error(error.message);
+    for (const row of data) found.add(row.day_id);
+  }
+  return found;
+}
+
 // ---------- days ----------
 
 export async function listDays(tripId: string): Promise<ItineraryDay[]> {
@@ -210,14 +249,33 @@ export async function importItinerary(
 
 export async function listItems(dayIds: string[]): Promise<ItineraryItem[]> {
   if (dayIds.length === 0) return [];
-  const { data, error } = await requireClient()
-    .from("itinerary_items")
-    .select("*")
-    .in("day_id", dayIds)
-    .order("sort_order")
-    .order("start_time", { ascending: true, nullsFirst: false });
-  if (error) throw new Error(error.message);
-  return data;
+  // Chunked (see DAY_IDS_PER_REQUEST): the itinerary and map screens both ask
+  // for every day of the trip at once.
+  const batches = await Promise.all(
+    chunkDayIds(dayIds).map(async (batch) => {
+      const { data, error } = await requireClient()
+        .from("itinerary_items")
+        .select("*")
+        .in("day_id", batch)
+        .order("sort_order")
+        .order("start_time", { ascending: true, nullsFirst: false });
+      if (error) throw new Error(error.message);
+      return data;
+    })
+  );
+  // Each batch comes back ordered, but the concatenation of several is not, so
+  // re-apply the same order here - callers rely on it to render a day's items.
+  return batches.flat().sort(compareItems);
+}
+
+/** The server-side ordering of listItems: sort_order, then start_time, nulls
+ *  last. Kept in one place so the chunked merge cannot drift from it. */
+function compareItems(a: ItineraryItem, b: ItineraryItem): number {
+  if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+  if (a.start_time === b.start_time) return 0;
+  if (a.start_time === null) return 1;
+  if (b.start_time === null) return -1;
+  return a.start_time < b.start_time ? -1 : 1;
 }
 
 /** Returns the new item's id. Callers that only wanted the side effect can
