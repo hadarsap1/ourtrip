@@ -31,10 +31,34 @@ export function isHebrewTransliteration(value: string): boolean {
  * as though someone checked it. An entry with no transliteration still shows
  * its Hebrew and its native script, and honestly says nothing about the sound.
  */
-export function cleanPhonetic(value: string | null | undefined): string | null {
+export function cleanPhonetic(
+  value: string | null | undefined,
+  /** The Hebrew phrase, so an echo of it can be rejected as well. */
+  phraseHe?: string
+): string | null {
   const trimmed = (value ?? "").trim();
   if (trimmed === "") return null;
-  return isHebrewTransliteration(trimmed) ? trimmed : null;
+  if (!isHebrewTransliteration(trimmed)) return null;
+  if (phraseHe !== undefined && isEchoOfHebrew(trimmed, phraseHe)) return null;
+  return trimmed;
+}
+
+/**
+ * Whether the transliteration is just the Hebrew phrase copied over.
+ *
+ * WHY. Told that phonetic_he may contain only Hebrew letters and never the
+ * source script, the model found the cheapest way to satisfy that: echo
+ * phrase_he. Live Thai rows came back with "בטן כואבת" beside ปวดท้อง, and
+ * "קראו לרופא" beside เรียกหมอมา. Both pass the script check and both are
+ * useless - reading the Hebrew aloud to a Thai speaker says nothing.
+ *
+ * Compared with punctuation and spacing removed, because the echo often drops
+ * a question mark or a comma and would otherwise slip through.
+ */
+export function isEchoOfHebrew(phonetic: string, phraseHe: string): boolean {
+  const bare = (v: string) => v.replace(/[^א-ת]/g, "");
+  const a = bare(phonetic);
+  return a !== "" && a === bare(phraseHe);
 }
 
 /** Must contain at least one Hebrew letter to be Hebrew at all. */

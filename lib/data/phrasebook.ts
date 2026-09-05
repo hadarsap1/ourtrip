@@ -225,3 +225,42 @@ export async function translatePhrase(
     phonetic_he: data.phonetic_he ? String(data.phonetic_he) : null,
   };
 }
+
+/**
+ * The ids currently stored for a language - a cheap fingerprint of the batch.
+ *
+ * phrasebook_entries has no timestamp, and generation replaces every row for a
+ * language, so a changed id set is proof the batch was rewritten.
+ */
+export async function entryIds(
+  tripId: string,
+  language: string
+): Promise<Set<string>> {
+  const { data, error } = await requireClient()
+    .from("phrasebook_entries")
+    .select("id")
+    .eq("trip_id", tripId)
+    .eq("language", language);
+  if (error) throw new Error(error.message);
+  return new Set((data ?? []).map((r) => r.id));
+}
+
+/**
+ * Whether a generation actually landed, judged by its rows rather than by
+ * whether the request came back.
+ *
+ * WHY THIS EXISTS. Generating a phrasebook takes 30 seconds or more, and a
+ * phone will drop the connection while the server carries on and finishes. The
+ * screen then said "יצירת השיחון נכשלה" over a phrasebook that had just been
+ * written correctly, so the obvious response was to press the button again -
+ * spending the credit and the wait a second time for no reason. Observed
+ * exactly that in the live logs: two consecutive generations, both HTTP 200.
+ *
+ * A batch is new when the language has rows and at least one id was not there
+ * before. Same ids means nothing was written.
+ */
+export function batchChanged(before: Set<string>, after: Set<string>): boolean {
+  if (after.size === 0) return false;
+  for (const id of after) if (!before.has(id)) return true;
+  return false;
+}

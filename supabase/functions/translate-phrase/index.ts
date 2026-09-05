@@ -120,7 +120,9 @@ Deno.serve(async (req) => {
             `Hebrew letters there - never a character of ${languageName}'s own ` +
             `script, which would defeat the point of the field. If a sound has ` +
             `no Hebrew equivalent, pick the nearest Hebrew letters rather than ` +
-            `falling back to the original character.\n\n` +
+            `falling back to the original character. It is how the TRANSLATION ` +
+            `sounds - never the Hebrew phrase copied back, which passes every ` +
+            `check and is worthless to say out loud.\n\n` +
             `Call emit_translation with the result.`,
         },
       ],
@@ -147,6 +149,6 @@ Deno.serve(async (req) => {
     phrase_he: text,
     phrase_local: phraseLocal,
     // Null rather than a scrubbed value when the source script leaked in.
-    phonetic_he: cleanPhonetic(out.phonetic_he),
+    phonetic_he: cleanPhonetic(out.phonetic_he, text),
   });
 });
