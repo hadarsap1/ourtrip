@@ -3,6 +3,7 @@ import {
   buildReadiness,
   countOutstanding,
   daysUntil,
+  urgentChecks,
   type ReadinessInput,
 } from "./readiness";
 
@@ -142,5 +143,47 @@ describe("buildReadiness", () => {
       pushSubscriptions: 2,
     };
     expect(countOutstanding(buildReadiness(ready))).toBe(0);
+  });
+});
+
+describe("urgentChecks", () => {
+  const groups = [
+    {
+      key: "a",
+      checks: [
+        { key: "w1", status: "warn" as const },
+        { key: "m1", status: "missing" as const },
+      ],
+    },
+    {
+      key: "b",
+      checks: [
+        { key: "ok1", status: "ok" as const },
+        { key: "m2", status: "missing" as const },
+        { key: "w2", status: "warn" as const },
+      ],
+    },
+  ];
+
+  it("puts everything missing ahead of everything merely warning", () => {
+    expect(urgentChecks(groups, 4).map((c) => c.key)).toEqual([
+      "m1",
+      "m2",
+      "w1",
+      "w2",
+    ]);
+  });
+
+  it("never offers something that is already fine", () => {
+    expect(urgentChecks(groups, 10).some((c) => c.status === "ok")).toBe(false);
+  });
+
+  it("respects the limit", () => {
+    expect(urgentChecks(groups, 2)).toHaveLength(2);
+  });
+
+  it("returns nothing when the trip is ready", () => {
+    const ready = [{ key: "a", checks: [{ key: "ok", status: "ok" as const }] }];
+    expect(urgentChecks(ready, 4)).toEqual([]);
   });
 });

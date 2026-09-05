@@ -960,6 +960,10 @@ export const strings = {
     // With no trip loaded there is nothing to judge, and "everything is ready"
     // would be the exact false reassurance this screen exists to prevent.
     noTrip: "לא נטען טיול פעיל",
+    // The home screen shows only the few most urgent rows; these label it and
+    // point at the full list.
+    nextUp: "הכי דחוף עכשיו",
+    seeAll: "כל רשימת המוכנות",
     ok: "תקין",
     groups: {
       documents: "מסמכים",

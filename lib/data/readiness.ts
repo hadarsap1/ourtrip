@@ -305,3 +305,20 @@ export async function loadReadiness(
     pushSubscriptions: (subs.data ?? []).length,
   };
 }
+
+/**
+ * The few things worth putting on the home screen.
+ *
+ * /ready lists everything; the home screen has to pick. Missing beats warning,
+ * and within a status the order buildReadiness already returns is the priority
+ * order — documents, then the opening days, then the whole trip, then people
+ * and devices. A passport you do not have outranks a guest you have not
+ * invited, and this keeps that true without a second ranking to maintain.
+ */
+export function urgentChecks(groups: ReadyGroup[], limit: number): ReadyCheck[] {
+  const flat = groups.flatMap((g) => g.checks);
+  return [
+    ...flat.filter((c) => c.status === "missing"),
+    ...flat.filter((c) => c.status === "warn"),
+  ].slice(0, limit);
+}
