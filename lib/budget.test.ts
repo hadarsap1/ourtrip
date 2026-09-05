@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveBudgetTotals } from "./budget";
+import { resolveBudgetTotals, resolveBudgetProgress } from "./budget";
 import type { BudgetCategory } from "@/lib/types";
 
 const cat = (planned_amount: number) =>
@@ -78,5 +78,44 @@ describe("resolveBudgetTotals", () => {
       overTarget: false,
       budgetForProgress: 5000,
     });
+  });
+});
+
+// The two screens disagreed about what "budget" meant: the budget screen's bar
+// was spending (1% full) while the home screen's was allocation (91% full).
+// These pin down the one definition both now use.
+describe("resolveBudgetProgress", () => {
+  const totals = resolveBudgetTotals(170000, [
+    { planned_amount: 155377 },
+  ]);
+
+  it("measures spending against the budget, not allocation", () => {
+    const p = resolveBudgetProgress(totals, 1120);
+    expect(p.usedPct).toBe(1);
+    expect(p.remaining).toBe(168880);
+    expect(p.overSpent).toBe(false);
+  });
+
+  it("does not let the allocated sum move the spending figures", () => {
+    // ₪155,377 is promised to categories; none of it is spent.
+    const promised = resolveBudgetProgress(totals, 0);
+    expect(promised.usedPct).toBe(0);
+    expect(promised.remaining).toBe(170000);
+  });
+
+  it("goes negative once the budget is exceeded", () => {
+    const p = resolveBudgetProgress(totals, 175000);
+    expect(p.overSpent).toBe(true);
+    expect(p.remaining).toBe(-5000);
+  });
+
+  it("measures against the planned sum when no target is declared", () => {
+    const noTarget = resolveBudgetTotals(null, [{ planned_amount: 50000 }]);
+    expect(resolveBudgetProgress(noTarget, 25000).usedPct).toBe(50);
+  });
+
+  it("reports nothing used when there is no budget at all", () => {
+    const nothing = resolveBudgetTotals(null, []);
+    expect(resolveBudgetProgress(nothing, 0).usedPct).toBe(0);
   });
 });

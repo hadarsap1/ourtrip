@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CheckIcon, ChevronForwardIcon } from "@/components/icons";
+import { resolveBudgetProgress } from "@/lib/budget";
 import { splitDestinationLabel } from "@/lib/data/facts";
 import type {
   BudgetSummary,
@@ -81,13 +82,25 @@ export function ChecklistBlock({
   );
 }
 
-/** Planned against target, with what is spent so far and what is unallocated. */
+/**
+ * A summary of the budget screen - deliberately the SAME numbers, the same bar
+ * and the same words.
+ *
+ * It used to lead with the planned sum against the target, which made the bar
+ * 91% full while the budget screen's bar, drawn from spending, was 1% full.
+ * Two screens titled "תקציב", the same green bar, opposite meanings: the home
+ * screen read as "you have spent 91%" when ₪1,120 of ₪170,000 was gone.
+ *
+ * Only one of the two is a bar now, and it is spending, because that is what a
+ * budget bar means everywhere else in the app. Allocation is still here - it is
+ * the useful number before departure - but as text, in the budget screen's own
+ * wording, so the two can be read side by side without conversion.
+ */
 export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
-  const s = strings.home;
-  const pct =
-    budget.budgetForProgress > 0
-      ? Math.min(100, (budget.planned / budget.budgetForProgress) * 100)
-      : 0;
+  const b = strings.budget;
+  const progress = resolveBudgetProgress(budget, budget.spent);
+  const money = (n: number) => formatMoney(Math.abs(Math.round(n)), "ILS");
+
   return (
     <Link
       href="/budget"
@@ -95,57 +108,56 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
     >
       <div className="flex items-baseline gap-2">
         <h2 className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
-          {s.budgetTitle}
+          {strings.nav.budget}
         </h2>
         <span className="shrink-0 text-[11.5px] text-ink-soft">
-          {s.budgetSpent} {formatMoney(budget.spent, "ILS")}
+          {b.kpiSpent} {money(progress.spent)}
         </span>
       </div>
 
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="text-xl font-extrabold text-ink">
-          {formatMoney(budget.planned, "ILS")}
+        <span
+          className={`text-xl font-extrabold ${
+            progress.overSpent ? "text-alert" : "text-ink"
+          }`}
+        >
+          {money(progress.remaining)}
         </span>
-        {budget.hasTarget && (
-          <span className="text-[12px] text-ink-soft">
-            / {formatMoney(budget.target ?? 0, "ILS")} {s.budgetTarget}
-          </span>
-        )}
+        <span className="text-[12px] text-ink-soft">
+          {progress.overSpent ? b.kpiOver : b.kpiRemaining}
+          {budget.hasTarget && ` · ${b.target} ${money(budget.target ?? 0)}`}
+        </span>
       </div>
 
-      {budget.hasTarget ? (
-        <>
-          <div
-            className="mt-2 h-2 overflow-hidden rounded-full bg-paper-deep"
-            role="presentation"
-          >
-            <div
-              className={`h-full rounded-full ${
-                budget.overTarget ? "bg-alert" : "bg-sea"
-              }`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <p
-            className={`mt-1.5 text-[11.5px] ${
-              budget.overTarget ? "font-semibold text-alert" : "text-ink-soft"
-            }`}
-          >
-            {budget.gap === 0
-              ? s.budgetExact
-              : budget.overTarget
-                ? s.budgetOver.replace(
-                    "{amount}",
-                    formatMoney(Math.abs(budget.gap), "ILS")
-                  )
-                : s.budgetUnallocated.replace(
-                    "{amount}",
-                    formatMoney(budget.gap, "ILS")
-                  )}
-          </p>
-        </>
-      ) : (
-        <p className="mt-1.5 text-[11.5px] text-ink-soft">{s.budgetNone}</p>
+      {/* The one bar, and it means what the budget screen's bar means. */}
+      <div
+        className="mt-2 h-2 overflow-hidden rounded-full bg-paper-deep"
+        role="presentation"
+      >
+        <div
+          className={`h-full rounded-full ${
+            progress.overSpent ? "bg-alert" : "bg-sea"
+          }`}
+          style={{ width: `${Math.min(100, Math.max(0, progress.usedPct))}%` }}
+        />
+      </div>
+      <p className="mt-1 text-[11px] text-ink-soft">
+        {b.paceTitle.replace("{n}", String(progress.usedPct))}
+      </p>
+
+      {/* Allocation: a different question, so never the same bar. */}
+      {budget.hasTarget && (
+        <p
+          className={`mt-1.5 border-t border-line pt-1.5 text-[11.5px] ${
+            budget.overTarget ? "font-semibold text-alert" : "text-ink-soft"
+          }`}
+        >
+          {b.plannedLabel} {money(budget.planned)}
+          {" · "}
+          {budget.overTarget
+            ? `${b.overTarget} ${money(budget.gap)}`
+            : `${b.leftToAllocate} ${money(budget.gap)}`}
+        </p>
       )}
     </Link>
   );

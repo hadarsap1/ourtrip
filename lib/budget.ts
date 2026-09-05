@@ -50,3 +50,37 @@ export function resolveBudgetTotals(
     budgetForProgress: hasTarget ? target! : planned,
   };
 }
+
+/**
+ * How much of the budget is actually gone.
+ *
+ * WHY THIS IS SHARED. The budget screen and the home screen both draw a bar
+ * labelled "budget", and they disagreed: the budget screen's bar was spending
+ * against the budget (1% full) while the home screen's was allocation against
+ * the target (91% full). Same title, same shape, opposite meanings - the home
+ * screen read as "you have spent 91%" when ₪1,120 of ₪170,000 was gone.
+ *
+ * Spending and allocation are both worth showing, but only one of them is a
+ * bar, and it is this one. Allocation stays as text (`gap` on BudgetTotals).
+ */
+export type BudgetProgress = {
+  spent: number;
+  /** What is left to spend. Negative once the budget is exceeded. */
+  remaining: number;
+  /** Share of the budget already spent, 0-100 and clamped for the bar. */
+  usedPct: number;
+  overSpent: boolean;
+};
+
+export function resolveBudgetProgress(
+  totals: Pick<BudgetTotals, "budgetForProgress">,
+  spent: number
+): BudgetProgress {
+  const { budgetForProgress } = totals;
+  const remaining = budgetForProgress - spent;
+  const usedPct =
+    budgetForProgress > 0
+      ? Math.round((spent / budgetForProgress) * 100)
+      : 0;
+  return { spent, remaining, usedPct, overSpent: remaining < 0 };
+}
