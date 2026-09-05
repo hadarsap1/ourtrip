@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CheckIcon, ChevronForwardIcon } from "@/components/icons";
+import { splitDestinationLabel } from "@/lib/data/facts";
 import type {
   BudgetSummary,
   ChecklistPreview,
@@ -173,6 +174,10 @@ export function TimelineBlock({ timeline }: { timeline: TimelineStretch[] }) {
 function StretchCard({ stretch }: { stretch: TimelineStretch }) {
   const s = strings.home;
   const highlighted = stretch.isCurrent || stretch.isNext;
+  const { country, area } = splitDestinationLabel(
+    stretch.countryCode,
+    stretch.locationName
+  );
   return (
     <div
       className={`flex w-[136px] shrink-0 flex-col rounded-[16px] border p-3 ${
@@ -192,8 +197,13 @@ function StretchCard({ stretch }: { stretch: TimelineStretch }) {
           (גאורגיה כברירת מחדל)" and a single truncated line of that says
           nothing at all. */}
       <p className="line-clamp-2 min-h-[2.4em] text-[13px] font-bold leading-[1.2] text-ink">
-        {stretch.locationName}
+        {area ?? country}
       </p>
+      {/* The country, always reserved so the cards line up. The itinerary names
+          Japan's stretches by city and everyone else's by country, so without
+          this the strip said "יפן" nowhere and "תאילנד" twice. Empty when the
+          stretch IS the country and its name is already above. */}
+      <p className="h-[13px] text-[10.5px] text-ink-soft">{area ? country : ""}</p>
       <p className="mt-0.5 text-[11px] text-ink-soft">
         {s.timelineDays.replace("{n}", String(stretch.days))}
       </p>

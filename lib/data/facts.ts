@@ -5,6 +5,7 @@
 // as one 38-day block, so country-level facts would give a kid the same
 // handful of items for 38 days. Migration 00032 has the reasoning.
 
+import { countryName } from "@/lib/data/emergency";
 import { functionErrorCode } from "@/lib/functionError";
 import { readFactsSnapshot, saveFactsSnapshot } from "@/lib/offline/caches";
 import { getSupabase } from "@/lib/supabase";
@@ -28,6 +29,52 @@ export type Destination = {
  *  React key. The separator cannot appear in a country code. */
 export function destinationKey(countryCode: string, locationName: string): string {
   return `${countryCode}::${locationName}`;
+}
+
+/**
+ * Splits a stretch label into the country it is in and the area within it.
+ *
+ * WHY. The itinerary was imported with inconsistent names: Japan's stretches
+ * are called "קיוטו", "טוקיו", "האקונה" with no country, while the others are
+ * called "תאילנד", "קמבודיה", "וייטנאם - צפון". Printing location_name as-is
+ * therefore named the country for most of the trip and only the city for
+ * Japan. The country is not missing from the data - itinerary_days.country_code
+ * has it for every row - it was simply never used for the label.
+ *
+ * So the country always comes from country_code, and the area is whatever the
+ * label adds on top of it. "וייטנאם - צפון" in VN becomes country וייטנאם,
+ * area צפון; "קיוטו" in JP becomes country יפן, area קיוטו; and "תאילנד" in TH
+ * is the country itself, so there is no area to show rather than the name
+ * printed twice.
+ */
+export function splitDestinationLabel(
+  countryCode: string,
+  locationName: string
+): { country: string; area: string | null } {
+  const country = countryName(countryCode);
+  const label = locationName.trim();
+
+  // Intl returns "הפיליפינים" while the itinerary says "פיליפינים", so the
+  // definite article cannot be part of the comparison.
+  const bare = (v: string) => (v.startsWith("ה") ? v.slice(1) : v).trim();
+  const candidates = [country, bare(country)];
+
+  for (const name of candidates) {
+    if (name === "" ) continue;
+    if (bare(label) === name || label === name) return { country, area: null };
+    if (label.startsWith(name)) {
+      const rest = label.slice(name.length);
+      const trimmed = rest.replace(/^[\s\-,:־]+/, "").trim();
+      // Only when a separator was actually consumed, so a country name would
+      // never swallow the start of a longer word. A label that is the country
+      // plus a dangling separator has no area rather than an empty one.
+      if (rest === "" || trimmed !== rest) {
+        return { country, area: trimmed === "" ? null : trimmed };
+      }
+    }
+  }
+
+  return { country, area: label === "" ? null : label };
 }
 
 /**
