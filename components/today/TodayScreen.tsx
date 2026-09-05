@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { CountdownHome } from "./CountdownHome";
 import {
   BedIcon,
   CameraIcon,
@@ -28,11 +29,13 @@ import {
   getDayWeather,
   type DayWeather,
 } from "@/lib/data/weather";
-import { formatDate, formatMoney, formatTime, formatWeekday } from "@/lib/format";
+import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
+import { daysUntil } from "@/lib/data/readiness";
+import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
-import type { Booking, ItineraryItem } from "@/lib/types";
+import type { Booking, ItineraryItem, Trip } from "@/lib/types";
 
 /** Tonight's bed: the lodging booking covering today, if there is one. */
 function tonightsLodging(bookings: Booking[]): Booking | null {
@@ -190,6 +193,14 @@ export function TodayScreen() {
   const [weather, setWeather] = useState<DayWeather | null>(null);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<TodayDashboard | null>(null);
+  // Needed only to decide which home screen this is: before departure the
+  // itinerary has no day for "today" and the dashboard below has nothing to
+  // show, so the countdown takes over.
+  const [trip, setTrip] = useState<Trip | null>(null);
+  // Separate from `trip` because null is a real answer (no trip configured),
+  // and rendering the dashboard before this settles would flash the empty card
+  // for a moment before the countdown replaced it.
+  const [tripChecked, setTripChecked] = useState(false);
   // Re-derives "next up" and the current agenda row as the day moves on.
   const [now, setNow] = useState(() => minutesNow());
 
@@ -218,6 +229,17 @@ export function TodayScreen() {
     void loadTodayDashboard().then((d) => {
       if (!cancelled) setDashboard(d);
     });
+    // getActiveTrip caches and collapses in-flight calls, and loadToday above
+    // asks for the same thing, so this resolves on that round trip rather than
+    // costing another.
+    void getActiveTrip()
+      .then((t) => {
+        if (!cancelled) setTrip(t);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setTripChecked(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -367,6 +389,29 @@ export function TodayScreen() {
         </div>
       </div>
     );
+  }
+
+  /* ---------- owner, before departure: the countdown ----------
+     Until 03.11.2026 the itinerary has no day for "today", so the dashboard
+     below renders an empty card — which is what every open of the app has
+     shown for weeks. Between now and then the useful home screen is what still
+     has to happen before the flight. Switches over on its own on the day the
+     trip starts; no setting to forget. */
+  if (!tripChecked) {
+    return (
+      <div
+        className="mx-auto max-w-lg px-4 pt-16 text-center"
+        role="status"
+        aria-live="polite"
+      >
+        <p className="text-ink-soft">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  const startsIn = trip ? daysUntil(todayISO(), trip.start_date) : null;
+  if (trip && startsIn !== null && startsIn > 0) {
+    return <CountdownHome trip={trip} />;
   }
 
   /* ---------- owner: dashboard (direction 1b) ---------- */
