@@ -161,24 +161,33 @@ Deno.serve(async (req) => {
             `- phrase_he: the phrase in natural, current, spoken Hebrew\n` +
             `- phrase_local: the SAME phrase in ${languageName}, native script\n` +
             `- phonetic_he: how to say it, in Hebrew letters\n\n` +
-            `THREE RULES THAT MATTER MORE THAN COVERAGE. Breaking any of them ` +
+            `FOUR RULES THAT MATTER MORE THAN COVERAGE. Breaking any of them ` +
             `makes an entry worse than missing, because it will be read out to a ` +
             `stranger and believed.\n\n` +
             `1. phrase_he and phrase_local MUST mean the same thing. Not close, ` +
             `the same. Do not write "I am allergic to animals" in Hebrew beside ` +
             `"I am allergic to shrimp" in the local language, and do not write a ` +
             `Hebrew statement beside a local question.\n\n` +
-            `2. phonetic_he must contain ONLY Hebrew letters, spaces and simple ` +
-            `punctuation. NEVER a character of ${languageName}'s own script. It ` +
-            `exists so someone who cannot read that script can say the words ` +
-            `aloud; a single foreign glyph makes the whole field useless. If you ` +
-            `cannot transliterate a sound into Hebrew letters, choose the nearest ` +
-            `Hebrew sound - never fall back to the original character.\n\n` +
-            `3. phrase_he must be Hebrew a person actually says today. Not ` +
-            `literary or archaic ("בית הכסא"), not a word that does not exist, ` +
-            `and not a mistyped one. Say "שירותים", "שלשול", "עגלת תינוק", ` +
-            `"האוכל טעים". Re-read every Hebrew line and ask whether an Israeli ` +
-            `would say it out loud.\n\n` +
+            `2. phonetic_he is how PHRASE_LOCAL sounds, written in Hebrew ` +
+            `letters. It is not a translation and it is NOT phrase_he again. ` +
+            `Copying the Hebrew phrase into this field is the worst thing you ` +
+            `can do here: it passes every automatic check and is worthless, ` +
+            `because reading Hebrew aloud to a ${languageName} speaker conveys ` +
+            `nothing. Sound out the ${languageName} words. "ปวดท้อง" is ` +
+            `"פואד תונג", never "בטן כואבת".\n\n` +
+            `3. phonetic_he must contain ONLY Hebrew letters, spaces and simple ` +
+            `punctuation - never a character of ${languageName}'s own script, ` +
+            `which the reader cannot read. Where a sound has no Hebrew ` +
+            `equivalent, pick the nearest Hebrew letters.\n\n` +
+            `4. phrase_he must be Hebrew a person actually says today. Not ` +
+            `literary or archaic, not a word that does not exist, and not a ` +
+            `mistyped or ungrammatical one. Real examples of what went wrong ` +
+            `before: write "שירותים" not "בית הכסא"; "שלשול" not "כוגראפיה"; ` +
+            `"חום" not "קדחת"; "גן שעשועים" not "גן שחקים"; "האוכל טעים" not ` +
+            `"את האוכל נחמד"; "לילד שלי יש חום" not "בן לי חום"; and an ` +
+            `instruction to a stranger is "תקראו לרופא", not "קוראים לרופא". ` +
+            `Re-read every Hebrew line and ask whether an Israeli would say it ` +
+            `out loud, exactly as written.\n\n` +
             `Cover what this family will really need: ordering food and asking ` +
             `what is in it, "not spicy please", toilets, directions, prices and ` +
             `bargaining, buses trains and taxis, tickets, checking in, and the ` +
@@ -192,6 +201,15 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("phrasebook: anthropic call failed:", (err as Error).message);
+    // An empty balance is not a transient fault: topping up is the fix and
+    // retrying never is, so it gets its own code like the other functions.
+    const message = (err as Error).message ?? "";
+    if (/credit balance is too low|insufficient/i.test(message)) {
+      return new Response(JSON.stringify({ ok: false, error: "no_credit" }), {
+        status: 402,
+        headers: jsonHeaders,
+      });
+    }
     return new Response(JSON.stringify({ ok: false, error: "ai_failed" }), {
       status: 502,
       headers: jsonHeaders,
@@ -248,7 +266,7 @@ Deno.serve(async (req) => {
       category: e.category,
       phrase_he: e.phrase_he.trim(),
       phrase_local: e.phrase_local.trim(),
-      phonetic_he: cleanPhonetic(e.phonetic_he),
+      phonetic_he: cleanPhonetic(e.phonetic_he, e.phrase_he),
     }))
   );
   if (insertError) {

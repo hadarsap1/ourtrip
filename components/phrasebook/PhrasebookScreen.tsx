@@ -10,6 +10,8 @@ import {
   languageName,
   listEntries,
   listLanguages,
+  batchChanged,
+  entryIds,
   searchLanguages,
   deleteLanguage,
   translatePhrase,
@@ -86,27 +88,53 @@ export function PhrasebookScreen() {
 
   async function handleGenerate(language: string) {
     if (generating || !language) return;
+    const tripId = trip?.id ?? "";
     setGenerating(true);
     setAddOpen(false);
     showToast(strings.phrasebook.generating);
+
+    // Fingerprint the batch first, so a dropped connection can be told apart
+    // from a real failure afterwards.
+    const before = await entryIds(tripId, language).catch(
+      () => new Set<string>()
+    );
+
+    let ok = false;
+    let code = "";
     try {
       await generateLanguage(language);
-      const tripId = trip?.id ?? "";
+      ok = true;
+    } catch (e) {
+      code = e instanceof Error ? e.message : "";
+      // Generating takes 30 seconds or more and a phone will drop the request
+      // while the server carries on and finishes. Ask the rows, not the
+      // request: reporting failure over a phrasebook that was just written
+      // sends someone back to press the button and pay for it twice.
+      const after = await entryIds(tripId, language).catch(() => null);
+      ok = after !== null && batchChanged(before, after);
+    }
+
+    // Reloading is a separate concern: if it fails, the generation still
+    // happened, and saying otherwise would be a lie about the expensive part.
+    try {
       const { languages: langs } = await listLanguages(tripId);
       setLanguages(langs);
       setSelected(language);
       await loadEntries(tripId, language);
-      showToast(strings.phrasebook.generated);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      showToast(
-        msg === "not_configured"
-          ? strings.phrasebook.notConfigured
-          : strings.phrasebook.generateFailed
-      );
-    } finally {
-      setGenerating(false);
+    } catch {
+      // leave the screen as it was; the toast below still tells the truth
     }
+
+    showToast(
+      ok
+        ? strings.phrasebook.generated
+        : code === "not_configured"
+          ? strings.phrasebook.notConfigured
+          : code === "no_credit"
+            ? strings.phrasebook.noCredit
+            : strings.phrasebook.generateFailed
+    );
+    setGenerating(false);
   }
 
   async function handleDeleteLanguage() {

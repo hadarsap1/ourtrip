@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterEntries, searchLanguages } from "./phrasebook";
+import { batchChanged, filterEntries, searchLanguages } from "./phrasebook";
 
 // The phrasebook is offline-critical, so search runs over the rows already in
 // hand. What it has to match is everything you might half-remember.
@@ -107,5 +107,34 @@ describe("searchLanguages", () => {
 
   it("ignores case and surrounding spaces", () => {
     expect(searchLanguages("  THAI ").map((l) => l.code)).toContain("th");
+  });
+});
+
+// Generating takes 30s+ and a phone drops the connection while the server
+// finishes. The screen then claimed failure over a phrasebook that had just
+// been written, so the natural response was to pay for it a second time.
+describe("batchChanged", () => {
+  const ids = (...v: string[]) => new Set(v);
+
+  it("sees a batch that was replaced while the connection dropped", () => {
+    expect(batchChanged(ids("a", "b"), ids("c", "d"))).toBe(true);
+  });
+
+  it("sees a first batch where there was nothing", () => {
+    expect(batchChanged(ids(), ids("a", "b"))).toBe(true);
+  });
+
+  it("does not claim success when nothing was written", () => {
+    expect(batchChanged(ids("a", "b"), ids("a", "b"))).toBe(false);
+  });
+
+  it("does not claim success when the language is now empty", () => {
+    // The delete ran and the insert did not - a real failure, not a drop.
+    expect(batchChanged(ids("a", "b"), ids())).toBe(false);
+    expect(batchChanged(ids(), ids())).toBe(false);
+  });
+
+  it("counts a partly overlapping batch as new", () => {
+    expect(batchChanged(ids("a", "b"), ids("b", "z"))).toBe(true);
   });
 });

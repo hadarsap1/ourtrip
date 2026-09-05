@@ -563,6 +563,7 @@ export const strings = {
     generated: "השיחון נוצר",
     generateFailed: "יצירת השיחון נכשלה - נסו שוב",
     notConfigured: "שירות השיחון עדיין לא מוגדר (חסר מפתח ANTHROPIC_API_KEY בשרת)",
+    noCredit: "אין יתרה בחשבון ה-AI - צריך לטעון קרדיט ב-Anthropic. השיחונים הקיימים עובדים רגיל.",
     regenerate: "יצירה מחדש",
     showToLocal: "הצגה למקומי",
     showToLocalHint: "לחיצה על משפט מציגה אותו גדול - נוח להראות למקומיים",
