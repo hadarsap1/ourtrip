@@ -8,7 +8,7 @@ import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
 import { listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
-import { resolveBudgetTotals } from "@/lib/budget";
+import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import { tripPosition } from "@/lib/tripDay";
 import type { BudgetCategory, Expense, Trip } from "@/lib/types";
@@ -148,9 +148,12 @@ export function BudgetScreen() {
     categories.find((c) => c.id === id)?.label_he ?? "";
 
   const position = tripPosition(trip?.start_date, trip?.end_date, today);
-  const remaining = budgetForProgress - spent;
-  const usedPct =
-    budgetForProgress > 0 ? Math.round((spent / budgetForProgress) * 100) : 0;
+  // Shared with the home screen's budget block, so the two cannot drift apart
+  // again: they once drew the same bar from different numbers.
+  const { remaining, usedPct } = resolveBudgetProgress(
+    { budgetForProgress },
+    spent
+  );
 
   // The pace bar is segmented by category rather than one solid fill: at a
   // glance it says not only how much is gone but what it went on. Fills are

@@ -987,14 +987,6 @@ export const strings = {
   // The pre-departure home screen. It used to show only what was MISSING;
   // these blocks show what already exists, so the trip reads as taking shape.
   home: {
-    budgetTitle: "התקציב",
-    budgetPlanned: "מתוכנן",
-    budgetTarget: "יעד",
-    budgetSpent: "הוצא",
-    budgetUnallocated: "‏{amount} עוד לא שויכו לקטגוריה",
-    budgetOver: "הקטגוריות מבטיחות ‏{amount} מעל היעד",
-    budgetExact: "כל היעד משויך לקטגוריות",
-    budgetNone: "עוד לא הוגדר תקציב",
     checklistProgress: "‏{done} מתוך {total}",
     checklistAllDone: "הכול סומן",
     checklistEmpty: "עוד אין רשימות",
