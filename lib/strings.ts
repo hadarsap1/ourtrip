@@ -549,8 +549,15 @@ export const strings = {
     title: "שיחון",
     empty: "עוד אין שפות בשיחון - מוסיפים שפה ראשונה",
     addLanguage: "שפה חדשה",
-    languageSelect: "בחירת שפה",
-    customCode: "או קוד שפה (ISO)",
+    // Adding a language is a search by name now, not an ISO code nobody knows.
+    languageSearch: "חיפוש שפה",
+    languageNone: "לא נמצאה שפה כזו",
+    languageAlready: "כבר בשיחון",
+    // deleting one
+    deleteLanguage: "מחיקת השפה",
+    deleteLanguageConfirm: "למחוק את כל המשפטים בשפה הזו?",
+    deleted: "השפה נמחקה",
+    deleteFailed: "המחיקה נכשלה - נסו שוב",
     generate: "יצירת שיחון",
     generating: "יוצר שיחון… זה לוקח בערך דקה",
     generated: "השיחון נוצר",
@@ -561,6 +568,20 @@ export const strings = {
     showToLocalHint: "לחיצה על משפט מציגה אותו גדול - נוח להראות למקומיים",
     phonetic: "הגייה",
     emptyLanguage: "אין משפטים בשפה הזו",
+    // search over the loaded rows - works offline, which is the point
+    search: "חיפוש בשיחון",
+    searchNone: "לא נמצאו משפטים",
+    // live translation of anything the phrasebook does not cover
+    translateTitle: "לתרגם משפט",
+    translateHint: "כותבים משפט בעברית ומקבלים אותו בשפה המקומית, עם הגייה",
+    translatePlaceholder: "מה רוצים להגיד?",
+    translateCta: "תרגום",
+    translating: "מתרגם…",
+    translateFailed: "התרגום נכשל - נסו שוב",
+    translateOffline: "התרגום החי צריך אינטרנט. השיחון עצמו עובד גם בלי.",
+    translateNoCredit: "אין יתרה בחשבון ה-AI - צריך לטעון קרדיט ב-Anthropic. השיחון עצמו עובד רגיל.",
+    translateResult: "התרגום",
+    translateShow: "הצגה בגדול",
   },
 
   // "הידעת" - facts about each destination, written for the kids. Keyed by
