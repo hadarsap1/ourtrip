@@ -255,6 +255,15 @@ export type OptionFilter = {
   area?: string | null;
   /** Map view only: drop options with no coordinates, since they can't be pinned. */
   locatedOnly?: boolean;
+  /** Hide what has been rejected.
+   *
+   *  Rejecting an option was doing almost nothing visible: the row still drew a
+   *  pin and still counted toward "N places have no location", so the one
+   *  action available for the ~15 rows that are not places at all — 12go Asia,
+   *  Vietnam Airlines, an ethnic group the extractor swept out of a post —
+   *  never actually cleared them off the map. The screen sets this whenever the
+   *  reader is not deliberately looking AT the rejected pile. */
+  excludeRejected?: boolean;
 };
 
 const sameLabel = (a: string | null | undefined, b: string | null | undefined) =>
@@ -273,6 +282,7 @@ export function filterOptions(
     if (filter.country && !sameLabel(o.country, filter.country)) return false;
     if (filter.area && !sameLabel(o.area, filter.area)) return false;
     if (filter.locatedOnly && (o.lat == null || o.lng == null)) return false;
+    if (filter.excludeRejected && o.status === "rejected") return false;
     return true;
   });
 }
@@ -339,7 +349,11 @@ export async function resetGeocodeAttempts(tripId: string): Promise<void> {
     .update({ geocode_attempts: 0 })
     .eq("trip_id", tripId)
     .is("lat", null)
-    .gt("geocode_attempts", 0);
+    .gt("geocode_attempts", 0)
+    // A rejected option is not worth a lookup. Leaving its counter exhausted
+    // is what keeps it out of the batch, without the Edge Function needing to
+    // know about statuses at all.
+    .neq("status", "rejected");
   if (error) throw new Error(error.message);
 }
 

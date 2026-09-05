@@ -256,3 +256,26 @@ describe("tallyByArea", () => {
     expect(t.get("סאפה")?.days).toBe(0);
   });
 });
+
+// Rejecting used to be almost invisible: the row kept its pin and kept counting
+// toward "N places have no location", so the only action available for the rows
+// that are not places at all never cleared them.
+describe("filterOptions excludeRejected", () => {
+  const opt = (status: string, title = "x"): PlaceOption =>
+    ({ status, title }) as PlaceOption;
+
+  it("drops rejected options when asked", () => {
+    const rows = [opt("option"), opt("rejected"), opt("planned")];
+    expect(filterOptions(rows, { excludeRejected: true })).toHaveLength(2);
+  });
+
+  it("keeps them when the reader is looking at the rejected pile", () => {
+    const rows = [opt("option"), opt("rejected")];
+    expect(filterOptions(rows, { status: "rejected" })).toEqual([rows[1]]);
+  });
+
+  it("leaves every other status alone", () => {
+    const rows = [opt("option"), opt("shortlist"), opt("planned"), opt("booked")];
+    expect(filterOptions(rows, { excludeRejected: true })).toHaveLength(4);
+  });
+});

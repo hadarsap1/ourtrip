@@ -309,6 +309,10 @@ export function OptionsScreen() {
     status: statusFilter,
     country: countryFilter,
     area: areaFilter,
+    // Rejected rows stay out of every view except the one that asks for them,
+    // so "פסלנו" actually removes a place from the map and from the count of
+    // what still has no location.
+    excludeRejected: statusFilter !== "rejected",
   });
   const grouped = group(visible, s.ungrouped);
   const unlocated = visible.filter((o) => o.lat == null || o.lng == null).length;
