@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   ChevronForwardIcon,
   CoinIcon,
-  RouteIcon,
   WarningIcon,
 } from "@/components/icons";
 import {
@@ -79,24 +78,17 @@ export function CountdownHome({ trip }: { trip: Trip }) {
         )}
       </header>
 
-      {/* The two things that stay useful whatever the date. Kept from the old
-          empty state, where they were the only thing worth having. */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <Link
-          href="/budget"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-sea py-3 text-sm font-bold text-white"
-        >
-          <CoinIcon className="h-4 w-4" strokeWidth={1.9} />
-          {strings.today.addExpenseShort}
-        </Link>
-        <Link
-          href="/itinerary"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-sea"
-        >
-          <RouteIcon className="h-4 w-4" strokeWidth={1.9} />
-          {strings.today.quickItinerary}
-        </Link>
-      </div>
+      {/* Only the expense shortcut. There was a second button here pointing at
+          the itinerary, but the bottom bar already has that tab - a shortcut to
+          somewhere one tap away is just a smaller version of the same link,
+          taking space from the checklist underneath. */}
+      <Link
+        href="/budget"
+        className="flex items-center justify-center gap-2 rounded-2xl bg-sea py-3 text-sm font-bold text-white"
+      >
+        <CoinIcon className="h-4 w-4" strokeWidth={1.9} />
+        {strings.today.addExpenseShort}
+      </Link>
 
       {checks === null ? (
         <p className="py-4 text-center text-sm text-ink-soft">
