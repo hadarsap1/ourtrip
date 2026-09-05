@@ -3,6 +3,7 @@ import {
   destinationForDate,
   destinationKey,
   pickFactOfDay,
+  splitDestinationLabel,
   type Destination,
 } from "./facts";
 
@@ -87,5 +88,71 @@ describe("destinationKey", () => {
     expect(destinationKey("VN", "וייטנאם - צפון")).not.toBe(
       destinationKey("VN", "וייטנאם - דרום ומרכז")
     );
+  });
+});
+
+// The itinerary was imported with inconsistent names - Japan by city, everyone
+// else by country - so the label has to be rebuilt from country_code rather
+// than trusted as written. These are the fourteen real stretches.
+describe("splitDestinationLabel", () => {
+  it("names the country for a stretch that only says the city", () => {
+    expect(splitDestinationLabel("JP", "קיוטו")).toEqual({
+      country: "יפן",
+      area: "קיוטו",
+    });
+    expect(splitDestinationLabel("JP", "טוקיו")).toEqual({
+      country: "יפן",
+      area: "טוקיו",
+    });
+  });
+
+  it("does not repeat a name when the stretch IS the country", () => {
+    expect(splitDestinationLabel("TH", "תאילנד")).toEqual({
+      country: "תאילנד",
+      area: null,
+    });
+    expect(splitDestinationLabel("KH", "קמבודיה")).toEqual({
+      country: "קמבודיה",
+      area: null,
+    });
+  });
+
+  it("ignores the definite article Intl adds", () => {
+    // Intl says "הפיליפינים", the itinerary says "פיליפינים".
+    expect(splitDestinationLabel("PH", "פיליפינים")).toEqual({
+      country: "הפיליפינים",
+      area: null,
+    });
+  });
+
+  it("splits a country-plus-region label on its separator", () => {
+    expect(splitDestinationLabel("VN", "וייטנאם - צפון")).toEqual({
+      country: "וייטנאם",
+      area: "צפון",
+    });
+    expect(splitDestinationLabel("VN", "וייטנאם - דרום ומרכז")).toEqual({
+      country: "וייטנאם",
+      area: "דרום ומרכז",
+    });
+  });
+
+  it("keeps a label the country name only happens to appear inside", () => {
+    const out = splitDestinationLabel(
+      "GE",
+      "המקטע האחרון - פתוח (גאורגיה כברירת מחדל)"
+    );
+    expect(out.country).toBe("גאורגיה");
+    expect(out.area).toBe("המקטע האחרון - פתוח (גאורגיה כברירת מחדל)");
+  });
+
+  it("never returns an empty area instead of null", () => {
+    expect(splitDestinationLabel("JP", "יפן -")).toEqual({
+      country: "יפן",
+      area: null,
+    });
+    expect(splitDestinationLabel("JP", "  ")).toEqual({
+      country: "יפן",
+      area: null,
+    });
   });
 });
