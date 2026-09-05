@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ChevronForwardIcon,
   CoinIcon,
   WarningIcon,
 } from "@/components/icons";
+import {
+  BudgetBlock,
+  ChecklistBlock,
+  TimelineBlock,
+} from "./homeBlocks";
+import { setItemChecked } from "@/lib/data/checklists";
+import { loadHomeSummary, type HomeSummary } from "@/lib/data/homeDashboard";
 import {
   buildReadiness,
   countOutstanding,
@@ -21,40 +28,81 @@ import type { Trip } from "@/lib/types";
 
 // The home screen between now and departure.
 //
-// The trip starts 03.11.2026. Until then there is no itinerary day for "today",
-// so the Today dashboard had nothing to show and every open of the app landed
-// on an empty card - for 59 days running. This replaces it with the only
-// question that matters in that window: what still has to happen before we fly.
+// The trip starts 03.11.2026, so there is no itinerary day for "today" and the
+// Today dashboard had nothing to show - for 59 days running. The first version
+// of this screen replaced that with a countdown and a list of what was missing,
+// which was better but still one-sided: it showed only failures, while 553
+// collected places, a 24-item bookings checklist and a ₪155,377 budget sat
+// invisible one tap away.
 //
-// It deliberately shows a FEW rows rather than the full checklist. /ready has
-// all twelve; a home screen that lists twelve open items is a wall, and a wall
-// gets ignored the same way an empty card does.
-const HOW_MANY = 4;
+// It now leads with what exists and what can be acted on - the next things to
+// book, where the money stands, the shape of the trip - and keeps only the TWO
+// most urgent warnings. Four warnings under three new blocks is a wall, and a
+// wall gets ignored the same way an empty card does.
+const HOW_MANY_WARNINGS = 2;
 
 export function CountdownHome({ trip }: { trip: Trip }) {
-  const s = strings.ready;
+  const r = strings.ready;
   const [checks, setChecks] = useState<ReadyCheck[] | null>(null);
   const [outstanding, setOutstanding] = useState(0);
+  const [summary, setSummary] = useState<HomeSummary | null>(null);
+
+  const loadSummary = useCallback(async () => {
+    const next = await loadHomeSummary(trip.id, todayISO()).catch(() => null);
+    if (next) setSummary(next);
+  }, [trip.id]);
 
   useEffect(() => {
     let cancelled = false;
+
     void loadReadiness(trip.id, trip.start_date, trip.end_date, todayISO())
       .then((input) => {
         if (cancelled) return;
         const groups = buildReadiness(input);
-        setChecks(urgentChecks(groups, HOW_MANY));
+        setChecks(urgentChecks(groups, HOW_MANY_WARNINGS));
         setOutstanding(countOutstanding(groups));
       })
       .catch(() => {
-        // The countdown and the quick actions still work with no network.
+        // The countdown and the expense shortcut still work with no network.
         if (!cancelled) setChecks([]);
       });
+
+    void loadHomeSummary(trip.id, todayISO())
+      .then((next) => {
+        if (!cancelled) setSummary(next);
+      })
+      .catch(() => {
+        if (!cancelled) setSummary(null);
+      });
+
     return () => {
       cancelled = true;
     };
   }, [trip]);
 
+  async function tick(itemId: string) {
+    // Optimistic: the row leaves the list at once, then the reload confirms it
+    // and pulls up the next open item behind it.
+    setSummary((prev) =>
+      prev?.checklist
+        ? {
+            ...prev,
+            checklist: {
+              ...prev.checklist,
+              done: prev.checklist.done + 1,
+              open: prev.checklist.open.filter((i) => i.id !== itemId),
+            },
+          }
+        : prev
+    );
+    await setItemChecked(itemId, true).catch(() => {});
+    await loadSummary();
+  }
+
   const left = daysUntil(todayISO(), trip.start_date);
+  const budget = summary?.budget ?? null;
+  const checklist = summary?.checklist ?? null;
+  const timeline = summary?.timeline ?? [];
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8 sm:max-w-2xl">
@@ -64,46 +112,38 @@ export function CountdownHome({ trip }: { trip: Trip }) {
         </p>
         <p className="mt-1 text-[32px] font-extrabold leading-none">
           {left == null
-            ? s.noDate
+            ? r.noDate
             : left === 0
-              ? s.countdownToday
-              : s.countdown.replace("{n}", String(left))}
+              ? r.countdownToday
+              : r.countdown.replace("{n}", String(left))}
         </p>
         {checks !== null && (
           <p className="mt-2 text-sm text-white/80">
             {outstanding === 0
-              ? s.allDone
-              : s.outstanding.replace("{n}", String(outstanding))}
+              ? r.allDone
+              : r.outstanding.replace("{n}", String(outstanding))}
           </p>
         )}
       </header>
 
-      {/* Only the expense shortcut. There was a second button here pointing at
-          the itinerary, but the bottom bar already has that tab - a shortcut to
-          somewhere one tap away is just a smaller version of the same link,
-          taking space from the checklist underneath. */}
-      <Link
-        href="/budget"
-        className="flex items-center justify-center gap-2 rounded-2xl bg-sea py-3 text-sm font-bold text-white"
-      >
-        <CoinIcon className="h-4 w-4" strokeWidth={1.9} />
-        {strings.today.addExpenseShort}
-      </Link>
+      {/* ---- what still has to be booked ---- */}
+      {checklist && checklist.total > 0 && (
+        <ChecklistBlock checklist={checklist} onTick={(id) => void tick(id)} />
+      )}
 
-      {checks === null ? (
-        <p className="py-4 text-center text-sm text-ink-soft">
-          {strings.common.loading}
-        </p>
-      ) : checks.length === 0 ? (
-        <p className="ot-card p-4 text-center text-sm text-ink-soft">
-          {s.allDone}
-        </p>
-      ) : (
+      {/* ---- where the money stands ---- */}
+      {budget && <BudgetBlock budget={budget} />}
+
+      {/* ---- the shape of the trip ---- */}
+      {timeline.length > 0 && <TimelineBlock timeline={timeline} />}
+
+      {/* ---- the two most urgent gaps ---- */}
+      {checks !== null && checks.length > 0 && (
         <section>
-          <p className="ot-kicker mb-2 px-0.5">{s.nextUp}</p>
+          <p className="ot-kicker mb-2 px-0.5">{r.nextUp}</p>
           <ul className="overflow-hidden rounded-[18px] border border-line bg-white">
             {checks.map((check, i) => {
-              const text = s.checks[check.key];
+              const text = r.checks[check.key];
               if (!text) return null;
               return (
                 <li key={check.key} className={i > 0 ? "border-t border-line" : ""}>
@@ -146,9 +186,17 @@ export function CountdownHome({ trip }: { trip: Trip }) {
         className="flex items-center gap-2.5 rounded-[18px] border border-line bg-white px-3.5 py-3 active:bg-paper-deep"
       >
         <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
-          {s.seeAll}
+          {r.seeAll}
         </span>
         <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />
+      </Link>
+
+      <Link
+        href="/budget"
+        className="flex items-center justify-center gap-2 rounded-2xl bg-sea py-3 text-sm font-bold text-white"
+      >
+        <CoinIcon className="h-4 w-4" strokeWidth={1.9} />
+        {strings.today.addExpenseShort}
       </Link>
     </div>
   );

@@ -984,6 +984,30 @@ export const strings = {
 
   // "מוכנות ליציאה". One screen that adds up what every other screen only
   // knows about itself.
+  // The pre-departure home screen. It used to show only what was MISSING;
+  // these blocks show what already exists, so the trip reads as taking shape.
+  home: {
+    budgetTitle: "התקציב",
+    budgetPlanned: "מתוכנן",
+    budgetTarget: "יעד",
+    budgetSpent: "הוצא",
+    budgetUnallocated: "‏{amount} עוד לא שויכו לקטגוריה",
+    budgetOver: "הקטגוריות מבטיחות ‏{amount} מעל היעד",
+    budgetExact: "כל היעד משויך לקטגוריות",
+    budgetNone: "עוד לא הוגדר תקציב",
+    checklistProgress: "‏{done} מתוך {total}",
+    checklistAllDone: "הכול סומן",
+    checklistEmpty: "עוד אין רשימות",
+    checklistMore: "לרשימה המלאה",
+    timelineTitle: "המסלול",
+    timelineDays: "‏{n} ימים",
+    timelinePlanned: "‏{planned} מתוך {n} ימים מתוכננים",
+    timelineNothingPlanned: "עוד לא תוכנן",
+    timelineCurrent: "כאן עכשיו",
+    timelineNext: "היעד הראשון",
+    timelineEmpty: "עוד אין ימים במסלול",
+  },
+
   ready: {
     title: "מוכנות ליציאה",
     menu: "מוכנות ליציאה",
