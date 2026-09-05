@@ -20,7 +20,7 @@ import {
   updateItem,
 } from "@/lib/data/itinerary";
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
-import { planFromOption } from "@/lib/data/placeOptions";
+import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { strings } from "@/lib/strings";
 import type {
@@ -532,13 +532,22 @@ export function ItineraryScreen() {
         <OptionsPickerSheet
           tripId={trip.id}
           day={bankFor}
+          plannedCount={itemsOf(bankFor.id).length}
           onClose={() => setBankFor(null)}
-          onPick={(option) => {
+          onPick={(options) => {
             const day = bankFor;
             setBankFor(null);
-            void run(async () => {
-              await planFromOption(option, day.id, itemsOf(day.id).length);
-            }, strings.options.planned);
+            void run(
+              async () => {
+                await planFromOptions(options, day.id, itemsOf(day.id).length);
+              },
+              options.length === 1
+                ? strings.options.planned
+                : strings.options.plannedMany.replace(
+                    "{n}",
+                    String(options.length)
+                  )
+            );
           }}
         />
       )}
