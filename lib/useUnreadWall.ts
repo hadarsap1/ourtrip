@@ -8,7 +8,7 @@ import { useMember } from "@/lib/useMember";
 
 /**
  * Unread count for the family wall, used by the kid/guest badge in both the
- * bottom tab bar and the desktop rail. Owners have no badge — they are the ones
+ * bottom tab bar and the desktop rail. Owners have no badge - they are the ones
  * writing. Recounts on every wall change (debounced) and on navigation, so the
  * badge clears once the wall marks its reads.
  */

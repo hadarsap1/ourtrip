@@ -23,7 +23,7 @@ export type ReplayResult = { replayed: number; dropped: number };
  * Replays queued writes, deleting each on success. A failure is classified:
  * a *transient* failure (connectivity lost mid-replay) leaves the entry queued
  * for the next trigger; a *permanent* failure (deleted category, RLS denial,
- * un-convertible currency — the write can never succeed as-is) is dropped so it
+ * un-convertible currency - the write can never succeed as-is) is dropped so it
  * cannot block everything queued behind it (head-of-line blocking). We never
  * `break`, so one bad entry never strands the rest. `dropped` lets the caller
  * warn the family that some offline entries could not be saved.

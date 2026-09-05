@@ -343,6 +343,60 @@ export type Database = {
           },
         ]
       }
+      destination_facts: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          emoji: string | null
+          fact: string
+          id: string
+          location_name: string
+          sort_order: number
+          source: string
+          trip_id: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          fact: string
+          id?: string
+          location_name: string
+          sort_order?: number
+          source?: string
+          trip_id: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          fact?: string
+          id?: string
+          location_name?: string
+          sort_order?: number
+          source?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "destination_facts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "destination_facts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_info: {
         Row: {
           content: Json

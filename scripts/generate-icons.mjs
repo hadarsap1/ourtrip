@@ -2,12 +2,12 @@
 // icon, the maskable Android icon and the iOS touch icon can never drift apart
 // again. Run with `node scripts/generate-icons.mjs` after changing the mark.
 //
-// Rendering goes through the Chromium that Playwright already installs — no new
+// Rendering goes through the Chromium that Playwright already installs - no new
 // dependency (CLAUDE.md rule #7). The mark is the "O" of OurTrip: a white ring
 // on brand sea (--color-sea, #0e7c6b).
 //
 // Three shapes, because the platforms mask differently:
-//   any       rounded square with transparent corners — used as-is by browsers
+//   any       rounded square with transparent corners - used as-is by browsers
 //             and by Chrome's install dialog, so it must look finished alone.
 //   maskable  FULL BLEED. Android crops it to whatever shape the launcher uses,
 //             so the teal has to reach all four edges and the ring has to stay

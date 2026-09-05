@@ -242,7 +242,7 @@ function GenerateCodeSheet({
     <Sheet
       open
       onClose={onClose}
-      title={`${strings.kids.generateCode} — ${kid.display_name}`}
+      title={`${strings.kids.generateCode} - ${kid.display_name}`}
     >
       {code ? (
         <div className="space-y-4 text-center">

@@ -11,6 +11,7 @@ import {
   MoreIcon,
   PhotosIcon,
   RouteIcon,
+  SparkleIcon,
 } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
@@ -20,11 +21,12 @@ export type NavItem = {
   Icon: ComponentType<IconProps>;
 };
 
-// Kid tablet variant: kid-relevant destinations only (cosmetic — kids are
+// Kid tablet variant: kid-relevant destinations only (cosmetic - kids are
 // locked out of owner data by RLS regardless). Phrasebook stays reachable from
 // the kid home tile.
 export const kidTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
+  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
   { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
   { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },

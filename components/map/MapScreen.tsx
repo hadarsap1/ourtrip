@@ -141,7 +141,7 @@ export function MapScreen() {
       mapRef.current = map;
       setMapReady(true);
 
-      // center on the user's current location (and mark it) — falls back to the
+      // center on the user's current location (and mark it) - falls back to the
       // trip's fitBounds framing below when there's itinerary/pin data to show.
       if (typeof navigator !== "undefined" && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -160,7 +160,7 @@ export function MapScreen() {
     };
   }, [refresh, showToast]);
 
-  // Google photos attached to pins (family view only — guests read the map
+  // Google photos attached to pins (family view only - guests read the map
   // read-only; shared Google photos appear in their Photos gallery instead).
   useEffect(() => {
     if (!trip || isGuest) return;
@@ -282,7 +282,7 @@ export function MapScreen() {
       polylinesRef.current.push(line);
     }
 
-    // "you are here" blue dot — not added to bounds, so a trip on the other
+    // "you are here" blue dot - not added to bounds, so a trip on the other
     // side of the world still frames the trip rather than zooming out to fit us
     if (myLoc) {
       const dot = new google.maps.Marker({
@@ -394,7 +394,7 @@ export function MapScreen() {
         />
       )}
 
-      {/* mode controls (family only — guests get a read-only map) */}
+      {/* mode controls (family only - guests get a read-only map) */}
       {mapReady && !isGuest && (
         <div className="flex flex-wrap gap-2 text-sm font-semibold">
           {mode === "view" && (

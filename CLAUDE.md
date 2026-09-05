@@ -1,7 +1,7 @@
 # OurTrip - Project Instructions for Claude Code
 
 ## What this project is
-A family trip management PWA for Hadar, Sivan and their two kids (early elementary age), plus view-only family guests in Israel. Hebrew RTL UI. Personal app, not commercial. **Multi-country, round-the-world trip** — nothing may assume a single destination country, currency, or language. Full spec in `docs/SPEC.md`, sprint plan in `docs/ROADMAP.md`, locked decisions in `docs/DECISIONS.md`.
+A family trip management PWA for Hadar, Sivan and their two kids (early elementary age), plus view-only family guests in Israel. Hebrew RTL UI. Personal app, not commercial. **Multi-country, round-the-world trip** - nothing may assume a single destination country, currency, or language. Full spec in `docs/SPEC.md`, sprint plan in `docs/ROADMAP.md`, locked decisions in `docs/DECISIONS.md`.
 
 ## Stack (locked - do not propose alternatives)
 - Next.js 14+ (App Router) + React + TypeScript (strict)

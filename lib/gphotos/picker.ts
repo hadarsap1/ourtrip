@@ -1,7 +1,7 @@
 // Client orchestration for the Google Photos Picker flow.
 //
 // The heavy lifting (session create/poll, downloading + caching the picked
-// photos) happens in the `gphotos` Edge Function — see supabase/functions.
+// photos) happens in the `gphotos` Edge Function - see supabase/functions.
 // The browser's only jobs are (1) get a Google access token via Google
 // Identity Services (GIS), scoped to photospicker.mediaitems.readonly, and
 // (2) open Google's picker UI so the owner can choose photos.
@@ -26,7 +26,7 @@ type Oauth2 = {
 };
 
 /** GIS is loaded from an external script and isn't in our window typings
- *  (window.google is typed as the Maps namespace elsewhere) — reach it by cast. */
+ *  (window.google is typed as the Maps namespace elsewhere) - reach it by cast. */
 function gisOauth2(): Oauth2 | undefined {
   return (
     globalThis as unknown as { google?: { accounts?: { oauth2?: Oauth2 } } }

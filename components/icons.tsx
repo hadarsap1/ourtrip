@@ -1,6 +1,6 @@
 // One drawn stroke-icon set for the whole app, replacing the system emoji that
 // used to stand in for icons. Every glyph is a 24×24 viewBox at stroke-width
-// 1.8, round caps and joins, `currentColor` — so an icon inherits the colour of
+// 1.8, round caps and joins, `currentColor` - so an icon inherits the colour of
 // whatever row, chip or tab holds it, and nothing renders differently between
 // Android, iOS and desktop the way emoji do.
 //
@@ -557,7 +557,7 @@ export function WeatherIcon({ code, ...p }: IconProps & { code: number }) {
 
 /* ---- recommendation categories -------------------------------------------
    Typed as a full Record, so adding a category to RECOMMEND_CATEGORIES without
-   giving it a glyph is a compile error — the invariant the old runtime test
+   giving it a glyph is a compile error - the invariant the old runtime test
    approximated, now enforced before the code runs. */
 
 const RECOMMEND_CATEGORY_ICON: Record<

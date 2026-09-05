@@ -235,7 +235,7 @@ export function ItineraryScreen() {
   }
 
   // Tap a day in the strip: put its card at the top of the viewport. Not
-  // scrollIntoView — that also scrolls any ancestor, which drags the whole page
+  // scrollIntoView - that also scrolls any ancestor, which drags the whole page
   // when the strip is near the bottom of a short screen.
   const jumpToDay = (day: ItineraryDay) => {
     setSelectedDayId(day.id);

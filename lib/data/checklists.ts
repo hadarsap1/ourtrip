@@ -80,7 +80,7 @@ export async function deleteChecklist(id: string): Promise<void> {
   if (itemsError) throw new Error(itemsError.message);
   const { error } = await supabase.from("checklists").delete().eq("id", id);
   // FK from instantiated lists (source_template_id) restricts deleting a
-  // template that has been used — the UI maps 23503 to a Hebrew message.
+  // template that has been used - the UI maps 23503 to a Hebrew message.
   if (error) throw new Error(error.code === "23503" ? "template_in_use" : error.message);
 }
 

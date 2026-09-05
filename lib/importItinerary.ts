@@ -1,6 +1,6 @@
 // Parses an itinerary spreadsheet into day + activity rows the app can import.
 // Reuses SheetJS. Built for real family planning sheets, which tend to be:
-//   • multi-sheet — one sheet per leg/country (the sheet NAME is the place);
+//   • multi-sheet - one sheet per leg/country (the sheet NAME is the place);
 //   • date columns that hold a RANGE ("1.11 - 22.11") often with no year;
 //   • a category column (לינה / אטרקציה / תחבורה …) + a place + a description
 //     + a link, rather than one activity per row with a clock time.
@@ -72,7 +72,7 @@ function excelDateToISO(n: number): string | null {
 }
 
 /** ISO date from an Excel serial number or a text date (ISO or DD/MM/YYYY with
- *  a year). Returns null for a bare DD.MM (no year) — see startOfRange. */
+ *  a year). Returns null for a bare DD.MM (no year) - see startOfRange. */
 export function parseDateCell(cell: unknown): string | null {
   if (typeof cell === "number") return excelDateToISO(cell);
   const s = String(cell ?? "").trim();

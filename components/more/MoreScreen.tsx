@@ -154,7 +154,7 @@ export function MoreScreen() {
   ];
 
   // These are settings, not destinations, so they get a list rather than tiles
-  // — and each says what state it is in.
+  // - and each says what state it is in.
   const admin: AdminRow[] = [
     {
       href: "/checklists",
@@ -249,7 +249,7 @@ export function MoreScreen() {
       </section>
 
       {/* Emergency stays visually separate and unmistakable. Naming the country
-          you'd land on is the difference between a link and an answer — and it
+          you'd land on is the difference between a link and an answer - and it
           comes from today's itinerary day, never a configured destination. */}
       <Link
         href="/emergency"

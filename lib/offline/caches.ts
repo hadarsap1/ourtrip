@@ -1,5 +1,5 @@
 // Read/write helpers over the offline stores. All helpers no-op (or return
-// empty) when IndexedDB is unavailable — callers treat cache misses as "no
+// empty) when IndexedDB is unavailable - callers treat cache misses as "no
 // offline copy", never as errors.
 
 import {
@@ -9,6 +9,7 @@ import {
   type OfflineDocument,
   type PhrasebookSnapshot,
   type TodaySnapshot,
+  type FactsSnapshot,
 } from "./db";
 
 const TODAY_KEY = "today";
@@ -141,4 +142,30 @@ export async function listOfflineDocumentIds(): Promise<string[]> {
   if (!dbp) return [];
   const db = await dbp;
   return (await db.getAllKeys("documents_offline")) as string[];
+}
+
+// ---------- destination facts ("הידעת") ----------
+//
+// Cached per destination rather than as one blob: a kid reads the place they
+// are in, and the trip has 14 of them.
+
+export async function saveFactsSnapshot(
+  snapshot: Omit<FactsSnapshot, "savedAt">
+): Promise<void> {
+  const dbp = getOfflineDB();
+  if (!dbp) return;
+  const db = await dbp;
+  await db.put("destination_facts", {
+    ...snapshot,
+    savedAt: new Date().toISOString(),
+  });
+}
+
+export async function readFactsSnapshot(
+  key: string
+): Promise<FactsSnapshot | null> {
+  const dbp = getOfflineDB();
+  if (!dbp) return null;
+  const db = await dbp;
+  return (await db.get("destination_facts", key)) ?? null;
 }

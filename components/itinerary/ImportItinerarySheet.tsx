@@ -111,7 +111,7 @@ export function ImportItinerarySheet({
                     {r.start_time ? ` ${r.start_time}` : ""}
                   </span>
                   <span className="flex-1 truncate text-ink">
-                    {r.title || r.location_name || "—"}
+                    {r.title || r.location_name || "-"}
                   </span>
                 </li>
               ))}

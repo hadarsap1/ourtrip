@@ -91,7 +91,7 @@ export function NotificationsScreen() {
         </ul>
       </section>
 
-      {/* control — iOS-before-install always shows the install steps first,
+      {/* control - iOS-before-install always shows the install steps first,
           since Web Push can't work until the PWA is on the home screen */}
       {iosNeedsInstall ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">

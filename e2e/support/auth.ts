@@ -4,10 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 // in the repo. All four must be set for the authenticated suite to run; when
 // any is missing the suite skips itself (see authenticated.spec.ts).
 //
-//   E2E_SUPABASE_URL       – a *test* Supabase project URL
-//   E2E_SUPABASE_ANON_KEY  – its anon key
-//   E2E_TEST_EMAIL         – a seeded OWNER member with a password set
-//   E2E_TEST_PASSWORD      – that user's password
+//   E2E_SUPABASE_URL       - a *test* Supabase project URL
+//   E2E_SUPABASE_ANON_KEY  - its anon key
+//   E2E_TEST_EMAIL         - a seeded OWNER member with a password set
+//   E2E_TEST_PASSWORD      - that user's password
 //
 // The user must be a real owner row (AuthGate calls link_member_to_auth_user and
 // rejects sessions with no member role), so point these at a throwaway project.

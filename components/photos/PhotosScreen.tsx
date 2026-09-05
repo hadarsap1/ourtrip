@@ -278,7 +278,7 @@ function FamilyPhotosView() {
         </div>
       )}
 
-      {/* owner approval queue (kid uploads land here — DECISIONS #4) */}
+      {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
       {isOwner && pending.length > 0 && (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
           <h2 className="mb-2 px-1 text-sm font-bold text-amber-800">

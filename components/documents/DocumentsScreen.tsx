@@ -212,7 +212,7 @@ export function DocumentsScreen() {
   }
 
   // Binds this device's authenticator to the vault. Only reachable while the
-  // vault is open — the key has to be in memory to be wrapped.
+  // vault is open - the key has to be in memory to be wrapped.
   async function enrollThisDevice() {
     if (!trip || !member || enrolling) return;
     setEnrolling(true);
@@ -344,7 +344,7 @@ export function DocumentsScreen() {
         <h1 className="text-[22px] font-extrabold text-ink">
           {isKid ? strings.documents.kidTitle : strings.nav.documents}
         </h1>
-        {/* The PIN is reassurance, not only a challenge — say the vault is
+        {/* The PIN is reassurance, not only a challenge - say the vault is
             protected on the way in, not just when it blocks you. */}
         {!isKid && pinExists && (
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[11px] font-bold text-sea-deep">

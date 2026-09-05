@@ -172,7 +172,7 @@ export async function unlockWithPin(pin: string): Promise<UnlockResult> {
     return { status: "wrong", attemptsLeft: Number(data.attempts_left ?? 0) };
   }
   if (status === 401) {
-    // unknown/revoked device — force re-registration
+    // unknown/revoked device - force re-registration
     forgetKidDevice();
     return { status: "error" };
   }

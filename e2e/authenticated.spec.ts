@@ -3,7 +3,7 @@ import { authEnv, authReady, signInSession, storageKey } from "./support/auth";
 
 // Authenticated owner flows. These run only when the E2E_* env vars are set
 // (see e2e/support/auth.ts and e2e/README.md) and drive the app the way a
-// logged-in owner would — proving AuthGate + RLS let a real member through,
+// logged-in owner would - proving AuthGate + RLS let a real member through,
 // which the credential-free smoke suite deliberately cannot cover.
 //
 // Run with:  npm run test:e2e:auth

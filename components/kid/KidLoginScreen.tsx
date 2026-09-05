@@ -60,7 +60,7 @@ export function KidLoginScreen() {
       // Nothing the kid can do, and nothing retrying will fix.
       setMessage(strings.kidLogin.unlockDisabled);
     } else if (!isKidDevice()) {
-      // device was revoked — back to registration
+      // device was revoked - back to registration
       setPhase("register");
       setMessage(strings.kidLogin.invalidCode);
     } else {

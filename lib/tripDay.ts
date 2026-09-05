@@ -18,7 +18,7 @@ function utcDays(isoDate: string): number {
 }
 
 /**
- * "יום 12 מתוך 84" — where today falls in the trip. Null when the trip has no
+ * "יום 12 מתוך 84" - where today falls in the trip. Null when the trip has no
  * date range, or when today is outside it: a day counter that reads "יום ‎-3"
  * before departure or "יום 90 מתוך 84" after landing is worse than no counter.
  */
@@ -53,8 +53,8 @@ function minutesOfDay(time: string | null): number | null {
 
 /**
  * The next thing happening today: the earliest item that is still ahead of us
- * and neither done nor cancelled. Items with no start time can't be "next" —
- * there is nothing to count down to — so they are skipped.
+ * and neither done nor cancelled. Items with no start time can't be "next" -
+ * there is nothing to count down to - so they are skipped.
  *
  * `nowMinutes` is minutes past local midnight, passed in rather than read from
  * a clock so the caller controls the tick and this stays testable.

@@ -35,7 +35,7 @@ export async function getAutoLocation(tripId: string): Promise<string | null> {
       .maybeSingle();
     if (data?.location_name) return data.location_name;
   } catch {
-    // offline — try the snapshot below
+    // offline - try the snapshot below
   }
   const snapshot = await readTodaySnapshot();
   return snapshot?.day?.location_name ?? null;

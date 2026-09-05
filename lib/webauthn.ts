@@ -7,7 +7,7 @@
 // back a cryptographic result. The biometric never leaves the device.
 //
 // The PRF extension is what makes this useful for an END-TO-END ENCRYPTED
-// vault. A plain WebAuthn assertion is a signature — it proves "the right
+// vault. A plain WebAuthn assertion is a signature - it proves "the right
 // person is here", but it yields no key, so building on it would mean
 // stashing the vault key on the device behind a UI check. That is a gate, not
 // a boundary: anyone holding the device reads the key straight out of storage.
@@ -17,7 +17,7 @@
 // recovered without the authenticator.
 //
 // Support caveat: PRF needs a platform authenticator and a browser that
-// implements it. Everything here feature-detects and fails soft — callers
+// implements it. Everything here feature-detects and fails soft - callers
 // fall back to the passphrase, which always works.
 
 const RP_NAME = "OurTrip";
@@ -128,7 +128,7 @@ export async function enrollPrfCredential(input: {
         name: input.userName,
         displayName: input.userName,
       },
-      // ES256 then RS256 — every platform authenticator supports one of these
+      // ES256 then RS256 - every platform authenticator supports one of these
       pubKeyCredParams: [
         { type: "public-key", alg: -7 },
         { type: "public-key", alg: -257 },
@@ -136,7 +136,7 @@ export async function enrollPrfCredential(input: {
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         residentKey: "preferred",
-        // the biometric IS the point — never accept a silent assertion
+        // the biometric IS the point - never accept a silent assertion
         userVerification: "required",
       },
       timeout: TIMEOUT_MS,

@@ -108,7 +108,7 @@ export function QuickLinesSheet({
                   key={i}
                   className="flex items-baseline justify-between gap-2 rounded-lg bg-white px-2 py-1.5 text-sm shadow-sm"
                 >
-                  <span className="truncate text-ink">{l.description || "—"}</span>
+                  <span className="truncate text-ink">{l.description || "-"}</span>
                   <span className="shrink-0 font-semibold text-sea-deep" dir="ltr">
                     {formatMoney(l.amount, l.currency)}
                   </span>

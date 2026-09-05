@@ -7,8 +7,8 @@
 //
 //     if (error) throw new Error(error.message);   // ...then compared to "not_configured"
 //
-// could therefore never match a specific code, so every failure — a missing
-// API key, an exhausted balance, a genuine transient error — surfaced as the
+// could therefore never match a specific code, so every failure - a missing
+// API key, an exhausted balance, a genuine transient error - surfaced as the
 // same "try again" message. Retrying does not help two of those three.
 //
 // The body shape is the one every function here returns: { ok: false, error }.
@@ -25,7 +25,7 @@ function isResponseLike(v: unknown): v is Response {
 }
 
 /** The function's own error code (e.g. "not_configured", "no_credit",
- *  "forbidden"), or null when the failure carried no structured body —
+ *  "forbidden"), or null when the failure carried no structured body -
  *  a network drop, a timeout, or a non-JSON reply. */
 export async function functionErrorCode(error: unknown): Promise<string | null> {
   if (!error) return null;

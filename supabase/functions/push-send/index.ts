@@ -1,4 +1,4 @@
-// Sprint 8 — Web Push fan-out (SPEC 2.14). Single entry point for all four
+// Sprint 8 - Web Push fan-out (SPEC 2.14). Single entry point for all four
 // notification kinds; the DB decides who exists, this function only decides
 // who to notify:
 //   - wall-message  : new family-wall message → everyone on the trip but the sender
@@ -8,8 +8,8 @@
 //                     00026; see the incident note in backup-weekly)
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
-// so it is deployed verify_jwt=false. A forged call leaks no content — the
-// ids are unguessable UUIDs and everything is loaded server-side — but the
+// so it is deployed verify_jwt=false. A forged call leaks no content - the
+// ids are unguessable UUIDs and everything is loaded server-side - but the
 // review pointed out it can still spam the family with real notifications at
 // any hour. Since migration 00025 both callers send a shared secret and
 // cronAuthorized() checks it.
@@ -25,7 +25,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
 // before the secret exists would stop notifications with nothing surfacing the
 // failure, which is the silent breakage supabase/config.toml exists to
-// prevent. Setting CRON_SECRET (both sides — see 00025) switches it on.
+// prevent. Setting CRON_SECRET (both sides - see 00025) switches it on.
 function cronAuthorized(req: Request): boolean {
   const expected = Deno.env.get("CRON_SECRET");
   if (!expected) return true;
@@ -92,7 +92,7 @@ async function ownerIds(tripId: string): Promise<string[]> {
 }
 
 async function familyIds(tripId: string): Promise<string[]> {
-  // owners + kids (not guests) — guests get the wall via the portal, not push
+  // owners + kids (not guests) - guests get the wall via the portal, not push
   const { data } = await service
     .from("members")
     .select("id")
@@ -150,14 +150,14 @@ async function handlePendingPhoto(photoId: string): Promise<number> {
   );
   return pushToMembers(owners, {
     title: "תמונה חדשה ממתינה לאישור 📷",
-    body: "יש תמונה חדשה מהילדים — אפשר לאשר ולשתף",
+    body: "יש תמונה חדשה מהילדים - אפשר לאשר ולשתף",
     url: "/photos",
     tag: "pending-photo",
   });
 }
 
 /** The weekly backup has gone stale. Sent by check_backup_freshness (00026),
- *  which exists because a failing backup is otherwise completely silent —
+ *  which exists because a failing backup is otherwise completely silent -
  *  cron reports success for a merely-queued request. Owners only. */
 async function handleBackupStale(ageDays: number): Promise<number> {
   const { data: trip } = await service
@@ -172,8 +172,8 @@ async function handleBackupStale(ageDays: number): Promise<number> {
     title: "⚠️ הגיבוי השבועי לא רץ",
     body:
       ageDays < 0
-        ? "לא נמצא אף גיבוי במערכת — כדאי לבדוק מה קרה"
-        : `הגיבוי האחרון בן ${ageDays} ימים — כדאי לבדוק מה קרה`,
+        ? "לא נמצא אף גיבוי במערכת - כדאי לבדוק מה קרה"
+        : `הגיבוי האחרון בן ${ageDays} ימים - כדאי לבדוק מה קרה`,
     url: "/more",
     tag: "backup-stale",
   });
@@ -221,13 +221,13 @@ async function handleDaily(): Promise<{ weather: number; checkin: number }> {
             title: "☔ יתכן גשם היום",
             body: `סיכוי משקעים ${chance}% ${
               day.location_name ? `ב${day.location_name}` : ""
-            } — יש פעילות בחוץ במסלול`,
+            } - יש פעילות בחוץ במסלול`,
             url: "/",
             tag: "weather",
           });
         }
       } catch {
-        // weather provider down — skip the alert, never fail the digest
+        // weather provider down - skip the alert, never fail the digest
       }
     }
   }
@@ -246,7 +246,7 @@ async function handleDaily(): Promise<{ weather: number; checkin: number }> {
     for (const f of flights) {
       checkinSent += await pushToMembers(owners, {
         title: "🛫 צ'ק-אין לטיסה מחר",
-        body: `${f.title} — מומלץ לבצע צ'ק-אין מקוון`,
+        body: `${f.title} - מומלץ לבצע צ'ק-אין מקוון`,
         url: "/itinerary",
         tag: `checkin-${f.id}`,
       });

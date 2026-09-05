@@ -1,8 +1,8 @@
-// Sprint 8 — weekly database backup (SPEC §5, ROADMAP "never cut"). Exports
+// Sprint 8 - weekly database backup (SPEC §5, ROADMAP "never cut"). Exports
 // every trip-data table to a single timestamped JSON file in the private
 // `backups` storage bucket. Invoked by pg_cron (Sunday 03:00 UTC), so it is
 // deployed verify_jwt=false. Anonymous invocation was previously an accepted
-// risk; the review pointed out that "returns no data" understates it — the
+// risk; the review pointed out that "returns no data" understates it - the
 // response carries the backup path and a per-table row count, and the dump
 // itself holds messages, emergency_info and kid_devices behind a single
 // bucket policy. Since migration 00025 the cron job sends a shared secret and
@@ -12,7 +12,7 @@
 // weeks. Migration 00021 dropped `saved_recommendations` (superseded by
 // place_options), but it stayed in TABLES below, so every run errored on that
 // one table and returned 500 before writing anything. The cron job kept
-// reporting success — net.http_post only queues the request — so nothing
+// reporting success - net.http_post only queues the request - so nothing
 // surfaced it. Last good backup: 2026-08-09. Two fixes, both below:
 //
 //   1. the list is corrected, and now carries the newer tables it had also
@@ -33,7 +33,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
 // before the secret exists would stop this job with nothing surfacing the
 // failure, which is the silent breakage supabase/config.toml exists to
-// prevent. Setting CRON_SECRET (both sides — see 00025) switches it on.
+// prevent. Setting CRON_SECRET (both sides - see 00025) switches it on.
 function cronAuthorized(req: Request): boolean {
   const expected = Deno.env.get("CRON_SECRET");
   if (!expected) return true;
@@ -55,7 +55,7 @@ function json(body: unknown, status = 200): Response {
 
 // Every public table carrying trip content. Storage objects (photos, docs,
 // booking files) are backed by Supabase's own bucket durability and are not
-// re-exported here — this is a structured-data snapshot.
+// re-exported here - this is a structured-data snapshot.
 //
 // Keep this in step with the schema. `document_pin` in particular is not
 // optional: it holds the per-vault salt, and without that row the passphrase
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
   for (const table of TABLES) {
     const { data, error } = await service.from(table).select("*");
     if (error) {
-      // Do not abort — see the incident note at the top of this file.
+      // Do not abort - see the incident note at the top of this file.
       failed[table] = error.message;
       console.error(`backup-weekly: ${table}: ${error.message}`);
       continue;
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     counts[table] = data?.length ?? 0;
   }
 
-  // A run where nothing at all could be read is a real failure — writing an
+  // A run where nothing at all could be read is a real failure - writing an
   // empty snapshot over a healthy history would be worse than writing nothing.
   if (Object.keys(tables).length === 0) {
     return json({ ok: false, error: "every table failed", failed }, 500);

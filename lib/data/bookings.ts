@@ -45,7 +45,7 @@ export async function updateBooking(
 
 export async function deleteBooking(id: string): Promise<void> {
   // FK from itinerary_items/expenses restricts deletion of a linked booking
-  // (23503) — the UI maps that to a Hebrew explanation.
+  // (23503) - the UI maps that to a Hebrew explanation.
   const { error } = await requireClient().from("bookings").delete().eq("id", id);
   if (error) throw new Error(error.code === "23503" ? "booking_linked" : error.message);
 }

@@ -15,8 +15,8 @@ const monthLabel = (y: number, m: number) => {
   }
 };
 
-/** Month-grid overview of the trip. Each date shows what is planned on it —
- *  where you are, and how many activities — so the plan is readable without
+/** Month-grid overview of the trip. Each date shows what is planned on it -
+ *  where you are, and how many activities - so the plan is readable without
  *  opening anything. Tapping still opens the day (existing → scroll to it,
  *  empty → offer to add it). */
 export function CalendarView({
@@ -29,7 +29,7 @@ export function CalendarView({
   onSelectDate: (dateISO: string) => void;
 }) {
   // Months shown beyond the trip's own span. Tapping a date in one of them
-  // offers to add that day, which is how the trip gets extended from here —
+  // offers to add that day, which is how the trip gets extended from here -
   // before this, the grid stopped dead at the first and last planned day.
   const [monthsBefore, setMonthsBefore] = useState(1);
   const [monthsAfter, setMonthsAfter] = useState(1);

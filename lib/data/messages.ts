@@ -5,8 +5,8 @@ export type WallMessage = Tables<"messages">;
 
 /**
  * The two feeds (migration 00027, review finding M5).
- *   family — owners + kids. Guests cannot read or write it.
- *   guests — owners + guests. Kids cannot read or write it.
+ *   family - owners + kids. Guests cannot read or write it.
+ *   guests - owners + guests. Kids cannot read or write it.
  * Parents are in both and bridge between them. RLS enforces this; the values
  * here only decide which feed the UI is looking at.
  */

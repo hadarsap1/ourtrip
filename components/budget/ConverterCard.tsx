@@ -68,7 +68,7 @@ export function ConverterCard() {
         </button>
         <span className="min-w-0 flex-1 truncate text-end text-lg font-bold text-sea">
           {converted === null
-            ? "—"
+            ? "-"
             : formatMoney(
                 Math.round(converted * 100) / 100,
                 toIls ? "ILS" : currency

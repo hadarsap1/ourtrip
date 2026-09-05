@@ -260,7 +260,7 @@ function SortableItem({
           }`}
           dir="ltr"
         >
-          {item.start_time ? formatTime(item.start_time) : "—"}
+          {item.start_time ? formatTime(item.start_time) : "-"}
         </span>
         <span className="min-w-0 flex-1">
           <span
@@ -279,7 +279,7 @@ function SortableItem({
             <span className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-ink-soft">
               {item.end_time && (
                 <span className="shrink-0 tabular-nums" dir="ltr">
-                  {formatTime(item.start_time ?? "")}–{formatTime(item.end_time)}
+                  {formatTime(item.start_time ?? "")}-{formatTime(item.end_time)}
                 </span>
               )}
               {item.location_name && (

@@ -55,7 +55,7 @@ function RailRow({
  * pinned to the inline-start edge (the right, in RTL), so the content column no
  * longer sits as a 512px strip in the middle of an empty viewport.
  *
- * Owners get the full map — the four primary destinations, the memory
+ * Owners get the full map - the four primary destinations, the memory
  * destinations that hide behind "עוד" on mobile, and the emergency page. Kids
  * and guests get exactly the tabs their bottom bar already shows and nothing
  * more; the rail is extra room, not extra access.

@@ -2,7 +2,7 @@
 
 Work one sprint at a time. A sprint is done only when every acceptance criterion passes and `npm run build` is clean. Deploy to Vercel at the end of every sprint.
 
-Timeline note: departure is ~100 days from kickoff (2026-07-16), so 8 weekly sprints finish with roughly a 5-week buffer. Protect that buffer — do not let sprints slip silently.
+Timeline note: departure is ~100 days from kickoff (2026-07-16), so 8 weekly sprints finish with roughly a 5-week buffer. Protect that buffer - do not let sprints slip silently.
 
 ## Sprint 1 - Foundation
 Build: Next.js project (App Router, TS strict, Tailwind RTL), Supabase project wiring, full schema migration from `docs/SCHEMA.sql` with RLS enabled on every table (including the `current_member()` helper designed for both owner auth and future kid JWTs), Google OAuth for the two owner emails, Hebrew RTL app shell with bottom tab nav (היום / מסלול / תקציב / מסמכים / עוד), empty Today screen, PWA manifest + basic service worker (app shell cache), deploy to Vercel.

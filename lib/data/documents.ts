@@ -174,7 +174,7 @@ export async function deleteDocument(doc: Document): Promise<void> {
   const supabase = requireClient();
   const { error } = await supabase.from("documents").delete().eq("id", doc.id);
   if (error) throw new Error(error.message);
-  // best-effort cleanups — the row is the source of truth
+  // best-effort cleanups - the row is the source of truth
   await supabase.storage.from(BUCKET).remove([doc.file_path]);
   await removeOfflineDocument(doc.id);
 }
@@ -190,7 +190,7 @@ export async function getDocumentUrl(path: string): Promise<string> {
 // ---------- offline copies ----------
 
 /**
- * Downloads the file and stores it in IndexedDB for offline access —
+ * Downloads the file and stores it in IndexedDB for offline access -
  * encrypted at rest under the vault key.
  *
  * Before the 2026-08 review this wrote the file as-is, so an unlocked
@@ -199,7 +199,7 @@ export async function getDocumentUrl(path: string): Promise<string> {
  * ciphertext.
  *
  * A pin_protected document is already stored as its own ciphertext, so it is
- * saved unchanged and `offlineEncrypted` stays false — decryptDocument owns
+ * saved unchanged and `offlineEncrypted` stays false - decryptDocument owns
  * that unwrapping. Everything else gets a layer here.
  */
 export async function makeAvailableOffline(
@@ -232,7 +232,7 @@ export type OpenResult = "opened" | "needs-key" | "unavailable";
  * → the IndexedDB copy, if the document was flagged for offline.
  *
  * Returns "needs-key" when the only available copy is an encrypted offline
- * one and no vault key was supplied — the caller prompts and retries. Going
+ * one and no vault key was supplied - the caller prompts and retries. Going
  * online never needs the key, so the common path is unchanged.
  */
 export async function openDocument(

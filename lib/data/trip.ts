@@ -52,7 +52,7 @@ async function fetchCurrentMember(): Promise<Member | null> {
 
   // getSession() reads the stored JWT locally; getUser() would spend a round
   // trip revalidating it with the auth server before we can even start the
-  // members query. The uid is only used to pick a row — RLS is what actually
+  // members query. The uid is only used to pick a row - RLS is what actually
   // enforces access, and it validates the token server-side anyway.
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user?.id;

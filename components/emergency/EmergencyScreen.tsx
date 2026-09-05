@@ -96,7 +96,7 @@ export function EmergencyScreen() {
     void (async () => {
       const activeTrip = await getActiveTrip();
       // offline-critical: even without a trip row (offline start), cached
-      // pages must render — listEmergencyPages falls back to IndexedDB.
+      // pages must render - listEmergencyPages falls back to IndexedDB.
       if (!cancelled) setTrip(activeTrip);
       const tripId = activeTrip?.id ?? "";
       try {
@@ -284,7 +284,7 @@ export function EmergencyScreen() {
                 </section>
               )}
 
-              {/* auto-filled data can be imperfect — nudge to verify the embassy
+              {/* auto-filled data can be imperfect - nudge to verify the embassy
                   and numbers against the official source */}
               {(content.police ||
                 content.ambulance ||

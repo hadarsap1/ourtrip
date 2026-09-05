@@ -2,7 +2,7 @@
 
 Two suites, both driving the real app in Chromium at the 390px mobile viewport.
 
-## Smoke suite (no credentials) — `npm run test:e2e`
+## Smoke suite (no credentials) - `npm run test:e2e`
 
 `smoke.spec.ts` boots the app with **no** Supabase env. In that mode `AuthGate`
 bypasses (see `components/AuthGate.tsx`), so the full Hebrew RTL shell renders
@@ -13,9 +13,9 @@ and we can verify:
 - the PWA manifest is served
 - all 21 routes mount (HTTP status, no error dialog, no uncaught exceptions)
 
-No setup needed — it runs anywhere.
+No setup needed - it runs anywhere.
 
-## Authenticated suite (needs a test project) — `npm run test:e2e:auth`
+## Authenticated suite (needs a test project) - `npm run test:e2e:auth`
 
 `authenticated.spec.ts` logs a real **owner** in and drives owner-only screens,
 proving `AuthGate` + RLS let a valid member through. It **skips itself** unless
@@ -28,7 +28,7 @@ all four env vars are set:
 | `E2E_TEST_EMAIL` | A seeded **owner** member with a password set |
 | `E2E_TEST_PASSWORD` | That user's password |
 
-The account must be a real owner row — `link_member_to_auth_user` rejects
+The account must be a real owner row - `link_member_to_auth_user` rejects
 sessions with no member role. Use a disposable project, never production.
 
 ```bash

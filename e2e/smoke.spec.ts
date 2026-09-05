@@ -23,6 +23,7 @@ const ROUTES = [
   "/notifications",
   "/options",
   "/ready",
+  "/facts",
   "/offline",
   "/login",
   "/kid-login",
@@ -185,7 +186,7 @@ test.describe("routes mount without crashing", () => {
       // The Next.js dev *error* overlay is a modal dialog (build/runtime error).
       // The <nextjs-portal> host is always present in dev (it also carries the
       // dev-tools indicator), so we assert specifically that no error dialog is
-      // open — that's what a failed compile or render would surface.
+      // open - that's what a failed compile or render would surface.
       await expect(
         page.locator("nextjs-portal [data-nextjs-dialog], nextjs-portal [role='dialog']"),
       ).toHaveCount(0);

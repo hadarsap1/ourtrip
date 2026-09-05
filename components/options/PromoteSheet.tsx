@@ -9,7 +9,7 @@ const FIELD =
   "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-sea";
 
 /** Turns a shortlisted option into a real booking. The option itself stays in
- *  the bank marked 'הוזמן' — see promoteToBooking in lib/data/placeOptions.ts. */
+ *  the bank marked 'הוזמן' - see promoteToBooking in lib/data/placeOptions.ts. */
 export function PromoteSheet({
   option,
   onClose,

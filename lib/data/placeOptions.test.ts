@@ -13,7 +13,7 @@ import { strings } from "@/lib/strings";
 import type { PlaceOption } from "@/lib/types";
 
 // normalizeUrl carried over from lib/data/links.ts, which place_options
-// replaces — people paste "booking.com/x" as often as a full URL.
+// replaces - people paste "booking.com/x" as often as a full URL.
 describe("normalizeUrl", () => {
   it("leaves an absolute http(s) url alone", () => {
     expect(normalizeUrl("https://booking.com/x")).toBe("https://booking.com/x");
@@ -84,7 +84,7 @@ describe("PLACE_CATEGORIES", () => {
 });
 
 // Every extracted place gets a way to be found on a map, even when the post
-// named no link at all — that was the point of adding it.
+// named no link at all - that was the point of adding it.
 describe("mapsSearchUrl", () => {
   const q = (url: string | null) =>
     decodeURIComponent(new URL(url!).searchParams.get("query")!);
@@ -164,7 +164,7 @@ describe("filterOptions", () => {
     expect(filterOptions(bank, { area: "הואה" })).toHaveLength(1);
   });
 
-  it("composes cuts — they narrow, never widen", () => {
+  it("composes cuts - they narrow, never widen", () => {
     const cut = filterOptions(bank, { country: "וייטנאם", area: "הוי אן" });
     expect(cut.map((o) => o.title)).toEqual([
       "מסעדה בהוי אן",

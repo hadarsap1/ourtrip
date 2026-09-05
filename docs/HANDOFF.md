@@ -1,10 +1,10 @@
-# OurTrip — Handoff
+# OurTrip - Handoff
 
 Everything needed to pick this project up cold: what exists, how to run it, what
 it depends on, what to do when something breaks during the trip, and what is
 still open.
 
-Written in English like the rest of `docs/` (the **UI** is Hebrew — see CLAUDE.md
+Written in English like the rest of `docs/` (the **UI** is Hebrew - see CLAUDE.md
 rule #4; `docs/DEV-PLAN-HE.md` and `README.md` are the Hebrew-language docs).
 
 Last updated: **2026-08-15**.
@@ -57,12 +57,12 @@ framing all key off them. Nothing in the repo records the real dates.
 
 ```bash
 npm install
-cp env.example .env.local   # fill in the five NEXT_PUBLIC_* values — see §4
+cp env.example .env.local   # fill in the five NEXT_PUBLIC_* values - see §4
 npm run dev                 # http://localhost:3000
 ```
 
 With **no** Supabase env vars set, `components/AuthGate.tsx` bypasses auth and
-the full Hebrew RTL shell still renders — that is deliberate, and it is what the
+the full Hebrew RTL shell still renders - that is deliberate, and it is what the
 smoke e2e suite relies on. You can browse every screen offline-of-Supabase, you
 just get no data.
 
@@ -81,7 +81,7 @@ npm run test:e2e  # Playwright smoke, no credentials needed
 
 ```
 Next.js 16 App Router (RTL, Hebrew)          Vercel
-  app/*/page.tsx        21 routes, thin — each mounts one component
+  app/*/page.tsx        21 routes, thin - each mounts one component
   components/<area>/    all the real UI
   lib/strings.ts        EVERY user-facing string (731 lines, one object)
   lib/data/*.ts         the only place that talks to Supabase
@@ -99,7 +99,7 @@ Supabase                                     project ref in migrations
 
 **The layering rule that matters:** components never call Supabase directly.
 Everything goes through `lib/data/*.ts`, and every user-visible string comes from
-`lib/strings.ts`. Both rules are currently held 100% — keep them.
+`lib/strings.ts`. Both rules are currently held 100% - keep them.
 
 ### Routes → screens
 
@@ -114,7 +114,7 @@ Everything goes through `lib/data/*.ts`, and every user-visible string comes fro
 | `/journal` `/photos` `/memory-book` `/messages` | Memories + family wall | owner, kid, guest (wall/shared) |
 | `/checklists` `/pocket` `/kids` `/guests` `/notifications` | Household + admin | owner (pocket also kid) |
 | `/emergency` | Per-country emergency page, one tap from anywhere | all, offline |
-| `/login` `/kid-login` | Google OAuth / kid PIN | — |
+| `/login` `/kid-login` | Google OAuth / kid PIN | - |
 
 ### Data layer
 
@@ -141,14 +141,14 @@ round-trip can succeed, and it shows no trip data.
 
 ### PWA install
 
-- `public/manifest.webmanifest` — `id`/`scope`/`start_url` at `/`, Hebrew RTL,
+- `public/manifest.webmanifest` - `id`/`scope`/`start_url` at `/`, Hebrew RTL,
   `theme_color` `#0e7c6b` (must stay equal to the `viewport` themeColor in
   `app/layout.tsx`; an e2e test asserts it), four shortcuts, and screenshots in
   both form factors so Chrome shows the full install dialog rather than the
   mini-infobar.
 - Icons are generated, never hand-edited: `node scripts/generate-icons.mjs`
   renders `public/icons/*` and `app/apple-icon.png` from one vector definition.
-  The maskable icon is full-bleed on purpose — Android crops it to the
+  The maskable icon is full-bleed on purpose - Android crops it to the
   launcher's shape.
 - Screenshots: `npm run build && npm run start`, then
   `node scripts/generate-screenshots.mjs`. Run it against a dev server with
@@ -169,7 +169,7 @@ round-trip can succeed, and it shows no trip data.
 
 ## 4. Environment variables
 
-`env.example` (no leading dot — `.gitignore` excludes `.env*`) is the template:
+`env.example` (no leading dot - `.gitignore` excludes `.env*`) is the template:
 `cp env.example .env.local`. It holds only the client-side values; the table
 below is the full picture including the server-side secrets, which never go in
 that file.
@@ -184,7 +184,7 @@ that file.
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | `lib/gphotos/picker.ts` | Google Photos import can't start |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `lib/push.ts` | push subscribe throws `missing_vapid_key` |
 
-`NEXT_PUBLIC_*` values ship to the browser by definition — only keys that are
+`NEXT_PUBLIC_*` values ship to the browser by definition - only keys that are
 safe there belong in this table. Restrict the Maps key by HTTP referrer in the
 Google console.
 
@@ -199,7 +199,7 @@ Google console.
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `push-send` | no push delivered |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
-into Edge Functions by the platform — do not set them by hand, and never expose
+into Edge Functions by the platform - do not set them by hand, and never expose
 the service-role key to the client.
 
 Every optional integration degrades to a Hebrew "not configured" message rather
@@ -215,7 +215,7 @@ than breaking its screen. That pattern is intentional; preserve it.
 `00001_initial_schema.sql` is the whole Sprint-1 world (types, 23 tables,
 triggers, RLS helpers, owner policies); later files add kids (`00007`), guests
 (`00008`/`00009`), push + backups (`00010`), and the post-roadmap features
-(`00013`–`00018`). **Never mutate the remote DB by hand** — every change is a new
+(`00013`-`00018`). **Never mutate the remote DB by hand** - every change is a new
 numbered migration (CLAUDE.md).
 
 ### RLS model
@@ -233,21 +233,21 @@ helpers, so a policy reads like a sentence:
 | `document_shared_with_current_kid(path)` | storage gate for kid-shared docs |
 | `day_has_guest_visible_item(day_id)` | guest map filtering |
 
-Enforcement triggers (these are the teeth — the UI is only cosmetic):
+Enforcement triggers (these are the teeth - the UI is only cosmetic):
 
-- `photos_enforce_kid_rules()` — kid uploads are forced to `pending`
+- `photos_enforce_kid_rules()` - kid uploads are forced to `pending`
   server-side, whatever the client sends.
-- `photos_guard_update()` — a client cannot flip `status`/`shared_with_guests`
+- `photos_guard_update()` - a client cannot flip `status`/`shared_with_guests`
   itself. **Both** `status='approved'` and `shared_with_guests=true` are required
   before any guest-visible query returns a photo (DECISIONS #4/#5, CLAUDE.md #3).
-- `journal_guard_kid()` — kids only touch their own entries.
-- `set_updated_at()` — last-write-wins conflict policy needs it everywhere
+- `journal_guard_kid()` - kids only touch their own entries.
+- `set_updated_at()` - last-write-wins conflict policy needs it everywhere
   (DECISIONS #10).
 
 ### Storage buckets (all private)
 
 `documents`, `photos`, `gphotos`, `map-photos`, `booking-files`, `backups`.
-Guests never read a bucket directly — `guest-photos` and `guest-gphotos` list
+Guests never read a bucket directly - `guest-photos` and `guest-gphotos` list
 what the *caller's own* RLS allows and then mint short-lived signed URLs with the
 service role. Keep that shape for any new guest-visible media.
 
@@ -268,7 +268,7 @@ alter database postgres
   set app.settings.functions_base_url = 'https://<ref>.supabase.co/functions/v1';
 ```
 
-Note that `cron.job_run_details.status = 'succeeded'` only means the SQL ran —
+Note that `cron.job_run_details.status = 'succeeded'` only means the SQL ran -
 `net.http_post` queues the request, so the job "succeeds" even if the HTTP call
 fails. To check a job really worked, look at the effect (a fresh `fx_rates` row,
 a new file in `backups`) or join `net._http_response` on the request id.
@@ -292,7 +292,7 @@ committed code.**
 | `push-send` | `false` | none (cron + triggers) | loads all content server-side from ids |
 | `backup-weekly` | `false` | none (cron) | service-role only, returns no data |
 | `phrasebook-generate` | `true` | owner re-checked in-function | Claude, forced tool-use for structured output |
-| `recommend` | `true` | owner | grounded in real POIs (Places, else Overpass) — never invents names |
+| `recommend` | `true` | owner | grounded in real POIs (Places, else Overpass) - never invents names |
 | `emergency-autofill` | `true` | owner | curated resident-embassy list; only fills empty generic fields |
 | `extract-places` | `true` | owner (gate runs *before* input validation) | pasted post text → structured place candidates; persists nothing |
 | `travel-search` | `true` | owner | proxies two RapidAPI services; key never reaches the client |
@@ -312,8 +312,8 @@ default and silently break FX, push, backups and the kid login. The committed
 values were read back from the live project on 2026-08-15 and match it exactly.
 
 One extra function is deployed that is **not** in the repo: `recommend-diag`,
-left over from debugging the recommendations function. It is inert — no AI call,
-no data access, returns `410` — and stays only because this toolset has no
+left over from debugging the recommendations function. It is inert - no AI call,
+no data access, returns `410` - and stays only because this toolset has no
 delete-function API. Delete it from the dashboard when convenient.
 
 ---
@@ -325,7 +325,7 @@ negotiable.
 
 1. **Security lives in the database.** Every table has RLS; the UI's role checks
    are cosmetic. A new feature PR states which policies cover it.
-2. **Three roles only** — owner, kid, guest. Kids and guests never read
+2. **Three roles only** - owner, kid, guest. Kids and guests never read
    documents, budget or unshared content, verified at policy level.
 3. **Kid photos: approval *and* sharing are separate gates.** `approved` +
    `shared_with_guests` both required, trigger-enforced, no config flag to
@@ -334,7 +334,7 @@ negotiable.
    DD/MM/YYYY, ₪. Nothing assumes a single destination country, currency or
    language (DECISIONS #16).
 
-Verification log: `docs/SECURITY-CHECKS.md` — append to it, never rewrite it.
+Verification log: `docs/SECURITY-CHECKS.md` - append to it, never rewrite it.
 
 ---
 
@@ -346,7 +346,7 @@ Things most likely to need attention while actually travelling.
 offline-critical set (flagged documents, today's itinerary, emergency page,
 phrasebook) works with the network fully disabled. Everything else is expected to
 degrade. Expenses added offline queue in `pending_writes` and replay on
-reconnect — they are not lost.
+reconnect - they are not lost.
 
 **Currency conversions look wrong.** `fx-daily` runs 04:30 UTC. Check today's
 row in `fx_rates`. Fallback chain is open.er-api.com → Frankfurter → last known
@@ -355,7 +355,7 @@ Re-invoke the function manually; expenses store the original currency, so
 conversions can be recomputed later.
 
 **No push notifications.** iOS delivers Web Push only to a PWA installed on the
-home screen (iOS 16.4+) — `/notifications` has the Hebrew install instructions.
+home screen (iOS 16.4+) - `/notifications` has the Hebrew install instructions.
 Then check the VAPID secrets and the `push_subscriptions` rows for that device.
 
 **Kid tablet locked out.** Five wrong PINs lock the device for 15 minutes
@@ -366,7 +366,7 @@ previous device.
 **Guest can't get in.** Their email must be in `guests_allowlist` with
 `revoked_at` null. A forwarded magic link opened with a different email is
 rejected by design. Without `RESEND_API_KEY` the invite screen hands the owner
-the link to send over WhatsApp — that is the intended fallback, not a bug.
+the link to send over WhatsApp - that is the intended fallback, not a bug.
 Revoking a guest takes effect immediately.
 
 **Check the backups.** A timestamped JSON file should appear in the `backups`
@@ -390,14 +390,14 @@ Ordered by what actually gates departure.
    this, and re-imports de-duplicate, so it is safe to run repeatedly as the
    plan firms up.
 3. **The family dry-run.** The seed ships a full-day dry-run checklist template
-   (`docs/ROADMAP.md` Sprint 8) — not yet instantiated. Run it end-to-end on the
+   (`docs/ROADMAP.md` Sprint 8) - not yet instantiated. Run it end-to-end on the
    two phones plus the tablet: it is the last acceptance criterion that a human,
    not a test, has to sign off, and it is what will surface the real problems.
 4. **Bind the kid tablet and enable push.** 0 registered devices, 0 push
-   subscriptions — neither flow has been exercised outside development.
+   subscriptions - neither flow has been exercised outside development.
    iOS needs the PWA installed to the home screen first.
 5. **Reorder the `gphotos` role check before input validation** so a malformed
-   non-owner call gets `403`, not `400`. Not a leak — noted in SECURITY-CHECKS.
+   non-owner call gets `403`, not `400`. Not a leak - noted in SECURITY-CHECKS.
 6. **Delete the `recommend-diag` function** from the dashboard (§6). Inert, but
    it is repo/production drift.
 7. **Storage backups.** Decide whether photos/documents deserve their own export
@@ -406,7 +406,7 @@ Ordered by what actually gates departure.
 8. **`npm audit` will keep reporting `xlsx`.** Prototype pollution + ReDoS with
    no npm fix available. Assessed and accepted: it parses only in the browser,
    only on owner screens, on files the owner picks. Do **not** "fix" it by moving
-   the import server-side — that runs the same unpatched library next to the
+   the import server-side - that runs the same unpatched library next to the
    service role. Full reasoning and the two real mitigations are in
    `docs/SECURITY-CHECKS.md` (2026-08-15).
 9. **Backlog, explicitly not built:** email-forward booking extraction, live
@@ -421,7 +421,7 @@ the cron jobs (migration `00019`).
 
 ## 10. Conventions for whoever works on this next
 
-- Read `CLAUDE.md` first — it overrides habit. Then `docs/DECISIONS.md`: those
+- Read `CLAUDE.md` first - it overrides habit. Then `docs/DECISIONS.md`: those
   are closed. If implementation reveals a real blocker, raise it; don't silently
   deviate.
 - The stack is locked. Don't add a dependency without stating why; prefer the

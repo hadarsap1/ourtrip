@@ -1,5 +1,5 @@
 // Currencies offered in pickers, ordered by expected trip relevance.
-// Any of the ~165 currencies in fx_rates converts fine — this is only the UI
+// Any of the ~165 currencies in fx_rates converts fine - this is only the UI
 // shortlist (multi-country trip: CLAUDE.md hard rule #9, no single-destination
 // assumptions).
 export const CURRENCIES = [
@@ -15,7 +15,7 @@ export const CURRENCIES = [
  * Deliberately partial: it covers the countries on this trip's shortlist plus
  * the common ones around them. An unmapped country falls back to the last
  * currency used, and every one of the ~165 currencies in fx_rates still
- * converts — this only picks the default.
+ * converts - this only picks the default.
  */
 export const CURRENCY_BY_COUNTRY: Record<string, string> = {
   IL: "ILS",

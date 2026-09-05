@@ -1,8 +1,8 @@
-# OurTrip — Security Checks Log
+# OurTrip - Security Checks Log
 
 Every RLS / role-access verification gets logged here (CLAUDE.md definition of done).
 
-## 2026-07-16 — Sprint 1: anonymous access
+## 2026-07-16 - Sprint 1: anonymous access
 
 Environment: Supabase project `xeqfcrxrpfjlqhkijrwd`, migrations `initial_schema` + `function_hardening`.
 
@@ -15,13 +15,13 @@ Environment: Supabase project `xeqfcrxrpfjlqhkijrwd`, migrations `initial_schema
 | `set_updated_at` search_path locked | migration | ✅ PASS |
 
 Notes:
-- `current_member_id` / `current_member_role` / `is_owner_of` intentionally remain executable by anon+authenticated: RLS policy expressions run them as the querying role. For anon they return null/false — no data exposure. Advisor WARNs on these are accepted.
+- `current_member_id` / `current_member_role` / `is_owner_of` intentionally remain executable by anon+authenticated: RLS policy expressions run them as the querying role. For anon they return null/false - no data exposure. Advisor WARNs on these are accepted.
 - Probe rows were deleted after the test; DB is empty pending the real seed.
-- ~~TODO Sprint 1 wrap-up: re-run the anon check from a real client (REST) once deployed~~ — **done 2026-07-27** (see "Full role-access matrix" at the end of this file): the sandbox still can't reach supabase.co, so the request was issued from the database via `pg_net` against the real REST API with the anon key. `itinerary_days`, `members` and `trips` all returned `200 []` while genuinely holding 6 / 4 / 1 rows.
+- ~~TODO Sprint 1 wrap-up: re-run the anon check from a real client (REST) once deployed~~ - **done 2026-07-27** (see "Full role-access matrix" at the end of this file): the sandbox still can't reach supabase.co, so the request was issued from the database via `pg_net` against the real REST API with the anon key. `itinerary_days`, `members` and `trips` all returned `200 []` while genuinely holding 6 / 4 / 1 rows.
 
-## 2026-07-16 — Sprint 2: bookings storage + realtime
+## 2026-07-16 - Sprint 2: bookings storage + realtime
 
-Environment: migration `sprint2_realtime_storage` applied (repo file `00003_sprint2_realtime_storage.sql`; `00002_function_hardening.sql` recreated in-repo from the remote record — no schema delta).
+Environment: migration `sprint2_realtime_storage` applied (repo file `00003_sprint2_realtime_storage.sql`; `00002_function_hardening.sql` recreated in-repo from the remote record - no schema delta).
 
 RLS covering this sprint's features (all pre-existing from Sprint 1, no new table policies needed): `itinerary_days_owner_all`, `itinerary_items_owner_all`, `bookings_owner_all`, `expenses_owner_all`, `budget_categories_owner_all`. New policies: 4 owner-only policies on `storage.objects` for the `booking-files` bucket.
 
@@ -29,15 +29,15 @@ RLS covering this sprint's features (all pre-existing from Sprint 1, no new tabl
 |---|---|---|
 | `booking-files` bucket is private (`public = false`) | SQL against `storage.buckets` | ✅ PASS |
 | Probe object in `booking-files` invisible to `anon` (0 rows) | SQL role emulation (`set local role anon`) | ✅ PASS |
-| Probe object invisible to `authenticated` with no member claim (0 rows) — covers kid/guest of the future auth flavors, since `current_member_role()` resolves to null | SQL role emulation (`set local role authenticated`) | ✅ PASS |
+| Probe object invisible to `authenticated` with no member claim (0 rows) - covers kid/guest of the future auth flavors, since `current_member_role()` resolves to null | SQL role emulation (`set local role authenticated`) | ✅ PASS |
 | Exactly 4 `booking_files_*` policies exist on `storage.objects` (select/insert/update/delete, all owner-only) | `pg_policies` | ✅ PASS |
-| Realtime publication limited to `bookings`, `itinerary_days`, `itinerary_items` — subscribers are authorized against those tables' RLS | `pg_publication_tables` | ✅ PASS |
+| Realtime publication limited to `bookings`, `itinerary_days`, `itinerary_items` - subscribers are authorized against those tables' RLS | `pg_publication_tables` | ✅ PASS |
 
 Notes:
 - Probe row deleted after the test (via the storage guard's `storage.allow_delete_query` escape hatch; the row had no backing file, so nothing orphaned).
-- File opening in the app goes through `createSignedUrl`, which itself requires passing the SELECT policy — no public URLs anywhere.
+- File opening in the app goes through `createSignedUrl`, which itself requires passing the SELECT policy - no public URLs anywhere.
 
-## 2026-07-16 — Sprint 3: budget + FX + checklists
+## 2026-07-16 - Sprint 3: budget + FX + checklists
 
 Environment: migration `sprint3_checklists_realtime_fx_cron` applied (repo file `00004_...`), Edge Function `fx-daily` v1 deployed.
 
@@ -51,10 +51,10 @@ RLS covering this sprint's features (all pre-existing from Sprint 1, no new poli
 | FX correctness: 165 currencies seeded for 2026-07-16 incl. non-ECB (EUR ₪3.431591, THB ₪0.089259, VND ₪0.000114) | invoked function via `pg_net`, inspected `fx_rates` | ✅ PASS |
 
 Notes:
-- **Accepted risk**: `fx-daily` is deployed with `verify_jwt=false` so pg_cron can invoke it without embedding a key in SQL. The function takes no input, only upserts today's public FX rates (idempotent), and exposes no data — worst case an anonymous caller triggers a redundant refresh. Revisit in the Sprint 8 security pass.
-- Client FX lookups read `fx_rates` (that day's rate) first, then live providers, then last known rate — clients never write rates (RLS enforced, verified above).
+- **Accepted risk**: `fx-daily` is deployed with `verify_jwt=false` so pg_cron can invoke it without embedding a key in SQL. The function takes no input, only upserts today's public FX rates (idempotent), and exposes no data - worst case an anonymous caller triggers a redundant refresh. Revisit in the Sprint 8 security pass.
+- Client FX lookups read `fx_rates` (that day's rate) first, then live providers, then last known rate - clients never write rates (RLS enforced, verified above).
 
-## 2026-07-16 — Sprint 4: documents vault + kid-role denial
+## 2026-07-16 - Sprint 4: documents vault + kid-role denial
 
 Environment: migration `sprint4_documents_bucket` applied (repo file `00005_...`).
 
@@ -64,7 +64,7 @@ Kid-role check ran with a probe kid member resolved through the REAL auth path k
 
 | Check | Method | Result |
 |---|---|---|
-| Kid identity resolves (`current_member_role()` = 'kid') — the denial below is a policy denial, not an auth failure | SQL role emulation + `request.jwt.claims` | ✅ PASS |
+| Kid identity resolves (`current_member_role()` = 'kid') - the denial below is a policy denial, not an auth failure | SQL role emulation + `request.jwt.claims` | ✅ PASS |
 | Kid sees 0 rows in `documents` (probe row existed) | same session | ✅ PASS |
 | Kid sees 0 objects in `documents` storage bucket (probe object existed) | same session | ✅ PASS |
 | Kid sees 0 rows in `expenses` / `bookings` (CLAUDE.md rule #2 scope) | same session | ✅ PASS |
@@ -74,9 +74,9 @@ Notes:
 - Probe rows (document, storage object, kid member) deleted after the test.
 - Guest-role documents denial follows from the same structure (no guest policy exists on `documents` → deny-by-default); explicit guest-session check joins the Sprint 7 pass when guest auth exists end-to-end.
 - Offline copies of documents live in IndexedDB on the owner's device only, stored after an RLS-authorized signed-URL download; they never bypass server policies.
-- AuthGate change: on a *network-failing* role check with a locally stored session, the shell now renders (offline requirement). This is a client-side gate only — every data read/write remains RLS-enforced server-side; a revoked user with a stale session sees empty screens, not data.
+- AuthGate change: on a *network-failing* role check with a locally stored session, the shell now renders (offline requirement). This is a client-side gate only - every data read/write remains RLS-enforced server-side; a revoked user with a stale session sees empty screens, not data.
 
-## 2026-07-16 — Sprint 5: maps + phrasebook function
+## 2026-07-16 - Sprint 5: maps + phrasebook function
 
 Environment: migration `sprint5_map_photos` applied (repo file `00006_...`), Edge Function `phrasebook-generate` v1 deployed (`verify_jwt=true`).
 
@@ -89,11 +89,11 @@ RLS covering this sprint's features (pre-existing from 00001): `map_pins_owner_a
 | `map-photos` bucket private, 4 owner-only storage policies | migration | ✅ PASS |
 
 Notes:
-- The function's write path runs with the service role only AFTER the caller's own JWT resolves to `role='owner'` via `current_member_role()` — the same RLS helper the policies use. Kids (Sprint 6) will read phrasebook entries but cannot trigger generation.
+- The function's write path runs with the service role only AFTER the caller's own JWT resolves to `role='owner'` via `current_member_role()` - the same RLS helper the policies use. Kids (Sprint 6) will read phrasebook entries but cannot trigger generation.
 - `fx-daily` remains the only `verify_jwt=false` function (accepted risk, logged in Sprint 3).
 - Weather (Open-Meteo) and Static Maps snapshots contain no personal data; FX/weather caches are device-local.
 
-## 2026-07-17 — Sprint 6: kid role live
+## 2026-07-17 - Sprint 6: kid role live
 
 Environment: migration `sprint6_kids` applied (repo file `00007_...`), Edge Function `kid-auth` v1 deployed. All checks ran with a probe kid member through the production auth path (`authenticated` + resolved member), probes deleted afterwards.
 
@@ -104,15 +104,15 @@ Environment: migration `sprint6_kids` applied (repo file `00007_...`), Edge Func
 | Kid UPDATE trying to flip `status`/`shared_with_guests` on own photo: caption updated, both flags frozen | live update through `photos_guard_update` trigger | ✅ PASS |
 | Device registration: one-time code redeemed once (row marked used), previous devices auto-revoked | `kid-auth` register probe → 200 with device token | ✅ PASS |
 | PIN rate limiting: wrong PINs count down 4→1, 5th wrong PIN → HTTP 423 with `locked_until` (+15 min); **correct** PIN while locked → still 423 | 6 sequential `kid-auth` unlock probes | ✅ PASS |
-| PIN unlock happy path (session minting) | blocked on project auth config: `signInWithPassword` → "Email logins are disabled" | ⚠️ PENDING — enable the Email provider (Authentication → Sign In/Up); signups can stay off (admin API creates kid users). Re-test = bind the real tablet. |
+| PIN unlock happy path (session minting) | blocked on project auth config: `signInWithPassword` → "Email logins are disabled" | ⚠️ PENDING - enable the Email provider (Authentication → Sign In/Up); signups can stay off (admin API creates kid users). Re-test = bind the real tablet. |
 
 Notes:
 - `kid-auth` is deployed `verify_jwt=false` **by design**: register/unlock happen before any JWT exists. Actual auth = one-time registration code (15 min TTL, sha256-stored) + 256-bit device token (sha256-stored; doubles as the kid auth-user password, rotated on every rebind) + PIN (PBKDF2-100k, server-side rate limit). `create-registration` additionally requires an owner JWT in-function.
 - Kid auth users (`kid-<member_id>@kids.ourtrip.app`) are created by the service role with confirmed emails; no email is ever sent. A stranger who somehow signed in with email/password would have no `members` row → zero rows everywhere (deny-by-default) and an AuthGate rejection.
 - Journal: `journal_before_write` trigger keeps kid writes from ever setting `shared_with_guests` (same rule as photos).
-- `photos` bucket: family (owner+kid) select/insert; update/delete owner-only. Guests never read the bucket directly — Sprint 7 serves approved+shared photos via signed URLs only.
+- `photos` bucket: family (owner+kid) select/insert; update/delete owner-only. Guests never read the bucket directly - Sprint 7 serves approved+shared photos via signed URLs only.
 
-## 2026-07-17 — Sprint 7: guest role live
+## 2026-07-17 - Sprint 7: guest role live
 
 Environment: migrations `sprint7_guests` (00008) + `sprint7_guest_policy_fix` (00009) applied; Edge Functions `guest-invite` + `guest-photos` deployed (`verify_jwt=true`; invite additionally owner-gated in-function). All checks ran with a probe guest against MIXED probe content (shared/unshared/pending variants); probes deleted afterwards.
 
@@ -131,11 +131,11 @@ Notes:
 - Guest photo bytes flow only through `guest-photos`: rows are selected under the CALLER's own JWT (RLS decides what exists), service role only signs URLs for those rows.
 - `guest-invite` never escalates an existing owner/kid member to guest (email collision check), and re-inviting clears `revoked_at` intentionally (documented owner action).
 
-## 2026-07-18 — Sprint 8: recommendations + notifications + hardening
+## 2026-07-18 - Sprint 8: recommendations + notifications + hardening
 
 Environment: migrations `sprint8_push_backup` (repo `00010_...`) + `sprint8_recommendations` (repo `00011_...`) applied; Edge Functions `push-send`, `backup-weekly` (both `verify_jwt=false`) and `recommend` (`verify_jwt=true`, owner-gated in-function) deployed. New tables: `push_subscriptions`, `saved_recommendations`. New bucket: `backups` (private). Cron: `push-daily` (05:00 UTC), `backup-weekly` (Sun 03:00 UTC).
 
-New RLS: `push_subscriptions_self_all` (self only), `saved_recommendations_owner_all` (owner only), `backups_owner_select` on `storage.objects` (owner-only read; no client write policy → service-role writes only). All checks ran with probe rows through the production auth path (`authenticated` + resolved `member_id` claim; anon via `set local role anon`), each inside a transaction rolled back afterwards — no probes persist.
+New RLS: `push_subscriptions_self_all` (self only), `saved_recommendations_owner_all` (owner only), `backups_owner_select` on `storage.objects` (owner-only read; no client write policy → service-role writes only). All checks ran with probe rows through the production auth path (`authenticated` + resolved `member_id` claim; anon via `set local role anon`), each inside a transaction rolled back afterwards - no probes persist.
 
 Sprint 8 role-access matrix (new surfaces):
 
@@ -151,22 +151,22 @@ Sprint 8 role-access matrix (new surfaces):
 | Kid cannot register a push subscription under another member's `member_id` (WITH CHECK) | live insert as kid with owner's `member_id` → `42501` RLS violation, no row | ✅ PASS |
 | `recommend` rejects a non-owner caller | in-function `current_member_role()` gate → 403 `forbidden` (same pattern proven for `phrasebook-generate` in Sprint 5) | ✅ PASS |
 | Weekly backup writes to the private bucket | invoked `backup-weekly` via `pg_net`; `backup-2026-07-18-06-07-50.json` (32 KB, 26 tables) appeared in `backups` | ✅ PASS |
-| No new RLS gaps | `get_advisors(security)` — neither new table flagged (RLS enabled + policies present); only the pre-existing accepted `SECURITY DEFINER` helper WARNs (Sprint 1) + standard `pg_net`/auth items remain | ✅ PASS |
+| No new RLS gaps | `get_advisors(security)` - neither new table flagged (RLS enabled + policies present); only the pre-existing accepted `SECURITY DEFINER` helper WARNs (Sprint 1) + standard `pg_net`/auth items remain | ✅ PASS |
 
 Cumulative deny-by-default for the core sensitive tables (`documents`, `bookings`, `expenses`, `budget_categories`, `pocket_money`, `checklists`) against kid/guest/anon was proven in the Sprint 4/6/7 logs and is unchanged by this sprint (no policy on those tables was touched).
 
 Notes:
-- **Accepted risk (revisited from Sprint 3)**: `push-send` and `backup-weekly` are `verify_jwt=false` so `pg_cron`/`pg_net` and the message/photo AFTER-INSERT triggers can invoke them without embedding a key in SQL. Neither returns data. `backup-weekly` only writes an idempotent-per-second snapshot to a private, owner-only bucket. `push-send` loads all content server-side from the id it is handed and only ever pushes to legitimately-subscribed devices, so a forged call can at most **re-notify real content** to the real recipients — it cannot exfiltrate or target arbitrary endpoints. `recommend` stays owner-gated (`verify_jwt=true` + in-function role check) because it spends the Anthropic key.
-- The `messages_notify` / `photos_notify_pending` triggers use `pg_net` fire-and-forget: if `push-send` errors (e.g. VAPID unset), the originating INSERT still commits — messaging/photos never regress on a push failure.
-- **⚠️ PENDING — VAPID secrets**: push delivery needs `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set as `push-send` function secrets, and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in Vercel env, before any notification is actually sent. Until then `push-send` returns 500 harmlessly. Android install-and-receive + iOS installed-only receive are re-tested on the real devices once keys are set (same "verify on real hardware" posture as the Sprint 6 PIN-unlock item). The install-instructions screen (`/notifications`) covers the iOS 16.4+ home-screen requirement.
-- `recommend` degrades gracefully: with no `GOOGLE_MAPS_API_KEY` it returns a Claude-only answer (no `place_id`); with the key it curates real Google Places candidates. Either way results are ephemeral until the owner saves them — the maybe-list (`saved_recommendations`) and the itinerary are the only persisted sinks.
+- **Accepted risk (revisited from Sprint 3)**: `push-send` and `backup-weekly` are `verify_jwt=false` so `pg_cron`/`pg_net` and the message/photo AFTER-INSERT triggers can invoke them without embedding a key in SQL. Neither returns data. `backup-weekly` only writes an idempotent-per-second snapshot to a private, owner-only bucket. `push-send` loads all content server-side from the id it is handed and only ever pushes to legitimately-subscribed devices, so a forged call can at most **re-notify real content** to the real recipients - it cannot exfiltrate or target arbitrary endpoints. `recommend` stays owner-gated (`verify_jwt=true` + in-function role check) because it spends the Anthropic key.
+- The `messages_notify` / `photos_notify_pending` triggers use `pg_net` fire-and-forget: if `push-send` errors (e.g. VAPID unset), the originating INSERT still commits - messaging/photos never regress on a push failure.
+- **⚠️ PENDING - VAPID secrets**: push delivery needs `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set as `push-send` function secrets, and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in Vercel env, before any notification is actually sent. Until then `push-send` returns 500 harmlessly. Android install-and-receive + iOS installed-only receive are re-tested on the real devices once keys are set (same "verify on real hardware" posture as the Sprint 6 PIN-unlock item). The install-instructions screen (`/notifications`) covers the iOS 16.4+ home-screen requirement.
+- `recommend` degrades gracefully: with no `GOOGLE_MAPS_API_KEY` it returns a Claude-only answer (no `place_id`); with the key it curates real Google Places candidates. Either way results are ephemeral until the owner saves them - the maybe-list (`saved_recommendations`) and the itinerary are the only persisted sinks.
 
-## 2026-07-18 — Post-launch: kid-shared documents + document lock
+## 2026-07-18 - Post-launch: kid-shared documents + document lock
 
 Environment: migrations `documents_share_with_kids` (repo `00014_...`) + `document_pin` (repo `00015_...`) applied. Two new document-sharing surfaces, both verified with probe rows inside rolled-back transactions.
 
-### B1 — share a specific document with kids
-New: `documents.shared_with_kids` flag; `documents_kid_select` policy; SECURITY DEFINER `document_shared_with_current_kid(text)` + `documents_kid_read` storage policy on the `documents` bucket. Kids have **no** INSERT/UPDATE/DELETE policy on `documents` — read-only (CLAUDE.md rule #2).
+### B1 - share a specific document with kids
+New: `documents.shared_with_kids` flag; `documents_kid_select` policy; SECURITY DEFINER `document_shared_with_current_kid(text)` + `documents_kid_read` storage policy on the `documents` bucket. Kids have **no** INSERT/UPDATE/DELETE policy on `documents` - read-only (CLAUDE.md rule #2).
 
 | Check | Method | Result |
 |---|---|---|
@@ -174,8 +174,8 @@ New: `documents.shared_with_kids` flag; `documents_kid_select` policy; SECURITY 
 | Kid storage read authorized for the shared path only (`document_shared_with_current_kid` → true for bp.pdf, false for pp.pdf) | same session | ✅ PASS |
 | Kid cannot flip `shared_with_kids` (no write policy → deny-by-default) | policy set | ✅ PASS |
 
-### Document lock — end-to-end encryption (Documents PIN)
-New: `documents.pin_protected` + `enc_mime`; `document_pin(trip_id, salt, verifier_iv, verifier_ct)` table with owner-only `document_pin_owner_all` policy. Locked files are AES-GCM encrypted client-side (key = PBKDF2-210k of the family Documents PIN) **before upload** — the `documents` bucket holds only ciphertext; opening decrypts in-browser. `docCrypto` is unit-tested (round-trip, wrong-PIN rejection, verifier).
+### Document lock - end-to-end encryption (Documents PIN)
+New: `documents.pin_protected` + `enc_mime`; `document_pin(trip_id, salt, verifier_iv, verifier_ct)` table with owner-only `document_pin_owner_all` policy. Locked files are AES-GCM encrypted client-side (key = PBKDF2-210k of the family Documents PIN) **before upload** - the `documents` bucket holds only ciphertext; opening decrypts in-browser. `docCrypto` is unit-tested (round-trip, wrong-PIN rejection, verifier).
 
 | Check | Method | Result |
 |---|---|---|
@@ -184,9 +184,9 @@ New: `documents.pin_protected` + `enc_mime`; `document_pin(trip_id, salt, verifi
 | Locked documents are never kid-shared (locking clears `shared_with_kids`; share toggle hidden for locked docs) | `protectDocument` + UI | ✅ PASS |
 
 Notes:
-- **Threat model**: defeats the "found/lost device" case fully — a locked passport is unreadable online or offline without the PIN, and the server never holds plaintext. **Accepted residual risk**: the salt + verifier are readable by an owner session, so an attacker who steals a live owner session could offline-brute-force a short numeric PIN (PBKDF2-210k slows it, but 6 digits is GPU-crackable). Mitigation: the UI allows 6–12 digit PINs — a longer PIN raises the cost. Inherent to short-PIN E2E, documented for the owner.
+- **Threat model**: defeats the "found/lost device" case fully - a locked passport is unreadable online or offline without the PIN, and the server never holds plaintext. **Accepted residual risk**: the salt + verifier are readable by an owner session, so an attacker who steals a live owner session could offline-brute-force a short numeric PIN (PBKDF2-210k slows it, but 6 digits is GPU-crackable). Mitigation: the UI allows 6-12 digit PINs - a longer PIN raises the cost. Inherent to short-PIN E2E, documented for the owner.
 - **Forgotten PIN = unrecoverable** by design (owner chose full E2E over recoverability); the set-PIN flow warns and requires acknowledgement.
-- `ANTHROPIC_API_KEY` is now configured — `recommend` + `phrasebook-generate` verified live (tool-use call returns structured output). The one-off `recommend-diag` probe function has been neutralized (inert 410 stub, `verify_jwt=true`).
+- `ANTHROPIC_API_KEY` is now configured - `recommend` + `phrasebook-generate` verified live (tool-use call returns structured output). The one-off `recommend-diag` probe function has been neutralized (inert 410 stub, `verify_jwt=true`).
 
 ---
 
@@ -194,8 +194,8 @@ Notes:
 Environment: migration `google_photos` (repo `00016_...`). New `google_photos` table + private `gphotos` storage bucket. Owner-gated import Edge Function (`gphotos`), `verify_jwt=true` + in-function `current_member_role()='owner'` check on every action (create/poll/import). The owner's Google access token is passed transiently and never stored.
 
 RLS coverage:
-- `google_photos_owner_all` — owner full access (import / re-file / delete).
-- `google_photos_kid_select` — kids read owner-curated photos (no write policy → deny-by-default on insert/update/delete).
+- `google_photos_owner_all` - owner full access (import / re-file / delete).
+- `google_photos_kid_select` - kids read owner-curated photos (no write policy → deny-by-default on insert/update/delete).
 - **Guests: no policy → zero rows.** `shared_with_guests` column exists but guest sharing (signed-URL Edge Function, mirroring guest-photos) is intentionally deferred to Phase 2, so guests can never read Google-Photos content yet (CLAUDE.md rule #3).
 - Storage `gphotos`: `gphotos_bucket_family_select` (owner + kid) for signed-URL reads; insert/update/delete owner-only. Import writes go through the service role in the Edge Function.
 
@@ -203,15 +203,15 @@ RLS coverage:
 |---|---|---|
 | Import action rejects non-owner (kid/guest → 403) | live call via `pg_net` with a non-owner JWT, well-formed `action:"import"` payload → `403 {"ok":false,"error":"forbidden"}` | ✅ PASS (2026-07-27) |
 | Kid can read imported rows, cannot insert/update/delete | probe rows; kid SELECT = 2, INSERT raised `42501`, UPDATE/DELETE affected `rows=0` | ✅ PASS (2026-07-27) |
-| Guest reads zero unshared google_photos rows | probe rows (1 shared + 1 private); guest SELECT returned only the shared one | ✅ PASS (2026-07-27) — superseded by Phase 2 below |
+| Guest reads zero unshared google_photos rows | probe rows (1 shared + 1 private); guest SELECT returned only the shared one | ✅ PASS (2026-07-27) - superseded by Phase 2 below |
 
 Notes:
-- Google shut down third-party Library/album-read APIs on 2025-03-31; the Picker API (explicit user pick) is the only sanctioned path — no library mirroring is possible or attempted.
+- Google shut down third-party Library/album-read APIs on 2025-03-31; the Picker API (explicit user pick) is the only sanctioned path - no library mirroring is possible or attempted.
 - Only a **display-sized copy (~1600px)** is cached; full-res originals stay in Google Photos. Photo GPS is stripped by the Picker, so map placement is attach-to-place (Phase 2), never auto-geotag.
 - **Prerequisite (owner):** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` env var + Google Cloud project with the Photos Picker API enabled and the app origin in the OAuth client's authorized JS origins. Until set, the import button shows a "not configured" message; viewing/existing features are unaffected.
 
-### Google Photos — Phase 2 (guest sharing + map attach)
-Migration `google_photos_guest_share` (repo `00017_...`). New policy `google_photos_guest_select`: guests read a Google photo **only** when `public.is_active_guest_of(trip_id) AND shared_with_guests = true` — same rule as native `photos_guest_select` (DECISIONS #5). Guests still never touch the `gphotos` bucket directly: the `guest-gphotos` Edge Function (`verify_jwt=true`) lists rows through the caller's own JWT (so RLS returns only shared) and mints short-lived signed URLs with the service role — identical pattern to `guest-photos`.
+### Google Photos - Phase 2 (guest sharing + map attach)
+Migration `google_photos_guest_share` (repo `00017_...`). New policy `google_photos_guest_select`: guests read a Google photo **only** when `public.is_active_guest_of(trip_id) AND shared_with_guests = true` - same rule as native `photos_guest_select` (DECISIONS #5). Guests still never touch the `gphotos` bucket directly: the `guest-gphotos` Edge Function (`verify_jwt=true`) lists rows through the caller's own JWT (so RLS returns only shared) and mints short-lived signed URLs with the service role - identical pattern to `guest-photos`.
 
 Attaching a photo to a map pin (`map_pin_id`) is a plain owner UPDATE covered by the existing `google_photos_owner_all`; kids/guests have no UPDATE policy → deny-by-default. Attached photos render on the map for family only (owner+kid); guests see shared photos in their Photos gallery, not the map.
 
@@ -227,7 +227,7 @@ Feature added outside the sprint plan on request (search best flights/hotels fro
 
 Security surface is the Edge Function itself, mirroring `recommend`:
 - Deployed `verify_jwt=true`; additionally re-checks `current_member_role() = 'owner'` in-function and returns 403 otherwise, so kids/guests cannot invoke the paid RapidAPI upstreams.
-- The RapidAPI credential lives only as the `RAPIDAPI_KEY` function secret — never shipped to the client (CLAUDE.md rule #8). The browser calls the function; the function calls RapidAPI.
+- The RapidAPI credential lives only as the `RAPIDAPI_KEY` function secret - never shipped to the client (CLAUDE.md rule #8). The browser calls the function; the function calls RapidAPI.
 - Multi-country aware (rule #9): origin/destination and currency come from the request; nothing is hardcoded to a country or currency.
 - Missing key → `not_configured` (503) → Hebrew "service not configured" message; upstream failure → `search_failed` (502) → generic Hebrew retry message. No secret or upstream detail leaks to the client.
 
@@ -238,23 +238,23 @@ Security surface is the Edge Function itself, mirroring `recommend`:
 | RAPIDAPI_KEY never present in client bundle | key read via Deno.env in the function only | ✅ by construction (no NEXT_PUBLIC var) |
 | Saved result becomes owner-only booking (kid/guest read → 0 rows) | probe booking; kid and guest SELECT both returned 0, kid INSERT raised `42501` | ✅ PASS (2026-07-27) |
 
-## Full role-access matrix — verification pass (2026-07-27)
+## Full role-access matrix - verification pass (2026-07-27)
 
 Closes the last open Sprint 8 acceptance criterion ("full role-access matrix documented with pass/fail, all pass"). Every previously ⏳ check above was executed against the **production database**, not reasoned about.
 
-**Method.** Probe rows were inserted, queried as each role through the production auth path (`set local role authenticated|anon` + a resolved `member_id` JWT claim, exactly how `current_member_id()` resolves a real session), then the whole thing rolled back. Edge Functions were called for real via `pg_net` (outbound from the sandbox to `*.supabase.co` is blocked, so the DB itself made the requests) using the **anon key as a valid-but-non-owner JWT**. Baseline was re-checked afterwards: 4 members / 0 guests / 0 documents / 0 bookings / 0 photos / 6 itinerary days — **no probe rows persist**.
+**Method.** Probe rows were inserted, queried as each role through the production auth path (`set local role authenticated|anon` + a resolved `member_id` JWT claim, exactly how `current_member_id()` resolves a real session), then the whole thing rolled back. Edge Functions were called for real via `pg_net` (outbound from the sandbox to `*.supabase.co` is blocked, so the DB itself made the requests) using the **anon key as a valid-but-non-owner JWT**. Baseline was re-checked afterwards: 4 members / 0 guests / 0 documents / 0 bookings / 0 photos / 6 itinerary days - **no probe rows persist**.
 
 ### Reads (probe data: 2 documents [1 kid-shared], 1 booking, 1 expense, 2 google_photos [1 shared], 3 photos [approved+shared / approved-unshared / pending+shared], 2 journal [1 shared])
 
 | Table | owner | kid | guest | revoked guest | anon |
 |---|---|---|---|---|---|
-| documents | 2 ✅ | **1** (only `shared_with_kids`) ✅ | 0 ✅ | — | 0 ✅ |
-| bookings | 1 ✅ | 0 ✅ | 0 ✅ | — | 0 ✅ |
-| expenses / budget_categories | 1 ✅ | 0 ✅ | 0 ✅ | — | 0 ✅ |
+| documents | 2 ✅ | **1** (only `shared_with_kids`) ✅ | 0 ✅ | - | 0 ✅ |
+| bookings | 1 ✅ | 0 ✅ | 0 ✅ | - | 0 ✅ |
+| expenses / budget_categories | 1 ✅ | 0 ✅ | 0 ✅ | - | 0 ✅ |
 | google_photos | 2 ✅ | 2 ✅ | **1** (shared only) ✅ | **0** ✅ | 0 ✅ |
-| photos | 3 ✅ | — | **1** (approved **AND** shared) ✅ | **0** ✅ | 0 ✅ |
-| journal_entries | 2 ✅ | — | **1** (shared only) ✅ | **0** ✅ | 0 ✅ |
-| trips / members / itinerary_days / emergency_info | — | — | — | — | 0 ✅ |
+| photos | 3 ✅ | - | **1** (approved **AND** shared) ✅ | **0** ✅ | 0 ✅ |
+| journal_entries | 2 ✅ | - | **1** (shared only) ✅ | **0** ✅ | 0 ✅ |
+| trips / members / itinerary_days / emergency_info | - | - | - | - | 0 ✅ |
 
 ### Writes
 
@@ -271,14 +271,14 @@ Closes the last open Sprint 8 acceptance criterion ("full role-access matrix doc
 
 ### Storage buckets
 
-All six buckets (`documents`, `photos`, `gphotos`, `map-photos`, `booking-files`, `backups`) are **private**. Every table in `public` has RLS enabled and at least one policy — no table is unprotected.
+All six buckets (`documents`, `photos`, `gphotos`, `map-photos`, `booking-files`, `backups`) are **private**. Every table in `public` has RLS enabled and at least one policy - no table is unprotected.
 
 | Bucket | owner | kid | guest |
 |---|---|---|---|
 | documents | 1 ✅ | 0 (none shared) ✅ | 0 ✅ |
 | booking-files | 1 ✅ | 0 ✅ | 0 ✅ |
-| gphotos | — | 1 ✅ (family read, per design) | 0 ✅ |
-| photos | — | — | 0 ✅ |
+| gphotos | - | 1 ✅ (family read, per design) | 0 ✅ |
+| photos | - | - | 0 ✅ |
 | backups | visible ✅ *(intended: `backups_owner_select`, owner-only read, service-role writes)* | 0 ✅ | 0 ✅ |
 
 ### Edge Function gates (live calls)
@@ -293,8 +293,8 @@ All six buckets (`documents`, `photos`, `gphotos`, `map-photos`, `booking-files`
 
 ### Observations (no action taken)
 
-- **`gphotos` validates input before the role check**, so a malformed non-owner call gets `400` rather than `403`. Not a leak — nothing is read or written before the gate — but the gate is the *second* check, not the first. Worth reordering if the function is touched again.
-- **`document_shared_with_current_kid` grants EXECUTE to `authenticated` but not `anon`** (unlike the other helpers, which grant PUBLIC). An anonymous query against `storage.objects` therefore raises `42501` instead of returning 0 rows. It **fails closed** — no data is exposed — and no app path queries storage anonymously (guests authenticate via magic link), so this was left as-is: erroring is the more restrictive behaviour.
+- **`gphotos` validates input before the role check**, so a malformed non-owner call gets `400` rather than `403`. Not a leak - nothing is read or written before the gate - but the gate is the *second* check, not the first. Worth reordering if the function is touched again.
+- **`document_shared_with_current_kid` grants EXECUTE to `authenticated` but not `anon`** (unlike the other helpers, which grant PUBLIC). An anonymous query against `storage.objects` therefore raises `42501` instead of returning 0 rows. It **fails closed** - no data is exposed - and no app path queries storage anonymously (guests authenticate via magic link), so this was left as-is: erroring is the more restrictive behaviour.
 - **`guest-gphotos` answers a non-guest with `200 []` rather than `403`.** Harmless (RLS yields nothing, so no URLs are minted), and consistent with `guest-photos`.
 
 ### Anonymous access through the real REST API (closes the Sprint 1 TODO)
@@ -307,21 +307,21 @@ Previously only verified by SQL role emulation. Now issued as real HTTP requests
 | `GET /rest/v1/members?select=*` | 4 | `200 []` ✅ |
 | `GET /rest/v1/trips?select=*` | 1 | `200 []` ✅ |
 
-PostgREST returns `200` with an empty array rather than `403` — RLS filters the rows, which is the expected and correct behaviour.
+PostgREST returns `200` with an empty array rather than `403` - RLS filters the rows, which is the expected and correct behaviour.
 
-## 2026-08-15 — Config drift: `verify_jwt` pinning + cron URL helper
+## 2026-08-15 - Config drift: `verify_jwt` pinning + cron URL helper
 
 Not a new feature; a hardening pass on configuration that previously lived only
 in the Supabase dashboard. Migration `00019_cron_functions_base_url`.
 
 | Check | Method | Result |
 |---|---|---|
-| Live `verify_jwt` per Edge Function matches what each function's header comment claims | `list_edge_functions` against the live project | ✅ PASS — 4 false (`fx-daily`, `push-send`, `backup-weekly`, `kid-auth`), 8 true |
+| Live `verify_jwt` per Edge Function matches what each function's header comment claims | `list_edge_functions` against the live project | ✅ PASS - 4 false (`fx-daily`, `push-send`, `backup-weekly`, `kid-auth`), 8 true |
 | Those live values are now pinned in `supabase/config.toml` so a redeploy cannot flip them | file committed, values copied from the live read | ✅ PASS |
 | `public.functions_base_url()` not executable by `anon` / `authenticated` | `revoke execute` in migration, mirroring `00002_function_hardening` | ✅ PASS |
-| Re-scheduled cron jobs still resolve and reach the function | ran the new `fx-daily` body manually; `net._http_response` | ✅ PASS — `200 {"ok":true,"day":"2026-08-15","count":165,"source":"open.er-api.com"}` |
+| Re-scheduled cron jobs still resolve and reach the function | ran the new `fx-daily` body manually; `net._http_response` | ✅ PASS - `200 {"ok":true,"day":"2026-08-15","count":165,"source":"open.er-api.com"}` |
 | All three jobs still active, correct schedules, owner `postgres` | `select * from cron.job` | ✅ PASS |
-| Weekly backup actually producing files | `storage.objects` in the `backups` bucket | ✅ PASS — 5 files, newest 2026-08-09 03:00 |
+| Weekly backup actually producing files | `storage.objects` in the `backups` bucket | ✅ PASS - 5 files, newest 2026-08-09 03:00 |
 
 Notes:
 - `cron.job_run_details.status = 'succeeded'` proves only that the SQL ran:
@@ -331,11 +331,11 @@ Notes:
   `app.settings.functions_base_url` is unset, so it cannot introduce a
   NULL-URL failure mode.
 - One deployed function is not in the repo: `recommend-diag`, a retired
-  debugging endpoint. Inspected — inert (returns `410`, no data access, no AI
+  debugging endpoint. Inspected - inert (returns `410`, no data access, no AI
   call). Left deployed only because this toolset has no delete-function API;
   tracked in `docs/HANDOFF.md` §9.
 
-## 2026-08-15 — Accepted risk: `xlsx` (SheetJS) advisories, no npm fix
+## 2026-08-15 - Accepted risk: `xlsx` (SheetJS) advisories, no npm fix
 
 `npm audit` reports 12 vulnerabilities (1 critical, 8 high, 3 moderate). All but
 one are dev-only transitives (`sharp`/libvips via the toolchain) that never reach
@@ -346,7 +346,7 @@ the browser or a runtime. The one that ships is **`xlsx`**:
 | [GHSA-4r6h-8v6p-xvw6](https://github.com/advisories/GHSA-4r6h-8v6p-xvw6) | Prototype pollution |
 | [GHSA-5pgg-2g8v-p4x9](https://github.com/advisories/GHSA-5pgg-2g8v-p4x9) | ReDoS |
 
-`npm audit fix` cannot resolve either — the npm-published line ends at the
+`npm audit fix` cannot resolve either - the npm-published line ends at the
 pinned 0.18.5 and SheetJS moved patched builds to their own CDN, so audit
 reports "No fix available".
 
@@ -354,9 +354,9 @@ reports "No fix available".
 
 | Question | Answer |
 |---|---|
-| Where does parsing run? | The **browser only**. All three call sites are `"use client"` and read a `File` via `arrayBuffer()` — `lib/importFile.ts` (checklists, map routes) and `lib/importItinerary.ts` (itinerary import) |
+| Where does parsing run? | The **browser only**. All three call sites are `"use client"` and read a `File` via `arrayBuffer()` - `lib/importFile.ts` (checklists, map routes) and `lib/importItinerary.ts` (itinerary import) |
 | Does it ever run server-side? | No. No Edge Function, route handler or server component imports `xlsx` |
-| Who can reach it? | Owners only — the three import sheets live on `/itinerary`, `/checklists`, `/map`, all owner-gated by RLS |
+| Who can reach it? | Owners only - the three import sheets live on `/itinerary`, `/checklists`, `/map`, all owner-gated by RLS |
 | Blast radius | The owner's own tab. Prototype pollution there corrupts a session that already holds full owner access, so no privilege boundary is crossed. ReDoS hangs the tab |
 | Realistic attack | An owner imports a hostile workbook received from a third party (travel agent, hotel), which pollutes the page and goes after the session token |
 
@@ -365,36 +365,36 @@ reports "No fix available".
 Moving the import server-side would make this **worse**, not better: the same
 unpatched library would then run in a Node process near the service role, with
 the file upload adding transport and storage surface on top. The browser tab is
-the better isolation boundary — per-origin, ephemeral, no service-role access.
+the better isolation boundary - per-origin, ephemeral, no service-role access.
 
 If the risk is ever judged too high, in preference order:
 
 1. **Parse in a Web Worker.** Contains prototype pollution to the worker's own
    global scope; the page's `Object.prototype` is never touched. Contained
-   change — the parsers already return plain arrays that post cleanly.
+   change - the parsers already return plain arrays that post cleanly.
 2. **Install SheetJS from the vendor CDN** rather than npm, which is where
    patched builds live. Trades the advisory for a dependency outside the npm
-   registry — check the advisory pages for current guidance before doing it.
+   registry - check the advisory pages for current guidance before doing it.
 
 Re-review if an importer is ever moved server-side, or if a non-owner role is
 ever given access to an import screen. Neither is true today.
 
-## 2026-08-15 — "בנק אפשרויות" (place_options) + extract-places
+## 2026-08-15 - "בנק אפשרויות" (place_options) + extract-places
 
 New owner-only planning table and one new Edge Function. Migration
 `00020_place_options` (additive) and `00021_drop_legacy_option_tables`
-(deferred — see note below).
+(deferred - see note below).
 
 RLS covering this feature: `place_options_owner_all` (single policy, FOR ALL,
-`is_owner_of(trip_id)` in both USING and WITH CHECK) — the same shape as the two
+`is_owner_of(trip_id)` in both USING and WITH CHECK) - the same shape as the two
 tables it replaces, so kids and guests have no path to planning content.
 
 | Check | Method | Result |
 |---|---|---|
-| RLS enabled on `place_options`, exactly one policy | `pg_class.relrowsecurity` + `pg_policies` | ✅ PASS — enabled, 1 policy |
-| `anon` sees zero rows **with a real row present** | probe row + `set local role anon` | ✅ PASS — `0` while the table held 1 |
-| Supabase advisors raise nothing new for the table | `get_advisors(security)` | ✅ PASS — no RLS/policy lint; only the pre-existing accepted helper warnings |
-| `extract-places` rejects an unauthenticated call | live POST via `pg_net` | ✅ PASS — `401 UNAUTHORIZED_NO_AUTH_HEADER` |
+| RLS enabled on `place_options`, exactly one policy | `pg_class.relrowsecurity` + `pg_policies` | ✅ PASS - enabled, 1 policy |
+| `anon` sees zero rows **with a real row present** | probe row + `set local role anon` | ✅ PASS - `0` while the table held 1 |
+| Supabase advisors raise nothing new for the table | `get_advisors(security)` | ✅ PASS - no RLS/policy lint; only the pre-existing accepted helper warnings |
+| `extract-places` rejects an unauthenticated call | live POST via `pg_net` | ✅ PASS - `401 UNAUTHORIZED_NO_AUTH_HEADER` |
 | `extract-places` deployed with `verify_jwt=true` and pinned in config.toml | deploy response + repo file | ✅ PASS |
 
 Notes:
@@ -402,12 +402,12 @@ Notes:
 - **The role gate runs before input validation** in `extract-places`, so a
   non-owner gets `403` regardless of payload. This is deliberately the opposite
   order from `gphotos`, whose "validates first, gates second" behaviour was
-  logged as an observation on 2026-07-27 — the new function does not repeat it.
+  logged as an observation on 2026-07-27 - the new function does not repeat it.
 - **Prompt injection is in scope here**, because the pasted text is untrusted
   third-party content (a Facebook post) fed to a model. Contained three ways:
   the text is delimited and explicitly labelled as data-not-instructions; the
   reply shape is pinned by a forced tool schema whose only fields are place
-  attributes; and the function persists nothing — the owner reviews and ticks
+  attributes; and the function persists nothing - the owner reviews and ticks
   each candidate before anything is written. Worst case a hostile post proposes
   a junk row the owner declines.
 - **`00021` is deliberately not applied yet.** Dropping `saved_links` while the
@@ -417,7 +417,7 @@ Notes:
 - The probe row used for the anon check was deleted afterwards; the table is
   empty again.
 
-## 2026-08-16 — geocode-places
+## 2026-08-16 - geocode-places
 
 New owner-gated Edge Function; no new tables or policies. It resolves the
 options bank's place names into coordinates so the bank can be drawn on a map.
@@ -425,8 +425,8 @@ options bank's place names into coordinates so the bank can be drawn on a map.
 | Check | Method | Result |
 |---|---|---|
 | Deployed `verify_jwt=true` and pinned in config.toml | deploy response + repo file | ✅ PASS |
-| Unauthenticated call rejected | live POST via `pg_net` | ✅ PASS — `401 UNAUTHORIZED_NO_AUTH_HEADER` |
-| Role gate runs before input validation | code order | ✅ PASS — same ordering as extract-places |
+| Unauthenticated call rejected | live POST via `pg_net` | ✅ PASS - `401 UNAUTHORIZED_NO_AUTH_HEADER` |
+| Role gate runs before input validation | code order | ✅ PASS - same ordering as extract-places |
 
 Notes:
 
@@ -444,19 +444,19 @@ Notes:
   run past the function timeout.
 - Map InfoWindow content is built from pasted-post text, which is untrusted.
   `components/options/OptionsMap.tsx` escapes it before interpolating into the
-  HTML string the Maps API requires — the one place in this feature where
+  HTML string the Maps API requires - the one place in this feature where
   untrusted text meets raw HTML.
 
-## 2026-08-27 — trips.total_budget + category CRUD
+## 2026-08-27 - trips.total_budget + category CRUD
 
 Migration `00022_trip_total_budget` adds one nullable column to `trips`. No new
 table, no new policy, no new Edge Function.
 
 | Check | Method | Result |
 |---|---|---|
-| `trips` RLS unchanged and still owner-only for writes | existing `trips` policies cover the new column | ✅ PASS — a column inherits its table's policies |
+| `trips` RLS unchanged and still owner-only for writes | existing `trips` policies cover the new column | ✅ PASS - a column inherits its table's policies |
 | `budget_categories` insert/update/delete reachable only by owners | existing `budget_categories_owner_all` | ✅ PASS |
-| Deleting a category with expenses is refused, not cascaded | FK `expenses_category_id_fkey` (no ON DELETE) | ✅ PASS — raises 23503, surfaced in Hebrew |
+| Deleting a category with expenses is refused, not cascaded | FK `expenses_category_id_fkey` (no ON DELETE) | ✅ PASS - raises 23503, surfaced in Hebrew |
 | Negative total budget rejected at the database | `trips_total_budget_check` | ✅ PASS |
 
 Notes:
@@ -467,10 +467,10 @@ Notes:
   be moved first. This is the same posture as `deleteBooking`, which maps the
   same 23503 to `booking_linked`.
 - The new column is nullable and NULL means "derive the total from the
-  categories", which is the pre-existing behaviour — so a trip that never sets
+  categories", which is the pre-existing behaviour - so a trip that never sets
   a budget behaves exactly as before.
 
-## 2026-08-27 — performance & responsiveness fixes (no schema change)
+## 2026-08-27 - performance & responsiveness fixes (no schema change)
 
 No migration, no new table, no new policy, no new Edge Function. The changes
 are client-side (service worker, auth gate, request de-duplication, code
@@ -480,8 +480,8 @@ that was previously enforced.
 | Check | Method | Result |
 |---|---|---|
 | Kid/guest still cannot read documents, budget or unshared content | unchanged RLS policies; no query, table or policy touched | ✅ PASS |
-| `AuthGate`'s optimistic render cannot grant data access | gate is client routing only; every read still goes through RLS with the caller's JWT | ✅ PASS — a rendered empty screen, not other people's data |
-| Dropping `auth.getUser()` from `getCurrentMember()` | uid now read from the locally stored session; it only selects which `members` row to display, and RLS validates the JWT server-side on that query | ✅ PASS — a forged local uid returns no row |
+| `AuthGate`'s optimistic render cannot grant data access | gate is client routing only; every read still goes through RLS with the caller's JWT | ✅ PASS - a rendered empty screen, not other people's data |
+| Dropping `auth.getUser()` from `getCurrentMember()` | uid now read from the locally stored session; it only selects which `members` row to display, and RLS validates the JWT server-side on that query | ✅ PASS - a forged local uid returns no row |
 | Service worker cannot serve one member's data to another | SW caches only same-origin app shell + hashed build assets; all Supabase traffic is cross-origin and now explicitly passes through untouched | ✅ PASS |
 | Kid PIN gate still runs on cold start | `needsKidUnlock()` is still the first branch in the gate, and the sessionStorage flag is unchanged | ✅ PASS |
 
@@ -498,11 +498,11 @@ Notes:
   out of the cache removes that question entirely, and was also required to
   stop stale navigation content.
 
-## 2026-08-29 — Vault hardening: passphrase KDF + biometric unlock (M1)
+## 2026-08-29 - Vault hardening: passphrase KDF + biometric unlock (M1)
 
 Environment: migration `document_passkeys` (repo file `00023_...`). Closes
-finding **M1** of `docs/SECURITY-REVIEW-2026-08.md` — the vault key was derived
-from a 6–12 digit PIN at PBKDF2-210k, and the salt + verifier are cached
+finding **M1** of `docs/SECURITY-REVIEW-2026-08.md` - the vault key was derived
+from a 6-12 digit PIN at PBKDF2-210k, and the salt + verifier are cached
 client-side, so a stolen device allowed an offline brute force of the whole
 10⁶ space in well under a minute.
 
@@ -513,7 +513,7 @@ Two changes, one goal:
    iterations. The cost is now stored per vault in `document_pin.iterations`
    rather than hardcoded, because changing it for an existing vault would make
    that vault's documents permanently undecryptable. Pre-existing vaults keep
-   `210000` and keep opening with their old PIN — the unlock path deliberately
+   `210000` and keep opening with their old PIN - the unlock path deliberately
    does **not** enforce the new length rule.
 2. **Biometric unlock (WebAuthn PRF).** A device's platform authenticator
    (Face ID / Touch ID / Android biometric) holds a credential whose PRF
@@ -524,7 +524,7 @@ Two changes, one goal:
 
 **No biometric data is received or stored.** WebAuthn returns a signature and
 the PRF output; face and fingerprint templates never leave the device. There is
-no face-recognition model anywhere in the app, and no new runtime dependency —
+no face-recognition model anywhere in the app, and no new runtime dependency -
 this is `navigator.credentials` plus the existing WebCrypto (CLAUDE.md rule #7).
 
 RLS coverage: `document_passkeys_owner_all` (owner-only, same posture as
@@ -532,14 +532,14 @@ RLS coverage: `document_passkeys_owner_all` (owner-only, same posture as
 with their zero access to `documents` (rule #2).
 
 **Why the wrapped key is safe to store server-side.** Unlike the PIN's salt +
-verifier — which is exactly what made M1 exploitable — these rows are not
+verifier - which is exactly what made M1 exploitable - these rows are not
 brute-forceable. The wrapping key is 256 uniformly random bits held in the
 device's secure enclave, so reading the whole table (as an owner, or with the
 entire database) yields nothing without the physical authenticator.
 
 | Check | Method | Result |
 |---|---|---|
-| Wrapped key round-trips to the same vault key; documents sealed before enrolment still open | `lib/docCrypto.test.ts` — wrap → unwrap → decrypt | ✅ PASS |
+| Wrapped key round-trips to the same vault key; documents sealed before enrolment still open | `lib/docCrypto.test.ts` - wrap → unwrap → decrypt | ✅ PASS |
 | A different PRF secret cannot unwrap the key | unit test, wrong 32-byte secret → rejects | ✅ PASS |
 | Wrapped blob contains no plaintext key material | unit test, asserts ciphertext excludes the raw bits | ✅ PASS |
 | Legacy vaults still open: a vault sealed at 210k does not open at any other iteration count, and the count is read per row rather than assumed | 2 unit tests + `fetchPinRow` reads `document_pin.iterations` | ✅ PASS |
@@ -547,14 +547,14 @@ entire database) yields nothing without the physical authenticator.
 | PRF secret and cached key bits are zeroed after use | `prfSecret.fill(0)` after wrap/unwrap; `lockVault()` zeroes `cachedBits` | ✅ PASS |
 | Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
 | `document_passkeys` owner-only; kid / anon read zero rows | SQL role emulation, probe row in a rolled-back transaction: owner **1**, kid **0**, anon **0** (same for `document_pin`) | ✅ PASS (2026-08-29) |
-| Biometric enrol + unlock on the real devices | two phones + the Android tablet | ⚠️ **PENDING** — needs real hardware |
+| Biometric enrol + unlock on the real devices | two phones + the Android tablet | ⚠️ **PENDING** - needs real hardware |
 
 ### Applied
 
 `00023` was applied on 2026-08-29 and verified against the live schema:
 `document_pin.iterations` (not null, default 210000), `document_pin.prf_salt`
 (nullable), and `document_passkeys` with `document_passkeys_owner_all`.
-`lib/database.types.ts` was regenerated — the hand-written entries matched the
+`lib/database.types.ts` was regenerated - the hand-written entries matched the
 generated output exactly, so no drift. `get_advisors(security)` reports no new
 findings: the new table is not flagged, and only the pre-existing accepted
 WARNs remain.
@@ -564,19 +564,19 @@ WARNs remain.
 - **PRF support must be verified on the actual devices**, not assumed. It needs
   a platform authenticator *and* a browser that implements the extension;
   installed PWAs on iOS are the historically weak spot. Everything
-  feature-detects and fails soft — `isPasskeySupported()` gates the UI,
+  feature-detects and fails soft - `isPasskeySupported()` gates the UI,
   `enrollPrfCredential` throws `prf_unsupported` rather than storing an
-  unusable credential, and the passphrase always works — so an unsupported
+  unusable credential, and the passphrase always works - so an unsupported
   device degrades to today's behaviour rather than losing access.
 - **Enrolment is per device**, and a lost device is revoked by removing it from
   the list on the Documents screen. That revocation is real, not cosmetic: the
   row carrying the wrapped key is deleted, so that authenticator can no longer
-  produce anything useful. (Contrast with kid device revocation — finding H1,
+  produce anything useful. (Contrast with kid device revocation - finding H1,
   still open.)
 
 Notes:
 
-- **Changing the passphrase is still not possible** — it would require
+- **Changing the passphrase is still not possible** - it would require
   re-encrypting every locked document, unchanged from the original design.
   Enrolling a passkey does not alter that: the passkey wraps the *derived* key,
   so the passphrase remains the root secret and the sole recovery path.
@@ -584,7 +584,7 @@ Notes:
   offline" is still stored as plaintext in IndexedDB. The passphrase warning
   covers locked documents only.
 
-## 2026-08-29 — Kid device revocation made real (H1) + offline plaintext warning (M2)
+## 2026-08-29 - Kid device revocation made real (H1) + offline plaintext warning (M2)
 
 Environment: migration `kid_device_revocation` (repo file `00024_...`),
 `kid-auth` Edge Function rewritten. Closes finding **H1** of
@@ -594,34 +594,34 @@ Environment: migration `kid_device_revocation` (repo file `00024_...`),
 
 Two defects that compounded:
 
-1. `kid_devices.revoked_at` was read in exactly one place — the `unlock`
-   branch of `kid-auth` — and by **no policy**. Once a session existed it never
+1. `kid_devices.revoked_at` was read in exactly one place - the `unlock`
+   branch of `kid-auth` - and by **no policy**. Once a session existed it never
    passed through that branch again, so "revoke device" set a timestamp and
    changed nothing. The tablet kept reading and writing.
 2. The device token **was** the kid's Supabase auth password, and it sits in
    plaintext `localStorage`. Since the anon key ships to every browser, anyone
    holding the tablet could read the token and call `signInWithPassword`
-   directly — past the PIN prompt, the attempt counter and the 15-minute
+   directly - past the PIN prompt, the attempt counter and the 15-minute
    lockout, all of which live only in `unlock`.
 
 ### What changed
 
 - **`current_member_id()` now refuses to resolve a kid without an active
-  device binding.** That function is the root of every policy in the schema —
+  device binding.** That function is the root of every policy in the schema -
   directly, or via `current_member_role()` / `is_kid_of()` / `is_owner_of()`,
-  and for `storage.objects` too — so revocation now takes effect on the next
+  and for `storage.objects` too - so revocation now takes effect on the next
   query everywhere at once. This mirrors how guests always worked
   (`is_active_guest_of()` re-checks `revoked_at` per query).
   Fixing `is_kid_of()` instead would **not** have been enough: five policies
-  match on `current_member_id()` without also calling it —
+  match on `current_member_id()` without also calling it -
   `pocket_money_kid_select`, the USING clause of `pocket_expenses_kid_all`,
   `message_reads_self_all`, `push_subscriptions_self_all`,
-  `members_self_select` — so a revoked kid would have kept reading their pocket
+  `members_self_select` - so a revoked kid would have kept reading their pocket
   money.
 - **The device token is no longer a password.** It identifies the device to
   `kid-auth` and is stored only as a SHA-256 hash. The auth password is
   separate, random, never leaves the server, and is **rotated to a fresh value
-  on every unlock** — it exists just long enough to mint one session, so a
+  on every unlock** - it exists just long enough to mint one session, so a
   stolen token has nothing to replay.
 - **`revokeDevice()` goes through the function**, not a direct table UPDATE. A
   new owner-gated `revoke` action sets `revoked_at` and, once no active device
@@ -634,15 +634,15 @@ Two defects that compounded:
 | Check | Method | Result |
 |---|---|---|
 | Revoking a device stops all reads for that kid | SQL role emulation, kid claims, one rolled-back transaction: **active device** → resolves, 227 itinerary days, 1 pocket_money; **revoked** → does not resolve, **0** days, **0** pocket_money | ✅ PASS (2026-08-29) |
-| A revoked device's token cannot mint a session via `kid-auth/unlock` | `unlock` filters on `revoked_at is null` → 401 `unknown device` | ✅ PASS — by construction, unchanged from before |
-| A stolen device token cannot sign in directly against Supabase Auth | token is no longer the password; password is random, server-only, rotated per unlock | ✅ PASS — by construction |
+| A revoked device's token cannot mint a session via `kid-auth/unlock` | `unlock` filters on `revoked_at is null` → 401 `unknown device` | ✅ PASS - by construction, unchanged from before |
+| A stolen device token cannot sign in directly against Supabase Auth | token is no longer the password; password is random, server-only, rotated per unlock | ✅ PASS - by construction |
 | Owners are unaffected by the new condition | same probe, owner control row: resolves, 227 itinerary days, 1 pocket_money | ✅ PASS (2026-08-29) |
-| `revoke` rejects a non-owner caller | `ownerCaller()` re-checks `current_member_role() = 'owner'`, same pattern as `create-registration` | ✅ PASS — by construction |
-| `revoke` rejects a device belonging to another trip's kid | trip_id compared against the calling owner's | ✅ PASS — by construction |
-| Policy-evaluation cost of the added EXISTS | partial index `idx_kid_devices_active on kid_devices(member_id) where revoked_at is null` | ✅ PASS — index-backed |
+| `revoke` rejects a non-owner caller | `ownerCaller()` re-checks `current_member_role() = 'owner'`, same pattern as `create-registration` | ✅ PASS - by construction |
+| `revoke` rejects a device belonging to another trip's kid | trip_id compared against the calling owner's | ✅ PASS - by construction |
+| Policy-evaluation cost of the added EXISTS | partial index `idx_kid_devices_active on kid_devices(member_id) where revoked_at is null` | ✅ PASS - index-backed |
 | Build / lint / typecheck / 100 unit tests | `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test` | ✅ PASS |
 
-### M2 — offline plaintext warning
+### M2 - offline plaintext warning
 
 An offline copy of a **locked** document is ciphertext and safe at rest. An
 **unlocked** one is the file itself, readable from IndexedDB with no passphrase
@@ -651,16 +651,16 @@ Hebrew and asks for confirmation, naming the passport case and pointing at the
 lock toggle. This is the mitigation the review recommended; it does not change
 where the bytes live. Encrypting every offline copy under the vault key would,
 but it would also make offline access impossible for families who never set a
-passphrase — a behaviour change worth deciding on deliberately rather than
+passphrase - a behaviour change worth deciding on deliberately rather than
 assuming.
 
 ### Deployed and applied
 
 Both shipped on 2026-08-29, in the required order:
 
-1. **`kid-auth` redeployed** — version 7, ACTIVE, `verify_jwt=false` preserved
+1. **`kid-auth` redeployed** - version 7, ACTIVE, `verify_jwt=false` preserved
    per `supabase/config.toml`.
-2. **Migration `00024` applied** — `current_member_id()` carries the kid-device
+2. **Migration `00024` applied** - `current_member_id()` carries the kid-device
    condition live, and `idx_kid_devices_active` exists.
 
 The pocket-money column of the probe is the one worth keeping: it went to
@@ -676,7 +676,7 @@ inside transactions that were rolled back; a follow-up count confirms
 
 - **Register + unlock + revoke on the real tablet.** The rewritten `kid-auth`
   changes the credential model, and the whole flow has never run end to end on
-  hardware — the Sprint 6 log still carries a PENDING for PIN unlock, blocked
+  hardware - the Sprint 6 log still carries a PENDING for PIN unlock, blocked
   back then on the Email provider being disabled. Bind the tablet, unlock with
   the PIN, then press revoke in the owner UI and confirm the tablet drops to
   registration on its next cold start.
@@ -695,14 +695,14 @@ Notes:
   password the PIN is no longer the only thing standing between a found device
   and a session.
 
-## 2026-08-29 — Cron shared secret (M3/M4), headers (M6), EXIF + signed URLs (L2/L3)
+## 2026-08-29 - Cron shared secret (M3/M4), headers (M6), EXIF + signed URLs (L2/L3)
 
 Environment: migration `cron_shared_secret` (repo `00025_...`) applied; Edge
 Functions `fx-daily` (v7), `push-send` (v8), `backup-weekly` (v7),
 `guest-photos` (v7), `guest-gphotos` (v3) deployed. All `verify_jwt` values
 unchanged.
 
-### M3 + M4 — the cron functions are no longer open to the world
+### M3 + M4 - the cron functions are no longer open to the world
 
 `fx-daily`, `push-send` and `backup-weekly` run `verify_jwt = false` because
 pg_cron carries no JWT, which left all three invokable by anyone who knows the
@@ -711,7 +711,7 @@ header from `app.settings.cron_secret`; each function compares it against its
 `CRON_SECRET` secret in constant time.
 
 **The check fails OPEN while `CRON_SECRET` is unset.** Shipping it closed would
-have stopped FX, push and backups with nothing surfacing the failure — the
+have stopped FX, push and backups with nothing surfacing the failure - the
 exact silent breakage `supabase/config.toml` exists to prevent, and precisely
 what had already happened to the backup (below). Enforcement begins when the
 secret is set on both sides; until then behaviour is unchanged.
@@ -721,9 +721,9 @@ secret is set on both sides; until then behaviour is unchanged.
 | `fx-daily` still works through the new header path | fired via `pg_net` with `cron_secret_header()` → `200 {"ok":true,"day":"2026-08-29","count":165,"source":"open.er-api.com"}` | ✅ PASS |
 | `push-send` still works through the new header path | same → `200 {"ok":true,"weather":0,"checkin":0}` | ✅ PASS |
 | `backup-weekly` still works through the new header path | same → `200 {"ok":true,...}` | ✅ PASS |
-| Constant-time comparison, no early return on mismatch | `cronAuthorized()` XORs the full length | ✅ PASS — reviewed |
+| Constant-time comparison, no early return on mismatch | `cronAuthorized()` XORs the full length | ✅ PASS - reviewed |
 | `cron_secret_header()` not callable by client roles | `revoke execute` from public/anon/authenticated, same posture as `functions_base_url()` | ✅ PASS |
-| Enforcement actually rejects a bad secret | needs `CRON_SECRET` set | ⚠️ **PENDING** — see "to activate" below |
+| Enforcement actually rejects a bad secret | needs `CRON_SECRET` set | ⚠️ **PENDING** - see "to activate" below |
 
 **To activate** (two sides, both required):
 
@@ -736,11 +736,11 @@ alter database postgres set app.settings.cron_secret = '<value>';
 
 Where the secret lives: `app.settings.cron_secret` is readable by any database
 session, same as `app.settings.functions_base_url`. Acceptable here because no
-client role has raw SQL access — kids, guests and owners reach Postgres only
+client role has raw SQL access - kids, guests and owners reach Postgres only
 through PostgREST, which exposes no `current_setting` RPC. Vault would be
 stricter and is more machinery than this app needs.
 
-### 🔴 INCIDENT found while doing the above — the weekly backup had been dead for three weeks
+### 🔴 INCIDENT found while doing the above - the weekly backup had been dead for three weeks
 
 Not a review finding; caught by checking `backup-weekly`'s table list against
 the live schema.
@@ -749,18 +749,18 @@ Migration `00021` dropped `saved_recommendations` (superseded by
 `place_options`) on ~2026-08-15. The table stayed in the function's `TABLES`
 array, so every run errored on it and returned 500 **before writing anything**.
 The cron job kept reporting success, because `net.http_post` only queues the
-request — the SQL succeeds whatever the HTTP call does. Nothing surfaced it.
+request - the SQL succeeds whatever the HTTP call does. Nothing surfaced it.
 
 - **Last good backup: 2026-08-09.** The 08-16 and 08-23 runs wrote nothing.
 - The list had also drifted past four newer tables that were never in **any**
   backup: `document_pin`, `document_passkeys`, `google_photos`, `place_options`
-  — the last of which holds **207 rows**.
+  - the last of which holds **207 rows**.
 - `document_pin` is the one that would have hurt most: it holds the per-vault
   salt, and without that row the passphrase cannot re-derive the key, so every
   locked document would be gone for good.
 
 Two fixes: the list is corrected, and **a failing table no longer aborts the
-run** — it is recorded in `failed_tables` in the snapshot and in the response,
+run** - it is recorded in `failed_tables` in the snapshot and in the response,
 and everything else is still written. A backup missing one table is worth far
 more than no backup. A run where *every* table fails still returns 500 rather
 than writing an empty snapshot over good history.
@@ -778,7 +778,7 @@ only real signal is `net._http_response`. A weekly check that the newest
 `backups` object is less than 8 days old would have caught this in a week
 instead of three.
 
-### M6 — security headers
+### M6 - security headers
 
 `next.config.ts` was empty. Now sends, on every route: `Permissions-Policy`
 (`geolocation=(self), camera=(self), microphone=()`), `Referrer-Policy`
@@ -787,7 +787,7 @@ instead of three.
 
 Rationale per header is in the file. Two deliberate omissions: **HSTS** (Vercel
 already sends it; setting `max-age` from the app risks pinning a custom domain
-early), and **an enforced CSP** — a real policy has to accommodate the Google
+early), and **an enforced CSP** - a real policy has to accommodate the Google
 Maps JS API and Next's inline bootstrap, and getting it wrong takes the app
 down rather than degrading it. Report-only surfaces violations in the console
 with no user impact. It is a tuning aid, not protection, until someone loads
@@ -798,18 +798,18 @@ policy and renames the header.
 |---|---|---|
 | Headers present on every route | `source: "/:path*"` in `next.config.ts`; `npm run build` passes | ✅ PASS |
 | Geolocation restricted to first party | `Permissions-Policy: geolocation=(self)` | ✅ PASS |
-| Headers observed on the deployed site | needs a Vercel deploy | ⚠️ **PENDING** — verify after deploy |
+| Headers observed on the deployed site | needs a Vercel deploy | ⚠️ **PENDING** - verify after deploy |
 
-### L2 — EXIF stripped from map photos
+### L2 - EXIF stripped from map photos
 
 `compressImage()` re-encodes through a canvas, which drops EXIF including the
 GPS tag. It ran only on gallery photos; the two "where's the car" upload paths
 sent the original file. Both now go through it. The bucket is owner-only, so
-this was never an external leak — but there was no reason to keep coordinates
+this was never an external leak - but there was no reason to keep coordinates
 nobody asked for. Document uploads still go up untouched, deliberately: a
 passport scan is not an image to re-encode.
 
-### L3 — guest signed URLs cut from 60 to 15 minutes
+### L3 - guest signed URLs cut from 60 to 15 minutes
 
 A signed URL needs no auth once minted, so a guest can forward one to anyone.
 An hour was a wide window for photos of the kids; 15 minutes still covers a
@@ -817,17 +817,17 @@ gallery load with room to spare. Both `guest-photos` and `guest-gphotos`.
 
 ### Still open from the review
 
-- **M5 (the family wall)** — a decision, not a defect. Guests read and write
+- **M5 (the family wall)** - a decision, not a defect. Guests read and write
   the same feed as the kids, per DECISIONS #15. Left untouched pending an
   explicit call: leave it, make guests read-only, or split the feeds.
-- **L1 (`xlsx@0.18.5`)** — left alone on purpose. The fixes exist only on
+- **L1 (`xlsx@0.18.5`)** - left alone on purpose. The fixes exist only on
   SheetJS's own CDN, not npm, and the alternative is dropping `.xlsx` import,
   which `strings.ts` advertises as a Google Sheets workflow. Both options are
   product decisions.
-- **L4 (leaked password protection)** — a dashboard toggle, one click, cannot
+- **L4 (leaked password protection)** - a dashboard toggle, one click, cannot
   be set from a migration.
 
-## 2026-08-29 (later) — Backup freshness alert, CSP origin gap, and what CRON_SECRET actually needs
+## 2026-08-29 (later) - Backup freshness alert, CSP origin gap, and what CRON_SECRET actually needs
 
 ### The monitoring gap that let the incident run for three weeks
 
@@ -835,7 +835,7 @@ The backup fix earlier today repaired the symptom. This closes the reason
 nobody noticed, which is structural rather than a one-off:
 
 - `cron.job_run_details` records **SUCCESS** for the backup job, because the
-  job body is `select net.http_post(...)` — which only *queues* a request. It
+  job body is `select net.http_post(...)` - which only *queues* a request. It
   succeeds whether the function returns 200, 500, or never answers.
 - The only honest signals are the HTTP response in `net._http_response` and
   the presence of a fresh object in the `backups` bucket.
@@ -859,7 +859,7 @@ one was hidden.
 | Unknown type still rejected | `pg_net` POST `{"type":"nonsense"}` → `400 {"ok":false,"error":"unknown type"}` | ✅ PASS |
 | Helper not callable by client roles | `revoke execute` from public/anon/authenticated | ✅ PASS |
 
-### 🟠 The alert currently reaches nobody — and so does every other notification
+### 🟠 The alert currently reaches nobody - and so does every other notification
 
 `push_subscriptions` holds **0 rows**. VAPID is configured (push-send returns
 200 rather than "VAPID keys not configured", which closes the Sprint 8 PENDING
@@ -875,7 +875,7 @@ currently inert**, including the two that matter for the kid-safety flow:
 - rain-on-outdoor-day and flight check-in reminders.
 
 The fix is not code: open `/notifications` on each phone and grant permission
-(on iOS the app must be installed to the home screen first — the screen
+(on iOS the app must be installed to the home screen first - the screen
 explains this). Worth doing before the trip, not during it.
 
 ### CSP: an origin gap found by grepping rather than guessing
@@ -887,19 +887,19 @@ reaches turned up one the policy would have blocked:
 `lib/gphotos/picker.ts` loads **`https://accounts.google.com/gsi/client`** as a
 script and runs the Google Identity Services token flow in an **iframe**. An
 enforced policy without `script-src`/`connect-src`/`frame-src` entries for
-`accounts.google.com` would have broken Google Photos import — and only the
+`accounts.google.com` would have broken Google Photos import - and only the
 first time somebody tried to use it, long after the change that caused it.
 
 Added to `script-src`, `connect-src` (plus `www.googleapis.com` for the token
 endpoint) and a new `frame-src`. The other origins found in the source
 (`ourairports.com`, `booking.com`, `embassies.gov.il`) are a data-provenance
-comment, URL-normalisation test fixtures, and an `href` respectively — none is
+comment, URL-normalisation test fixtures, and an `href` respectively - none is
 a resource load, so none needs a directive.
 
 This is the argument for calibrating the policy from the running app before
 enforcing it: a grep found one gap, the browser will find the rest.
 
-### CRON_SECRET — both sides need dashboard access, including the database side
+### CRON_SECRET - both sides need dashboard access, including the database side
 
 Setting the database side from here failed:
 
@@ -918,22 +918,22 @@ alter database postgres set app.settings.cron_secret = '<value>';   -- SQL edito
 
 ⚠️ **Do not reuse any value that appeared in an agent transcript.** The failed
 attempt above generated a candidate server-side, and Postgres echoed it back
-inside the permission error — it was never stored anywhere, but it is burned.
+inside the permission error - it was never stored anywhere, but it is burned.
 Generate a fresh one.
 
 Until both sides are set, the gate stays fail-open and behaviour is unchanged.
 
-## 2026-08-29 (evening) — M5 wall split, M2 offline encryption, L1 decision
+## 2026-08-29 (evening) - M5 wall split, M2 offline encryption, L1 decision
 
 Owners made the three calls the review left to them. Migrations `00027` applied,
 `push-send` redeployed (v11).
 
-### M5 — the wall is now two feeds
+### M5 - the wall is now two feeds
 
 `messages.channel` (`family` | `guests`):
 
-- **family** — owners + kids. Guests cannot read or write it.
-- **guests** — owners + guests. Kids cannot read or write it.
+- **family** - owners + kids. Guests cannot read or write it.
+- **guests** - owners + guests. Kids cannot read or write it.
 
 Parents are in both and are the bridge. Kids are kept out of the guest feed
 **entirely** rather than given read-only access, on the reasoning that a feed a
@@ -946,9 +946,9 @@ feed, all inside a rolled-back transaction:
 |---|---|---|---|
 | kid | **1** | **0** | into `guests` → **blocked** |
 | guest | **0** | **1** | into `family` → **blocked** |
-| owner | 1 | 1 | — (both, by design) |
+| owner | 1 | 1 | - (both, by design) |
 
-Neither kids nor guests have an UPDATE policy on `messages` — they never did —
+Neither kids nor guests have an UPDATE policy on `messages` - they never did -
 so neither can move an existing message between channels. Deny-by-default
 covers what would otherwise need a guard trigger.
 
@@ -959,16 +959,16 @@ policies forbid them to open. It now derives the audience from the channel.
 
 DECISIONS #15 is struck through and superseded by a new #18.
 
-### M2 — offline copies are encrypted at rest
+### M2 - offline copies are encrypted at rest
 
 `makeAvailableOffline` now stores ciphertext. A `pin_protected` document was
-already its own ciphertext and is saved unchanged (`offlineEncrypted: false` —
+already its own ciphertext and is saved unchanged (`offlineEncrypted: false` -
 `decryptDocument` owns that unwrapping); everything else gets an AES-GCM layer
 under the vault key.
 
 Consequences, accepted deliberately:
 
-- **Taking a document offline now requires the vault.** That is the point — the
+- **Taking a document offline now requires the vault.** That is the point - the
   old behaviour wrote the passport to IndexedDB in the clear.
 - Opening online still needs no key, so the common path is unchanged.
   `openDocument` returns `"needs-key"` only when an encrypted offline copy is
@@ -979,16 +979,16 @@ Consequences, accepted deliberately:
   are none today (0 documents), but the flag makes that explicit rather than
   implied.
 
-The confirm dialog added this morning is gone — it warned about a hazard that
+The confirm dialog added this morning is gone - it warned about a hazard that
 no longer exists.
 
-### L1 — `xlsx@0.18.5` stays
+### L1 - `xlsx@0.18.5` stays
 
 Owners' call, and the right one for this app: only a parent ever supplies a
 file, the fixed builds exist only on SheetJS's own CDN rather than npm, and the
 `.xlsx` path is an advertised Google Sheets workflow. Vendoring the CDN build
 would mean hand-updating a checked-in bundle forever; dropping it would break a
-real workflow to close a hole nobody can reach. Recorded as an accepted risk —
+real workflow to close a hole nobody can reach. Recorded as an accepted risk -
 revisit if the import ever accepts a file from outside the family.
 
 | Check | Method | Result |
@@ -996,12 +996,12 @@ revisit if the import ever accepts a file from outside the family.
 | Kid cannot read or write the guest feed | role emulation, live | ✅ PASS |
 | Guest cannot read or write the family feed | role emulation, live | ✅ PASS |
 | Owner sees both feeds | role emulation, live | ✅ PASS |
-| Push audience follows the channel | `handleWallMessage` derives it from `msg.channel` | ✅ PASS — reviewed |
-| Offline copy of an unlocked document is ciphertext | `makeAvailableOffline` encrypts unless `pin_protected` | ✅ PASS — reviewed |
+| Push audience follows the channel | `handleWallMessage` derives it from `msg.channel` | ✅ PASS - reviewed |
+| Offline copy of an unlocked document is ciphertext | `makeAvailableOffline` encrypts unless `pin_protected` | ✅ PASS - reviewed |
 | Build / lint / typecheck / 100 unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
-| End-to-end on real devices (two feeds, offline docs) | — | ⚠️ **PENDING** — needs the phones and tablet |
+| End-to-end on real devices (two feeds, offline docs) | - | ⚠️ **PENDING** - needs the phones and tablet |
 
-## 2026-08-31 — Redesign: `documents.expires_at`
+## 2026-08-31 - Redesign: `documents.expires_at`
 
 The redesign's מסמכים screen leads with a warning that a passport expires
 before the trip ends. `documents` had nowhere to record that, so migration
@@ -1012,13 +1012,13 @@ before the trip ends. `documents` had nowhere to record that, so migration
 None are added, and none needed to be. `documents` carries two SELECT policies
 and a column inherits whichever of them lets a caller see the row at all:
 
-- `documents_owner_all` (00001) — owners, full access.
-- `documents_kid_select` (00014) — kids, and only where `shared_with_kids` is
+- `documents_owner_all` (00001) - owners, full access.
+- `documents_kid_select` (00014) - kids, and only where `shared_with_kids` is
   true. Kids have no INSERT/UPDATE/DELETE policy on the table, so a kid can
   neither set an expiry nor flip the share flag.
 
 Guests have no policy on `documents` at all, so deny-by-default keeps the whole
-table — expiry included — out of the guest portal. The new column therefore
+table - expiry included - out of the guest portal. The new column therefore
 cannot widen anyone's visibility: a role that could not read the row before
 still cannot read it, and a role that could already saw every other column on
 it.
@@ -1034,15 +1034,15 @@ is involved and nothing new is exposed by the comparison.
 
 | Check | Method | Result |
 |---|---|---|
-| Kid cannot set or change a document's expiry | no kid INSERT/UPDATE policy on `documents` | ✅ PASS — reviewed |
-| Kid sees expiry only on documents shared with kids | column inherits `documents_kid_select` | ✅ PASS — reviewed |
-| Guest sees no document row, expiry included | no guest policy; deny by default | ✅ PASS — reviewed |
-| Index does not leak across trips | partial index keyed on `(trip_id, expires_at)` | ✅ PASS — reviewed |
+| Kid cannot set or change a document's expiry | no kid INSERT/UPDATE policy on `documents` | ✅ PASS - reviewed |
+| Kid sees expiry only on documents shared with kids | column inherits `documents_kid_select` | ✅ PASS - reviewed |
+| Guest sees no document row, expiry included | no guest policy; deny by default | ✅ PASS - reviewed |
+| Index does not leak across trips | partial index keyed on `(trip_id, expires_at)` | ✅ PASS - reviewed |
 | Build / lint / typecheck / unit tests | `npm run build`, `lint`, `tsc --noEmit`, `test` | ✅ PASS |
-| Applied against the live database | `apply_migration` on project `xeqfcrxrpfjlqhkijrwd`, 2026-08-31 | ✅ PASS — applied |
-| Column landed as intended | `information_schema.columns` → `expires_at`, `date`, nullable | ✅ PASS — verified live |
-| No policy added by the migration | `pg_policies` on `documents` → exactly `documents_owner_all`, `documents_kid_select` | ✅ PASS — verified live |
-| Advisors clean after the DDL | `get_advisors(security)` → no new finding on `documents` | ✅ PASS — verified live |
+| Applied against the live database | `apply_migration` on project `xeqfcrxrpfjlqhkijrwd`, 2026-08-31 | ✅ PASS - applied |
+| Column landed as intended | `information_schema.columns` → `expires_at`, `date`, nullable | ✅ PASS - verified live |
+| No policy added by the migration | `pg_policies` on `documents` → exactly `documents_owner_all`, `documents_kid_select` | ✅ PASS - verified live |
+| Advisors clean after the DDL | `get_advisors(security)` → no new finding on `documents` | ✅ PASS - verified live |
 
 The migration was applied **before** the code deployed, deliberately. The new
 client writes `expires_at` on document upload and edit, so shipping the code
@@ -1052,7 +1052,7 @@ first breaks nothing in either direction.
 
 ---
 
-## 2026-09-04 — CORS on the four browser-called Edge Functions
+## 2026-09-04 - CORS on the four browser-called Edge Functions
 
 Reported symptom: tapping "יצירת קוד חיבור" on `/kids` showed the generic
 "משהו השתבש, נסו שוב". Not a permissions problem, and not a Supabase outage.
@@ -1060,7 +1060,7 @@ Reported symptom: tapping "יצירת קוד חיבור" on `/kids` showed the g
 ### What was actually happening
 
 `function_edge_logs` showed `POST | 200` at 11:48:55, 11:49:00 and 11:49:06 UTC
-— exactly the moments of the failed taps — and `kid_device_registrations` held
+- exactly the moments of the failed taps - and `kid_device_registrations` held
 four fresh rows with `used_at: null`, one per attempt. The server did the work
 every time. The browser then refused to hand the response to the page, because
 `kid-auth` returned no `Access-Control-Allow-Origin`. supabase-js reports that
@@ -1076,7 +1076,7 @@ had them. The three cron-only functions (`fx-daily`, `push-send`,
 
 ### Why every previous check passed
 
-**Every check in this log was run with a probe** — a direct HTTP call from a
+**Every check in this log was run with a probe** - a direct HTTP call from a
 server or a script. A probe is not a browser: it sends no `Origin`, performs no
 preflight and enforces no same-origin policy, so it never exercises CORS. The
 Sprint 6 line "`kid-auth` register probe → 200 with device token" was true and
@@ -1094,12 +1094,12 @@ gates are untouched.
 
 | Check | Method | Result |
 |---|---|---|
-| Deployed source matched git before overwriting | `get_edge_function` vs `git show HEAD` | ✅ PASS — identical, no live drift |
-| `verify_jwt` preserved per function | deploy response | ✅ PASS — `kid-auth` false; the three guest functions true |
-| Deployed content round-tripped intact (Hebrew, em dashes, CORS block) | `get_edge_function` on `guest-invite` after deploy | ✅ PASS — byte-identical to the repo file |
-| Auth gates unchanged | diff is additive: headers + `OPTIONS` only | ✅ PASS — reviewed |
+| Deployed source matched git before overwriting | `get_edge_function` vs `git show HEAD` | ✅ PASS - identical, no live drift |
+| `verify_jwt` preserved per function | deploy response | ✅ PASS - `kid-auth` false; the three guest functions true |
+| Deployed content round-tripped intact (Hebrew, em dashes, CORS block) | `get_edge_function` on `guest-invite` after deploy | ✅ PASS - byte-identical to the repo file |
+| Auth gates unchanged | diff is additive: headers + `OPTIONS` only | ✅ PASS - reviewed |
 | Build / lint / typecheck / unit / e2e | `npm run build`, `lint`, `tsc --noEmit`, `test`, `test:e2e` | ✅ PASS |
-| Owner can generate a kid code from a browser | **not verified here** | ⚠️ PENDING — needs one tap on the real phone |
+| Owner can generate a kid code from a browser | **not verified here** | ⚠️ PENDING - needs one tap on the real phone |
 
 ### Note on `Access-Control-Allow-Origin: *`
 
@@ -1113,11 +1113,11 @@ and PIN. Worth revisiting only if the deployment ever settles on a fixed domain.
 
 ---
 
-## 2026-09-04 — Options bank: `planned` status, day picker, data cleanup
+## 2026-09-04 - Options bank: `planned` status, day picker, data cleanup
 
 Migrations `00029` (schema) and `00030` (data) applied live; `geocode-places`
 redeployed (v5). The bank held 343 options of which **every single one** was
-still status `option` — the lifecycle had never fired once — because the only
+still status `option` - the lifecycle had never fired once - because the only
 exit created a booking, and you do not reserve a viewpoint.
 
 ### Security surface
@@ -1135,12 +1135,12 @@ terms.
 
 | Check | Method | Result |
 |---|---|---|
-| `place_options` policy set unchanged by the migrations | `pg_policies` after apply | ✅ PASS — exactly `place_options_owner_all` |
-| Kid / guest still cannot read the bank | no policy on the table, deny by default | ✅ PASS — reviewed |
-| New FK does not widen kid visibility | `itinerary_item_id` sits on an owner-only row | ✅ PASS — reviewed |
-| Advisors clean after the DDL | `get_advisors(security)` | ✅ PASS — only the pre-existing warnings (pg_net in public, the RLS helper functions, leaked-password protection); nothing new |
+| `place_options` policy set unchanged by the migrations | `pg_policies` after apply | ✅ PASS - exactly `place_options_owner_all` |
+| Kid / guest still cannot read the bank | no policy on the table, deny by default | ✅ PASS - reviewed |
+| New FK does not widen kid visibility | `itinerary_item_id` sits on an owner-only row | ✅ PASS - reviewed |
+| Advisors clean after the DDL | `get_advisors(security)` | ✅ PASS - only the pre-existing warnings (pg_net in public, the RLS helper functions, leaked-password protection); nothing new |
 | Build / lint / typecheck / unit / e2e | `npm run build`, `lint`, `tsc --noEmit`, `test` (115), `test:e2e` (32) | ✅ PASS |
-| Owner can add from the bank on a real day | **not verified here** | ⚠️ PENDING — needs a signed-in session; this environment has no Supabase env |
+| Owner can add from the bank on a real day | **not verified here** | ⚠️ PENDING - needs a signed-in session; this environment has no Supabase env |
 
 ### Data cleanup, with the numbers
 
@@ -1174,13 +1174,13 @@ landed on country and city centroids: 24% of the bank sat on 8 points. The
 redeployed function looks up named places through Places Text Search first,
 constrains geocoding with `components=country:XX` instead of a Hebrew country
 name in the query string, and refuses any answer whose `types` are
-country/admin-level — or merely locality-level for a row that names a business.
+country/admin-level - or merely locality-level for a row that names a business.
 A refused answer leaves the row unlocated, which is honest.
 
 ### Schema drift found and reconciled
 
 `place_options.geocode_attempts` existed on the live table but in **no migration
-and no code** — added straight to the database at some point, which CLAUDE.md
+and no code** - added straight to the database at some point, which CLAUDE.md
 forbids because the repo then stops describing reality. It was all zeros. It is
 now recorded in `00029` and actually used: with the precision guard, an
 unresolvable name fails instead of silently landing on a country, so without a
@@ -1188,7 +1188,7 @@ cap those rows would be retried on every run forever.
 
 ---
 
-## 2026-09-04 (later) — Two corrections found by looking at the map
+## 2026-09-04 (later) - Two corrections found by looking at the map
 
 Reading the deployed map screenshot caught a mistake of mine and a UX dead end.
 Migration `00031`, no schema change, no policy change: `place_options` still
@@ -1201,7 +1201,7 @@ it as Chiang Mai. Three rows tagged `Chiang Mai` really are in Chiang Mai
 (lat ~18.8) and were fine. The five tagged in Hebrew were not: **Ban Gioc,
 Nguom Ngao, God's Eye Mountain, קאו בנג לופ and הא ג'יאנג לופ** all come from one
 Facebook post about northern Vietnam, and the four carrying coordinates sit at
-lat ~22.8, lng ~106.5 — Cao Bằng province, about 1,500 km from Chiang Mai. The
+lat ~22.8, lng ~106.5 - Cao Bằng province, about 1,500 km from Chiang Mai. The
 extractor had mis-tagged the area and the migration compounded it.
 
 They are back in Vietnam under `קאו בנג` and `הא ג'יאנג`. `area_original` is
@@ -1227,16 +1227,51 @@ counters reset. Zero stacked points remain.
 `geocode-places` skips a row once it has failed `GEOCODE_MAX_ATTEMPTS` times,
 which is right for the automatic batch loop. But the screen counted every
 unlocated row, so it said "49 places have no pin" beside a button that would
-immediately report finished — all 49 had exhausted their attempts. A deliberate
+immediately report finished - all 49 had exhausted their attempts. A deliberate
 tap now clears the counter first, and the banner separately says how many have
 already been tried and refused, so an unresolvable name reads as an outcome
 rather than something one more tap will fix.
 
 | Check | Method | Result |
 |---|---|---|
-| Every located option now falls inside its country's bounds | bounding-box query per `country_code` | ✅ PASS — 0 outliers |
-| No coordinate shared by 3+ different places | grouped query | ✅ PASS — 0 groups |
-| Chiang Mai holds only real Chiang Mai places | live query | ✅ PASS — 3 rows, all lat ~18.8 |
-| RLS unchanged | `pg_policies` on `place_options` | ✅ PASS — exactly `place_options_owner_all` |
-| Build / lint / typecheck / unit / e2e | full suite | ✅ PASS — 115 unit, 32 e2e |
-| Geocoder actually resolves the freed rows | **not verified here** | ⚠️ PENDING — needs a tap on "איתור המקומות"; the previous run resolved 26 of 75 |
+| Every located option now falls inside its country's bounds | bounding-box query per `country_code` | ✅ PASS - 0 outliers |
+| No coordinate shared by 3+ different places | grouped query | ✅ PASS - 0 groups |
+| Chiang Mai holds only real Chiang Mai places | live query | ✅ PASS - 3 rows, all lat ~18.8 |
+| RLS unchanged | `pg_policies` on `place_options` | ✅ PASS - exactly `place_options_owner_all` |
+| Build / lint / typecheck / unit / e2e | full suite | ✅ PASS - 115 unit, 32 e2e |
+| Geocoder actually resolves the freed rows | **not verified here** | ⚠️ PENDING - needs a tap on "איתור המקומות"; the previous run resolved 26 of 75 |
+
+---
+
+## Sprint 8 - "הידעת" destination facts (`destination_facts`, migration 00032)
+
+New table, new Edge Function `facts-generate`, new route `/facts`. The point of
+the feature is that the KIDS open it themselves, so the interesting question is
+not whether they can read it - it is whether reading is all they can do.
+
+Kids have no auth users yet, but `current_member_id()` also accepts a
+`member_id` JWT claim, so a kid session can be simulated exactly. The probe ran
+inside a transaction that ends in a deliberate `raise`, so every row it created
+(a `kid_devices` row, which `current_member_id()` requires since 00024, and one
+fact) was rolled back. Verified afterwards: `destination_facts` 0 rows,
+`kid_devices` 0 rows, nothing named "RLS probe" anywhere.
+
+| Check | Method | Result |
+|---|---|---|
+| Kid can READ facts | simulated kid JWT, `select` | ✅ PASS - 1 row |
+| Kid cannot INSERT | simulated kid JWT, `insert` | ✅ PASS - refused, `insufficient_privilege` |
+| Kid cannot UPDATE | simulated kid JWT, `update` | ✅ PASS - 0 rows changed |
+| Kid cannot DELETE | simulated kid JWT, `delete` | ✅ PASS - 0 rows removed |
+| Anonymous cannot read | `set role anon`, `select` | ✅ PASS - 0 rows |
+| Anonymous cannot write | `set role anon`, `insert` | ✅ PASS - refused |
+| Guests have no access at all | `pg_policies` on `destination_facts` | ✅ PASS - only `_owner_all` and `_kid_select` exist, so RLS denies guests by default |
+| Generation is owner-only | function checks `current_member_role() = 'owner'` before spending credit | ✅ PASS - by inspection; `verify_jwt=true` on top |
+| Probe left nothing behind | count query after rollback | ✅ PASS - 0 rows in both tables |
+| Build / lint / typecheck / unit / e2e | full suite | ✅ PASS - 151 unit (12 new), 34 e2e |
+
+Note that UPDATE and DELETE fail *silently* for a kid - they change zero rows
+rather than raising - because a restrictive `USING` clause makes the rows
+invisible to the statement rather than rejecting it. That is the correct
+Postgres behaviour and the reason the probe asserts on `row_count` rather than
+on an exception being thrown; asserting on an exception there would have passed
+while the kid was quietly deleting things.

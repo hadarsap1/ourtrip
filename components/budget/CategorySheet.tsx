@@ -16,7 +16,7 @@ const FIELD =
 
 /** Add, rename, re-budget or remove a category. Categories used to come only
  *  from the seed file, so one it did not anticipate could not be created at
- *  all — this is the whole reason the sheet exists rather than just the
+ *  all - this is the whole reason the sheet exists rather than just the
  *  planned-amount editor it replaces. */
 export function CategorySheet({
   tripId,
@@ -73,7 +73,7 @@ export function CategorySheet({
       onDone();
     } catch (e) {
       // A category with expenses on it is refused by the FK. Say why, rather
-      // than a generic failure — and never by quietly deleting the expenses.
+      // than a generic failure - and never by quietly deleting the expenses.
       const message = e instanceof Error ? e.message : "";
       onError(message === "category_in_use" ? s.categoryInUse : undefined);
     } finally {

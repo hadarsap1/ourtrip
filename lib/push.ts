@@ -9,7 +9,7 @@ export type PushState = "unsupported" | "denied" | "default" | "subscribed";
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 /** Push needs SW + PushManager + Notification. On iOS these exist only when the
- *  PWA is installed to the home screen — hence the install-instructions screen. */
+ *  PWA is installed to the home screen - hence the install-instructions screen. */
 export function isPushSupported(): boolean {
   return (
     typeof window !== "undefined" &&

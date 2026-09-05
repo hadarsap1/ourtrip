@@ -1,5 +1,5 @@
 // Open-Meteo per itinerary-day location, cached (SPEC 2.5). Free API, no key.
-// Cache: localStorage keyed by (date, rounded coords), 3h TTL — enough for
+// Cache: localStorage keyed by (date, rounded coords), 3h TTL - enough for
 // "cached" and keeps offline Today rendering the last known forecast.
 
 import { strings } from "@/lib/strings";
@@ -61,7 +61,7 @@ export async function getDayWeather(
     try {
       localStorage.setItem(key, JSON.stringify({ at: Date.now(), weather }));
     } catch {
-      // storage full — cache is best-effort
+      // storage full - cache is best-effort
     }
     return weather;
   } catch {
@@ -71,7 +71,7 @@ export async function getDayWeather(
 
 /**
  * WMO weather code → Hebrew label. The picture is drawn, not emoji, and lives
- * in components/icons.tsx as WeatherIcon — the two share this grouping.
+ * in components/icons.tsx as WeatherIcon - the two share this grouping.
  */
 export function describeWeather(code: number): { label: string } {
   const w = strings.weather;

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   OurTrip design system — "Paper · Sea · Sun"
+   OurTrip design system - "Paper · Sea · Sun"
    A family round-the-world trip journal. Warm ivory paper instead of cold
    grey; deep teal "sea" as the brand; marigold "sun" as a sparing accent.
    Tokens below generate Tailwind utilities (bg-sea, text-sun, border-line …).
@@ -22,7 +22,7 @@
   /* Lighter than ink-soft, for text that must recede: inactive nav labels,
      completed itinerary rows, placeholders. */
   --color-ink-faint: #8d968f;
-  /* Emergency only — never decorative. */
+  /* Emergency only - never decorative. */
   --color-alert: #c8123c;
   --color-alert-tint: #fdecef;
 
@@ -65,7 +65,7 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-/* Small colored label that sits above a section title — a travel-log "eyebrow". */
+/* Small colored label that sits above a section title - a travel-log "eyebrow". */
 .ot-kicker {
   font-size: 10.5px;
   font-weight: 700;
