@@ -23,7 +23,6 @@ export const strings = {
     noDay: "אין יום מתוכנן במסלול להיום",
     bookingsToday: "הזמנות להיום",
     quickExpense: "הוספת הוצאה",
-    quickItinerary: "למסלול",
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
@@ -809,7 +808,8 @@ export const strings = {
     wrongPin: "הקוד הסודי לא נכון",
     attemptsLeft: "נסיונות שנשארו",
     locked: "המכשיר נעול לכמה דקות — מנסים שוב מאוחר יותר",
-    unlockError: "משהו השתבש — מנסים שוב",
+    unlockError: "משהו השתבש - מנסים שוב",
+    unlockDisabled: "הכניסה לילדים עדיין לא הופעלה - מראים את המסך הזה לאמא או אבא",
     backToParents: "כניסת הורים",
     delete: "מחיקה",
   },

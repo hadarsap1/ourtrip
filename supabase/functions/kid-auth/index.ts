@@ -370,7 +370,19 @@ Deno.serve(async (req) => {
       password: oneTimePassword,
     });
     if (signInError || !signIn.session) {
-      return json({ ok: false, error: signInError?.message ?? "sign-in failed" }, 500);
+      // One of these failures is not a bug and not a wrong PIN: if the project's
+      // Email auth provider is off, every unlock fails here no matter what the
+      // tablet does. Name it, so the tablet can say which switch to flip instead
+      // of showing the same "something went wrong" as a real fault.
+      const raw = signInError?.message ?? "sign-in failed";
+      const code = (signInError as { code?: string } | null)?.code ?? "";
+      const providerOff =
+        code === "email_provider_disabled" ||
+        /email logins are disabled|email signin is disabled/i.test(raw);
+      return json(
+        { ok: false, error: providerOff ? "email_provider_disabled" : raw },
+        500
+      );
     }
 
     return json({

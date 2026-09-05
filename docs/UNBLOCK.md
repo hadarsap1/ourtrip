@@ -42,6 +42,17 @@ tablet, set the PIN, and unlock. If it opens, tell me and I will verify against
 the database that the device bound and the session minted. The row to watch is
 `kid_devices`, which is currently empty.
 
+**If you skip it, the tablet now says so.** `kid-auth` v10 returns
+`email_provider_disabled` as its own error code instead of forwarding the raw
+auth message, and the lock screen shows "הכניסה לילדים עדיין לא הופעלה" rather
+than the generic "משהו השתבש". A kid retrying the PIN cannot fix this, so the
+screen no longer suggests they try again.
+
+Verified 2026-09-05: `auth.users` holds only the two owner accounts, so no
+tablet has ever completed registration - consistent with all four rows in
+`kid_device_registrations` still having `used_at = null`. The CORS fix removed
+the first wall; this setting is the second.
+
 ---
 
 ## 2. Notifications are built and send nothing

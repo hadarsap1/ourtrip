@@ -150,6 +150,9 @@ export type UnlockResult =
   | { status: "ok"; displayName: string }
   | { status: "wrong"; attemptsLeft: number }
   | { status: "locked"; lockedUntil: string }
+  /** The project's Email auth provider is off, so no unlock can ever mint a
+   *  session. A setting, not a fault - worth its own message. */
+  | { status: "disabled" }
   | { status: "error" };
 
 export async function unlockWithPin(pin: string): Promise<UnlockResult> {
@@ -173,6 +176,7 @@ export async function unlockWithPin(pin: string): Promise<UnlockResult> {
     forgetKidDevice();
     return { status: "error" };
   }
+  if (data.error === "email_provider_disabled") return { status: "disabled" };
   if (status !== 200 || !data.ok) return { status: "error" };
 
   const supabase = requireClient();

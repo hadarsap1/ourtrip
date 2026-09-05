@@ -725,25 +725,21 @@ export function TodayScreen() {
           </>
         )}
 
-        {/* Quick actions (SPEC 2.1). Outside the conditional on purpose: before
-            the trip starts — and on any day with no itinerary row — there is no
-            `data.day`, and burying these in the populated branch left the empty
-            state with no way to add an expense or reach the itinerary. */}
-        <div className="mt-2.5 grid grid-cols-2 gap-2.5 lg:col-span-3 lg:mt-1">
-          <Link
-            href="/budget"
-            className="rounded-2xl bg-sea py-3 text-center text-sm font-bold text-white active:bg-sea-deep"
-            style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
-          >
-            {strings.today.quickExpense}
-          </Link>
-          <Link
-            href="/itinerary"
-            className="rounded-2xl border border-sea/30 bg-white py-3 text-center text-sm font-bold text-sea active:bg-sea-tint"
-          >
-            {strings.today.quickItinerary}
-          </Link>
-        </div>
+        {/* Quick action (SPEC 2.1). Outside the conditional on purpose: before
+            the trip starts - and on any day with no itinerary row - there is no
+            `data.day`, and burying this in the populated branch left the empty
+            state with no way to add an expense.
+
+            There was a second button beside it linking to the itinerary. The
+            bottom bar already has that tab on every screen, so it was a wider
+            copy of a link one tap away, and it cost half the row. */}
+        <Link
+          href="/budget"
+          className="mt-2.5 block rounded-2xl bg-sea py-3 text-center text-sm font-bold text-white active:bg-sea-deep lg:col-span-3 lg:mt-1"
+          style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
+        >
+          {strings.today.quickExpense}
+        </Link>
       </div>
     </div>
   );
