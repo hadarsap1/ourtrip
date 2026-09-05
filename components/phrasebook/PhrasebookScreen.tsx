@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
-  COMMON_LANGUAGES,
   filterEntries,
   generateLanguage,
   languageName,
   listEntries,
   listLanguages,
+  searchLanguages,
+  deleteLanguage,
   translatePhrase,
   type LiveTranslation,
 } from "@/lib/data/phrasebook";
@@ -105,6 +106,24 @@ export function PhrasebookScreen() {
       );
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleDeleteLanguage() {
+    if (!trip || !selected || generating) return;
+    if (!confirm(strings.phrasebook.deleteLanguageConfirm)) return;
+    try {
+      await deleteLanguage(trip.id, selected);
+      const { languages: langs } = await listLanguages(trip.id);
+      setLanguages(langs);
+      const next = langs[0] ?? null;
+      setSelected(next);
+      setQuery("");
+      if (next) await loadEntries(trip.id, next);
+      else setEntries([]);
+      showToast(strings.phrasebook.deleted);
+    } catch {
+      showToast(strings.phrasebook.deleteFailed);
     }
   }
 
@@ -266,17 +285,27 @@ export function PhrasebookScreen() {
               </ul>
             </section>
           ))}
-          {trip && !fromCache && query.trim() === "" && (
-            <button
-              type="button"
-              onClick={() => void handleGenerate(selected)}
-              disabled={generating}
-              className="w-full rounded-2xl border border-line py-2.5 text-sm font-semibold text-ink-soft hover:bg-paper-deep disabled:opacity-50"
-            >
-              {generating
-                ? strings.phrasebook.generating
-                : `${strings.phrasebook.regenerate} - ${languageName(selected)}`}
-            </button>
+          {trip && !fromCache && query.trim() === "" && isOwner && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void handleGenerate(selected)}
+                disabled={generating}
+                className="min-w-0 flex-1 rounded-2xl border border-line py-2.5 text-sm font-semibold text-ink-soft hover:bg-paper-deep disabled:opacity-50"
+              >
+                {generating
+                  ? strings.phrasebook.generating
+                  : `${strings.phrasebook.regenerate} - ${languageName(selected)}`}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteLanguage()}
+                disabled={generating}
+                className="shrink-0 rounded-2xl border border-alert/40 px-4 py-2.5 text-sm font-semibold text-alert hover:bg-alert-tint disabled:opacity-50"
+              >
+                {strings.common.delete}
+              </button>
+            </div>
           )}
         </>
       )}
@@ -290,6 +319,7 @@ export function PhrasebookScreen() {
       <AddLanguageSheet
         open={addOpen}
         generating={generating}
+        existing={languages}
         onClose={() => setAddOpen(false)}
         onGenerate={(language) => void handleGenerate(language)}
       />
@@ -319,79 +349,77 @@ export function PhrasebookScreen() {
   );
 }
 
+/**
+ * Picks a language by SEARCHING its name.
+ *
+ * It used to be a row of chips plus a field asking for an ISO 639 code, which
+ * assumes you know that Khmer is "km" and Georgian is "ka" - and this trip
+ * needs both. Now you type "חמר" and tap the result. With the box empty the
+ * list still opens on the six languages this trip actually needs.
+ */
 function AddLanguageSheet({
   open,
   generating,
+  existing,
   onClose,
   onGenerate,
 }: {
   open: boolean;
   generating: boolean;
+  /** Already in the phrasebook, so they are marked rather than offered twice. */
+  existing: string[];
   onClose: () => void;
   onGenerate: (language: string) => void;
 }) {
-  const [picked, setPicked] = useState("");
-  const [custom, setCustom] = useState("");
+  const [query, setQuery] = useState("");
+  const results = useMemo(() => searchLanguages(query), [query]);
 
   if (!open) return null;
-  const language = custom.trim().toLowerCase() || picked;
 
   return (
     <Sheet open onClose={onClose} title={strings.phrasebook.addLanguage}>
-      <div className="space-y-4">
-        <div>
-          <span className="mb-1 block text-sm font-medium text-ink-soft">
-            {strings.phrasebook.languageSelect}
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {COMMON_LANGUAGES.map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => {
-                  setPicked(code);
-                  setCustom("");
-                }}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  picked === code && !custom
-                    ? "bg-sea text-white"
-                    : "bg-paper-deep text-ink-soft"
-                }`}
-              >
-                {languageName(code)}
-              </button>
-            ))}
-          </div>
-        </div>
+      <label className="mb-3 flex items-center gap-2 rounded-xl border border-line px-3 py-2">
+        <SearchIcon className="h-4 w-4 shrink-0 text-ink-faint" />
+        <input
+          type="search"
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={strings.phrasebook.languageSearch}
+          className="min-w-0 flex-1 bg-transparent text-base focus:outline-none"
+        />
+      </label>
 
-        <div>
-          <label
-            htmlFor="pb-custom"
-            className="mb-1 block text-sm font-medium text-ink-soft"
-          >
-            {strings.phrasebook.customCode}
-          </label>
-          <input
-            id="pb-custom"
-            type="text"
-            maxLength={3}
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            placeholder="ja"
-            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-            dir="ltr"
-          />
-        </div>
-
-        <button
-          type="button"
-          disabled={!language || generating}
-          onClick={() => onGenerate(language)}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
-        >
-          {strings.phrasebook.generate}
-        </button>
-      </div>
+      {results.length === 0 ? (
+        <p className="py-6 text-center text-sm text-ink-soft">
+          {strings.phrasebook.languageNone}
+        </p>
+      ) : (
+        <ul className="max-h-[50vh] divide-y divide-line overflow-y-auto">
+          {results.map((language) => {
+            const already = existing.includes(language.code);
+            return (
+              <li key={language.code}>
+                <button
+                  type="button"
+                  disabled={generating || already}
+                  onClick={() => onGenerate(language.code)}
+                  className="flex w-full items-center gap-2 py-3 text-start disabled:opacity-45"
+                >
+                  <span className="min-w-0 flex-1 text-[15px] font-medium text-ink">
+                    {language.name}
+                  </span>
+                  {already && (
+                    <span className="shrink-0 text-[11.5px] text-ink-soft">
+                      {strings.phrasebook.languageAlready}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Sheet>
   );
 }

@@ -549,8 +549,15 @@ export const strings = {
     title: "שיחון",
     empty: "עוד אין שפות בשיחון - מוסיפים שפה ראשונה",
     addLanguage: "שפה חדשה",
-    languageSelect: "בחירת שפה",
-    customCode: "או קוד שפה (ISO)",
+    // Adding a language is a search by name now, not an ISO code nobody knows.
+    languageSearch: "חיפוש שפה",
+    languageNone: "לא נמצאה שפה כזו",
+    languageAlready: "כבר בשיחון",
+    // deleting one
+    deleteLanguage: "מחיקת השפה",
+    deleteLanguageConfirm: "למחוק את כל המשפטים בשפה הזו?",
+    deleted: "השפה נמחקה",
+    deleteFailed: "המחיקה נכשלה - נסו שוב",
     generate: "יצירת שיחון",
     generating: "יוצר שיחון… זה לוקח בערך דקה",
     generated: "השיחון נוצר",

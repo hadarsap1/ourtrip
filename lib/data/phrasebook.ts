@@ -100,10 +100,75 @@ export function languageName(code: string): string {
 
 // Shortlist for the "new language" picker (multi-country trip - free-text
 // code entry also supported in the UI).
-export const COMMON_LANGUAGES = [
-  "ja", "th", "vi", "zh", "ko", "id", "hi", "el",
-  "tr", "es", "pt", "fr", "it", "de", "nl", "ar",
+/**
+ * Languages you can add, searched by their Hebrew name.
+ *
+ * Adding one used to mean typing an ISO 639 code, which assumes you know that
+ * Khmer is "km" and Georgian is "ka". Nobody knows that, and this trip needs
+ * both. The list is broad rather than exhaustive: enough that searching "חמר"
+ * or "גאורג" finds the language, without a picker of seven thousand entries.
+ *
+ * The six the trip actually needs come first, so they are there before you
+ * type anything.
+ */
+export const SEARCHABLE_LANGUAGES = [
+  // this trip
+  "vi", "th", "km", "tl", "ja", "ka",
+  // the rest of the region
+  "zh", "ko", "id", "ms", "my", "lo", "ne", "si", "hi", "bn", "ta",
+  // elsewhere
+  "ar", "fa", "tr", "el", "hy", "az", "ru", "uk", "pl", "cs", "ro", "hu",
+  "es", "pt", "fr", "it", "de", "nl", "sv", "no", "da", "fi", "en",
+  "sw", "am", "af", "sq", "sr", "hr", "bg", "sk", "sl", "lt", "lv", "et",
 ] as const;
+
+export type LanguageOption = { code: string; name: string };
+
+/**
+ * Searches the language list by Hebrew name, English name or code.
+ *
+ * Pure, so the matching rules are pinned by tests rather than by typing into
+ * the box and hoping. An empty query returns the whole list in its declared
+ * order, which puts this trip's six first.
+ */
+export function searchLanguages(query: string): LanguageOption[] {
+  const all: LanguageOption[] = SEARCHABLE_LANGUAGES.map((code) => ({
+    code,
+    name: languageName(code),
+  }));
+  const q = query.trim().toLowerCase();
+  if (q === "") return all;
+
+  const english = (code: string) => {
+    try {
+      return (
+        new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code
+      ).toLowerCase();
+    } catch {
+      return code;
+    }
+  };
+
+  return all.filter(
+    (l) =>
+      l.name.toLowerCase().includes(q) ||
+      l.code.toLowerCase() === q ||
+      english(l.code).includes(q)
+  );
+}
+
+/** Removes a language from the phrasebook. Owner-only through RLS. */
+export async function deleteLanguage(
+  tripId: string,
+  language: string
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("phrasebook_entries")
+    .delete()
+    .eq("trip_id", tripId)
+    .eq("language", language);
+  if (error) throw new Error(error.message);
+}
 
 /**
  * Filters the phrasebook as you type.
