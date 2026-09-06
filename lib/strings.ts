@@ -5,6 +5,37 @@ export const strings = {
   appName: "OurTrip",
   appDescription: "הטיול המשפחתי שלנו מסביב לעולם",
 
+  // Browser-tab / history titles, one per route. All 24 routes used to share
+  // the single title "OurTrip", so the back-history was two dozen identical
+  // entries and a screen reader announced nothing on arrival. The root layout
+  // appends " · OurTrip" through a title template.
+  pageTitles: {
+    today: "היום",
+    itinerary: "מסלול",
+    budget: "תקציב",
+    documents: "מסמכים",
+    more: "עוד",
+    map: "מפה",
+    photos: "תמונות",
+    checklists: "רשימות",
+    emergency: "חירום",
+    phrasebook: "שיחון",
+    recommend: "מה בסביבה",
+    journal: "יומן",
+    kids: "ילדים ומכשירים",
+    guests: "אורחים",
+    pocket: "דמי כיס",
+    messages: "הקיר המשפחתי",
+    memoryBook: "ספר זיכרונות",
+    notifications: "התראות",
+    options: "בנק אפשרויות",
+    ready: "מוכנות ליציאה",
+    facts: "הידעת?",
+    offline: "אין חיבור",
+    login: "כניסה",
+    kidLogin: "כניסת ילדים",
+  },
+
   nav: {
     // Two navigation landmarks now exist - the bottom bar on mobile and the
     // side rail from lg up. They need distinct accessible names.
@@ -622,7 +653,13 @@ export const strings = {
 
   common: {
     noMember: "לא הצלחנו לזהות אתכם - יכול להיות שההתחברות פגה.",
+    // Shown instead of noMember when the lookup itself failed. Nothing is
+    // wrong with the account, so it must not offer to sign out and back in.
+    memberFailed: "לא הצלחנו לבדוק מי מחובר - כנראה אין חיבור כרגע.",
+    retry: "ניסיון נוסף",
     signInAgain: "התחברות מחדש",
+    confirmTitle: "רק לוודא",
+    confirmYes: "כן, ממשיכים",
     save: "שמירה",
     cancel: "ביטול",
     delete: "מחיקה",
@@ -631,6 +668,41 @@ export const strings = {
     loading: "טוען…",
     error: "משהו השתבש, נסו שוב",
     none: "ללא",
+  },
+
+  // Splitting a country's block of days into the towns you are actually in.
+  // Everything downstream - the options picker's ranking, per-area counts,
+  // per-day weather, the home timeline, the destination facts - reads
+  // itinerary_days.location_name, and until this is done it says "תאילנד" for
+  // 38 days running.
+  segments: {
+    title: "חלוקה למקטעים",
+    open: "חלוקה למקטעים",
+    intro:
+      "לכל מדינה יש גוש ימים אחד. כאן מחלקים אותו לערים - כמה ימים בכל אחת, לפי הסדר - וכל השאר (מזג אוויר, האפשרויות שמתאימות ליום, ציר הזמן בבית) מתחיל לעבוד.",
+    noDays: "אין עדיין ימים במסלול",
+    unlabelled: "ימים בלי שם מקום",
+    dayCount: "{n} ימים",
+    // Hebrew has no "1 days". Both counters are read aloud constantly here.
+    dayOne: "יום אחד",
+    optionCount: "{n} אפשרויות",
+    optionOne: "אפשרות אחת",
+    back: "חזרה לרשימת המקטעים",
+    routeTitle: "המסלול בתוך המקטע",
+    availableTitle: "ערים עם אפשרויות בבנק",
+    noAreas: "אין ערים עם אפשרויות במדינה הזאת",
+    allAreasUsed: "כל הערים כבר במסלול",
+    assigned: "שובצו {n} מתוך {total} ימים",
+    leftover: "‏{n} ימים עדיין בלי עיר - אפשר לשמור ולהמשיך אחר כך",
+    overflow: "‏{n} ימים מעבר למקטע - הם לא ישובצו",
+    noCoords: "אין עדיין מיקום לעיר הזאת",
+    oneMore: "יום נוסף",
+    oneLess: "יום פחות",
+    moveUp: "הקדמה במסלול",
+    moveDown: "איחור במסלול",
+    apply: "שמירת המקטע",
+    clear: "ניקוי הבחירה",
+    applied: "‏{n} ימים עודכנו",
   },
 
   itinerary: {
@@ -860,6 +932,10 @@ export const strings = {
     codePlaceholder: "הקוד",
     connect: "חיבור",
     invalidCode: "הקוד לא נכון או שפג תוקפו - מבקשים קוד חדש",
+    // The code was accepted and the server failed anyway. A new code will not
+    // help, so it must not say "ask for another one".
+    registerFailed: "הקוד בסדר, אבל החיבור נכשל בצד השרת - מראים את ההודעה הזאת לאמא או אבא",
+    registerNetwork: "אין חיבור לאינטרנט - מנסים שוב כשיש רשת",
     pinTitle: "שלום",
     pinHint: "מקלידים את הקוד הסודי",
     wrongPin: "הקוד הסודי לא נכון",

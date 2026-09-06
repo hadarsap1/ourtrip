@@ -10,6 +10,7 @@ import {
   updateExpense,
 } from "@/lib/data/expenses";
 import { formatMoney, todayISO } from "@/lib/format";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory, Expense } from "@/lib/types";
 
@@ -136,9 +137,9 @@ function ExpenseForm({
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (isNew || saving) return;
-    if (!confirm(strings.budget.deleteExpenseConfirm)) return;
+    if (!(await askConfirm(strings.budget.deleteExpenseConfirm))) return;
     setSaving(true);
     deleteExpense(expense.id)
       .then(() => onDone(strings.budget.expenseSaved))

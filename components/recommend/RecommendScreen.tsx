@@ -203,7 +203,7 @@ export function RecommendScreen() {
           <button
             type="button"
             onClick={() => setCats(new Set())}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+            className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
               cats.size === 0 ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
             }`}
           >
@@ -215,7 +215,7 @@ export function RecommendScreen() {
               type="button"
               onClick={() => toggleCat(cat)}
               aria-pressed={cats.has(cat)}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
                 cats.has(cat) ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
               }`}
             >

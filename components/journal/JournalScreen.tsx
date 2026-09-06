@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/journal";
 import { uploadPhoto } from "@/lib/data/photos";
 import { formatDate, todayISO } from "@/lib/format";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { tripPosition } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
@@ -248,8 +249,8 @@ export function JournalScreen() {
                 {(isOwner || entry.author_id === member?.id) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!confirm(strings.journal.deleteConfirm)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm(strings.journal.deleteConfirm))) return;
                       void deleteJournalEntry(entry.id)
                         .then(() => trip && refresh(trip.id))
                         .catch(() => showToast(strings.common.error));
@@ -294,7 +295,7 @@ export function JournalScreen() {
                   role="radio"
                   aria-checked={mood === m}
                   onClick={() => setMood(mood === m ? null : m)}
-                  className={`rounded-full p-1 text-xl leading-none transition-opacity ${
+                  className={`grid h-11 w-11 place-items-center rounded-full text-xl leading-none transition-opacity ${
                     mood === m ? "bg-white/80" : "opacity-50"
                   }`}
                 >
@@ -321,7 +322,7 @@ export function JournalScreen() {
             type="button"
             onClick={() => void handlePublish()}
             disabled={saving || !body.trim()}
-            className="mt-2.5 w-full rounded-[13px] bg-sun-deep py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
+            className="mt-2.5 min-h-[44px] w-full rounded-[13px] bg-sun-deep py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
           >
             {strings.journal.publish}
           </button>

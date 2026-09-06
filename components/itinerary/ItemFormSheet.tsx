@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { Sheet } from "@/components/Sheet";
 import { createItem, deleteItem, updateItem } from "@/lib/data/itinerary";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Booking, ItemStatus, ItineraryItem } from "@/lib/types";
 
@@ -105,9 +106,9 @@ function ItemForm({
     );
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!item) return;
-    if (!confirm(strings.itinerary.deleteItemConfirm)) return;
+    if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
     onSubmit(() => deleteItem(item.id));
   }
 

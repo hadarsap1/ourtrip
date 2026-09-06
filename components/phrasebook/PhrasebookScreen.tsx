@@ -20,6 +20,7 @@ import {
 import { SearchIcon } from "@/components/icons";
 import { TranslateBox } from "./TranslateBox";
 import { useMember } from "@/lib/useMember";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { PhrasebookEntry, Trip } from "@/lib/types";
 
@@ -139,7 +140,7 @@ export function PhrasebookScreen() {
 
   async function handleDeleteLanguage() {
     if (!trip || !selected || generating) return;
-    if (!confirm(strings.phrasebook.deleteLanguageConfirm)) return;
+    if (!(await askConfirm(strings.phrasebook.deleteLanguageConfirm))) return;
     try {
       await deleteLanguage(trip.id, selected);
       const { languages: langs } = await listLanguages(trip.id);
@@ -218,7 +219,7 @@ export function PhrasebookScreen() {
               key={lang}
               type="button"
               onClick={() => void selectLanguage(lang)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === lang
                   ? "bg-sea text-white"
                   : "bg-white text-ink-soft shadow-sm"

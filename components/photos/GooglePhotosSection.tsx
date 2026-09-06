@@ -19,6 +19,7 @@ import {
 } from "@/lib/gphotos/picker";
 import { CameraIcon, PlusIcon, UsersIcon } from "@/components/icons";
 import { CarIcon, CloseIcon, PinIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { MapPin } from "@/lib/types";
 
@@ -153,7 +154,7 @@ export function GooglePhotosSection({
   }
 
   async function handleDelete(photo: GooglePhotoWithUrl) {
-    if (!confirm(strings.googlePhotos.deleteConfirm)) return;
+    if (!(await askConfirm(strings.googlePhotos.deleteConfirm))) return;
     setActionPhoto(null);
     try {
       await deleteGooglePhoto(photo);

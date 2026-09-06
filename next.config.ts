@@ -64,6 +64,13 @@ const CSP_REPORT_ONLY = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Next 16.3 appends a block of its own to CLAUDE.md on every `next dev`.
+  // CLAUDE.md here is the hand-written brief for this project, and a file the
+  // framework rewrites underneath you shows up as a dirty tree on every run.
+  // Off; the same guidance lives in node_modules/next/dist/docs/ if it is
+  // needed.
+  agentRules: false,
+
   async headers() {
     return [
       {

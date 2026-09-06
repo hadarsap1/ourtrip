@@ -3,6 +3,7 @@ import { Heebo } from "next/font/google";
 import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
 import { BottomNav } from "@/components/BottomNav";
+import { ConfirmHost } from "@/components/ConfirmSheet";
 import { SideRail } from "@/components/SideRail";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { OfflineSync } from "@/components/OfflineSync";
@@ -15,7 +16,12 @@ const heebo = Heebo({
 });
 
 export const metadata: Metadata = {
-  title: strings.appName,
+  // Each route sets its own title (strings.pageTitles); this appends the app
+  // name to it. `default` is what an unnamed route falls back to.
+  title: {
+    default: strings.appName,
+    template: `%s · ${strings.appName}`,
+  },
   description: strings.appDescription,
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -48,6 +54,7 @@ export default function RootLayout({
         </main>
         <BottomNav />
         <SideRail />
+        <ConfirmHost />
         <OfflineSync />
         <RegisterSW />
       </body>

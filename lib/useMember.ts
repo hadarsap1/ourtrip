@@ -10,9 +10,22 @@ import type { Member } from "@/lib/types";
 // BottomNav plus whichever screen is mounted both call this. With per-hook
 // state each mount re-ran the fetch chain and re-rendered on its own; a single
 // module-level store resolves once and updates every consumer together.
-type Snapshot = { member: Member | null; memberLoading: boolean };
+//
+// `memberFailed` separates "resolved, and there is nobody" (really signed out)
+// from "could not ask" (offline, or the request failed). Both leave `member`
+// null, and telling the family the wrong one of the two sends them to a login
+// screen when all they needed was to wait for a signal.
+type Snapshot = {
+  member: Member | null;
+  memberLoading: boolean;
+  memberFailed: boolean;
+};
 
-const INITIAL: Snapshot = { member: null, memberLoading: true };
+const INITIAL: Snapshot = {
+  member: null,
+  memberLoading: true,
+  memberFailed: false,
+};
 
 let snapshot: Snapshot = INITIAL;
 let started = false;
@@ -28,8 +41,12 @@ function subscribe(notify: () => void): () => void {
   if (!started) {
     started = true;
     void getCurrentMember()
-      .then((member) => publish({ member, memberLoading: false }))
-      .catch(() => publish({ member: null, memberLoading: false }));
+      .then((member) =>
+        publish({ member, memberLoading: false, memberFailed: false })
+      )
+      .catch(() =>
+        publish({ member: null, memberLoading: false, memberFailed: true })
+      );
   }
   return () => {
     listeners.delete(notify);

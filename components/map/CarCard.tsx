@@ -11,6 +11,7 @@ import {
   updateCarPhoto,
 } from "@/lib/data/map";
 import { CameraIcon, CarIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { MapPin, Trip } from "@/lib/types";
 
@@ -91,9 +92,9 @@ export function CarCard({
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!carPin || busy) return;
-    if (!confirm(strings.map.carDeleteConfirm)) return;
+    if (!(await askConfirm(strings.map.carDeleteConfirm))) return;
     setBusy(true);
     deletePin(carPin)
       .then(() => {

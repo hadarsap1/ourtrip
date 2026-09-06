@@ -369,7 +369,7 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setTagFilter(null)}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+          className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
             tagFilter === null
               ? "bg-sea-deep text-white"
               : "bg-paper-deep text-ink-soft"
@@ -384,7 +384,7 @@ export function DocumentsScreen() {
               key={tag}
               type="button"
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
                 tagFilter === tag
                   ? "bg-sea-deep text-white"
                   : "bg-paper-deep text-ink-soft"

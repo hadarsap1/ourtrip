@@ -20,7 +20,7 @@ import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   // Which feeds this role may open (migration 00027): owners get both and act
   // as the bridge, kids only the family one, guests only theirs. RLS enforces
   // it regardless - this just decides what to render.
@@ -129,11 +129,30 @@ export function MessagesScreen() {
     );
   }
 
+  // A lookup that failed is not an expired session: offer a retry, not a
+  // sign-out (see lib/useMember.ts).
+  if (memberFailed) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold">{strings.wall.title}</h1>
+        <p className="mb-3 text-ink-soft">{strings.common.memberFailed}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="inline-flex min-h-[44px] items-center font-semibold text-sea underline"
+        >
+          {strings.common.retry}
+        </button>
+      </div>
+    );
+  }
+
   if (!member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold">{strings.wall.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
-        <Link href="/login" className="font-semibold text-sea underline">
+        <Link href="/login" className="inline-flex min-h-[44px] items-center font-semibold text-sea underline">
           {strings.common.signInAgain}
         </Link>
       </div>

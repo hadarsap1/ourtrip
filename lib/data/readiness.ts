@@ -11,6 +11,7 @@
 // no guessing at visa rules: a count, a status and a link to the screen that
 // fixes it.
 
+import { listDayIdsWithItems } from "@/lib/data/itinerary";
 import { getSupabase } from "@/lib/supabase";
 
 function requireClient() {
@@ -246,12 +247,9 @@ export async function loadReadiness(
   const dayRows = days.data ?? [];
   const dayIds = dayRows.map((d) => d.id);
 
-  // Which days actually carry something. One query, then a set.
-  const items =
-    dayIds.length === 0
-      ? { data: [] as { day_id: string }[] }
-      : await client.from("itinerary_items").select("day_id").in("day_id", dayIds);
-  const daysWithItemsSet = new Set((items.data ?? []).map((i) => i.day_id));
+  // Which days actually carry something. Chunked by listDayIdsWithItems - the
+  // whole trip's days go into this filter.
+  const daysWithItemsSet = await listDayIdsWithItems(dayIds);
 
   const options = await client
     .from("place_options")

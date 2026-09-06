@@ -24,6 +24,7 @@ import {
 } from "@/lib/data/placeOptions";
 import { listDays } from "@/lib/data/itinerary";
 import { getActiveTrip } from "@/lib/data/trip";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { ComponentType } from "react";
 import {
@@ -283,7 +284,7 @@ export function OptionsScreen() {
 
   const remove = useCallback(
     async (id: string) => {
-      if (!trip || !confirm(s.deleteConfirm)) return;
+      if (!trip || !(await askConfirm(s.deleteConfirm))) return;
       try {
         await deletePlaceOption(id);
         setOptions((prev) => prev.filter((o) => o.id !== id));

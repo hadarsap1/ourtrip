@@ -464,7 +464,7 @@ export function TodayScreen() {
           <div className="flex shrink-0 items-center gap-1.5">
             <Link
               href="/budget"
-              className="flex items-center gap-1 rounded-[10px] border border-white/28 bg-white/15 px-2.5 py-1.5 text-[11px] font-bold text-white active:bg-white/25"
+              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-white/28 bg-white/15 px-3 py-1.5 text-[11px] font-bold text-white active:bg-white/25"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               {strings.today.addExpenseShort}
@@ -472,7 +472,7 @@ export function TodayScreen() {
             <Link
               href="/emergency"
               aria-label={strings.emergency.title}
-              className="rounded-[10px] border border-white/28 bg-white/15 px-2.5 py-1.5 text-[11px] font-extrabold tracking-[0.06em] text-white active:bg-white/25"
+              className="min-h-[44px] rounded-[10px] border border-white/28 bg-white/15 px-3 py-1.5 text-[11px] font-extrabold tracking-[0.06em] text-white active:bg-white/25"
             >
               {strings.emergency.sos}
             </Link>

@@ -60,7 +60,7 @@ export function ConverterCard() {
           type="button"
           onClick={() => setToIls((v) => !v)}
           aria-label={strings.budget.converterTitle}
-          className="rounded-full bg-paper-deep p-2 text-ink-soft hover:bg-line"
+          className="grid h-11 w-11 place-items-center rounded-full bg-paper-deep text-ink-soft hover:bg-line"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -80,7 +80,7 @@ export function ConverterCard() {
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
           aria-label={strings.budget.currency}
-          className="rounded-xl border border-line px-2 py-1.5 text-sm focus:border-sea focus:outline-none"
+          className="min-h-[40px] rounded-xl border border-line px-2 py-1.5 text-sm focus:border-sea focus:outline-none"
           dir="ltr"
         >
           {CURRENCIES.filter((c) => c !== "ILS").map((c) => (

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
-import { CloseIcon, FileIcon, PlusIcon, SearchIcon } from "@/components/icons";
+import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
@@ -22,6 +22,7 @@ import {
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
 import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type {
   Booking,
@@ -39,6 +40,7 @@ import { CalendarView } from "./CalendarView";
 import { ImportItinerarySheet } from "./ImportItinerarySheet";
 import { ItemFormSheet } from "./ItemFormSheet";
 import { OptionsPickerSheet } from "./OptionsPickerSheet";
+import { SegmentsSheet } from "./SegmentsSheet";
 import { TravelSearch } from "./TravelSearch";
 
 const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
@@ -72,6 +74,7 @@ export function ItineraryScreen() {
     item: ItineraryItem | null;
   } | null>(null);
   const [movingItem, setMovingItem] = useState<ItineraryItem | null>(null);
+  const [segmenting, setSegmenting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
   const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
@@ -260,7 +263,7 @@ export function ItineraryScreen() {
               searching ? strings.itinerary.closeSearch : strings.itinerary.tabSearch
             }
             aria-pressed={searching}
-            className={`grid h-8 w-8 place-items-center rounded-[11px] transition-colors ${
+            className={`grid h-11 w-11 place-items-center rounded-[11px] transition-colors ${
               searching
                 ? "bg-sea text-white"
                 : "bg-paper-deep text-ink-soft active:bg-line"
@@ -276,7 +279,7 @@ export function ItineraryScreen() {
             type="button"
             onClick={() => setDayForm({ day: null })}
             aria-label={strings.itinerary.addDay}
-            className="grid h-8 w-8 place-items-center rounded-[11px] bg-sea text-white active:bg-sea-deep"
+            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-white active:bg-sea-deep"
           >
             <PlusIcon className="h-[17px] w-[17px]" />
           </button>
@@ -355,7 +358,7 @@ export function ItineraryScreen() {
                         items={itemsOf(day.id)}
                         bookings={bookings}
                         onEditDay={() => setDayForm({ day })}
-                        onDeleteDay={() => {
+                        onDeleteDay={async () => {
                           // Say what goes with it: deleting a day takes its
                           // activities too, and that is easy to not expect.
                           const count = itemsOf(day.id).length;
@@ -366,7 +369,7 @@ export function ItineraryScreen() {
                                   String(count)
                                 )
                               : strings.itinerary.deleteDayConfirm;
-                          if (!confirm(question)) return;
+                          if (!(await askConfirm(question))) return;
                           void run(
                             () => deleteDay(day.id),
                             strings.itinerary.dayDeleted
@@ -380,8 +383,8 @@ export function ItineraryScreen() {
                           setItemForm({ dayId: day.id, item })
                         }
                         onMoveItem={setMovingItem}
-                        onDeleteItem={(item) => {
-                          if (!confirm(strings.itinerary.deleteItemConfirm)) return;
+                        onDeleteItem={async (item) => {
+                          if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
                           void run(
                             () => deleteItem(item.id),
                             strings.itinerary.itemDeleted
@@ -420,6 +423,17 @@ export function ItineraryScreen() {
                       <FileIcon className="h-[17px] w-[17px]" />
                       {strings.itinerary.importFromFile}
                     </button>
+                    {/* The days arrive as one block per country; this is where
+                        they become towns, which is what everything downstream
+                        actually reads. */}
+                    <button
+                      type="button"
+                      onClick={() => setSegmenting(true)}
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft active:bg-paper-deep sm:col-span-2"
+                    >
+                      <PinIcon className="h-[17px] w-[17px]" />
+                      {strings.segments.open}
+                    </button>
                   </div>
                 </div>
               </>
@@ -456,6 +470,20 @@ export function ItineraryScreen() {
           void run(action);
         }}
       />
+
+      {trip && (
+        <SegmentsSheet
+          tripId={trip.id}
+          days={days}
+          open={segmenting}
+          onClose={() => setSegmenting(false)}
+          onApplied={(updated) => {
+            refreshNow();
+            showToast(strings.segments.applied.replace("{n}", String(updated)));
+          }}
+          onError={(message) => showToast(message)}
+        />
+      )}
 
       {/* move item to another day: tap move (1) → tap a day (2) */}
       <DayPickerSheet

@@ -18,12 +18,13 @@ import {
 import { formatMoney, formatShortDate } from "@/lib/format";
 import { BagIcon, CoinIcon } from "@/components/icons";
 import { CloseIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
 export function PocketScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [kids, setKids] = useState<Member[]>([]);
   const [allowances, setAllowances] = useState<PocketMoney[]>([]);
@@ -89,11 +90,30 @@ export function PocketScreen() {
     );
   }
 
+  // A lookup that failed is not an expired session: offer a retry, not a
+  // sign-out (see lib/useMember.ts).
+  if (memberFailed) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold">{strings.pocket.title}</h1>
+        <p className="mb-3 text-ink-soft">{strings.common.memberFailed}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="inline-flex min-h-[44px] items-center font-semibold text-sea underline"
+        >
+          {strings.common.retry}
+        </button>
+      </div>
+    );
+  }
+
   if (!member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold">{strings.pocket.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
-        <Link href="/login" className="font-semibold text-sea underline">
+        <Link href="/login" className="inline-flex min-h-[44px] items-center font-semibold text-sea underline">
           {strings.common.signInAgain}
         </Link>
       </div>
@@ -218,8 +238,8 @@ export function PocketScreen() {
                       {!isOwner && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (!confirm(strings.pocket.deleteConfirm)) return;
+                          onClick={async () => {
+                            if (!(await askConfirm(strings.pocket.deleteConfirm))) return;
                             void deletePocketExpense(expense.id)
                               .then(() => trip && refresh(trip.id, isOwner))
                               .catch(() => showToast(strings.common.error));

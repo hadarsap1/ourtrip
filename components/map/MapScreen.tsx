@@ -23,6 +23,7 @@ import {
 import { loadGoogleMaps } from "@/lib/places";
 import { formatShortDate } from "@/lib/format";
 import { EditIcon, PinIcon } from "@/components/icons";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type {
@@ -357,7 +358,7 @@ export function MapScreen() {
           <button
             type="button"
             onClick={() => setDayFilter(null)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+            className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
               dayFilter === null ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
             }`}
           >
@@ -368,7 +369,7 @@ export function MapScreen() {
               key={day.id}
               type="button"
               onClick={() => setDayFilter(dayFilter === day.id ? null : day.id)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 dayFilter === day.id ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
               }`}
             >
@@ -485,8 +486,8 @@ export function MapScreen() {
                   </a>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!confirm(strings.map.deletePinConfirm)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm(strings.map.deletePinConfirm))) return;
                       void run(() => deletePin(pin));
                     }}
                     className="rounded-lg bg-rose-50 px-2 py-1.5 text-rose-600"
@@ -519,8 +520,8 @@ export function MapScreen() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!confirm(strings.map.deleteRouteConfirm)) return;
+                  onClick={async () => {
+                    if (!(await askConfirm(strings.map.deleteRouteConfirm))) return;
                     void run(() => deleteRoute(route.id));
                   }}
                   className="shrink-0 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-600"

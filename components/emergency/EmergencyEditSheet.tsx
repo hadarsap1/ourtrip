@@ -7,6 +7,7 @@ import {
   upsertEmergencyPage,
   type EmergencyContent,
 } from "@/lib/data/emergency";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 
 const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
@@ -106,9 +107,9 @@ function EmergencyEditForm({
   const [content, setContent] = useState<EmergencyContent>(existing);
   const [saving, setSaving] = useState(false);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!countryCode || saving) return;
-    if (!confirm(strings.emergency.deleteCountryConfirm)) return;
+    if (!(await askConfirm(strings.emergency.deleteCountryConfirm))) return;
     setSaving(true);
     deleteEmergencyPage(tripId, countryCode)
       .then(() => onDeleted(countryCode))

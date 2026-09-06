@@ -283,7 +283,7 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setEditingTotal(true)}
-          className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[11px] hover:bg-paper-deep"
+          className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[11px] hover:bg-paper-deep"
         >
           <span className="text-ink-soft">
             {hasTarget
@@ -313,7 +313,7 @@ export function BudgetScreen() {
           <button
             type="button"
             onClick={() => setCategoryForm({ category: null })}
-            className="rounded-full bg-white px-2.5 py-1 text-[10.5px] font-bold text-sea"
+            className="min-h-[40px] rounded-full bg-white px-3 py-1 text-[11px] font-bold text-sea"
           >
             + {strings.budget.addCategory}
           </button>

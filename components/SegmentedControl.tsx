@@ -51,7 +51,7 @@ export function SegmentedControl<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(option.value)}
-            className={`rounded-[10px] py-[7px] text-[12.5px] transition-colors ${
+            className={`min-h-[40px] rounded-[10px] py-[7px] text-[12.5px] transition-colors ${
               active ? "font-bold text-sea-deep" : "font-semibold text-ink-soft"
             }`}
           >
