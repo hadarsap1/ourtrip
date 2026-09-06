@@ -275,6 +275,23 @@ export function ItineraryScreen() {
               <SearchIcon className="h-[17px] w-[17px]" />
             )}
           </button>
+          {/* Splitting the trip into towns is a whole-trip action, so it
+              belongs with the other two rather than below 227 day cards -
+              where it first shipped, reachable only by scrolling the entire
+              trip, and only in the list view. */}
+          <button
+            type="button"
+            onClick={() => setSegmenting(true)}
+            // The sheet renders under `trip &&`, so without a trip this would
+            // be a button that swallows the tap and does nothing. Disabled it
+            // says so, and it means an enabled button always has a sheet to
+            // open.
+            disabled={!trip}
+            aria-label={strings.segments.open}
+            className="grid h-11 w-11 place-items-center rounded-[11px] bg-paper-deep text-ink-soft active:bg-line disabled:opacity-40"
+          >
+            <PinIcon className="h-[17px] w-[17px]" />
+          </button>
           <button
             type="button"
             onClick={() => setDayForm({ day: null })}
@@ -422,17 +439,6 @@ export function ItineraryScreen() {
                     >
                       <FileIcon className="h-[17px] w-[17px]" />
                       {strings.itinerary.importFromFile}
-                    </button>
-                    {/* The days arrive as one block per country; this is where
-                        they become towns, which is what everything downstream
-                        actually reads. */}
-                    <button
-                      type="button"
-                      onClick={() => setSegmenting(true)}
-                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft active:bg-paper-deep sm:col-span-2"
-                    >
-                      <PinIcon className="h-[17px] w-[17px]" />
-                      {strings.segments.open}
                     </button>
                   </div>
                 </div>
