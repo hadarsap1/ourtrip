@@ -128,7 +128,9 @@ export function Sheet({
             type="button"
             onClick={onClose}
             aria-label={strings.common.close}
-            className="rounded-full p-1.5 text-ink-soft hover:bg-paper-deep"
+            // 44px: it was 32, and it is the only way out of a sheet on a
+            // phone besides the backdrop.
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-soft hover:bg-paper-deep"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

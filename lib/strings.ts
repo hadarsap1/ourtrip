@@ -670,6 +670,41 @@ export const strings = {
     none: "ללא",
   },
 
+  // Splitting a country's block of days into the towns you are actually in.
+  // Everything downstream - the options picker's ranking, per-area counts,
+  // per-day weather, the home timeline, the destination facts - reads
+  // itinerary_days.location_name, and until this is done it says "תאילנד" for
+  // 38 days running.
+  segments: {
+    title: "חלוקה למקטעים",
+    open: "חלוקה למקטעים",
+    intro:
+      "לכל מדינה יש גוש ימים אחד. כאן מחלקים אותו לערים - כמה ימים בכל אחת, לפי הסדר - וכל השאר (מזג אוויר, האפשרויות שמתאימות ליום, ציר הזמן בבית) מתחיל לעבוד.",
+    noDays: "אין עדיין ימים במסלול",
+    unlabelled: "ימים בלי שם מקום",
+    dayCount: "{n} ימים",
+    // Hebrew has no "1 days". Both counters are read aloud constantly here.
+    dayOne: "יום אחד",
+    optionCount: "{n} אפשרויות",
+    optionOne: "אפשרות אחת",
+    back: "חזרה לרשימת המקטעים",
+    routeTitle: "המסלול בתוך המקטע",
+    availableTitle: "ערים עם אפשרויות בבנק",
+    noAreas: "אין ערים עם אפשרויות במדינה הזאת",
+    allAreasUsed: "כל הערים כבר במסלול",
+    assigned: "שובצו {n} מתוך {total} ימים",
+    leftover: "‏{n} ימים עדיין בלי עיר - אפשר לשמור ולהמשיך אחר כך",
+    overflow: "‏{n} ימים מעבר למקטע - הם לא ישובצו",
+    noCoords: "אין עדיין מיקום לעיר הזאת",
+    oneMore: "יום נוסף",
+    oneLess: "יום פחות",
+    moveUp: "הקדמה במסלול",
+    moveDown: "איחור במסלול",
+    apply: "שמירת המקטע",
+    clear: "ניקוי הבחירה",
+    applied: "‏{n} ימים עודכנו",
+  },
+
   itinerary: {
     tabPlan: "מסלול",
     tabBookings: "הזמנות",
