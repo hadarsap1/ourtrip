@@ -1,15 +1,23 @@
 import type { ComponentType } from "react";
 import {
+  BellIcon,
   BudgetIcon,
+  ChecklistIcon,
   CoinIcon,
   DocumentIcon,
   HomeIcon,
   type IconProps,
   JournalIcon,
+  MailIcon,
   MapIcon,
+  MemoryBookIcon,
   MessagesIcon,
   MoreIcon,
+  OptionsIcon,
+  PersonIcon,
   PhotosIcon,
+  PhrasebookIcon,
+  PlaneIcon,
   RouteIcon,
   SparkleIcon,
 } from "@/components/icons";
@@ -50,13 +58,55 @@ export const ownerTabs: NavItem[] = [
   { href: "/more", label: strings.nav.more, Icon: MoreIcon },
 ];
 
-// The desktop rail has the room the bottom bar doesn't, so the four memory
-// destinations that live behind "עוד" on mobile get their own group there.
-export const ownerRailMemories: NavItem[] = [
-  { href: "/journal", label: strings.more.menuJournal, Icon: JournalIcon },
-  { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
-  { href: "/map", label: strings.more.menuMap, Icon: MapIcon },
-  { href: "/messages", label: strings.more.menuMessages, Icon: MessagesIcon },
+export type NavGroup = { label: string; items: NavItem[] };
+
+/**
+ * Everything that lives behind "עוד" on mobile, for the desktop rail.
+ *
+ * The rail replaces the bottom bar from lg up and drops the "עוד" tab, so
+ * whatever is not listed here has no way in on a desktop at all. It used to
+ * carry four memory destinations, which left TEN screens reachable only by
+ * typing the URL - the options bank, recommendations, the phrasebook, the
+ * memory book, checklists, pocket money, kids, guests, notifications and
+ * readiness. Reported from the desktop 2026-09-06.
+ *
+ * Grouped and ordered exactly like MoreScreen, so the two navigations teach
+ * the same map rather than two different ones.
+ */
+export const ownerRailGroups: NavGroup[] = [
+  {
+    label: strings.more.groupExplore,
+    items: [
+      { href: "/recommend", label: strings.more.menuRecommend, Icon: SparkleIcon },
+      { href: "/map", label: strings.more.menuMap, Icon: MapIcon },
+      { href: "/phrasebook", label: strings.more.menuPhrasebook, Icon: PhrasebookIcon },
+      { href: "/options", label: strings.more.menuOptions, Icon: OptionsIcon },
+      // Owner-facing too: FactsScreen is where the AI facts are generated,
+      // checked and deleted before the kids read them, and it had no entry
+      // point for an owner on either layout - only the kid home tiles.
+      { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
+    ],
+  },
+  {
+    label: strings.more.groupMemories,
+    items: [
+      { href: "/journal", label: strings.more.menuJournal, Icon: JournalIcon },
+      { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
+      { href: "/memory-book", label: strings.more.menuMemoryBook, Icon: MemoryBookIcon },
+      { href: "/messages", label: strings.more.menuMessages, Icon: MessagesIcon },
+    ],
+  },
+  {
+    label: strings.more.groupFamily,
+    items: [
+      { href: "/checklists", label: strings.more.menuChecklists, Icon: ChecklistIcon },
+      { href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon },
+      { href: "/kids", label: strings.more.menuKids, Icon: PersonIcon },
+      { href: "/guests", label: strings.more.menuGuests, Icon: MailIcon },
+      { href: "/notifications", label: strings.more.menuNotifications, Icon: BellIcon },
+      { href: "/ready", label: strings.ready.menu, Icon: PlaneIcon },
+    ],
+  },
 ];
 
 export function tabsForRole(role: string): NavItem[] {
