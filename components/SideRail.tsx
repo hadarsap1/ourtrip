@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   isNavItemActive,
-  ownerRailMemories,
+  ownerRailGroups,
   ownerTabs,
   tabsForRole,
   type NavItem,
@@ -55,10 +55,13 @@ function RailRow({
  * pinned to the inline-start edge (the right, in RTL), so the content column no
  * longer sits as a 512px strip in the middle of an empty viewport.
  *
- * Owners get the full map - the four primary destinations, the memory
- * destinations that hide behind "עוד" on mobile, and the emergency page. Kids
- * and guests get exactly the tabs their bottom bar already shows and nothing
- * more; the rail is extra room, not extra access.
+ * Owners get the full map - the four primary destinations, then every
+ * destination that hides behind "עוד" on mobile, in the same groups and the
+ * same order MoreScreen uses, then the emergency page. It has to be the full
+ * map: the rail drops the "עוד" tab, so anything missing from it cannot be
+ * reached on a desktop at all. Kids and guests get exactly the tabs their
+ * bottom bar already shows and nothing more; the rail is extra room, not extra
+ * access.
  */
 export function SideRail() {
   const pathname = usePathname();
@@ -77,7 +80,7 @@ export function SideRail() {
   return (
     <nav
       // border-e is the rail's content-facing edge in RTL.
-      className="fixed inset-y-0 start-0 z-40 hidden w-[216px] flex-col gap-[26px] overflow-y-auto border-e border-line bg-[#f7f1e6] px-[18px] py-[26px] lg:flex"
+      className="fixed inset-y-0 start-0 z-40 hidden w-[216px] flex-col gap-[26px] overflow-hidden border-e border-line bg-[#f7f1e6] px-[18px] py-[26px] lg:flex"
       aria-label={strings.nav.railLabel}
     >
       <div className="flex items-center gap-[9px] ps-1.5">
@@ -92,47 +95,57 @@ export function SideRail() {
         </span>
       </div>
 
-      <div className="flex flex-col gap-[3px]">
-        {primary.map((item) => (
-          <RailRow
-            key={item.href}
-            item={item}
-            active={isNavItemActive(pathname, item.href)}
-            badge={item.href === "/messages" ? unread : 0}
-          />
-        ))}
+      {/* The full map is taller than a laptop viewport, so THIS scrolls and the
+          nav itself does not. That keeps the emergency link below it in view
+          without a scroll - as a sticky inside one scroller it floated over the
+          rows behind it, which looked like a rendering fault. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto">
+        <div className="flex flex-col gap-[3px]">
+          {primary.map((item) => (
+            <RailRow
+              key={item.href}
+              item={item}
+              active={isNavItemActive(pathname, item.href)}
+              badge={item.href === "/messages" ? unread : 0}
+            />
+          ))}
+        </div>
+
+        {isOwner && (
+          <>
+            <div className="h-px bg-line" aria-hidden="true" />
+            {ownerRailGroups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-[3px]">
+                <p className="ot-kicker px-3 pb-1.5">{group.label}</p>
+                {group.items.map((item) => (
+                  <RailRow
+                    key={item.href}
+                    item={item}
+                    active={isNavItemActive(pathname, item.href)}
+                    compact
+                  />
+                ))}
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {isOwner && (
-        <>
-          <div className="h-px bg-line" aria-hidden="true" />
-          <div className="flex flex-col gap-[3px]">
-            <p className="ot-kicker px-3 pb-1.5">{strings.more.groupMemories}</p>
-            {ownerRailMemories.map((item) => (
-              <RailRow
-                key={item.href}
-                item={item}
-                active={isNavItemActive(pathname, item.href)}
-                compact
-              />
-            ))}
-          </div>
-
-          <Link
-            href="/emergency"
-            className="mt-auto flex items-center gap-2.5 rounded-[13px] bg-alert-tint px-3 py-[11px] text-alert"
+        <Link
+          href="/emergency"
+          className="flex shrink-0 items-center gap-2.5 rounded-[13px] bg-alert-tint px-3 py-[11px] text-alert"
+        >
+          <span
+            className="rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]"
+            aria-hidden="true"
           >
-            <span
-              className="rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]"
-              aria-hidden="true"
-            >
-              {strings.emergency.sos}
-            </span>
-            <span className="text-[13.5px] font-bold">
-              {strings.more.menuEmergency}
-            </span>
-          </Link>
-        </>
+            {strings.emergency.sos}
+          </span>
+          <span className="text-[13.5px] font-bold">
+            {strings.more.menuEmergency}
+          </span>
+        </Link>
       )}
     </nav>
   );

@@ -123,6 +123,14 @@ export function MoreScreen() {
       Icon: OptionsIcon,
       count: n(counts?.options),
     },
+    {
+      href: "/facts",
+      // No counter: moreCounts does not tally destination_facts, and a tile
+      // showing 0 would read as "broken" rather than "none written yet".
+      label: strings.facts.navLabel,
+      Icon: SparkleIcon,
+      count: null,
+    },
   ];
 
   const memories: Tile[] = [
