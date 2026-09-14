@@ -181,12 +181,20 @@ that file.
 | `NEXT_PUBLIC_SUPABASE_URL` | `lib/supabase.ts` | auth bypassed, no data |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `lib/supabase.ts` | same |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `lib/places.ts`, `lib/data/map.ts` | no map, no Places autocomplete |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | `lib/gphotos/picker.ts` | Google Photos import can't start |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | `lib/googleAuth.ts` | Google Photos import can't start, and the "משיכה מהמייל" button is hidden |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `lib/push.ts` | push subscribe throws `missing_vapid_key` |
 
 `NEXT_PUBLIC_*` values ship to the browser by definition - only keys that are
 safe there belong in this table. Restrict the Maps key by HTTP referrer in the
 Google console.
+
+The one OAuth client id now covers two scopes, requested separately and only
+when the owner presses the button that needs one:
+`photospicker.mediaitems.readonly` for the Photos import and `gmail.readonly`
+for the booking import. **Both scopes must be enabled on that client in the
+Google Cloud console**, and the Gmail API must be enabled on the project, or the
+consent popup fails with `access_denied` and the app can only report that the
+connection was refused. Neither token is ever stored - see DECISIONS #22.
 
 ### Supabase Edge Function secrets (`supabase secrets set …`)
 

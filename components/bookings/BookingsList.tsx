@@ -9,6 +9,7 @@ import {
   FileIcon,
   type IconProps,
   LinkIcon,
+  MailIcon,
   PinIcon,
   PlaneIcon,
   TrainIcon,
@@ -36,12 +37,16 @@ const STATUS_CLASS: Record<BookingStatus, string> = {
 export function BookingsList({
   bookings,
   onAdd,
+  onImportMail,
   onEdit,
   onAddToDay,
   onError,
 }: {
   bookings: Booking[];
   onAdd: () => void;
+  /** Null when Google is not configured - the button is hidden rather than
+   *  shown as a dead end. */
+  onImportMail: (() => void) | null;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
   onError: () => void;
@@ -62,13 +67,27 @@ export function BookingsList({
           onError={onError}
         />
       ))}
-      <button
-        type="button"
-        onClick={onAdd}
-        className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-white hover:bg-sea-deep"
-      >
-        {strings.bookings.add}
-      </button>
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="rounded-2xl bg-sea py-3 text-sm font-bold text-white hover:bg-sea-deep"
+        >
+          {strings.bookings.add}
+        </button>
+        {/* Typing a confirmation in by hand is the slow path, so the fast one
+            sits next to it rather than behind a menu. */}
+        {onImportMail && (
+          <button
+            type="button"
+            onClick={onImportMail}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          >
+            <MailIcon className="h-[17px] w-[17px]" />
+            {strings.mailImport.open}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -86,6 +105,14 @@ function BookingCard({
 }) {
   const [opening, setOpening] = useState(false);
   const TypeIcon = TYPE_ICON[booking.type];
+  // Bookings now project onto the days they cover. The two cases that cannot
+  // be projected say so here, on the card, rather than leaving someone to
+  // wonder why a booking they can see is missing from the plan.
+  const notOnPlan = !booking.start_date
+    ? strings.bookings.missingStartDate
+    : booking.status === "cancelled"
+      ? strings.bookings.cancelledHidden
+      : null;
 
   async function openFile() {
     if (!booking.file_path || opening) return;
@@ -150,6 +177,10 @@ function BookingCard({
           )}
         </span>
       </button>
+
+      {notOnPlan && (
+        <p className="mt-1.5 text-[11.5px] text-ink-soft">{notOnPlan}</p>
+      )}
 
       <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2 text-xs font-semibold">
         {booking.file_path && (

@@ -192,3 +192,37 @@ that report.
   add a step nobody used? It has 0 rows.
 - Should the 79 `city` entries be bulk-reviewed before anything else, since a
   quarter of the bank may not be candidate places at all?
+
+## One label per country (2026-09-14)
+
+The country filter was listing five countries as seven: `ויטנאם` and `וייטנאם`
+were separate headings holding the same towns, and the Philippines appeared with
+and without its definite article. 393 Vietnam options were split 339/54, and 101
+Philippines options 75/26 - so filtering to either heading could only ever show
+you part of the bank, and the area list underneath split with it (`הוי אן` was
+50 options under one spelling and 8 under the other).
+
+The cause is that country and area are free-text inputs with a `datalist`. A
+datalist suggests; it does not constrain. Typing past it silently opens a new
+bucket, and nothing in the UI shows that the new bucket is the same place.
+
+**The merge did not need to guess at Hebrew.** `country_code` was already
+correct on every row - VN on both Vietnam spellings, PH on both Philippines
+spellings - and every row in the table had both a country and a code. So
+migration `00034` groups by the ISO code and keeps the most-used label, with the
+previous text preserved in `country_original` exactly as `00030` did for areas.
+Both winners came out matching what `00030` had written by hand, which is the
+cross-check that the rule is right.
+
+`00034` also caught one area `00030` meant to fix and missed: its map contained
+`'הואה หין'` but the stored row was `'הואה หین'` - the last two characters are
+Arabic codepoints where the map used Thai ones. Visually identical, so the
+equality never fired. That fix is scoped to Thailand, because `הואה` alone is 17
+options in **Vietnam** (Huế), a different place entirely.
+
+**Keeping it merged** is `canonicalLabel` in `lib/data/placeOptions.ts`, called
+by both writers (the manual form and the extraction sheet) for country and area
+alike. It compares names with a leading ה, a doubled yod and a doubled vav
+ignored, and returns a label **only if that label is already in the bank** - so
+it can rename a typo onto a real heading but can never invent one, and a country
+the family genuinely adds for the first time is stored exactly as typed.

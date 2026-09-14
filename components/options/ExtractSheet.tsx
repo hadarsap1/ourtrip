@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import {
+  canonicalLabel,
   extractPlacesFromText,
   mapsSearchUrl,
   type ExtractedPlace,
@@ -100,21 +101,28 @@ export function ExtractSheet({
     });
 
   const save = async () => {
+    // Snap onto the spellings the bank already uses, for the country typed
+    // here and for every area the extraction proposed. A post writes place
+    // names however it likes, and the model passes that through - which is one
+    // of the two ways the bank grew duplicate headings. See migration 00034.
+    const canonCountry = canonicalLabel(country || null, countries) ?? null;
+
     const inputs: PlaceOptionInput[] = found
       .filter((_, i) => picked.has(i))
       .map((p) => {
-        const placeArea = p.area ?? area ?? null;
+        const placeArea =
+          canonicalLabel(p.area ?? area ?? null, areas) ?? null;
         return {
           title: p.title,
           category: p.category,
-          country: country || null,
+          country: canonCountry,
           area: placeArea,
           note: p.note,
           sourceUrl: sourceUrl || null,
           // A link the post gave for this place, if any.
           bookingUrl: p.url,
           // Always a way to find it on a map, even when the post gave no link.
-          mapsUrl: mapsSearchUrl(p.title, placeArea, country || null),
+          mapsUrl: mapsSearchUrl(p.title, placeArea, canonCountry),
           source: "facebook",
         };
       });

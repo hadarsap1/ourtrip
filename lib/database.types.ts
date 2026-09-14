@@ -1187,6 +1187,7 @@ export type Database = {
       place_options: {
         Row: {
           area_original: string | null
+          country_original: string | null
           area: string | null
           booking_id: string | null
           booking_url: string | null
@@ -1213,6 +1214,7 @@ export type Database = {
         }
         Insert: {
           area_original?: string | null
+          country_original?: string | null
           area?: string | null
           booking_id?: string | null
           booking_url?: string | null
@@ -1239,6 +1241,7 @@ export type Database = {
         }
         Update: {
           area_original?: string | null
+          country_original?: string | null
           area?: string | null
           booking_id?: string | null
           booking_url?: string | null

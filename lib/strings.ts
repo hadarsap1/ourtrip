@@ -817,6 +817,58 @@ export const strings = {
     expenseSkip: "לא עכשיו",
     expenseCreated: "ההוצאה נרשמה בתקציב",
     expenseFxError: "לא הצלחנו להמיר את המטבע - ההוצאה לא נרשמה",
+    // Bookings projected onto the days they cover, so a booked hotel shows up
+    // on the plan without anyone linking it by hand. `checkIn`/`checkOut` above
+    // label the time fields, hence the prefix here.
+    dayCheckIn: "צ׳ק-אין",
+    dayLastNight: "לילה אחרון",
+    dayNightOf: "לילה {n} מתוך {total}",
+    dayDayOf: "יום {n} מתוך {total}",
+    openBooking: "פתיחת ההזמנה",
+    calendarHasBooking: "יש הזמנה ביום זה",
+    endBeforeStart: "תאריך הסיום מוקדם מתאריך ההתחלה",
+    missingStartDate: "בלי תאריך התחלה ההזמנה לא תופיע במסלול",
+    cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
+  },
+
+  // Pulling booking confirmations out of Gmail. The mailbox is the only channel
+  // every provider actually uses - Booking, Airbnb and the airlines have no API
+  // for reading your own reservations.
+  mailImport: {
+    open: "משיכה מהמייל",
+    title: "משיכת הזמנות מהמייל",
+    intro:
+      "נתחבר לג׳ימייל, נחפש אישורי הזמנה ונציג לך מה נמצא. שום דבר לא נשמר לפני שתאשר.",
+    privacy:
+      "ההרשאה היא לקריאה בלבד, והיא נמחקת ברגע שהסריקה נגמרת - לא נשמר אצלנו מפתח לתיבה שלך.",
+    notConfigured: "חיבור Google לא מוגדר באפליקציה",
+    fromDate: "מתאריך",
+    toDate: "עד תאריך",
+    dateHint: "ברירת המחדל: השנה האחרונה. טווח צר יותר = סריקה מהירה וזולה יותר.",
+    scan: "חיבור וסריקה",
+    scanning: "סורק את התיבה…",
+    reading: "קורא הזמנות… {done} מתוך {total}",
+    searching: "מחפש אישורי הזמנה…",
+    noMail: "לא נמצאו מיילים שנראים כמו אישורי הזמנה בטווח הזה",
+    noBookings: "נסרקו {n} מיילים ולא נמצאה בהם אף הזמנה",
+    foundTitle: "נמצאו {n} הזמנות",
+    alreadyHave: "כבר קיימת אצלך",
+    selectAll: "סימון הכל",
+    clearAll: "ניקוי הבחירה",
+    save: "הוספת {n} הזמנות",
+    saveOne: "הוספת הזמנה אחת",
+    saved: "‏{n} הזמנות נוספו",
+    savedOne: "ההזמנה נוספה",
+    nothingPicked: "לא נבחרה אף הזמנה",
+    noDates: "בלי תאריכים - לא יופיע במסלול",
+    rescan: "סריקה נוספת",
+    // stable error codes from the Edge Function
+    errAuth: "ההרשאה לג׳ימייל פגה - נסה להתחבר שוב",
+    errCancelled: "החיבור בוטל",
+    errGmail: "לא הצלחנו לקרוא מהג׳ימייל",
+    errCredit: "נגמר הקרדיט של Anthropic - אי אפשר לחלץ הזמנות כרגע",
+    errNotConfigured: "חילוץ ההזמנות לא מוגדר בשרת",
+    errGeneric: "משהו השתבש בסריקה",
   },
 
   travelSearch: {

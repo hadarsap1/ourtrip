@@ -24,6 +24,8 @@ import {
   TicketIcon,
   TrashIcon,
 } from "@/components/icons";
+import { BookingDayRow } from "@/components/bookings/BookingDayRow";
+import type { BookingOnDate } from "@/lib/bookingCalendar";
 import { formatDate, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import type { Booking, ItemStatus, ItineraryDay, ItineraryItem } from "@/lib/types";
@@ -44,6 +46,7 @@ export function DayCard({
   day,
   items,
   bookings,
+  dayBookings,
   onEditDay,
   onDeleteDay,
   onAddItem,
@@ -53,10 +56,14 @@ export function DayCard({
   onDeleteItem,
   onCycleStatus,
   onReorder,
+  onBookingClick,
 }: {
   day: ItineraryDay;
   items: ItineraryItem[];
   bookings: Booking[];
+  /** Bookings whose dates cover this day, already de-duplicated against any
+   *  itinerary item on it that links the same booking. */
+  dayBookings: BookingOnDate[];
   onEditDay: () => void;
   onDeleteDay: () => void;
   onAddItem: () => void;
@@ -66,6 +73,7 @@ export function DayCard({
   onDeleteItem: (item: ItineraryItem) => void;
   onCycleStatus: (item: ItineraryItem) => void;
   onReorder: (orderedIds: string[]) => void;
+  onBookingClick: (booking: Booking) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -145,6 +153,21 @@ export function DayCard({
         <TrashIcon className="h-4 w-4" />
       </button>
       </div>
+
+      {/* What is already booked for this date, projected from the booking's own
+          dates. Above the activities because it frames them: which bed, which
+          flight. Nobody has to press "add to day" for this to appear. */}
+      {dayBookings.length > 0 && (
+        <ul className="divide-y divide-white/70 bg-sea-tint/40">
+          {dayBookings.map((entry) => (
+            <BookingDayRow
+              key={entry.booking.id}
+              entry={entry}
+              onClick={() => onBookingClick(entry.booking)}
+            />
+          ))}
+        </ul>
+      )}
 
       {items.length === 0 ? (
         <p className="px-3.5 py-3 text-[13px] text-ink-faint">

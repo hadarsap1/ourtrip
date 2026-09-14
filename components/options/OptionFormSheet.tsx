@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
-import { PLACE_CATEGORIES, type PlaceOptionInput } from "@/lib/data/placeOptions";
+import {
+  PLACE_CATEGORIES,
+  canonicalLabel,
+  type PlaceOptionInput,
+} from "@/lib/data/placeOptions";
 import { strings } from "@/lib/strings";
 import type { PlaceOption } from "@/lib/types";
 
@@ -43,11 +47,14 @@ export function OptionFormSheet({
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
+          // Snap onto the spellings the bank already uses. The datalist below
+          // is a suggestion, not a constraint, and typing past it is how the
+          // bank grew two headings for Vietnam - see migration 00034.
           void onSave({
             title,
             category,
-            country,
-            area,
+            country: canonicalLabel(country, countries) ?? country,
+            area: canonicalLabel(area, areas) ?? area,
             note,
             sourceUrl,
             bookingUrl,

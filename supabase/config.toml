@@ -73,6 +73,11 @@ verify_jwt = true
 [functions.gphotos]
 verify_jwt = true
 
+# Reads the owner's Gmail with a token the browser hands over per request and
+# nothing here stores. Owner-only twice over: the JWT, then current_member_role().
+[functions.gmail-bookings]
+verify_jwt = true
+
 [functions.guest-invite]
 verify_jwt = true
 

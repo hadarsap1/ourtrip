@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
 import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
+import { MailImportSheet } from "@/components/bookings/MailImportSheet";
+import { isGmailImportConfigured } from "@/lib/data/gmailBookings";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   createItem,
@@ -20,6 +22,7 @@ import {
   updateItem,
 } from "@/lib/data/itinerary";
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
+import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
 import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -79,6 +82,7 @@ export function ItineraryScreen() {
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
   const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
+  const [importingMail, setImportingMail] = useState(false);
   // The day that is currently pulling from the options bank.
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
 
@@ -170,6 +174,15 @@ export function ItineraryScreen() {
     (dayId: string) => items.filter((i) => i.day_id === dayId),
     [items]
   );
+
+  // A booking reaches the plan through its own dates, not through a manual
+  // link. Days that already show it as a linked itinerary item are excluded so
+  // "add to day" - which still exists - cannot produce the same hotel twice on
+  // one card.
+  const bookingsByDate = useMemo(() => {
+    const dayDateById = new Map(days.map((d) => [d.id, d.date]));
+    return buildBookingIndex(bookings, buildLinkedIndex(items, dayDateById));
+  }, [bookings, items, days]);
 
   const refreshNow = useCallback(() => {
     if (!trip) return;
@@ -310,6 +323,12 @@ export function ItineraryScreen() {
             defaultCurrency={trip.base_currency}
             onSaved={(saved) => {
               refreshNow();
+              // Land on the list that now holds it. Staying inside the search
+              // panel was the whole reason a saved flight looked like it had
+              // vanished: the bookings tab updated behind a screen nobody was
+              // looking at.
+              setSearching(false);
+              setView("bookings");
               showToast(strings.travelSearch.saved);
               if (saved.cost != null && saved.cost > 0) {
                 setExpenseFor(saved);
@@ -336,12 +355,18 @@ export function ItineraryScreen() {
               <CalendarView
                 days={days}
                 items={items}
+                bookings={bookings}
                 onSelectDate={handleCalendarSelect}
               />
             ) : view === "bookings" ? (
               <BookingsList
                 bookings={bookings}
                 onAdd={() => setBookingForm({ booking: null })}
+                onImportMail={
+                  isGmailImportConfigured()
+                    ? () => setImportingMail(true)
+                    : null
+                }
                 onEdit={(booking) => setBookingForm({ booking })}
                 onAddToDay={setDayPickFor}
                 onError={() => showToast(strings.common.error)}
@@ -356,6 +381,7 @@ export function ItineraryScreen() {
                   <DayStrip
                     days={days}
                     items={items}
+                    bookingsByDate={bookingsByDate}
                     selectedId={selectedDayId}
                     onSelect={jumpToDay}
                   />
@@ -374,6 +400,8 @@ export function ItineraryScreen() {
                         day={day}
                         items={itemsOf(day.id)}
                         bookings={bookings}
+                        dayBookings={bookingsByDate.get(day.date) ?? []}
+                        onBookingClick={(booking) => setBookingForm({ booking })}
                         onEditDay={() => setDayForm({ day })}
                         onDeleteDay={async () => {
                           // Say what goes with it: deleting a day takes its
@@ -582,6 +610,19 @@ export function ItineraryScreen() {
                     String(options.length)
                   )
             );
+          }}
+        />
+      )}
+
+      {importingMail && trip && (
+        <MailImportSheet
+          tripId={trip.id}
+          existing={bookings}
+          onClose={() => setImportingMail(false)}
+          onDone={(message) => {
+            setImportingMail(false);
+            refreshNow();
+            showToast(message);
           }}
         />
       )}

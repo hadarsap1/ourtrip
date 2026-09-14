@@ -1,5 +1,6 @@
 "use client";
 
+import type { BookingOnDate } from "@/lib/bookingCalendar";
 import { strings } from "@/lib/strings";
 import { todayISO } from "@/lib/format";
 import type { ItineraryDay, ItineraryItem } from "@/lib/types";
@@ -16,11 +17,16 @@ import type { ItineraryDay, ItineraryItem } from "@/lib/types";
 export function DayStrip({
   days,
   items,
+  bookingsByDate,
   onSelect,
   selectedId,
 }: {
   days: ItineraryDay[];
   items: ItineraryItem[];
+  /** Bookings projected onto the dates they cover, keyed by ISO date. A day
+   *  holding nothing but a booked hotel is not an empty day, and the dot said
+   *  it was. */
+  bookingsByDate: Map<string, BookingOnDate[]>;
   onSelect: (day: ItineraryDay) => void;
   selectedId?: string | null;
 }) {
@@ -50,6 +56,7 @@ export function DayStrip({
         const isToday = day.date === today;
         const active = selectedId ? day.id === selectedId : isToday;
         const count = counts.get(day.id) ?? 0;
+        const booked = (bookingsByDate.get(day.date)?.length ?? 0) > 0;
         const [, , dayNum] = day.date.split("-");
         return (
           <li key={day.id}>
@@ -77,7 +84,11 @@ export function DayStrip({
               <span
                 aria-hidden="true"
                 className={`h-1 w-1 rounded-full ${
-                  isToday ? "bg-sun" : count > 0 ? "bg-sea" : "bg-line"
+                  isToday
+                    ? "bg-sun"
+                    : count > 0 || booked
+                      ? "bg-sea"
+                      : "bg-line"
                 }`}
               />
             </button>
