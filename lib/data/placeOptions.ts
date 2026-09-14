@@ -67,6 +67,55 @@ export type PlaceOptionInput = {
   mapsUrl?: string | null;
 };
 
+/**
+ * Snaps a freshly typed country or area onto the spelling the bank already
+ * uses, when the two are the same name written differently.
+ *
+ * WHY: both fields are free text with a datalist of what already exists - a
+ * suggestion, not a constraint. Typing past it is how the bank ended up with
+ * ויטנאם and וייטנאם as separate headings holding the same towns, and the
+ * Philippines listed twice with and without its definite article. Migration
+ * 00034 merged those; without this the next typo re-splits them.
+ *
+ * The comparison ignores the three ways Hebrew writes the same name:
+ *
+ *   - a leading ה, the definite article (הפיליפינים = פיליפינים)
+ *   - a doubled yod (וייטנאם = ויטנאם)
+ *   - a doubled vav (טייוואן = טייואן)
+ *
+ * It is deliberately conservative in two ways. It only ever returns a label
+ * that is ALREADY in the bank, so it can rename a typo onto a real heading but
+ * can never invent one; and anything that matches nothing is returned exactly
+ * as typed, so a genuinely new country still gets added under the name the
+ * family chose. Normalised text is only ever compared, never stored.
+ */
+export function canonicalLabel(
+  typed: string | null | undefined,
+  known: readonly string[]
+): string | null | undefined {
+  const trimmed = typed?.trim();
+  if (!trimmed) return typed;
+
+  const normalise = (value: string) =>
+    value
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+      .replace(/^ה/, "")
+      .replace(/יי/g, "י")
+      .replace(/וו/g, "ו");
+
+  const target = normalise(trimmed);
+  if (target === "") return trimmed;
+
+  // An exact match needs no work, and checking it first means a label that
+  // normalises the same as another can never be renamed away from itself.
+  if (known.some((label) => label.trim() === trimmed)) return trimmed;
+
+  const match = known.find((label) => normalise(label) === target);
+  return match ?? trimmed;
+}
+
 /** Accepts what a person actually pastes ("booking.com/x", with or without a
  *  scheme) and returns something an href can use. Mirrors normalizeUrl in
  *  lib/data/links.ts, which this module replaces. */
