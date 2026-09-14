@@ -1325,3 +1325,30 @@ What stops it is a pair of `SECURITY DEFINER` triggers:
 hard rule, not housekeeping, and the probe rows above are what proves they work.
 Migration 00033 additionally makes the policy's WITH CHECK re-assert
 `is_kid_of(trip_id)`, so a kid cannot move a photo of theirs to another trip.
+
+---
+
+## 2026-09-14 - booking projection onto the itinerary
+
+The booking-to-day projection added in `lib/bookingCalendar.ts` renders rows the
+itinerary screen has **already fetched**; it issues no query of its own and adds
+no table, column or policy. So the question is only whether a non-owner can
+reach `bookings` at all.
+
+Read live on the project:
+
+```sql
+select policyname, cmd from pg_policies where tablename = 'bookings';
+-- bookings_owner_all | ALL
+```
+
+| Check | Result |
+|---|---|
+| `bookings` has exactly one policy, `bookings_owner_all` (`using public.is_owner_of(trip_id)`) | ✅ PASS |
+| No kid policy on `bookings` (migration `00007` states this deliberately) | ✅ PASS |
+| No guest policy on `bookings` (migrations `00008`/`00009` add none) | ✅ PASS |
+| `/itinerary` is the only route mounting `ItineraryScreen`; no kid or guest surface renders `DayCard` or `CalendarView` | ✅ PASS |
+
+A kid or guest session therefore receives an empty `bookings` array, the
+projection index is empty, and every new surface renders nothing. CLAUDE.md rule
+#2 is unaffected.

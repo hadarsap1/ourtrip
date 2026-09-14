@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
 import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
@@ -20,6 +20,7 @@ import {
   updateItem,
 } from "@/lib/data/itinerary";
 import { listBookings, subscribeBookings } from "@/lib/data/bookings";
+import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
 import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -171,6 +172,15 @@ export function ItineraryScreen() {
     [items]
   );
 
+  // A booking reaches the plan through its own dates, not through a manual
+  // link. Days that already show it as a linked itinerary item are excluded so
+  // "add to day" - which still exists - cannot produce the same hotel twice on
+  // one card.
+  const bookingsByDate = useMemo(() => {
+    const dayDateById = new Map(days.map((d) => [d.id, d.date]));
+    return buildBookingIndex(bookings, buildLinkedIndex(items, dayDateById));
+  }, [bookings, items, days]);
+
   const refreshNow = useCallback(() => {
     if (!trip) return;
     void refresh(trip.id).catch(() => showToast(strings.common.error));
@@ -310,6 +320,12 @@ export function ItineraryScreen() {
             defaultCurrency={trip.base_currency}
             onSaved={(saved) => {
               refreshNow();
+              // Land on the list that now holds it. Staying inside the search
+              // panel was the whole reason a saved flight looked like it had
+              // vanished: the bookings tab updated behind a screen nobody was
+              // looking at.
+              setSearching(false);
+              setView("bookings");
               showToast(strings.travelSearch.saved);
               if (saved.cost != null && saved.cost > 0) {
                 setExpenseFor(saved);
@@ -336,6 +352,7 @@ export function ItineraryScreen() {
               <CalendarView
                 days={days}
                 items={items}
+                bookings={bookings}
                 onSelectDate={handleCalendarSelect}
               />
             ) : view === "bookings" ? (
@@ -356,6 +373,7 @@ export function ItineraryScreen() {
                   <DayStrip
                     days={days}
                     items={items}
+                    bookingsByDate={bookingsByDate}
                     selectedId={selectedDayId}
                     onSelect={jumpToDay}
                   />
@@ -374,6 +392,8 @@ export function ItineraryScreen() {
                         day={day}
                         items={itemsOf(day.id)}
                         bookings={bookings}
+                        dayBookings={bookingsByDate.get(day.date) ?? []}
+                        onBookingClick={(booking) => setBookingForm({ booking })}
                         onEditDay={() => setDayForm({ day })}
                         onDeleteDay={async () => {
                           // Say what goes with it: deleting a day takes its

@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BOOKING_TYPE_ICON } from "@/components/bookings/BookingDayRow";
+import { buildBookingIndex } from "@/lib/bookingCalendar";
 import { buildCalendarIndex, iso } from "@/lib/itineraryCalendar";
 import { strings } from "@/lib/strings";
-import type { ItineraryDay, ItineraryItem } from "@/lib/types";
+import type { Booking, ItineraryDay, ItineraryItem } from "@/lib/types";
 
 const monthLabel = (y: number, m: number) => {
   try {
@@ -16,16 +18,23 @@ const monthLabel = (y: number, m: number) => {
 };
 
 /** Month-grid overview of the trip. Each date shows what is planned on it -
- *  where you are, and how many activities - so the plan is readable without
- *  opening anything. Tapping still opens the day (existing → scroll to it,
- *  empty → offer to add it). */
+ *  where you are, how many activities, and what is already booked - so the plan
+ *  is readable without opening anything. Tapping still opens the day (existing →
+ *  scroll to it, empty → offer to add it).
+ *
+ *  Bookings are projected from their own dates rather than from any manual
+ *  link: before this the grid never received them at all, so a hotel booked for
+ *  six nights appeared nowhere on the calendar. A bar under the date means
+ *  something is booked on it, and a corner icon names the transit. */
 export function CalendarView({
   days,
   items,
+  bookings,
   onSelectDate,
 }: {
   days: ItineraryDay[];
   items: ItineraryItem[];
+  bookings: Booking[];
   onSelectDate: (dateISO: string) => void;
 }) {
   // Months shown beyond the trip's own span. Tapping a date in one of them
@@ -48,6 +57,11 @@ export function CalendarView({
       today: todayISO,
     };
   }, [days, items, monthsBefore, monthsAfter]);
+
+  // Not de-duplicated against linked items here: the grid has one cell per
+  // date and shows a single marker either way, so hiding a booking that also
+  // exists as an item would only make the marker disappear.
+  const bookingsByDate = useMemo(() => buildBookingIndex(bookings), [bookings]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -88,6 +102,14 @@ export function CalendarView({
                 const date = iso(y, m, d);
                 const cell = cells.get(date);
                 const isToday = date === today;
+                const booked = bookingsByDate.get(date);
+                // Sorted transit-first by the index, so the leading entry is
+                // the flight or train when there is one and the bed otherwise.
+                const leadBooking = booked?.[0];
+                const LeadIcon =
+                  leadBooking && leadBooking.booking.type !== "hotel"
+                    ? BOOKING_TYPE_ICON[leadBooking.booking.type]
+                    : null;
 
                 return (
                   <button
@@ -106,6 +128,14 @@ export function CalendarView({
                     } ${isToday ? "ring-2 ring-sea" : ""}`}
                   >
                     <span className="leading-none">{d}</span>
+
+                    {/* The transit of the day, in the corner: a flight is the
+                        one thing on a date you cannot be late for. */}
+                    {LeadIcon && (
+                      <span className="pointer-events-none absolute start-0.5 top-0.5 text-sea-deep">
+                        <LeadIcon className="h-[9px] w-[9px]" strokeWidth={2} />
+                      </span>
+                    )}
 
                     {/* Where you are that day. Repeated across a leg on purpose:
                         a label that appears only on the leg's first date leaves
@@ -147,6 +177,22 @@ export function CalendarView({
                           )}
                         </span>
                       </span>
+                    )}
+
+                    {/* A booking covers this date. Absolute so it sits flush at
+                        the bottom of every cell regardless of what is above
+                        it, and consecutive dates of one stay read as a run. */}
+                    {booked && booked.length > 0 && (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-x-0 bottom-0 h-[3px] bg-sea-deep/70"
+                        />
+                        <span className="sr-only">
+                          {strings.bookings.calendarHasBooking}:{" "}
+                          {booked.map((e) => e.booking.title).join(", ")}
+                        </span>
+                      </>
                     )}
                   </button>
                 );

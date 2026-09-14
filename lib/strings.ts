@@ -817,6 +817,18 @@ export const strings = {
     expenseSkip: "לא עכשיו",
     expenseCreated: "ההוצאה נרשמה בתקציב",
     expenseFxError: "לא הצלחנו להמיר את המטבע - ההוצאה לא נרשמה",
+    // Bookings projected onto the days they cover, so a booked hotel shows up
+    // on the plan without anyone linking it by hand. `checkIn`/`checkOut` above
+    // label the time fields, hence the prefix here.
+    dayCheckIn: "צ׳ק-אין",
+    dayLastNight: "לילה אחרון",
+    dayNightOf: "לילה {n} מתוך {total}",
+    dayDayOf: "יום {n} מתוך {total}",
+    openBooking: "פתיחת ההזמנה",
+    calendarHasBooking: "יש הזמנה ביום זה",
+    endBeforeStart: "תאריך הסיום מוקדם מתאריך ההתחלה",
+    missingStartDate: "בלי תאריך התחלה ההזמנה לא תופיע במסלול",
+    cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
   },
 
   travelSearch: {

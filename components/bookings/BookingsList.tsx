@@ -86,6 +86,14 @@ function BookingCard({
 }) {
   const [opening, setOpening] = useState(false);
   const TypeIcon = TYPE_ICON[booking.type];
+  // Bookings now project onto the days they cover. The two cases that cannot
+  // be projected say so here, on the card, rather than leaving someone to
+  // wonder why a booking they can see is missing from the plan.
+  const notOnPlan = !booking.start_date
+    ? strings.bookings.missingStartDate
+    : booking.status === "cancelled"
+      ? strings.bookings.cancelledHidden
+      : null;
 
   async function openFile() {
     if (!booking.file_path || opening) return;
@@ -150,6 +158,10 @@ function BookingCard({
           )}
         </span>
       </button>
+
+      {notOnPlan && (
+        <p className="mt-1.5 text-[11.5px] text-ink-soft">{notOnPlan}</p>
+      )}
 
       <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2 text-xs font-semibold">
         {booking.file_path && (

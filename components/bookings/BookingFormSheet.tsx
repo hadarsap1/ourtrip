@@ -105,9 +105,18 @@ function BookingForm({
     });
   }
 
+  // A stay whose check-out precedes its check-in cannot be placed on the plan,
+  // and the trip already holds one such row that was saved before this check
+  // existed. Blocking the save stops any more of them.
+  const datesContradict =
+    startDate !== "" && endDate !== "" && endDate < startDate;
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
+    // The inline alert next to the fields already says what is wrong, and it
+    // points at the field to fix - a toast would not.
+    if (datesContradict) return;
     setSaving(true);
     try {
       const payload = {
@@ -242,6 +251,20 @@ function BookingForm({
             />
           </div>
         </div>
+
+        {/* Both notes are about the same thing: a booking reaches the calendar
+            and the day cards through these two dates, so a wrong or missing one
+            makes it invisible on the plan rather than merely untidy. */}
+        {datesContradict && (
+          <p role="alert" className="text-sm font-medium text-alert">
+            {strings.bookings.endBeforeStart}
+          </p>
+        )}
+        {startDate === "" && (
+          <p className="text-sm text-ink-soft">
+            {strings.bookings.missingStartDate}
+          </p>
+        )}
 
         {/* type-specific fields → details jsonb */}
         {type === "flight" && (
@@ -414,7 +437,7 @@ function BookingForm({
         <div className="flex gap-2 pt-1">
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || datesContradict}
             className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
           >
             {saving && file
