@@ -7,6 +7,8 @@ import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
+import { MailImportSheet } from "@/components/bookings/MailImportSheet";
+import { isGmailImportConfigured } from "@/lib/data/gmailBookings";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   createItem,
@@ -80,6 +82,7 @@ export function ItineraryScreen() {
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
   const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
+  const [importingMail, setImportingMail] = useState(false);
   // The day that is currently pulling from the options bank.
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
 
@@ -359,6 +362,11 @@ export function ItineraryScreen() {
               <BookingsList
                 bookings={bookings}
                 onAdd={() => setBookingForm({ booking: null })}
+                onImportMail={
+                  isGmailImportConfigured()
+                    ? () => setImportingMail(true)
+                    : null
+                }
                 onEdit={(booking) => setBookingForm({ booking })}
                 onAddToDay={setDayPickFor}
                 onError={() => showToast(strings.common.error)}
@@ -602,6 +610,19 @@ export function ItineraryScreen() {
                     String(options.length)
                   )
             );
+          }}
+        />
+      )}
+
+      {importingMail && trip && (
+        <MailImportSheet
+          tripId={trip.id}
+          existing={bookings}
+          onClose={() => setImportingMail(false)}
+          onDone={(message) => {
+            setImportingMail(false);
+            refreshNow();
+            showToast(message);
           }}
         />
       )}

@@ -71,6 +71,6 @@ Acceptance:
 Cut order if sprint 8 overruns: notifications first, recommendations second. Security checks and backups are never cut.
 
 ## Backlog (post-launch / during trip)
-- Email-forward booking extraction (Edge Function + Anthropic parsing)
+- ~~Email-forward booking extraction (Edge Function + Anthropic parsing)~~ **shipped 2026-09-14** as `gmail-bookings`: Gmail read-only via GIS, Anthropic extraction, owner reviews every candidate. See DECISIONS #21/#22
 - Memory book PDF export
 - Share a specific document with kids (e.g. boarding pass)
