@@ -1401,7 +1401,26 @@ operators through them.
 | Candidates naming an unsent `message_id` are dropped | ✅ PASS (unit test) |
 | Date params that are not plain ISO dates cannot reach the Gmail query | ✅ PASS |
 
-**Not yet verified live:** the function has not been deployed or run against a
-real mailbox at the time of writing - the checks above are of the code and the
-config, not of a live 403 for a kid session. Re-run the role-access matrix after
-`supabase functions deploy gmail-bookings`.
+**Verified live, 2026-09-14.** Deployed (version 1, `verify_jwt=true`) and
+probed with a non-owner JWT. The probe had to be sent from inside the database
+with `pg_net`, because this session's egress proxy blocks `supabase.co`:
+
+```sql
+select net.http_post(
+  url := '.../functions/v1/gmail-bookings',
+  headers := jsonb_build_object('Authorization', 'Bearer <anon JWT>', ...),
+  body := jsonb_build_object('action','list','googleToken','probe'));
+-- 403  {"ok":false,"error":"forbidden"}
+```
+
+| Check | Result |
+|---|---|
+| A valid non-owner JWT is refused | ✅ PASS - `403 {"ok":false,"error":"forbidden"}` |
+| The refusal happens before the payload is read | ✅ PASS - the probe carried a `googleToken` and never reached it |
+| The function boots, relative `../_shared/` import included | ✅ PASS - a clean JSON 403, not a 500 boot error |
+
+**Still not verified:** a real scan against a real mailbox. That needs the Gmail
+API enabled and the `gmail.readonly` scope added to the OAuth client in the
+Google Cloud console - owner-side configuration, not code. Until then the
+consent popup fails with `access_denied` and the app reports that the connection
+was refused.
