@@ -18,6 +18,7 @@ export type ChecklistItem = Tables<"checklist_items">;
 export type SavedRecommendation = Tables<"saved_recommendations">;
 export type SavedLink = Tables<"saved_links">;
 export type PlaceOption = Tables<"place_options">;
+export type VisaRequirement = Tables<"visa_requirements">;
 
 /** place_options.status is a text column with a CHECK constraint rather than a
  *  PG enum, so the union lives here (see 00020_place_options.sql). */
@@ -28,6 +29,13 @@ export type PlaceOptionStatus =
   | "planned"
   | "booked"
   | "rejected";
+
+/** visa_requirements.requirement_type and .status are text columns with CHECK
+ *  constraints rather than PG enums, so both unions live here (migration
+ *  00036). */
+export type VisaRequirementType = "visa" | "arrival_card" | "extension" | "none";
+
+export type VisaStatus = "todo" | "submitted" | "approved" | "not_needed";
 
 export type ItemStatus = Enums<"item_status">;
 export type BookingType = Enums<"booking_type">;

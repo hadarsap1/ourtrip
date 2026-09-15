@@ -19,6 +19,7 @@ import {
   PhotosIcon,
   PhrasebookIcon,
   SparkleIcon,
+  VisaIcon,
 } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { countryName } from "@/lib/data/emergency";
@@ -207,6 +208,12 @@ export function MoreScreen() {
       label: strings.ready.menu,
       Icon: PlaneIcon,
       state: null,
+    },
+    {
+      href: "/visas",
+      label: strings.more.menuVisas,
+      Icon: VisaIcon,
+      state: strings.more.visasState,
     },
   ];
 

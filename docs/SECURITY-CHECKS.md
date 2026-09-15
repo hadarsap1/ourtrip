@@ -1424,3 +1424,36 @@ API enabled and the `gmail.readonly` scope added to the OAuth client in the
 Google Cloud console - owner-side configuration, not code. Until then the
 consent popup fails with `access_denied` and the app reports that the connection
 was refused.
+
+## Visas and entry permits (`visa_requirements`) - 2026-09-15
+
+One policy, `visa_requirements_owner_all`, `for all using (is_owner_of(trip_id))`.
+Kids and guests have no policy on this table at all, so the rows cannot appear
+in any response of theirs (CLAUDE.md hard rule #2). The screen also refuses to
+render for a non-owner member, which is cosmetic - the database is what stops
+the read.
+
+Probed live on the project, each inside a transaction that was rolled back, by
+setting the role and the JWT claims the policy actually reads:
+
+```sql
+begin;
+set local role authenticated;
+set local request.jwt.claims = '{"role":"authenticated","member_id":"<kid member id>"}';
+select count(*) from public.visa_requirements;          -- 0
+update public.visa_requirements set status = 'approved' where true;  -- 0 rows
+rollback;
+```
+
+| Check | Result |
+|---|---|
+| Kid session cannot read any row | ✅ PASS - `0` rows visible |
+| Kid session cannot change a status | ✅ PASS - `0` rows changed |
+| Anonymous session cannot read any row | ✅ PASS - `0` rows visible |
+| Owner session reads the trip's rows | ✅ PASS - `10` rows |
+| Owner status update applies, `updated_at` moved by the trigger | ✅ PASS |
+| The client never sends `updated_at` | ✅ PASS - `updateVisaStatus` sends `status` only |
+
+No guest member exists on this trip yet, so the guest case was covered by the
+anonymous probe plus the absence of any guest policy on the table, not by a live
+guest session. X Worth re-running once the first guest is invited.

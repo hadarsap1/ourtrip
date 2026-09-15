@@ -30,6 +30,7 @@ export const strings = {
     notifications: "התראות",
     options: "בנק אפשרויות",
     ready: "מוכנות ליציאה",
+    visas: "ויזות",
     facts: "הידעת?",
     offline: "אין חיבור",
     login: "כניסה",
@@ -333,6 +334,7 @@ export const strings = {
     menuNotifications: "התראות",
     menuOptions: "בנק אפשרויות",
     menuMemoryBook: "ספר זיכרונות",
+    menuVisas: "ויזות ואישורי כניסה",
     groupExplore: "בסביבה",
     groupMemories: "זיכרונות",
     groupFamily: "משפחה וניהול",
@@ -344,6 +346,52 @@ export const strings = {
     notificationsState: "התראות ותזכורות",
     pocketState: "דמי כיס לילדים",
     memoryBookState: "יומן ותמונות להדפסה",
+    visasState: "דרישות כניסה לכל מדינה",
+  },
+
+  visas: {
+    title: "ויזות ואישורי כניסה",
+    // The header leads with what is not verified, because that is the number
+    // that can hurt you. "הכול אומת" is said only when it is true.
+    unverified: "‏{n} דרישות עוד לא אומתו",
+    allVerified: "כל הדרישות אומתו",
+    ownersOnly: "התכונה זמינה להורים בלבד",
+    loading: "טוען…",
+    loadError: "לא הצלחנו לטעון את רשימת הוויזות. נסה לרענן את הדף.",
+    saveError: "השינוי לא נשמר. בדוק את החיבור ונסה שוב.",
+    empty:
+      "עוד לא הוגדרו דרישות ויזה לטיול הזה. הדרישות נוספות לבסיס הנתונים ומופיעות כאן לפי סדר המסלול.",
+    // A stay of N days between two dates. Written as words rather than with a
+    // dash, so the range does not flip in an RTL line.
+    blockLine: "‏{days} ימים · {start} עד {end}",
+    blockLineNumbered: "כניסה {n}: {days} ימים · {start} עד {end}",
+    overstay:
+      "השהייה המתוכננת היא {days} ימים, וההיתר מכסה {max}. צריך ויזה ארוכה יותר, הארכה במקום, או קיצור הבלוק.",
+    nearLimit: "‏{days} ימים מתוך {max} המותרים. נשארו {left} ימי מרווח.",
+    warnDates: "‏{start} עד {end}",
+    maxDays: "שהייה מרבית",
+    maxDaysValue: "‏{n} ימים",
+    fee: "עלות",
+    deadline: "מועד",
+    openOfficial: "פתיחת הטופס הרשמי",
+    // The trust marks. Not decoration - this is the content.
+    unverifiedBadge: "לא אומת",
+    staleBadge: "לאמת מחדש",
+    verifiedOn: "אומת ב־{date}",
+    statusSheetTitle: "סטטוס הטיפול",
+    statusLabel: "סטטוס",
+    types: {
+      visa: "ויזה",
+      arrival_card: "טופס כניסה",
+      extension: "הארכת שהייה",
+      none: "לא נדרש",
+    },
+    statuses: {
+      todo: "לטיפול",
+      submitted: "הוגש",
+      approved: "אושר",
+      not_needed: "לא נדרש",
+    },
   },
 
   memoryBook: {
