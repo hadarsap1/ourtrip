@@ -1630,6 +1630,74 @@ export type Database = {
         }
         Relationships: []
       }
+      visa_requirements: {
+        Row: {
+          country_code: string
+          country_he: string
+          created_at: string
+          deadline_note: string | null
+          fee_note: string | null
+          id: string
+          max_days: number | null
+          notes: string | null
+          official_url: string | null
+          requirement_type: string
+          sort_order: number
+          source: string
+          status: string
+          title_he: string
+          trip_id: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          country_code: string
+          country_he: string
+          created_at?: string
+          deadline_note?: string | null
+          fee_note?: string | null
+          id?: string
+          max_days?: number | null
+          notes?: string | null
+          official_url?: string | null
+          requirement_type?: string
+          sort_order?: number
+          source?: string
+          status?: string
+          title_he: string
+          trip_id: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          country_code?: string
+          country_he?: string
+          created_at?: string
+          deadline_note?: string | null
+          fee_note?: string | null
+          id?: string
+          max_days?: number | null
+          notes?: string | null
+          official_url?: string | null
+          requirement_type?: string
+          sort_order?: number
+          source?: string
+          status?: string
+          title_he?: string
+          trip_id?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visa_requirements_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -315,6 +315,34 @@ create table phrasebook_entries (
   phonetic_he text
 );
 
+-- Visas and entry permits (migration 00036). One row per requirement, not per
+-- country: a country can need a visa, an arrival card and an extension at once.
+-- verified_at is the point of the table - a visa link with no date on it is
+-- dangerous information, not missing information.
+create table visa_requirements (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id) on delete cascade,
+  country_code text not null,
+  country_he text not null,
+  requirement_type text not null default 'visa'
+    check (requirement_type in ('visa', 'arrival_card', 'extension', 'none')),
+  title_he text not null,
+  official_url text,
+  max_days integer,           -- longest stay this permission allows; null = no day limit
+  fee_note text,
+  deadline_note text,
+  status text not null default 'todo'
+    check (status in ('todo', 'submitted', 'approved', 'not_needed')),
+  verified_at date,           -- null = nobody has checked this rule yet
+  source text not null default 'manual',
+  sort_order integer not null default 0,   -- route order
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+-- RLS: owners only (visa_requirements_owner_all, for all using is_owner_of(trip_id)).
+-- Kids and guests get no policy at all.
+
 -- ============ TRIGGERS (implement in the first migration) ============
 -- 1. set_updated_at(): before update on every table with updated_at → new.updated_at = now().
 --    Required by the last-write-wins conflict policy (DECISIONS #10).
