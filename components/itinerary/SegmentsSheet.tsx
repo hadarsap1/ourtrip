@@ -7,6 +7,7 @@ import { listPlaceOptions } from "@/lib/data/placeOptions";
 import {
   applyLegPlan,
   areaChoicesForCountry,
+  areaChoicesForStretch,
   moveLeg,
   planLegs,
   splitIntoStretches,
@@ -44,6 +45,11 @@ export function SegmentsSheet({
   const s = strings.segments;
   const [bank, setBank] = useState<PlaceOption[]>([]);
   const [areas, setAreas] = useState<AreaChoice[] | null>(null);
+  // Areas the label's region excludes, and whether the family has asked to see
+  // them anyway. Reset per stretch: "show all" is a decision about the leg in
+  // front of you, not a preference.
+  const [hidden, setHidden] = useState<AreaChoice[]>([]);
+  const [showAll, setShowAll] = useState(false);
   const [stretch, setStretch] = useState<Stretch | null>(null);
   const [chosen, setChosen] = useState<Leg[]>([]);
   const [busy, setBusy] = useState(false);
@@ -81,12 +87,18 @@ export function SegmentsSheet({
   function openStretch(next: Stretch) {
     setStretch(next);
     setChosen([]);
-    setAreas(areaChoicesForCountry(bank, next.countryCode));
+    setShowAll(false);
+    // Narrowed by the leg, not just the country: this trip crosses Vietnam
+    // twice, and both legs used to offer all 25 Vietnamese towns.
+    const forStretch = areaChoicesForStretch(bank, next);
+    setAreas(forStretch.matched);
+    setHidden(forStretch.rest);
   }
 
   function backToList() {
     setStretch(null);
     setChosen([]);
+    setShowAll(false);
   }
 
   function addArea(choice: AreaChoice) {
@@ -167,7 +179,8 @@ export function SegmentsSheet({
 
   /* ----------------------------------------------------------------- editor */
 
-  const available = (areas ?? []).filter(
+  const offered = showAll ? [...(areas ?? []), ...hidden] : (areas ?? []);
+  const available = offered.filter(
     (a) => !chosen.some((l) => l.area === a.area)
   );
 
@@ -285,6 +298,14 @@ export function SegmentsSheet({
         <h3 className="mb-1.5 text-xs font-bold uppercase tracking-[0.08em] text-ink-soft">
           {s.availableTitle}
         </h3>
+
+        {/* Say that the list is cut, and by what. A filter nobody can see is a
+            list that looks like it is missing towns. */}
+        {hidden.length > 0 && !showAll && (
+          <p className="mb-2 text-[11.5px] text-ink-faint">
+            {s.regionFiltered.replace("{n}", String(hidden.length))}
+          </p>
+        )}
         {areas === null ? (
           <p className="py-4 text-center text-sm text-ink-soft">
             {strings.common.loading}
@@ -326,6 +347,21 @@ export function SegmentsSheet({
               </li>
             ))}
           </ul>
+        )}
+
+        {/* The escape hatch. The region is read off a label, and a label can be
+            wrong or a town can be geocoded into the wrong band - so the rest of
+            the country is always one tap away, never gone. */}
+        {hidden.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowAll((on) => !on)}
+            className="mt-3 w-full rounded-xl border border-line bg-white py-2.5 text-xs font-semibold text-ink-soft active:bg-paper-deep"
+          >
+            {showAll
+              ? s.showRegionOnly
+              : s.showAllAreas.replace("{n}", String(hidden.length))}
+          </button>
         )}
       </section>
 

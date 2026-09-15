@@ -692,6 +692,12 @@ export const strings = {
     availableTitle: "ערים עם אפשרויות בבנק",
     noAreas: "אין ערים עם אפשרויות במדינה הזאת",
     allAreasUsed: "כל הערים כבר במסלול",
+    // A leg whose label names a region ("וייטנאם - צפון") only offers that
+    // region's towns. The rest stay one tap away - the region is read off a
+    // label, and a label can be wrong.
+    regionFiltered: "מוצגות רק הערים באזור של המקטע · {n} ערים נוספות במדינה",
+    showAllAreas: "הצגת כל הערים במדינה ({n} נוספות)",
+    showRegionOnly: "חזרה לערים של האזור בלבד",
     assigned: "שובצו {n} מתוך {total} ימים",
     leftover: "‏{n} ימים עדיין בלי עיר - אפשר לשמור ולהמשיך אחר כך",
     overflow: "‏{n} ימים מעבר למקטע - הם לא ישובצו",

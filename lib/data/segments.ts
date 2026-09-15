@@ -134,6 +134,161 @@ export function areaChoicesForCountry(
     .sort((a, b) => b.options - a.options || a.area.localeCompare(b.area, "he"));
 }
 
+/**
+ * Which of a country's areas belong to ONE stretch of it.
+ *
+ * THE PROBLEM. `areaChoicesForCountry` filters by country and nothing else, so
+ * a trip that visits one country twice offers the same list both times. This
+ * trip splits Vietnam into "וייטנאם - צפון" (21 days) and "וייטנאם - דרום
+ * ומרכז" (35 days), and both were offering all 25 Vietnamese areas - Saigon
+ * under the northern leg, Hanoi under the southern one. Nothing in the schema
+ * says which town is northern, so the label has to be read.
+ *
+ * TWO RULES, and neither hardcodes a destination (CLAUDE.md #9):
+ *
+ *   1. The label NAMES towns that exist in the bank ("קיוטו", "קנאזאווה
+ *      וטאקאיאמה"). Those come first, then everything else by distance from
+ *      them - a base you sleep in, with day trips around it. Nothing is hidden:
+ *      Nara is half an hour from Kyoto and belongs on that list.
+ *
+ *   2. The label names a DIRECTION ("צפון", "דרום ומרכז"). That is a claim
+ *      about a region, so it filters: the country's own geocoded span is cut
+ *      into three bands along the relevant axis, and only the named bands are
+ *      offered. The rest stay one tap away behind "all towns".
+ *
+ * Neither matched -> the whole country, exactly as before. A country visited
+ * once ("תאילנד", "קמבודיה") is unaffected.
+ *
+ * AREAS WITH NO COORDINATES ARE ALWAYS OFFERED. A band is evidence about where
+ * a place is, and there is none for an ungeocoded area - dropping it would hide
+ * a real town on the strength of a missing field.
+ */
+export type StretchAreas = {
+  /** Offer these. Ordered: named towns first, then by whatever the rule sorts by. */
+  matched: AreaChoice[];
+  /** The rest of the country, hidden behind a toggle. Empty when nothing is hidden. */
+  rest: AreaChoice[];
+  /** Why `matched` is what it is - the UI explains the filter with this. */
+  rule: "towns" | "region" | "country";
+};
+
+/** Hebrew direction words, and the axis each one cuts. `band` is the index of
+ *  the third it selects, low to high along that axis. */
+const DIRECTIONS: { word: string; axis: "lat" | "lng"; band: 0 | 1 | 2 }[] = [
+  { word: "צפון", axis: "lat", band: 2 },
+  { word: "דרום", axis: "lat", band: 0 },
+  { word: "מזרח", axis: "lng", band: 2 },
+  { word: "מערב", axis: "lng", band: 0 },
+  // "מרכז" is the middle of whichever axis its siblings in the label use, and
+  // latitude when it stands alone - north/south is how a country this shape
+  // gets described.
+  { word: "מרכז", axis: "lat", band: 1 },
+];
+
+/** Which third of [min, max] a value falls in. Equal-width bands, so the split
+ *  follows the country's real extent rather than how many towns sit in each. */
+function bandOf(value: number, min: number, max: number): 0 | 1 | 2 {
+  if (max <= min) return 1;
+  const third = (max - min) / 3;
+  if (value < min + third) return 0;
+  if (value < min + 2 * third) return 1;
+  return 2;
+}
+
+function haversineKm(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+export function areaChoicesForStretch(
+  options: PlaceOption[],
+  stretch: { countryCode: string | null; locationName: string | null }
+): StretchAreas {
+  const all = areaChoicesForCountry(options, stretch.countryCode);
+  const label = (stretch.locationName ?? "").trim();
+  if (label === "" || all.length === 0) {
+    return { matched: all, rest: [], rule: "country" };
+  }
+
+  const haystack = label.toLowerCase();
+
+  // ---- rule 1: the label names towns we know ----
+  // Substring both ways: a label may write the town on its own ("קיוטו") or
+  // inside a phrase ("קנאזאווה וטאקאיאמה").
+  const named = all.filter((choice) => {
+    const area = choice.area.trim().toLowerCase();
+    return area.length >= 3 && haystack.includes(area);
+  });
+
+  if (named.length > 0) {
+    const anchors = named.filter((c) => c.lat != null && c.lng != null);
+    const distance = (choice: AreaChoice): number => {
+      if (choice.lat == null || choice.lng == null || anchors.length === 0) {
+        return Number.POSITIVE_INFINITY;
+      }
+      return Math.min(
+        ...anchors.map((a) =>
+          haversineKm(a.lat!, a.lng!, choice.lat!, choice.lng!)
+        )
+      );
+    };
+    const namedKeys = new Set(named.map((c) => c.area.toLowerCase()));
+    const others = all
+      .filter((c) => !namedKeys.has(c.area.toLowerCase()))
+      // An ungeocoded area sorts last rather than first: infinity is "we do not
+      // know", not "very far", and it should not head the list.
+      .sort(
+        (a, b) =>
+          distance(a) - distance(b) ||
+          b.options - a.options ||
+          a.area.localeCompare(b.area, "he")
+      );
+    return { matched: [...named, ...others], rest: [], rule: "towns" };
+  }
+
+  // ---- rule 2: the label names a region ----
+  const wanted = DIRECTIONS.filter((d) => haystack.includes(d.word));
+  if (wanted.length === 0) return { matched: all, rest: [], rule: "country" };
+
+  // "דרום ומרכז" names two bands on one axis; a label naming both axes is
+  // read as an intersection, which is what "צפון מזרח" means.
+  const axes = [...new Set(wanted.map((d) => d.axis))];
+  const located = all.filter((c) => c.lat != null && c.lng != null);
+  if (located.length === 0) return { matched: all, rest: [], rule: "country" };
+
+  const inRegion = (choice: AreaChoice): boolean => {
+    if (choice.lat == null || choice.lng == null) return true; // no evidence
+    return axes.every((axis) => {
+      const bands = wanted.filter((d) => d.axis === axis).map((d) => d.band);
+      const values = located.map((c) => (axis === "lat" ? c.lat! : c.lng!));
+      const value = axis === "lat" ? choice.lat! : choice.lng!;
+      return bands.includes(
+        bandOf(value, Math.min(...values), Math.max(...values))
+      );
+    });
+  };
+
+  const matched = all.filter(inRegion);
+  const rest = all.filter((c) => !inRegion(c));
+  // A filter that keeps everything, or nothing, is not telling the family
+  // anything - fall back to the plain country list rather than show an empty
+  // screen or a pointless toggle.
+  if (matched.length === 0 || rest.length === 0) {
+    return { matched: all, rest: [], rule: "country" };
+  }
+  return { matched, rest, rule: "region" };
+}
+
 /** One stop on the route: an area, and how many days it gets. */
 export type Leg = {
   area: string;

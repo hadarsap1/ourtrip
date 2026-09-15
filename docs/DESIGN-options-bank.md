@@ -226,3 +226,48 @@ alike. It compares names with a leading ה, a doubled yod and a doubled vav
 ignored, and returns a label **only if that label is already in the bank** - so
 it can rename a typo onto a real heading but can never invent one, and a country
 the family genuinely adds for the first time is stored exactly as typed.
+
+## A leg shows its own region (2026-09-15)
+
+`areaChoicesForCountry` narrowed the bank by country and nothing else. That is
+fine for a country visited once, and wrong for this trip: it crosses Vietnam
+twice - "וייטנאם - צפון" (21 days) and "וייטנאם - דרום ומרכז" (35 days) - and
+both legs offered all 25 Vietnamese towns. The northern leg listed הוי אן,
+סייגון, דה לאט and פונג נה, none of which are northern.
+
+Nothing in the schema says which town is northern. `itinerary_days` carries a
+country code and a free-text label, and 225 of the 227 days have no coordinates
+at all. The only thing that knows is the label, so the label gets read.
+
+**Two rules, neither naming a destination:**
+
+- The label names towns that exist in the bank (`קיוטו`, `קנאזאווה וטאקאיאמה`):
+  those go first, then everything else sorted by distance from them. Nothing is
+  hidden - a town label is a *base*, and Nara is half an hour from Kyoto.
+- The label names a direction (`צפון`, `דרום ומרכז`): that is a claim about a
+  region, so it filters. The country's own geocoded span is cut into three equal
+  bands along the axis the direction implies, and only the named bands are
+  offered. The rest sit behind "הצגת כל הערים במדינה".
+
+Neither matched - `תאילנד`, `קמבודיה`, `פיליפינים` - and the whole country is
+offered exactly as before. A filter that would keep everything, or nothing,
+falls back too: a toggle that reveals an empty list helps nobody.
+
+**Two deliberate refusals to guess.** An area with no coordinates is offered
+under every leg, because a band is evidence about where a place is and there is
+none for an ungeocoded town. And the filter never removes anything permanently -
+the region comes from a label, and a label can be wrong.
+
+### The geocodes this exposed
+
+Sorting towns into bands made two bad positions matter. `דלתת המקונג` had four
+of its five located options stacked on one point in **Thailand**, and `A Lưới`'s
+single located option sat 300km north-west of A Lưới - so both areas read as
+northern. Migration `00035` clears exactly those five rows, back through the
+existing re-geocode.
+
+It does **not** apply 00030's "several places on one point" rule, which was
+measured against the whole bank first: it also matches the centre of Hanoi, Hoi
+An, Chiang Mai, Tam Coc, Pai and Tohoku, where the geocoder resolved a town to
+its centre - imprecise but right. Running it would have destroyed about thirty
+correct positions to fix five wrong ones.
