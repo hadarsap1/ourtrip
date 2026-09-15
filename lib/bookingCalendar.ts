@@ -33,7 +33,7 @@ export type BookingOnDate = {
 
 /** Transit first, bed last: that is the order of a travel day. Within a type,
  *  title keeps it stable so two hotels don't swap places between renders. */
-const TYPE_ORDER: Record<Booking["type"], number> = {
+export const TYPE_ORDER: Record<Booking["type"], number> = {
   flight: 0,
   train: 1,
   car_rental: 2,
@@ -74,8 +74,20 @@ function addDays(dateISO: string, delta: number): string {
  * 04/2027), and the booking is still real. The form now rejects new ones.
  */
 export function bookingDates(booking: Booking): string[] {
-  if (!booking.start_date) return [];
   if (booking.status === "cancelled") return [];
+  return bookingSpan(booking);
+}
+
+/**
+ * The same dates, but without the cancelled check.
+ *
+ * A cancelled booking must not shade a day on the plan, which is why
+ * `bookingDates` drops it - but it is still listed, and the list groups every
+ * booking under the leg of the trip it belongs to. "Cancelled" is a fact about
+ * the booking, not a reason to stop knowing where it was.
+ */
+export function bookingSpan(booking: Booking): string[] {
+  if (!booking.start_date) return [];
 
   const start = booking.start_date;
   const rawEnd = booking.end_date;
