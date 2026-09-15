@@ -1083,6 +1083,7 @@ export const strings = {
     detach: "ביטול שיוך",
     attached: "משויך למפה",
     onMap: "מופיע במפה",
+    photoActions: "פעולות על התמונה",
   },
 
   pocket: {

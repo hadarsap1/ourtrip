@@ -20,6 +20,7 @@ import {
 import { CameraIcon, PlusIcon, UsersIcon } from "@/components/icons";
 import { CarIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
+import { Sheet } from "@/components/Sheet";
 import { strings } from "@/lib/strings";
 import type { MapPin } from "@/lib/types";
 
@@ -240,23 +241,18 @@ export function GooglePhotosSection({
         ))
       )}
 
-      {/* import sheet */}
-      {sheetOpen && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-lg space-y-3 rounded-t-3xl bg-white p-4 pb-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-ink">
-                {strings.googlePhotos.import}
-              </h3>
-              <button
-                type="button"
-                onClick={() => !busy && setSheetOpen(false)}
-                className="text-sm font-semibold text-ink-soft"
-              >
-                {strings.googlePhotos.cancel}
-              </button>
-            </div>
-
+      {/* Import sheet. Uses the shared Sheet rather than its own markup: the
+          hand-rolled copy this replaces sat at z-40, UNDER the bottom nav's
+          z-50, so the nav painted over its submit button - and with no max
+          height and no overflow-y it could not be scrolled to reach it either.
+          Sheet also brings Escape, a focus trap, background scroll lock and
+          safe-area padding, none of which the copy had. */}
+      <Sheet
+        open={sheetOpen}
+        onClose={() => !busy && setSheetOpen(false)}
+        title={strings.googlePhotos.import}
+      >
+        <div className="space-y-3">
             <label className="block text-sm font-medium text-ink-soft">
               {strings.googlePhotos.countryLabel}
               <input
@@ -308,20 +304,17 @@ export function GooglePhotosSection({
                 {strings.googlePhotos.pickingHint}
               </a>
             )}
-          </div>
         </div>
-      )}
+      </Sheet>
 
-      {/* owner per-photo actions */}
-      {actionPhoto && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40"
-          onClick={() => setActionPhoto(null)}
-        >
-          <div
-            className="w-full max-w-lg space-y-3 rounded-t-3xl bg-white p-4 pb-6"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* owner per-photo actions - same reasons as the import sheet above */}
+      <Sheet
+        open={actionPhoto !== null}
+        onClose={() => setActionPhoto(null)}
+        title={strings.googlePhotos.photoActions}
+      >
+        {actionPhoto && (
+          <div className="space-y-3">
             <button
               type="button"
               onClick={() => {
@@ -375,22 +368,19 @@ export function GooglePhotosSection({
               {strings.common.delete}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
 
-      {/* attach-to-pin picker */}
-      {attaching && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
-          onClick={() => setAttaching(null)}
-        >
-          <div
-            className="max-h-[70vh] w-full max-w-lg space-y-2 overflow-y-auto rounded-t-3xl bg-white p-4 pb-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-bold text-ink">
-              {strings.googlePhotos.attachTitle}
-            </h3>
+      {/* attach-to-pin picker. Was z-50, the same layer as the bottom nav, so
+          which one won came down to DOM order; and its pb-6 ignored the iOS
+          home indicator. */}
+      <Sheet
+        open={attaching !== null}
+        onClose={() => setAttaching(null)}
+        title={strings.googlePhotos.attachTitle}
+      >
+        {attaching && (
+          <div className="space-y-2">
             {attaching.map_pin_id && (
               <button
                 type="button"
@@ -427,8 +417,8 @@ export function GooglePhotosSection({
               ))
             )}
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
 
       {/* lightbox */}
       {lightbox?.url && (
