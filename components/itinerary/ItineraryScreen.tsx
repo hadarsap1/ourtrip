@@ -35,7 +35,6 @@ import type {
   Trip,
 } from "@/lib/types";
 import { DayCard } from "./DayCard";
-import { DayStrip } from "./DayStrip";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
 import { CalendarView } from "./CalendarView";
@@ -67,7 +66,6 @@ export function ItineraryScreen() {
 
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const pendingScroll = useRef<string | null>(null);
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
   // open sheets
   const [dayForm, setDayForm] = useState<{ day: ItineraryDay | null; date?: string } | null>(null);
@@ -206,7 +204,6 @@ export function ItineraryScreen() {
       const existing = days.find((d) => d.date === date);
       if (existing) {
         pendingScroll.current = existing.id;
-        setSelectedDayId(existing.id);
         setView("list");
       } else {
         setDayForm({ day: null, date });
@@ -248,16 +245,6 @@ export function ItineraryScreen() {
       </div>
     );
   }
-
-  // Tap a day in the strip: put its card at the top of the viewport. Not
-  // scrollIntoView - that also scrolls any ancestor, which drags the whole page
-  // when the strip is near the bottom of a short screen.
-  const jumpToDay = (day: ItineraryDay) => {
-    setSelectedDayId(day.id);
-    const el = dayRefs.current[day.id];
-    if (!el) return;
-    window.scrollTo({ top: el.offsetTop - 12, behavior: "smooth" });
-  };
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 sm:max-w-2xl lg:max-w-4xl">
@@ -360,6 +347,7 @@ export function ItineraryScreen() {
             ) : view === "bookings" ? (
               <BookingsList
                 bookings={bookings}
+                days={days}
                 onAdd={() => setBookingForm({ booking: null })}
                 onImportMail={() => setImportingMail(true)}
                 onEdit={(booking) => setBookingForm({ booking })}
@@ -368,21 +356,13 @@ export function ItineraryScreen() {
               />
             ) : (
               <>
-                {days.length === 0 ? (
+                {days.length === 0 && (
                   <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
                     {strings.itinerary.emptyDays}
                   </p>
-                ) : (
-                  <DayStrip
-                    days={days}
-                    items={items}
-                    bookingsByDate={bookingsByDate}
-                    selectedId={selectedDayId}
-                    onSelect={jumpToDay}
-                  />
                 )}
 
-                <div className="space-y-3 pt-3">
+                <div className="space-y-3">
                   {days.map((day) => (
                     <div
                       key={day.id}

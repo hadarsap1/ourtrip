@@ -717,7 +717,6 @@ export const strings = {
     tabSearch: "חיפוש",
     closeSearch: "סגירת החיפוש",
     todayChip: "היום",
-    dayStripAria: "ימים קרובים",
     viewsAria: "תצוגת המסלול",
     importFromFile: "ייבוא מקובץ",
     importTitle: "ייבוא מסלול מקובץ",
@@ -834,6 +833,16 @@ export const strings = {
     calendarHasBooking: "יש הזמנה ביום זה",
     endBeforeStart: "תאריך הסיום מוקדם מתאריך ההתחלה",
     missingStartDate: "בלי תאריך התחלה ההזמנה לא תופיע במסלול",
+    // The bookings list groups every booking under the leg of the trip its
+    // dates fall in (lib/bookingPlacement.ts). A hotel name on its own says
+    // nothing about which of seven countries it is in.
+    legCount: "‏{n} הזמנות",
+    legCountOne: "הזמנה אחת",
+    legUnknown: "יעד לא מוגדר",
+    legUnplaced: "לא משויך למסלול",
+    legUnplacedHint: "ההזמנות האלה לא נופלות על אף יום במסלול - כדאי לתקן להן את התאריכים",
+    outsidePlan: "התאריכים לא נופלים על אף יום במסלול",
+    whereAria: "היעד במסלול",
     cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
   },
 
