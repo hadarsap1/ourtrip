@@ -8,7 +8,6 @@ import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
 import { MailImportSheet } from "@/components/bookings/MailImportSheet";
-import { isGmailImportConfigured } from "@/lib/data/gmailBookings";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   createItem,
@@ -362,11 +361,7 @@ export function ItineraryScreen() {
               <BookingsList
                 bookings={bookings}
                 onAdd={() => setBookingForm({ booking: null })}
-                onImportMail={
-                  isGmailImportConfigured()
-                    ? () => setImportingMail(true)
-                    : null
-                }
+                onImportMail={() => setImportingMail(true)}
                 onEdit={(booking) => setBookingForm({ booking })}
                 onAddToDay={setDayPickFor}
                 onError={() => showToast(strings.common.error)}

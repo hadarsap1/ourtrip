@@ -44,9 +44,7 @@ export function BookingsList({
 }: {
   bookings: Booking[];
   onAdd: () => void;
-  /** Null when Google is not configured - the button is hidden rather than
-   *  shown as a dead end. */
-  onImportMail: (() => void) | null;
+  onImportMail: () => void;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
   onError: () => void;
@@ -76,17 +74,21 @@ export function BookingsList({
           {strings.bookings.add}
         </button>
         {/* Typing a confirmation in by hand is the slow path, so the fast one
-            sits next to it rather than behind a menu. */}
-        {onImportMail && (
-          <button
-            type="button"
-            onClick={onImportMail}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
-          >
-            <MailIcon className="h-[17px] w-[17px]" />
-            {strings.mailImport.open}
-          </button>
-        )}
+            sits next to it rather than behind a menu.
+
+            Shown even when Google is not configured, and the sheet says so on
+            open. Hiding it was worse: a missing env var produced a feature that
+            was simply absent, with nothing on screen to explain why - which is
+            indistinguishable from a failed deploy or the wrong tab. The Google
+            Photos import already makes this choice. */}
+        <button
+          type="button"
+          onClick={onImportMail}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+        >
+          <MailIcon className="h-[17px] w-[17px]" />
+          {strings.mailImport.open}
+        </button>
       </div>
     </div>
   );
