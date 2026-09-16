@@ -12,6 +12,14 @@
 //
 // Structured output uses the forced tool_choice pattern, matching
 // phrasebook-generate: robust across SDK and model versions.
+//
+// LEVEL: the readers are 8.5 and 6.5, and the first version of this prompt
+// ("simple words a 7-year-old can read alone", one or two sentences, no
+// numbers at all) produced facts they already knew. The prompt now aims at a
+// curious 9-10 year old and demands a mechanism, real terminology and stable
+// numbers. That is also why this function runs on Sonnet rather than Haiku:
+// deeper facts need a model that actually holds the detail, and the cost is
+// one generation per destination, pressed by a parent.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -30,7 +38,9 @@ const INPUT_SCHEMA = {
           fact: {
             type: "string",
             description:
-              "The fact itself, in Hebrew, 1-2 short sentences a 7-year-old can read.",
+              "The fact itself, in Hebrew, 2-4 sentences, written for a " +
+              "curious 9-year-old: it explains why or how something is the " +
+              "way it is, not only that it is.",
           },
         },
         required: ["emoji", "fact"],
@@ -106,8 +116,8 @@ Deno.serve(async (req) => {
   let response;
   try {
     response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 8000,
+      model: "claude-sonnet-5",
+      max_tokens: 16000,
       tools: [
         {
           name: "emit_facts",
@@ -121,30 +131,56 @@ Deno.serve(async (req) => {
           role: "user",
           content:
             `Write ${HOW_MANY} "did you know?" facts about ${locationName} in ` +
-            `${countryName}, for two Hebrew-speaking children in early ` +
-            `elementary school (ages about 6-9) who are travelling there with ` +
-            `their parents.\n\n` +
+            `${countryName}, in Hebrew, for two curious children travelling ` +
+            `there with their parents: one is 8.5 and reads alone, one is 6.5 ` +
+            `and is read to by a parent.\n\n` +
+            `LEVEL - the most important instruction. Aim at a bright, curious ` +
+            `9-to-10-year-old, not at a preschooler. Each fact must teach ` +
+            `something they did not know and could repeat to an adult at ` +
+            `dinner. A fact a five-year-old already knows, or one that would ` +
+            `be just as true of almost any city on earth, is a failed fact - ` +
+            `drop it and write a real one instead.\n\n` +
             `The destination name is written in Hebrew and may be a region, a ` +
             `city, or a stretch of a trip. Interpret it as a place in ` +
             `${countryName} and write about that place. If part of the name is ` +
             `an itinerary label rather than a place, ignore that part.\n\n` +
             `Rules:\n` +
-            `- Write in Hebrew, in simple words a 7-year-old can read alone. ` +
-            `One or two short sentences per fact.\n` +
-            `- ONLY well-established facts. If you are not confident something ` +
-            `is true, leave it out and write a different fact instead. A short ` +
-            `list of true facts is much better than a full list with an ` +
-            `invented one - children will believe every word.\n` +
-            `- Prefer things a child would find surprising or funny, and things ` +
-            `they can actually see, hear, eat or count while they are there: ` +
-            `animals, food, buildings, nature, how kids there go to school, ` +
-            `games, festivals, trains, volcanoes, strange rules.\n` +
-            `- Avoid war, killing, disaster details, politics and anything ` +
-            `frightening. Historical background is fine if it is told gently.\n` +
-            `- No numbers that change over time (populations, prices, ` +
-            `"the tallest in the world"). Facts that stay true.\n` +
-            `- Each fact gets one emoji that matches it.\n` +
-            `- Do not repeat the same subject twice.\n\n` +
+            `- Write in Hebrew, 2-4 sentences per fact. Clear, precise ` +
+            `language - clear is not the same as babyish.\n` +
+            `- Explain WHY or HOW, not only THAT. A fact that states a bare ` +
+            `claim without the mechanism, the cause or the story behind it is ` +
+            `half a fact. "Why is it like that?" should already be answered.\n` +
+            `- Use the real term for things - tectonic plates, monsoon, ` +
+            `fermentation, aqueduct, endemic, dynasty, archipelago - and gloss ` +
+            `it in a few words the first time it appears. Children learn words ` +
+            `from being given them, not from having them avoided.\n` +
+            `- Concrete numbers are welcome when they are stable: heights, ` +
+            `depths, distances, dates, centuries, how many years something ` +
+            `took to build, how long an animal lives. Skip anything that ` +
+            `drifts year to year - populations, prices, visitor counts, ` +
+            `"the tallest in the world".\n` +
+            `- Be specific to THIS place. Name the actual mountain, temple, ` +
+            `river, animal species, dish, era or person. No generic national ` +
+            `trivia that a guidebook would print for the whole country.\n` +
+            `- Spread the ${HOW_MANY} facts across at least five different ` +
+            `worlds: geology and landscape, animals and plants, history and ` +
+            `archaeology, science and engineering, language and writing, food ` +
+            `and how it is made, daily life and school, art, religion and ` +
+            `festivals. Do not repeat a subject.\n` +
+            `- ONLY well-established facts. If you are not fully confident ` +
+            `something is true, leave it out and write a different fact ` +
+            `instead. A short list of true facts is much better than a full ` +
+            `list with an invented one - children will believe every word, ` +
+            `and a number that sounds precise is believed twice as hard.\n` +
+            `- Tone: tell it straight, the way a good museum label or a ` +
+            `science book for children does. No exclamation-mark hype, no ` +
+            `"וואו", no "מגניב", no rhetorical questions aimed at the ` +
+            `child, no praising the fact instead of telling it.\n` +
+            `- Keep it sober and non-frightening: no gore, no graphic violence ` +
+            `or disaster detail, no present-day politics. Hard history ` +
+            `(an eruption, a war, an empire) may be mentioned plainly and ` +
+            `briefly when it is genuinely part of the place.\n` +
+            `- Each fact gets one emoji that matches it.\n\n` +
             `Call emit_facts with the list.`,
         },
       ],

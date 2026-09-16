@@ -692,7 +692,7 @@ export const strings = {
     addFact: "הוספת עובדה",
     editFact: "עריכת עובדה",
     factLabel: "העובדה",
-    factPlaceholder: "משהו מעניין שהילדים ישמחו לדעת…",
+    factPlaceholder: "עובדה שתאתגר אותם - לא רק מה, גם למה או איך…",
     emojiLabel: "אימוג'י",
     deleteConfirm: "למחוק את העובדה?",
     byHand: "נכתב על ידכם",

@@ -311,8 +311,11 @@ committed code.**
 
 The three `verify_jwt=false` cron functions are an accepted, documented risk:
 anonymous invocation can at most re-run harmless idempotent work
-(`docs/SECURITY-CHECKS.md`). The Claude-backed functions all pin
-`claude-haiku-4-5-20251001`.
+(`docs/SECURITY-CHECKS.md`). Most Claude-backed functions pin
+`claude-haiku-4-5-20251001`. Two do not: `gmail-bookings` runs `claude-opus-5`
+(booking emails are messy and a missed leg costs a night's sleep), and
+`facts-generate` runs `claude-sonnet-5` - the kid facts are written at a level
+that needs real knowledge behind them, and it is one call per destination.
 
 `supabase/config.toml` pins every function's `verify_jwt` so a redeploy from a
 clean checkout cannot flip the four unauthenticated-by-design ones back to the
