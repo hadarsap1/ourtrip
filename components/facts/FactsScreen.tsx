@@ -50,6 +50,13 @@ export function FactsScreen() {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ fact: "", emoji: "" });
   const [toast, setToast] = useState<string | null>(null);
+  // Non-null only while the whole trip is being regenerated: which destination
+  // is being written now, so the parent can see it is moving and not stuck.
+  const [bulk, setBulk] = useState<{
+    done: number;
+    total: number;
+    label: string;
+  } | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -63,6 +70,17 @@ export function FactsScreen() {
     },
     []
   );
+
+  // Regenerating fourteen destinations takes minutes, and each one deletes the
+  // old AI batch before the new one arrives. A tab closed halfway leaves some
+  // destinations on the new level and some on the old with nothing saying
+  // which, so closing mid-run asks first.
+  useEffect(() => {
+    if (!bulk) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [bulk]);
 
   const loadFacts = useCallback(async (tripId: string, dest: Destination) => {
     const result = await listFacts(tripId, dest.countryCode, dest.locationName);
@@ -132,6 +150,64 @@ export function FactsScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Every destination, one after another. Sequential on purpose: twelve facts
+  // from Sonnet is a slow call, and fourteen of them in parallel would hit the
+  // rate limit and fail most of the batch with nothing to show for it.
+  async function runGenerateAll() {
+    if (!trip || busy || destinations.length === 0) return;
+    const confirmed = await askConfirm(
+      s.regenerateAllConfirm.replace("{n}", String(destinations.length))
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    let ok = 0;
+    const failed: string[] = [];
+    let stopCode: string | null = null;
+    const nextCounts = new Map(counts);
+
+    for (let i = 0; i < destinations.length; i += 1) {
+      const dest = destinations[i];
+      setBulk({ done: i, total: destinations.length, label: dest.locationName });
+      try {
+        const n = await generateFacts(dest.countryCode, dest.locationName);
+        nextCounts.set(destinationKey(dest.countryCode, dest.locationName), n);
+        setCounts(new Map(nextCounts));
+        ok += 1;
+      } catch (err) {
+        const code = (err as Error).message;
+        // A missing key, an empty account or a caller who is not an owner
+        // fails identically for all fourteen, so stop rather than spend ten
+        // minutes proving it. Anything else is this destination's problem -
+        // note it and carry on.
+        if (
+          code === "not_configured" ||
+          code === "no_credit" ||
+          code === "forbidden"
+        ) {
+          stopCode = code;
+          break;
+        }
+        failed.push(dest.locationName);
+      }
+    }
+
+    setBulk(null);
+    if (selected) await loadFacts(trip.id, selected).catch(() => undefined);
+    setBusy(false);
+
+    if (stopCode === "not_configured") showToast(s.notConfigured);
+    else if (stopCode === "no_credit") showToast(s.noCredit);
+    else if (stopCode) showToast(s.generateFailed);
+    else if (failed.length > 0) {
+      showToast(
+        s.regenerateAllPartial
+          .replace("{ok}", String(ok))
+          .replace("{failed}", String(failed.length))
+      );
+    } else showToast(s.regenerateAllDone.replace("{n}", String(ok)));
   }
 
   async function saveDraft() {
@@ -302,6 +378,35 @@ export function FactsScreen() {
           >
             {s.addFact}
           </button>
+        </div>
+      )}
+
+      {isOwner && selected && destinations.length > 1 && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => void runGenerateAll()}
+            disabled={busy}
+            className="w-full rounded-2xl border border-line bg-white py-3 text-sm font-bold text-sea disabled:opacity-60"
+          >
+            {s.regenerateAll}
+          </button>
+          {bulk && (
+            <div>
+              <p className="text-center text-xs text-ink-soft">
+                {s.regenerateAllProgress
+                  .replace("{i}", String(bulk.done + 1))
+                  .replace("{n}", String(bulk.total))
+                  .replace("{name}", bulk.label)}
+              </p>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
+                <div
+                  className="h-full rounded-full bg-sea transition-[width] duration-300"
+                  style={{ width: `${(bulk.done / bulk.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

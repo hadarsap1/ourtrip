@@ -689,6 +689,11 @@ export const strings = {
     noCredit: "אין יתרה בחשבון ה-AI - צריך לטעון קרדיט ב-Anthropic. אפשר להוסיף עובדות ידנית בינתיים.",
     // Regeneration is destructive for the AI batch, so say so before doing it.
     regenerateConfirm: "היצירה מחדש תמחק את העובדות שנוצרו אוטומטית ותיצור חדשות. עובדות שכתבתם בעצמכם יישארו.",
+    regenerateAll: "יצירה מחדש לכל היעדים",
+    regenerateAllConfirm: "יצירה מחדש לכל ‏{n} היעדים תחליף את כל העובדות שנוצרו אוטומטית. עובדות שכתבתם בעצמכם יישארו. זה לוקח כמה דקות - כדאי להשאיר את המסך פתוח.",
+    regenerateAllProgress: "יעד ‏{i} מתוך ‏{n} · {name}",
+    regenerateAllDone: "נוצרו עובדות חדשות ל-‏{n} יעדים",
+    regenerateAllPartial: "נוצרו עובדות ל-‏{ok} יעדים, ‏{failed} נכשלו - אפשר להריץ שוב",
     addFact: "הוספת עובדה",
     editFact: "עריכת עובדה",
     factLabel: "העובדה",

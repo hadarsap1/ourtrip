@@ -118,6 +118,10 @@ Deno.serve(async (req) => {
     response = await anthropic.messages.create({
       model: "claude-sonnet-5",
       max_tokens: 16000,
+      // Sonnet thinks adaptively by default, and an Edge Function has a wall
+      // clock. Medium effort keeps one destination well inside it - and the
+      // whole-trip run is fourteen of these calls back to back.
+      output_config: { effort: "medium" },
       tools: [
         {
           name: "emit_facts",

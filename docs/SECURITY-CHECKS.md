@@ -1457,3 +1457,20 @@ rollback;
 No guest member exists on this trip yet, so the guest case was covered by the
 anonymous probe plus the absence of any guest policy on the table, not by a live
 guest session. X Worth re-running once the first guest is invited.
+
+## "הידעת" - whole-trip regeneration (2026-09-16)
+
+No new table, no new policy, no new endpoint. The "יצירה מחדש לכל היעדים" button
+is a client-side loop over `listDestinations`, calling the same `facts-generate`
+Edge Function once per destination.
+
+| Check | Result |
+|---|---|
+| The button renders only for `member.role === 'owner'` | ✅ PASS - `isOwner` guard in `FactsScreen` |
+| A kid who forged the call still cannot generate | ✅ PASS - unchanged: `facts-generate` runs `current_member_role()` through the CALLER's JWT and returns `403 forbidden` for anything but an owner, on every one of the fourteen calls |
+| A forbidden reply stops the loop instead of repeating it | ✅ PASS - `not_configured`, `no_credit` and `forbidden` break out; only per-destination failures continue |
+| Guests are unaffected | ✅ PASS - `destination_facts` still has no guest policy at all |
+
+The loop is sequential, so a kid's device cannot be used to fan out fourteen
+concurrent AI calls even if the owner gate were somehow passed - and the gate is
+the owner check in the function, not the hidden button.

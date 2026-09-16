@@ -55,6 +55,9 @@ verify_jwt = false
 [functions.phrasebook-generate]
 verify_jwt = true
 
+[functions.facts-generate]
+verify_jwt = true
+
 [functions.recommend]
 verify_jwt = true
 
