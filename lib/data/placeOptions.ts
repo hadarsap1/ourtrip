@@ -13,6 +13,7 @@ import { createBooking } from "@/lib/data/bookings";
 import { createItem } from "@/lib/data/itinerary";
 import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
+import type { OptionForAreas } from "@/lib/data/segments";
 import type { Booking, PlaceOption, PlaceOptionStatus } from "@/lib/types";
 import type { TablesInsert } from "@/lib/database.types";
 
@@ -46,6 +47,25 @@ export async function listPlaceOptions(tripId: string): Promise<PlaceOption[]> {
     .order("country", { ascending: true, nullsFirst: false })
     .order("area", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/**
+ * Just enough of the bank to count ideas per leg.
+ *
+ * The itinerary screen shows, on each of the trip's fourteen legs, how many
+ * undecided options are waiting for it. That needs five columns from ~1000
+ * rows; `listPlaceOptions` would send every column of every one of them to a
+ * phone, to display fourteen numbers.
+ */
+export async function listOptionAreas(
+  tripId: string
+): Promise<OptionForAreas[]> {
+  const { data, error } = await requireClient()
+    .from("place_options")
+    .select("country_code, area, status, lat, lng")
+    .eq("trip_id", tripId);
   if (error) throw new Error(error.message);
   return data ?? [];
 }

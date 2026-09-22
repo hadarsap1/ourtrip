@@ -234,6 +234,15 @@ export const ChevronBackIcon = (p: IconProps) => (
   </Glyph>
 );
 
+// Accordion affordance: points down when the section is shut, and the caller
+// rotates it 180 when open. Direction-neutral, unlike the two above, so it
+// needs no RTL flip.
+export const ChevronDownIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 2.2}>
+    <path d="M6 9l6 6 6-6" />
+  </Glyph>
+);
+
 export const PinIcon = (p: IconProps) => (
   <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.9}>
     <path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z" />

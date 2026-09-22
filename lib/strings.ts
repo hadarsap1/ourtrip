@@ -761,6 +761,37 @@ export const strings = {
   },
 
   itinerary: {
+    // ---- the plan as its legs ----
+    // The list used to be 230 day cards in a row, 228 of them empty. It is
+    // now one collapsed row per leg of the trip, which is the unit the trip
+    // is actually planned in.
+    legDays: "‏{n} ימים",
+    legDaysOne: "יום אחד",
+    legPlanned: "‏{done} מתוך {total} ימים מתוכננים",
+    legPlannedNone: "עוד לא תוכנן כלום",
+    legPlannedAll: "כל הימים מתוכננים",
+    legBookings: "‏{n} הזמנות",
+    legBookingsOne: "הזמנה אחת",
+    legNoStay: "אין לינה",
+    // The bank's count for this leg. Two wordings on purpose: when the leg's
+    // label matched no town the bank knows, the only honest number is the
+    // whole country's, and the chip has to say which one it is showing.
+    legIdeas: "‏{n} רעיונות בבנק",
+    legIdeasCountry: "‏{n} רעיונות ל{country}",
+    legIdeasOpen: "פתיחת הבנק",
+    legHere: "כאן עכשיו",
+    legDone: "הסתיים",
+    legExpand: "פתיחת המקטע",
+    legCollapse: "סגירת המקטע",
+    legOpenDays: "הימים במקטע",
+    // The jump control above the list.
+    jumpToday: "קפיצה להיום",
+    jumpNext: "קפיצה למקטע הקרוב",
+    // A day with nothing on it is a thin row, not a card.
+    emptyDayAdd: "הוספת פעילות ליום הזה",
+    // Whole-trip line at the top of the list.
+    tripSpan: "‏{days} ימים · {legs} מקטעים · {countries} מדינות",
+    tripPlanned: "‏{done} ימים מתוכננים",
     tabPlan: "מסלול",
     tabBookings: "הזמנות",
     tabSearch: "חיפוש",
