@@ -235,37 +235,44 @@ export function TripMap({
     return () => document.removeEventListener("click", onClick);
   }, [onOpenLeg]);
 
-  if (ready === false) {
-    return (
-      <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
-        {s.mapUnavailable}
-      </p>
-    );
-  }
+  // No Maps key, or the script could not load. The map goes, but the rest of
+  // the screen is still worth showing: the legs, and which of them nobody has
+  // placed. Returning only the message - which is what this did at first -
+  // left the whole view as a single grey sentence.
+  const unavailable = ready === false;
 
   return (
     <div className="space-y-2.5 pb-8">
-      <div
-        ref={containerRef}
-        className="h-[58vh] w-full overflow-hidden rounded-2xl border border-line bg-paper-deep"
-      />
+      {unavailable ? (
+        <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
+          <p className="text-sm font-semibold text-ink-soft">{s.mapUnavailable}</p>
+          <p className="mt-1 text-[12px] text-ink-faint">{s.mapUnavailableHint}</p>
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          className="h-[58vh] w-full overflow-hidden rounded-2xl border border-line bg-paper-deep"
+        />
+      )}
 
-      <p className="px-1 text-[11.5px] text-ink-soft">
-        {s.mapPlacedCount
-          .replace("{placed}", String(placed.length))
-          .replace("{total}", String(legs.length))}
-        {placed.length > 1 && ` · ${s.mapGapHint}`}
-      </p>
+      {!unavailable && (
+        <p className="px-1 text-[11.5px] text-ink-soft">
+          {s.mapPlacedCount
+            .replace("{placed}", String(placed.length))
+            .replace("{total}", String(legs.length))}
+          {placed.length > 1 && ` · ${s.mapGapHint}`}
+        </p>
+      )}
 
       {/* Not a footnote: eight of fourteen legs land here, and every one of
           them is a tap away from being on the map. */}
-      {unplaced.length > 0 && (
+      {(unplaced.length > 0 || unavailable) && (
         <section className="rounded-2xl border border-line bg-white p-3">
           <h3 className="text-[12.5px] font-extrabold text-ink">
             {s.mapMissingTitle}
           </h3>
           <p className="mt-0.5 text-[11.5px] text-ink-soft">
-            {s.mapMissingHint}
+            {unavailable ? s.mapSearchUnavailable : s.mapMissingHint}
           </p>
           <ul className="mt-2 space-y-1.5">
             {unplaced.map(({ leg, number }) => (
@@ -288,13 +295,17 @@ export function TripMap({
                     {formatShortDate(leg.stretch.to)}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onSetLocation(leg)}
-                  className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-[11.5px] font-bold text-sea-deep active:bg-sea-tint/70"
-                >
-                  {s.mapSetLocation}
-                </button>
+                {/* Hidden without a key: the sheet behind it searches through
+                    Places, so the button would open a dead end. */}
+                {!unavailable && (
+                  <button
+                    type="button"
+                    onClick={() => onSetLocation(leg)}
+                    className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-[11.5px] font-bold text-sea-deep active:bg-sea-tint/70"
+                  >
+                    {s.mapSetLocation}
+                  </button>
+                )}
               </li>
             ))}
           </ul>

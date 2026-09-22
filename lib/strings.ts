@@ -796,6 +796,12 @@ export const strings = {
     viewMap: "מפה",
     mapTitle: "צורת הטיול",
     mapUnavailable: "המפה לא זמינה כרגע",
+    // Shown with the message above. Without the Maps key there is no map and
+    // no place search, so the screen has to say that rather than leave a
+    // search box that never finds anything and a save button that never
+    // enables.
+    mapUnavailableHint: "המקטעים עדיין כאן, אבל בלי מפה אי אפשר להציב אותם.",
+    mapSearchUnavailable: "חיפוש המקומות לא זמין כרגע, אז אי אפשר להציב את המקטע.",
     mapEmpty: "אין עדיין מספיק מידע כדי לצייר את המסלול על מפה",
     mapLegend: "מקטעים ממוקמים",
     // A leg the map can place, versus one it can only guess at. The second

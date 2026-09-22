@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { PlaceAutocomplete, type PlaceSelection } from "@/components/PlaceAutocomplete";
 import { setDaysLocation } from "@/lib/data/itinerary";
+import { loadGoogleMaps } from "@/lib/places";
 import { countryName } from "@/lib/data/emergency";
 import { formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -61,6 +62,20 @@ function LegLocationForm({
   const [text, setText] = useState(leg.stretch.locationName ?? "");
   const [picked, setPicked] = useState<PlaceSelection | null>(null);
   const [saving, setSaving] = useState(false);
+  // Without the Maps key PlaceAutocomplete is a plain text box that can never
+  // return coordinates, so Save could never enable and nothing on screen said
+  // why. Asking up front turns a dead end into a sentence.
+  const [searchable, setSearchable] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadGoogleMaps().then((google) => {
+      if (!cancelled) setSearchable(google !== null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function save() {
     if (!picked || picked.lat == null || picked.lng == null || saving) return;
@@ -114,7 +129,14 @@ function LegLocationForm({
               setPicked(place.lat != null && place.lng != null ? place : null);
             }}
           />
-          <p className="mt-1 text-[11.5px] text-ink-soft">{s.mapSetHint}</p>
+          <p
+            className={`mt-1 text-[11.5px] ${
+              searchable ? "text-ink-soft" : "font-semibold text-alert"
+            }`}
+            role={searchable ? undefined : "alert"}
+          >
+            {searchable ? s.mapSetHint : s.mapSearchUnavailable}
+          </p>
         </div>
 
         <div className="flex gap-2 pt-1">
