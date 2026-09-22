@@ -12,12 +12,15 @@ import { strings } from "@/lib/strings";
 /**
  * The trip from above: one pin per leg the app can actually place, in order.
  *
- * WHAT IS DELIBERATELY NOT DRAWN. A leg whose position is only known to the
- * country gets no pin. Four of this trip's Japan legs resolve to the identical
- * point in central Japan, so pinning them would stack four markers on a spot
- * none of them is near, each labelled with a town name - the exact failure the
- * geocoder's own header records ("a map that looked populated and was wrong").
- * They are listed under the map instead, where they can be fixed in a tap.
+ * WHAT IS DELIBERATELY NOT DRAWN. A leg known only to its country is drawn
+ * faded, but only while it is the sole leg landing on that centroid. One leg
+ * labelled "תאילנד" at the middle of Thailand is a fair picture of it. Four
+ * Japanese legs resolving to one identical point in central Japan are not:
+ * they would stack into a single unreadable blob on a spot none of them is
+ * near, each carrying a town name - the exact failure the geocoder's own
+ * header records ("a map that looked populated and was wrong"). Sharing a
+ * point is the evidence that the point describes none of them, so they are
+ * listed under the map instead, where a tap fixes each for good.
  *
  * THE ROUTE LINE SAYS WHERE IT IS GUESSING. Consecutive placed legs are joined
  * solid; a jump that skips an unplaced leg is dashed, so the line never claims
