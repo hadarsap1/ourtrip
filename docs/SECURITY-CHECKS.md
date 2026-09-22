@@ -1500,3 +1500,25 @@ from `public, anon, authenticated` per 00002's rule for trigger functions.
 X No kid or guest member exists to probe with directly, so those cases rest on
 the anonymous probe plus the absence of any kid/guest policy on `bookings`.
 Worth re-running once a guest is invited.
+
+---
+
+## Trip map + pinning a leg (itinerary "מפה" view)
+
+No new table, no new policy, no migration. The map is derived at read time
+from rows the owner can already see (`itinerary_days`, `bookings`,
+`place_options`), and the one write it adds - pinning a leg - is an UPDATE of
+`lat`/`lng` on `itinerary_days`, covered by the pre-existing
+`itinerary_days_owner_all` (00001: `for all using (is_owner_of(trip_id))`).
+
+| Check | Result |
+|---|---|
+| Map reads nothing outside the owner's trip | ✅ PASS - every query is `.eq("trip_id", trip.id)` under owner-only policies |
+| Pinning a leg writes only `lat`/`lng`, only on days of that leg | ✅ PASS - `setDaysLocation` sends those two columns with `.in("id", dayIds)` |
+| A kid or guest cannot reach the view or the write | ✅ PASS - neither role has any policy on `itinerary_days`; the itinerary screens are owner-only |
+
+X The idea counts and map points read `place_options`, which is owner-only
+(`place_options_owner_all`, 00020). Kids and guests therefore see no ideas and
+no pins - worth re-checking if a guest-facing map is ever added, because the
+bank is planning content and must not leak through it.
+

@@ -50,6 +50,8 @@ import type {
 import { DayCard } from "./DayCard";
 import { LegSection } from "./LegSection";
 import { TripSummary } from "./TripSummary";
+import { TripMap } from "./TripMap";
+import { LegLocationSheet } from "./LegLocationSheet";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
 import { CalendarView } from "./CalendarView";
@@ -69,7 +71,7 @@ export function ItineraryScreen() {
   // One layer of tabs, never two: the old plan/bookings/search row above a
   // list/calendar row collapsed into a single three-way control. Search left
   // the row entirely and became a header action.
-  const [view, setView] = useState<"list" | "calendar" | "bookings">("list");
+  const [view, setView] = useState<"list" | "calendar" | "map" | "bookings">("list");
   const [searching, setSearching] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<ItineraryDay[]>([]);
@@ -107,6 +109,8 @@ export function ItineraryScreen() {
   const [importingMail, setImportingMail] = useState(false);
   // The day that is currently pulling from the options bank.
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
+  // The leg whose location is being pinned from the map.
+  const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -503,6 +507,7 @@ export function ItineraryScreen() {
             options={[
               { value: "list", label: strings.itinerary.viewList },
               { value: "calendar", label: strings.itinerary.viewCalendar },
+              { value: "map", label: strings.itinerary.viewMap },
               { value: "bookings", label: strings.itinerary.tabBookings },
             ]}
           />
@@ -514,6 +519,24 @@ export function ItineraryScreen() {
                 items={items}
                 bookings={bookings}
                 onSelectDate={handleCalendarSelect}
+              />
+            ) : view === "map" ? (
+              <TripMap
+                legs={legs}
+                options={optionAreas}
+                onOpenLeg={(key) => {
+                  openLeg(key);
+                  setView("list");
+                  // The leg's row has to exist before it can be scrolled to,
+                  // so this waits for the list to render.
+                  requestAnimationFrame(() => {
+                    legRefs.current[key]?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  });
+                }}
+                onSetLocation={setLocatingLeg}
               />
             ) : view === "bookings" ? (
               <BookingsList
@@ -676,6 +699,17 @@ export function ItineraryScreen() {
           }
         />
       )}
+
+      <LegLocationSheet
+        leg={locatingLeg}
+        onClose={() => setLocatingLeg(null)}
+        onSaved={() => {
+          setLocatingLeg(null);
+          refreshNow();
+          showToast(strings.itinerary.mapSaved);
+        }}
+        onError={() => showToast(strings.common.error)}
+      />
 
       <ExpensePromptSheet
         open={expenseFor !== null}

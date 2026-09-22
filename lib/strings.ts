@@ -792,6 +792,28 @@ export const strings = {
     // Whole-trip line at the top of the list.
     tripSpan: "‏{days} ימים · {legs} מקטעים · {countries} מדינות",
     tripPlanned: "‏{done} ימים מתוכננים",
+    // ---- the trip seen from above ----
+    viewMap: "מפה",
+    mapTitle: "צורת הטיול",
+    mapUnavailable: "המפה לא זמינה כרגע",
+    mapEmpty: "אין עדיין מספיק מידע כדי לצייר את המסלול על מפה",
+    mapLegend: "מקטעים ממוקמים",
+    // A leg the map can place, versus one it can only guess at. The second
+    // never gets a pin - a pin in the middle of יפן that says "האקונה" is a
+    // map that looks right and is not.
+    mapPlacedCount: "‏{placed} מתוך {total} מקטעים על המפה",
+    mapGapHint: "הקו מקווקו במקום שבו יש מקטע בלי מיקום",
+    mapMissingTitle: "מקטעים בלי מיקום",
+    mapMissingHint: "אלה לא מופיעים על המפה. בחירת עיר תציב אותם, ותדליק גם את מזג האוויר לימים שלהם.",
+    mapSetLocation: "בחירת מיקום",
+    mapSetTitle: "מיקום המקטע",
+    mapSetHint: "עיר או אזור - זה מה שיוצב על המפה עבור כל ימי המקטע.",
+    mapSetSearch: "חיפוש עיר",
+    mapSaved: "המיקום נשמר",
+    mapApprox: "מיקום משוער",
+    // The info window on a pin.
+    mapPinNights: "‏{n} לילות",
+    mapPinOpen: "מעבר למקטע",
     tabPlan: "מסלול",
     tabBookings: "הזמנות",
     tabSearch: "חיפוש",
