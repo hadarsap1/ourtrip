@@ -91,8 +91,21 @@ export type AreaChoice = {
  * area at all are skipped rather than bucketed - "(no area)" is not somewhere
  * you can spend four nights.
  */
+/**
+ * All an area choice is computed from.
+ *
+ * Narrower than PlaceOption on purpose: the itinerary screen wants per-leg
+ * idea counts for a bank of ~1000 rows, and pulling every column of every one
+ * of them over a phone connection to count them would be absurd. PlaceOption
+ * satisfies this, so existing callers are unaffected.
+ */
+export type OptionForAreas = Pick<
+  PlaceOption,
+  "country_code" | "area" | "status" | "lat" | "lng"
+>;
+
 export function areaChoicesForCountry(
-  options: PlaceOption[],
+  options: OptionForAreas[],
   countryCode: string | null
 ): AreaChoice[] {
   const buckets = new Map<
@@ -168,6 +181,20 @@ export type StretchAreas = {
   matched: AreaChoice[];
   /** The rest of the country, hidden behind a toggle. Empty when nothing is hidden. */
   rest: AreaChoice[];
+  /**
+   * The areas the label actually points at, which is NOT the same as `matched`.
+   * Under the towns rule `matched` deliberately carries the whole country, the
+   * named towns merely sorted to the front, because Nara belongs on Kyoto's
+   * picker. A caller that wants to say "this leg has N ideas waiting" needs the
+   * narrower set, and reading it off `matched` would report the country's total
+   * against one town.
+   *
+   * towns  -> the towns the label names.
+   * region -> the band the label selects (same as `matched`).
+   * country -> everything, because the label scoped nothing. Check `rule`
+   *            before calling such a count a property of the leg.
+   */
+  scoped: AreaChoice[];
   /** Why `matched` is what it is - the UI explains the filter with this. */
   rule: "towns" | "region" | "country";
 };
@@ -211,13 +238,13 @@ function haversineKm(
 }
 
 export function areaChoicesForStretch(
-  options: PlaceOption[],
+  options: OptionForAreas[],
   stretch: { countryCode: string | null; locationName: string | null }
 ): StretchAreas {
   const all = areaChoicesForCountry(options, stretch.countryCode);
   const label = (stretch.locationName ?? "").trim();
   if (label === "" || all.length === 0) {
-    return { matched: all, rest: [], rule: "country" };
+    return { matched: all, rest: [], scoped: all, rule: "country" };
   }
 
   const haystack = label.toLowerCase();
@@ -253,18 +280,20 @@ export function areaChoicesForStretch(
           b.options - a.options ||
           a.area.localeCompare(b.area, "he")
       );
-    return { matched: [...named, ...others], rest: [], rule: "towns" };
+    return { matched: [...named, ...others], rest: [], scoped: named, rule: "towns" };
   }
 
   // ---- rule 2: the label names a region ----
   const wanted = DIRECTIONS.filter((d) => haystack.includes(d.word));
-  if (wanted.length === 0) return { matched: all, rest: [], rule: "country" };
+  if (wanted.length === 0)
+    return { matched: all, rest: [], scoped: all, rule: "country" };
 
   // "דרום ומרכז" names two bands on one axis; a label naming both axes is
   // read as an intersection, which is what "צפון מזרח" means.
   const axes = [...new Set(wanted.map((d) => d.axis))];
   const located = all.filter((c) => c.lat != null && c.lng != null);
-  if (located.length === 0) return { matched: all, rest: [], rule: "country" };
+  if (located.length === 0)
+    return { matched: all, rest: [], scoped: all, rule: "country" };
 
   const inRegion = (choice: AreaChoice): boolean => {
     if (choice.lat == null || choice.lng == null) return true; // no evidence
@@ -284,9 +313,9 @@ export function areaChoicesForStretch(
   // anything - fall back to the plain country list rather than show an empty
   // screen or a pointless toggle.
   if (matched.length === 0 || rest.length === 0) {
-    return { matched: all, rest: [], rule: "country" };
+    return { matched: all, rest: [], scoped: all, rule: "country" };
   }
-  return { matched, rest, rule: "region" };
+  return { matched, rest, scoped: matched, rule: "region" };
 }
 
 /** One stop on the route: an area, and how many days it gets. */

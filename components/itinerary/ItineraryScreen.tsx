@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
 import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
@@ -20,14 +21,26 @@ import {
   subscribeItinerary,
   updateItem,
 } from "@/lib/data/itinerary";
-import { listBookings, subscribeBookings } from "@/lib/data/bookings";
+import {
+  listBookingFiles,
+  listBookings,
+  subscribeBookings,
+} from "@/lib/data/bookings";
 import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
-import { planFromOptions } from "@/lib/data/placeOptions";
+import {
+  buildLegOverviews,
+  initialOpenLeg,
+  type LegOverview,
+} from "@/lib/itineraryOverview";
+import type { OptionForAreas } from "@/lib/data/segments";
+import { todayISO } from "@/lib/format";
+import { listOptionAreas, planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type {
   Booking,
+  BookingFile,
   BudgetCategory,
   ItemStatus,
   ItineraryDay,
@@ -35,6 +48,10 @@ import type {
   Trip,
 } from "@/lib/types";
 import { DayCard } from "./DayCard";
+import { LegSection } from "./LegSection";
+import { TripSummary } from "./TripSummary";
+import { TripMap } from "./TripMap";
+import { LegLocationSheet } from "./LegLocationSheet";
 import { DayFormSheet } from "./DayFormSheet";
 import { DayPickerSheet } from "./DayPickerSheet";
 import { CalendarView } from "./CalendarView";
@@ -54,17 +71,27 @@ export function ItineraryScreen() {
   // One layer of tabs, never two: the old plan/bookings/search row above a
   // list/calendar row collapsed into a single three-way control. Search left
   // the row entirely and became a header action.
-  const [view, setView] = useState<"list" | "calendar" | "bookings">("list");
+  const [view, setView] = useState<"list" | "calendar" | "map" | "bookings">("list");
   const [searching, setSearching] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [items, setItems] = useState<ItineraryItem[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  // Attachments for the whole trip in one list; the bookings screen splits
+  // them per booking, and the form gets the ones for the row being edited.
+  const [bookingFiles, setBookingFiles] = useState<BookingFile[]>([]);
+  // Five columns of the options bank, for the per-leg "ideas waiting" count.
+  const [optionAreas, setOptionAreas] = useState<OptionForAreas[]>([]);
+  // Which legs are expanded. Seeded once the legs are known, to the leg the
+  // trip is in - see `initialOpenLeg`.
+  const [openLegs, setOpenLegs] = useState<Set<string> | null>(null);
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
+  const router = useRouter();
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const legRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const pendingScroll = useRef<string | null>(null);
 
   // open sheets
@@ -82,6 +109,8 @@ export function ItineraryScreen() {
   const [importingMail, setImportingMail] = useState(false);
   // The day that is currently pulling from the options bank.
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
+  // The leg whose location is being pinned from the map.
+  const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -91,13 +120,19 @@ export function ItineraryScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [nextDays, nextBookings] = await Promise.all([
+    const [nextDays, nextBookings, nextFiles, nextAreas] = await Promise.all([
       listDays(tripId),
       listBookings(tripId),
+      listBookingFiles(tripId),
+      // A failure here costs the idea counts and nothing else, so it must not
+      // take the whole plan down with it.
+      listOptionAreas(tripId).catch(() => [] as OptionForAreas[]),
     ]);
     const nextItems = await listItems(nextDays.map((d) => d.id));
     setDays(nextDays);
     setBookings(nextBookings);
+    setBookingFiles(nextFiles);
+    setOptionAreas(nextAreas);
     setItems(nextItems);
   }, []);
 
@@ -181,10 +216,170 @@ export function ItineraryScreen() {
     return buildBookingIndex(bookings, buildLinkedIndex(items, dayDateById));
   }, [bookings, items, days]);
 
+  // The trip as its legs. `today` is read once per render rather than inside
+  // the pure builder, which keeps that testable.
+  // One read per render, shared by the leg builder and the day rows, so a
+  // card cannot disagree with its leg about which day is today.
+  const today = todayISO();
+  const legs = useMemo(
+    () => buildLegOverviews(days, items, bookings, optionAreas, today),
+    [days, items, bookings, optionAreas, today]
+  );
+
+  // `openLegs` is null until the family touches a leg; until then the open set
+  // is derived, which is why this is not seeded from an effect. Seeding would
+  // also have to not re-run on every refetch, or a realtime update from the
+  // other phone would slam shut whatever was just opened.
+  const shownOpenLegs = useMemo(() => {
+    if (openLegs) return openLegs;
+    const first = initialOpenLeg(legs);
+    return new Set(first ? [first] : []);
+  }, [openLegs, legs]);
+
+  const toggleLeg = useCallback(
+    (key: string) => {
+      const next = new Set(shownOpenLegs);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      setOpenLegs(next);
+    },
+    [shownOpenLegs]
+  );
+
+  const openLeg = useCallback(
+    (key: string) => setOpenLegs(new Set(shownOpenLegs).add(key)),
+    [shownOpenLegs]
+  );
+
+  // A day is empty when it has no live activity and no booking - the same test
+  // buildLegOverviews counts with, so a leg's "3 of 38" and the rows beneath it
+  // can never disagree.
+  const busyDayIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of items) {
+      if (item.status !== "cancelled") ids.add(item.day_id);
+    }
+    return ids;
+  }, [items]);
+
+  const isDayEmpty = useCallback(
+    (day: ItineraryDay) =>
+      !busyDayIds.has(day.id) && (bookingsByDate.get(day.date) ?? []).length === 0,
+    [busyDayIds, bookingsByDate]
+  );
+
+  /** Opens the leg you are in (or the next one) and scrolls to it. */
+  const jumpToCurrentLeg = useCallback(() => {
+    const key = initialOpenLeg(legs);
+    if (!key) return;
+    openLeg(key);
+    // After the open, so the leg has its full height before we scroll to it.
+    requestAnimationFrame(() => {
+      legRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [legs, openLeg]);
+
+  /** Opens the options bank already cut to this leg. The cut travels in the
+   *  URL so the bank can be reached the same way from anywhere, and so going
+   *  back does not lose it. Country code, never the Hebrew name: the bank
+   *  spells Vietnam "ויטנאם" and Intl spells it "וייטנאם", and matching on
+   *  text would quietly find nothing. */
+  const openIdeasFor = useCallback(
+    (leg: LegOverview) => {
+      const params = new URLSearchParams();
+      if (leg.stretch.countryCode) params.set("cc", leg.stretch.countryCode);
+      // Only when the label actually named a place the bank knows; a region
+      // or country match has no single area to filter by.
+      if (leg.ideaScope === "area" && leg.stretch.locationName) {
+        params.set("leg", leg.stretch.locationName);
+      }
+      router.push(`/options?${params.toString()}`);
+    },
+    [router]
+  );
+
   const refreshNow = useCallback(() => {
     if (!trip) return;
     void refresh(trip.id).catch(() => showToast(strings.common.error));
   }, [trip, refresh, showToast]);
+
+  const handleReorder = useCallback(
+    (dayId: string, orderedIds: string[]) => {
+      const byId = new Map(items.map((i) => [i.id, i]));
+      const ordered = orderedIds
+        .map((id) => byId.get(id))
+        .filter((i): i is ItineraryItem => i !== undefined);
+
+      // optimistic: reorder locally, then persist
+      setItems((prev) => {
+        const reordered = ordered.map((item, index) => ({
+          ...item,
+          sort_order: index,
+        }));
+        return [
+          ...prev.filter((i) => i.day_id !== dayId),
+          ...reordered,
+        ].sort((a, b) => a.sort_order - b.sort_order);
+      });
+
+      // No refetch on success: the optimistic state above already matches what
+      // was written, so re-reading every day and booking would only add latency.
+      void reorderItems(ordered).catch(() => {
+        showToast(strings.common.error);
+        refreshNow();
+      });
+    },
+    [items, showToast, refreshNow]
+  );
+
+  /** One day, as the full card. Passed to each open leg rather than mapped
+   *  here, so a collapsed leg never builds one. */
+  const renderDayCard = useCallback(
+    (day: ItineraryDay) => (
+      <DayCard
+        day={day}
+        items={itemsOf(day.id)}
+        bookings={bookings}
+        dayBookings={bookingsByDate.get(day.date) ?? []}
+        onBookingClick={(booking) => setBookingForm({ booking })}
+        onEditDay={() => setDayForm({ day })}
+        onDeleteDay={async () => {
+          // Say what goes with it: deleting a day takes its activities too,
+          // and that is easy to not expect.
+          const count = itemsOf(day.id).length;
+          const question =
+            count > 0
+              ? strings.itinerary.deleteDayWithItemsConfirm.replace(
+                  "{n}",
+                  String(count)
+                )
+              : strings.itinerary.deleteDayConfirm;
+          if (!(await askConfirm(question))) return;
+          void run(() => deleteDay(day.id), strings.itinerary.dayDeleted);
+        }}
+        onAddItem={() => setItemForm({ dayId: day.id, item: null })}
+        onAddFromBank={() => setBankFor(day)}
+        onItemClick={(item) => setItemForm({ dayId: day.id, item })}
+        onMoveItem={setMovingItem}
+        onDeleteItem={async (item) => {
+          if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
+          void run(() => deleteItem(item.id), strings.itinerary.itemDeleted);
+        }}
+        onCycleStatus={(item) =>
+          void run(() =>
+            updateItem(item.id, { status: NEXT_STATUS[item.status] })
+          )
+        }
+        onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
+      />
+    ),
+    [itemsOf, bookings, bookingsByDate, run, handleReorder]
+  );
+
+  const editingBookingFiles = useMemo(() => {
+    const id = bookingForm?.booking?.id;
+    return id ? bookingFiles.filter((f) => f.booking_id === id) : [];
+  }, [bookingForm, bookingFiles]);
 
   // after the calendar jumps to a day, scroll its card into view
   useEffect(() => {
@@ -196,7 +391,9 @@ export function ItineraryScreen() {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       pendingScroll.current = null;
     }
-  }, [view, days]);
+    // The open set is a dependency because the target row does not exist until
+    // its leg is expanded; without it the jump silently does nothing.
+  }, [view, days, shownOpenLegs]);
 
   // tap a date in the calendar: open an existing day, or add that date
   const handleCalendarSelect = useCallback(
@@ -204,39 +401,17 @@ export function ItineraryScreen() {
       const existing = days.find((d) => d.date === date);
       if (existing) {
         pendingScroll.current = existing.id;
+        // The list is legs now, and the day is inside one of them. Scrolling
+        // to a row that is not rendered does nothing, so the leg opens first.
+        const leg = legs.find((l) => date >= l.stretch.from && date <= l.stretch.to);
+        if (leg) openLeg(leg.key);
         setView("list");
       } else {
         setDayForm({ day: null, date });
       }
     },
-    [days]
+    [days, legs, openLeg]
   );
-
-  function handleReorder(dayId: string, orderedIds: string[]) {
-    const byId = new Map(items.map((i) => [i.id, i]));
-    const ordered = orderedIds
-      .map((id) => byId.get(id))
-      .filter((i): i is ItineraryItem => i !== undefined);
-
-    // optimistic: reorder locally, then persist
-    setItems((prev) => {
-      const reordered = ordered.map((item, index) => ({
-        ...item,
-        sort_order: index,
-      }));
-      return [
-        ...prev.filter((i) => i.day_id !== dayId),
-        ...reordered,
-      ].sort((a, b) => a.sort_order - b.sort_order);
-    });
-
-    // No refetch on success: the optimistic state above already matches what
-    // was written, so re-reading every day and booking would only add latency.
-    void reorderItems(ordered).catch(() => {
-      showToast(strings.common.error);
-      refreshNow();
-    });
-  }
 
   if (loading) {
     return (
@@ -332,6 +507,7 @@ export function ItineraryScreen() {
             options={[
               { value: "list", label: strings.itinerary.viewList },
               { value: "calendar", label: strings.itinerary.viewCalendar },
+              { value: "map", label: strings.itinerary.viewMap },
               { value: "bookings", label: strings.itinerary.tabBookings },
             ]}
           />
@@ -344,10 +520,29 @@ export function ItineraryScreen() {
                 bookings={bookings}
                 onSelectDate={handleCalendarSelect}
               />
+            ) : view === "map" ? (
+              <TripMap
+                legs={legs}
+                options={optionAreas}
+                onOpenLeg={(key) => {
+                  openLeg(key);
+                  setView("list");
+                  // The leg's row has to exist before it can be scrolled to,
+                  // so this waits for the list to render.
+                  requestAnimationFrame(() => {
+                    legRefs.current[key]?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  });
+                }}
+                onSetLocation={setLocatingLeg}
+              />
             ) : view === "bookings" ? (
               <BookingsList
                 bookings={bookings}
                 days={days}
+                files={bookingFiles}
                 onAdd={() => setBookingForm({ booking: null })}
                 onImportMail={() => setImportingMail(true)}
                 onEdit={(booking) => setBookingForm({ booking })}
@@ -363,63 +558,32 @@ export function ItineraryScreen() {
                 )}
 
                 <div className="space-y-3">
-                  {days.map((day) => (
+                  {legs.length > 0 && (
+                    <TripSummary legs={legs} onJump={jumpToCurrentLeg} />
+                  )}
+
+                  {legs.map((leg) => (
                     <div
-                      key={day.id}
+                      key={leg.key}
                       ref={(el) => {
-                        dayRefs.current[day.id] = el;
+                        legRefs.current[leg.key] = el;
                       }}
                       className="scroll-mt-4"
                     >
-                      <DayCard
-                        day={day}
-                        items={itemsOf(day.id)}
-                        bookings={bookings}
-                        dayBookings={bookingsByDate.get(day.date) ?? []}
-                        onBookingClick={(booking) => setBookingForm({ booking })}
-                        onEditDay={() => setDayForm({ day })}
-                        onDeleteDay={async () => {
-                          // Say what goes with it: deleting a day takes its
-                          // activities too, and that is easy to not expect.
-                          const count = itemsOf(day.id).length;
-                          const question =
-                            count > 0
-                              ? strings.itinerary.deleteDayWithItemsConfirm.replace(
-                                  "{n}",
-                                  String(count)
-                                )
-                              : strings.itinerary.deleteDayConfirm;
-                          if (!(await askConfirm(question))) return;
-                          void run(
-                            () => deleteDay(day.id),
-                            strings.itinerary.dayDeleted
-                          );
-                        }}
-                        onAddItem={() =>
+                      <LegSection
+                        leg={leg}
+                        open={shownOpenLegs.has(leg.key)}
+                        onToggle={() => toggleLeg(leg.key)}
+                        onOpenIdeas={() => openIdeasFor(leg)}
+                        onAddToDay={(day) =>
                           setItemForm({ dayId: day.id, item: null })
                         }
-                        onAddFromBank={() => setBankFor(day)}
-                        onItemClick={(item) =>
-                          setItemForm({ dayId: day.id, item })
-                        }
-                        onMoveItem={setMovingItem}
-                        onDeleteItem={async (item) => {
-                          if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
-                          void run(
-                            () => deleteItem(item.id),
-                            strings.itinerary.itemDeleted
-                          );
+                        isDayEmpty={isDayEmpty}
+                        registerDayRef={(dayId, el) => {
+                          dayRefs.current[dayId] = el;
                         }}
-                        onCycleStatus={(item) =>
-                          void run(() =>
-                            updateItem(item.id, {
-                              status: NEXT_STATUS[item.status],
-                            })
-                          )
-                        }
-                        onReorder={(orderedIds) =>
-                          handleReorder(day.id, orderedIds)
-                        }
+                        todayISO={today}
+                        renderDay={renderDayCard}
                       />
                     </div>
                   ))}
@@ -515,6 +679,7 @@ export function ItineraryScreen() {
           open={bookingForm !== null}
           tripId={trip.id}
           booking={bookingForm?.booking ?? null}
+          files={editingBookingFiles}
           onClose={() => setBookingForm(null)}
           onSaved={(saved, isNew) => {
             setBookingForm(null);
@@ -527,11 +692,24 @@ export function ItineraryScreen() {
             showToast(
               message === "booking_linked"
                 ? strings.bookings.deleteLinked
-                : strings.common.error
+                : message === "booking_files_partial"
+                  ? strings.bookings.filesPartial
+                  : strings.common.error
             )
           }
         />
       )}
+
+      <LegLocationSheet
+        leg={locatingLeg}
+        onClose={() => setLocatingLeg(null)}
+        onSaved={() => {
+          setLocatingLeg(null);
+          refreshNow();
+          showToast(strings.itinerary.mapSaved);
+        }}
+        onError={() => showToast(strings.common.error)}
+      />
 
       <ExpensePromptSheet
         open={expenseFor !== null}

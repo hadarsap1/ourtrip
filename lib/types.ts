@@ -5,6 +5,8 @@ export type Member = Tables<"members">;
 export type ItineraryDay = Tables<"itinerary_days">;
 export type ItineraryItem = Tables<"itinerary_items">;
 export type Booking = Tables<"bookings">;
+/** One attachment on a booking. A booking has any number of them (00037). */
+export type BookingFile = Tables<"booking_files">;
 export type BudgetCategory = Tables<"budget_categories">;
 export type Expense = Tables<"expenses">;
 export type Document = Tables<"documents">;
@@ -15,8 +17,6 @@ export type PhrasebookEntry = Tables<"phrasebook_entries">;
 export type DestinationFact = Tables<"destination_facts">;
 export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
-export type SavedRecommendation = Tables<"saved_recommendations">;
-export type SavedLink = Tables<"saved_links">;
 export type PlaceOption = Tables<"place_options">;
 export type VisaRequirement = Tables<"visa_requirements">;
 

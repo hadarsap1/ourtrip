@@ -1457,3 +1457,68 @@ rollback;
 No guest member exists on this trip yet, so the guest case was covered by the
 anonymous probe plus the absence of any guest policy on the table, not by a live
 guest session. X Worth re-running once the first guest is invited.
+
+---
+
+## Multiple attachments per booking (`booking_files`, migration 00037)
+
+`bookings.file_path` held one path; a flight is a confirmation plus boarding
+passes, so attachments moved to their own table. The table has no `trip_id`,
+so `booking_files_owner_all` joins through the parent booking - the same shape
+as `itinerary_items` -> `itinerary_days`. Kids and guests have no policy on
+`bookings` at all, so the join yields them nothing.
+
+Storage needed no new policy: the four owner-only policies on `storage.objects`
+for the `booking-files` bucket (00003) are bucket-wide, not per-path.
+
+Probed live on the project, inside a `do` block that raised at the end so every
+statement rolled back:
+
+```sql
+set local role anon;
+select count(*) from booking_files;                -- 0
+reset role;
+set local role authenticated;                      -- a uuid that is no member
+select count(*) from booking_files;                -- 0
+```
+
+| Check | Result |
+|---|---|
+| RLS enabled on `booking_files` | ✅ PASS - `relrowsecurity = t` |
+| Exactly one policy, owner-only | ✅ PASS - `booking_files_owner_all` |
+| Table is not empty (positive control) | ✅ PASS - `1` row after backfill |
+| Anonymous session reads no row | ✅ PASS - `0` rows visible |
+| Authenticated non-member reads no row | ✅ PASS - `0` rows visible |
+| Backfill recovered the pre-existing attachment | ✅ PASS - name restored from the timestamped path |
+| `bookings.file_path` follows the first file on insert and on delete | ✅ PASS - probed both, rolled back |
+
+The trigger function `booking_files_sync_parent` is **not** `SECURITY DEFINER`:
+the only role that reaches it has already passed `booking_files_owner_all`, and
+it holds UPDATE on the booking through `bookings_owner_all`. Execute is revoked
+from `public, anon, authenticated` per 00002's rule for trigger functions.
+
+X No kid or guest member exists to probe with directly, so those cases rest on
+the anonymous probe plus the absence of any kid/guest policy on `bookings`.
+Worth re-running once a guest is invited.
+
+---
+
+## Trip map + pinning a leg (itinerary "מפה" view)
+
+No new table, no new policy, no migration. The map is derived at read time
+from rows the owner can already see (`itinerary_days`, `bookings`,
+`place_options`), and the one write it adds - pinning a leg - is an UPDATE of
+`lat`/`lng` on `itinerary_days`, covered by the pre-existing
+`itinerary_days_owner_all` (00001: `for all using (is_owner_of(trip_id))`).
+
+| Check | Result |
+|---|---|
+| Map reads nothing outside the owner's trip | ✅ PASS - every query is `.eq("trip_id", trip.id)` under owner-only policies |
+| Pinning a leg writes only `lat`/`lng`, only on days of that leg | ✅ PASS - `setDaysLocation` sends those two columns with `.in("id", dayIds)` |
+| A kid or guest cannot reach the view or the write | ✅ PASS - neither role has any policy on `itinerary_days`; the itinerary screens are owner-only |
+
+X The idea counts and map points read `place_options`, which is owner-only
+(`place_options_owner_all`, 00020). Kids and guests therefore see no ideas and
+no pins - worth re-checking if a guest-facing map is ever added, because the
+bank is planning content and must not leak through it.
+

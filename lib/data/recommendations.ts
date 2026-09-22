@@ -10,8 +10,9 @@ function requireClient() {
 }
 
 // A recommendation as returned by the `recommend` Edge Function (ephemeral,
-// not yet persisted). Shares fields with saved_recommendations so a saved row
-// and a fresh suggestion render through the same card.
+// not yet persisted). Shares fields with place_options so a saved row and a
+// fresh suggestion render through the same card. (It used to name
+// saved_recommendations, a table 00021 dropped.)
 export type Recommendation = {
   title: string;
   category: string | null;

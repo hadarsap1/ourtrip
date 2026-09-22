@@ -26,6 +26,7 @@ import { formatDate, formatMoney, formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import type {
   Booking,
+  BookingFile,
   BookingStatus,
   BookingType,
   ItineraryDay,
@@ -39,6 +40,10 @@ const TYPE_ICON: Record<BookingType, ComponentType<IconProps>> = {
   car_rental: CarIcon,
   other: PinIcon,
 };
+
+/** Stable empty array: a fresh `[]` per render would change the prop identity
+ *  of every card that has no attachments. */
+const EMPTY_FILES: BookingFile[] = [];
 
 const STATUS_CLASS: Record<BookingStatus, string> = {
   booked: "bg-paper-deep text-ink-soft",
@@ -67,6 +72,7 @@ function addressOf(booking: Booking): string | null {
 export function BookingsList({
   bookings,
   days,
+  files,
   onAdd,
   onImportMail,
   onEdit,
@@ -76,6 +82,9 @@ export function BookingsList({
   bookings: Booking[];
   /** The trip's days, which is what turns a booking's dates into a place. */
   days: ItineraryDay[];
+  /** Every attachment on the trip, loaded once and split per booking here
+   *  rather than fetched per card. */
+  files: BookingFile[];
   onAdd: () => void;
   onImportMail: () => void;
   onEdit: (booking: Booking) => void;
@@ -86,6 +95,16 @@ export function BookingsList({
     () => groupBookingsByLeg(bookings, days),
     [bookings, days]
   );
+
+  const filesByBooking = useMemo(() => {
+    const map = new Map<string, BookingFile[]>();
+    for (const file of files) {
+      const list = map.get(file.booking_id);
+      if (list) list.push(file);
+      else map.set(file.booking_id, [file]);
+    }
+    return map;
+  }, [files]);
 
   return (
     <div className="space-y-4 pb-8">
@@ -99,6 +118,7 @@ export function BookingsList({
         <LegSection
           key={group.key}
           group={group}
+          filesByBooking={filesByBooking}
           onEdit={onEdit}
           onAddToDay={onAddToDay}
           onError={onError}
@@ -143,11 +163,13 @@ export function BookingsList({
  */
 function LegSection({
   group,
+  filesByBooking,
   onEdit,
   onAddToDay,
   onError,
 }: {
   group: BookingGroup;
+  filesByBooking: Map<string, BookingFile[]>;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
   onError: () => void;
@@ -190,6 +212,7 @@ function LegSection({
           <BookingCard
             key={placement.booking.id}
             placement={placement}
+            files={filesByBooking.get(placement.booking.id) ?? EMPTY_FILES}
             onEdit={() => onEdit(placement.booking)}
             onAddToDay={() => onAddToDay(placement.booking)}
             onError={onError}
@@ -202,17 +225,21 @@ function LegSection({
 
 function BookingCard({
   placement,
+  files,
   onEdit,
   onAddToDay,
   onError,
 }: {
   placement: BookingPlacement;
+  files: BookingFile[];
   onEdit: () => void;
   onAddToDay: () => void;
   onError: () => void;
 }) {
   const { booking } = placement;
-  const [opening, setOpening] = useState(false);
+  // One file opens straight from the row. Several would turn the action row
+  // into a wall of chips at 390px, so they fold into a count that expands.
+  const [showFiles, setShowFiles] = useState(false);
   const TypeIcon = TYPE_ICON[booking.type];
   // Bookings now project onto the days they cover. The two cases that cannot
   // be projected say so here, on the card, rather than leaving someone to
@@ -233,19 +260,6 @@ function BookingCard({
   const where = crossing
     ? placement.stretches.map(legLabel).join(" ← ")
     : address;
-
-  async function openFile() {
-    if (!booking.file_path || opening) return;
-    setOpening(true);
-    try {
-      const url = await getBookingFileUrl(booking.file_path);
-      window.open(url, "_blank", "noopener");
-    } catch {
-      onError();
-    } finally {
-      setOpening(false);
-    }
-  }
 
   return (
     <section className="rounded-[18px] border border-line bg-white p-3">
@@ -312,15 +326,20 @@ function BookingCard({
       )}
 
       <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2 text-xs font-semibold">
-        {booking.file_path && (
+        {files.length === 1 && (
+          <OpenFileButton file={files[0]} icon onError={onError}>
+            {strings.bookings.openFile}
+          </OpenFileButton>
+        )}
+        {files.length > 1 && (
           <button
             type="button"
-            onClick={() => void openFile()}
-            disabled={opening}
-            className="flex items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line disabled:opacity-50"
+            onClick={() => setShowFiles((v) => !v)}
+            aria-expanded={showFiles}
+            className="flex items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-ink hover:bg-line"
           >
             <FileIcon className="h-3.5 w-3.5" />
-            {strings.bookings.openFile}
+            {strings.bookings.filesCount.replace("{n}", String(files.length))}
           </button>
         )}
         {booking.link_url && (
@@ -343,6 +362,71 @@ function BookingCard({
           {strings.bookings.addToDay}
         </button>
       </div>
+
+      {showFiles && files.length > 1 && (
+        <ul className="mt-2 space-y-1.5">
+          {files.map((file) => (
+            <li
+              key={file.id}
+              className="flex items-center gap-2 rounded-lg bg-paper px-2 py-1.5"
+            >
+              <FileIcon
+                className="h-3.5 w-3.5 shrink-0 text-ink-soft"
+                strokeWidth={1.7}
+              />
+              <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                {file.file_name}
+              </span>
+              <OpenFileButton file={file} onError={onError}>
+                {strings.common.open}
+              </OpenFileButton>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
+  );
+}
+
+/** Opens one attachment through a short-lived signed URL. The URL is minted on
+ *  the tap, not with the list: it expires in five minutes, and a card that has
+ *  been on screen longer than that would hand out a dead link. */
+function OpenFileButton({
+  file,
+  icon = false,
+  onError,
+  children,
+}: {
+  file: BookingFile;
+  /** Off inside the expanded list, whose rows already carry a file icon. */
+  icon?: boolean;
+  onError: () => void;
+  children: React.ReactNode;
+}) {
+  const [opening, setOpening] = useState(false);
+
+  async function open() {
+    if (opening) return;
+    setOpening(true);
+    try {
+      const url = await getBookingFileUrl(file.file_path);
+      window.open(url, "_blank", "noopener");
+    } catch {
+      onError();
+    } finally {
+      setOpening(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void open()}
+      disabled={opening}
+      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-line disabled:opacity-50"
+    >
+      {icon && <FileIcon className="h-3.5 w-3.5" />}
+      {children}
+    </button>
   );
 }

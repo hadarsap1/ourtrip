@@ -97,6 +97,29 @@ export async function updateDay(
 }
 
 /** Deletes a day together with its items (FK restricts otherwise). */
+/**
+ * Puts one coordinate on every day of a leg.
+ *
+ * The map draws a leg from its days, and so does the per-day forecast:
+ * WeatherLine needs a lat/lng and 228 of this trip's days have none, which is
+ * why most day cards show no weather at all. Pinning a leg fixes both at once.
+ *
+ * One request for the whole leg rather than one per day - a 38-day leg would
+ * otherwise be 38 round trips from a phone.
+ */
+export async function setDaysLocation(
+  dayIds: string[],
+  lat: number,
+  lng: number
+): Promise<void> {
+  if (dayIds.length === 0) return;
+  const { error } = await requireClient()
+    .from("itinerary_days")
+    .update({ lat, lng })
+    .in("id", dayIds);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteDay(id: string): Promise<void> {
   const supabase = requireClient();
   const { error: itemsError } = await supabase

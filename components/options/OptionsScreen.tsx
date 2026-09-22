@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ExtractSheet } from "@/components/options/ExtractSheet";
 import { OptionsMap } from "@/components/options/OptionsMap";
 import { OptionFormSheet } from "@/components/options/OptionFormSheet";
@@ -104,6 +105,10 @@ function group(options: PlaceOption[], ungrouped: string): Grouped {
 export function OptionsScreen() {
   const s = strings.options;
   const { member, memberLoading } = useMember();
+  // The itinerary links here per leg ("204 ideas for Thailand"). The cut rides
+  // in the URL so the bank opens already narrowed, and so the back button and
+  // a shared link both keep it.
+  const searchParams = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [options, setOptions] = useState<PlaceOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,6 +138,43 @@ export function OptionsScreen() {
     setOptions(await listPlaceOptions(tripId));
   }, []);
 
+  /**
+   * Turns `?cc=TH&leg=קיוטו` into the screen's own filters, once, at load.
+   *
+   * The country arrives as a CODE, never as a name: the bank spells Vietnam
+   * "ויטנאם" while Intl.DisplayNames - what the rest of the app renders a code
+   * as - spells it "וייטנאם", so a name handed across that gap matches nothing.
+   * The code is looked up against the loaded rows to find the spelling this
+   * bank actually uses, which is what the country filter compares.
+   *
+   * The leg label only becomes an area filter when it IS one of the bank's
+   * areas. A leg called "קנאזאווה וטאקאיאמה" names two towns and matches no
+   * single area, and filtering on it would show an empty bank - strictly worse
+   * than showing the whole country.
+   */
+  const applyUrlCut = useCallback(
+    (loaded: PlaceOption[]) => {
+      const cc = searchParams.get("cc");
+      const leg = searchParams.get("leg");
+      if (!cc && !leg) return;
+
+      if (cc) {
+        const name = loaded.find(
+          (o) => o.country_code === cc && (o.country ?? "").trim() !== ""
+        )?.country;
+        if (name) setCountryFilter(name.trim());
+      }
+      if (leg) {
+        const match = loaded.find(
+          (o) =>
+            (o.area ?? "").trim().toLowerCase() === leg.trim().toLowerCase()
+        )?.area;
+        if (match) setAreaFilter(match.trim());
+      }
+    },
+    [searchParams]
+  );
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -142,7 +184,10 @@ export function OptionsScreen() {
         return;
       }
       setTrip(t);
-      await refresh(t.id);
+      const loaded = await listPlaceOptions(t.id);
+      if (cancelled) return;
+      setOptions(loaded);
+      applyUrlCut(loaded);
       // Best-effort: the tally is a nicety, so a failure here must not stop
       // the bank from rendering.
       void listDays(t.id)
@@ -155,7 +200,7 @@ export function OptionsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [refresh]);
+  }, [refresh, applyUrlCut]);
 
   useEffect(
     () => () => {

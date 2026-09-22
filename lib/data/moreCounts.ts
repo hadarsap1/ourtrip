@@ -78,11 +78,18 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     guests,
     countryCode,
   ] = await Promise.all([
+    // The AI maybe-list moved into place_options in 00020, and 00021 dropped
+    // saved_recommendations. This kept querying the dropped table, and because
+    // simpleCount swallows the error the tile read 0 rather than breaking -
+    // which is why it went unnoticed. `source = 'ai'` is the same filter
+    // listSavedRecommendations uses, so the tile now matches the screen it
+    // links to.
     simpleCount(
       supabase
-        .from("saved_recommendations")
+        .from("place_options")
         .select("*", { count: "exact", head: true })
         .eq("trip_id", trip.id)
+        .eq("source", "ai")
     ),
     simpleCount(
       supabase

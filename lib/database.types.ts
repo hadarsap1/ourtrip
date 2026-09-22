@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_files: {
+        Row: {
+          booking_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          sort_order: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          sort_order?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_files_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           confirmation_code: string | null
@@ -198,6 +239,60 @@ export type Database = {
           },
         ]
       }
+      destination_facts: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          emoji: string | null
+          fact: string
+          id: string
+          location_name: string
+          sort_order: number
+          source: string
+          trip_id: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          fact: string
+          id?: string
+          location_name: string
+          sort_order?: number
+          source?: string
+          trip_id: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          fact?: string
+          id?: string
+          location_name?: string
+          sort_order?: number
+          source?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "destination_facts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "destination_facts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_passkeys: {
         Row: {
           created_at: string
@@ -336,60 +431,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "documents_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      destination_facts: {
-        Row: {
-          country_code: string
-          created_at: string
-          created_by: string | null
-          emoji: string | null
-          fact: string
-          id: string
-          location_name: string
-          sort_order: number
-          source: string
-          trip_id: string
-        }
-        Insert: {
-          country_code: string
-          created_at?: string
-          created_by?: string | null
-          emoji?: string | null
-          fact: string
-          id?: string
-          location_name: string
-          sort_order?: number
-          source?: string
-          trip_id: string
-        }
-        Update: {
-          country_code?: string
-          created_at?: string
-          created_by?: string | null
-          emoji?: string | null
-          fact?: string
-          id?: string
-          location_name?: string
-          sort_order?: number
-          source?: string
-          trip_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "destination_facts_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "destination_facts_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
@@ -1186,14 +1227,14 @@ export type Database = {
       }
       place_options: {
         Row: {
-          area_original: string | null
-          country_original: string | null
           area: string | null
+          area_original: string | null
           booking_id: string | null
           booking_url: string | null
           category: string | null
           country: string | null
           country_code: string | null
+          country_original: string | null
           created_at: string
           created_by: string | null
           geocode_attempts: number
@@ -1213,14 +1254,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          area_original?: string | null
-          country_original?: string | null
           area?: string | null
+          area_original?: string | null
           booking_id?: string | null
           booking_url?: string | null
           category?: string | null
           country?: string | null
           country_code?: string | null
+          country_original?: string | null
           created_at?: string
           created_by?: string | null
           geocode_attempts?: number
@@ -1240,14 +1281,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          area_original?: string | null
-          country_original?: string | null
           area?: string | null
+          area_original?: string | null
           booking_id?: string | null
           booking_url?: string | null
           category?: string | null
           country?: string | null
           country_code?: string | null
+          country_original?: string | null
           created_at?: string
           created_by?: string | null
           geocode_attempts?: number
@@ -1477,126 +1518,6 @@ export type Database = {
           },
         ]
       }
-      saved_links: {
-        Row: {
-          area: string | null
-          country: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          note: string | null
-          title: string
-          trip_id: string
-          updated_at: string
-          url: string
-        }
-        Insert: {
-          area?: string | null
-          country?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          note?: string | null
-          title: string
-          trip_id: string
-          updated_at?: string
-          url: string
-        }
-        Update: {
-          area?: string | null
-          country?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          note?: string | null
-          title?: string
-          trip_id?: string
-          updated_at?: string
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saved_links_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saved_links_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      saved_recommendations: {
-        Row: {
-          category: string | null
-          country_code: string | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          lat: number | null
-          lng: number | null
-          location_name: string | null
-          maps_url: string | null
-          place_id: string | null
-          title: string
-          trip_id: string
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          country_code?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          lat?: number | null
-          lng?: number | null
-          location_name?: string | null
-          maps_url?: string | null
-          place_id?: string | null
-          title: string
-          trip_id: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          country_code?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          lat?: number | null
-          lng?: number | null
-          location_name?: string | null
-          maps_url?: string | null
-          place_id?: string | null
-          title?: string
-          trip_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saved_recommendations_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saved_recommendations_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       trips: {
         Row: {
           base_currency: string
@@ -1715,6 +1636,10 @@ export type Database = {
         Returns: boolean
       }
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
+      document_shared_with_current_kid: {
+        Args: { p_path: string }
+        Returns: boolean
+      }
       functions_base_url: { Args: never; Returns: string }
       is_active_guest_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_kid_of: { Args: { p_trip_id: string }; Returns: boolean }
@@ -1752,12 +1677,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1781,11 +1706,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1806,11 +1731,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1831,11 +1756,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1848,11 +1773,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

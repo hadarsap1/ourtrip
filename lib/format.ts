@@ -19,6 +19,14 @@ export function formatWeekday(isoDate: string): string {
   });
 }
 
+/** Single-letter Hebrew weekday ("ו׳", "ש׳") for dense day rows, where the
+ *  long form would be wider than everything else on the line. */
+export function formatWeekdayNarrow(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00`).toLocaleDateString("he-IL", {
+    weekday: "narrow",
+  });
+}
+
 /** "14:30:00" or "14:30" → "14:30" */
 export function formatTime(time: string): string {
   return time.slice(0, 5);

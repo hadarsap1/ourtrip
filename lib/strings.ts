@@ -713,6 +713,7 @@ export const strings = {
     delete: "מחיקה",
     edit: "עריכה",
     close: "סגירה",
+    open: "פתיחה",
     loading: "טוען…",
     error: "משהו השתבש, נסו שוב",
     none: "ללא",
@@ -760,6 +761,65 @@ export const strings = {
   },
 
   itinerary: {
+    // ---- the plan as its legs ----
+    // The list used to be 230 day cards in a row, 228 of them empty. It is
+    // now one collapsed row per leg of the trip, which is the unit the trip
+    // is actually planned in.
+    legDays: "‏{n} ימים",
+    legDaysOne: "יום אחד",
+    legPlanned: "‏{done} מתוך {total} ימים מתוכננים",
+    legPlannedNone: "עוד לא תוכנן כלום",
+    legPlannedAll: "כל הימים מתוכננים",
+    legBookings: "‏{n} הזמנות",
+    legBookingsOne: "הזמנה אחת",
+    legNoStay: "אין לינה",
+    // The bank's count for this leg. Two wordings on purpose: when the leg's
+    // label matched no town the bank knows, the only honest number is the
+    // whole country's, and the chip has to say which one it is showing.
+    legIdeas: "‏{n} רעיונות בבנק",
+    legIdeasCountry: "‏{n} רעיונות ל{country}",
+    legIdeasOpen: "פתיחת הבנק",
+    legHere: "כאן עכשיו",
+    legDone: "הסתיים",
+    legExpand: "פתיחת המקטע",
+    legCollapse: "סגירת המקטע",
+    legOpenDays: "הימים במקטע",
+    // The jump control above the list.
+    jumpToday: "קפיצה להיום",
+    jumpNext: "קפיצה למקטע הקרוב",
+    // A day with nothing on it is a thin row, not a card.
+    emptyDayAdd: "הוספת פעילות ליום הזה",
+    // Whole-trip line at the top of the list.
+    tripSpan: "‏{days} ימים · {legs} מקטעים · {countries} מדינות",
+    tripPlanned: "‏{done} ימים מתוכננים",
+    // ---- the trip seen from above ----
+    viewMap: "מפה",
+    mapTitle: "צורת הטיול",
+    mapUnavailable: "המפה לא זמינה כרגע",
+    // Shown with the message above. Without the Maps key there is no map and
+    // no place search, so the screen has to say that rather than leave a
+    // search box that never finds anything and a save button that never
+    // enables.
+    mapUnavailableHint: "המקטעים עדיין כאן, אבל בלי מפה אי אפשר להציב אותם.",
+    mapSearchUnavailable: "חיפוש המקומות לא זמין כרגע, אז אי אפשר להציב את המקטע.",
+    mapEmpty: "אין עדיין מספיק מידע כדי לצייר את המסלול על מפה",
+    mapLegend: "מקטעים ממוקמים",
+    // A leg the map can place, versus one it can only guess at. The second
+    // never gets a pin - a pin in the middle of יפן that says "האקונה" is a
+    // map that looks right and is not.
+    mapPlacedCount: "‏{placed} מתוך {total} מקטעים על המפה",
+    mapGapHint: "הקו מקווקו במקום שבו יש מקטע בלי מיקום",
+    mapMissingTitle: "מקטעים בלי מיקום",
+    mapMissingHint: "אלה לא מופיעים על המפה. בחירת עיר תציב אותם, ותדליק גם את מזג האוויר לימים שלהם.",
+    mapSetLocation: "בחירת מיקום",
+    mapSetTitle: "מיקום המקטע",
+    mapSetHint: "עיר או אזור - זה מה שיוצב על המפה עבור כל ימי המקטע.",
+    mapSetSearch: "חיפוש עיר",
+    mapSaved: "המיקום נשמר",
+    mapApprox: "מיקום משוער",
+    // The info window on a pin.
+    mapPinNights: "‏{n} לילות",
+    mapPinOpen: "מעבר למקטע",
     tabPlan: "מסלול",
     tabBookings: "הזמנות",
     tabSearch: "חיפוש",
@@ -837,6 +897,9 @@ export const strings = {
     endDate: "תאריך סיום",
     confirmationCode: "קוד אישור",
     cost: "עלות",
+    // The field inside the "עלות" group; repeating the heading on the box
+    // itself just said the same word twice.
+    amount: "סכום",
     currency: "מטבע",
     status: "סטטוס",
     statuses: {
@@ -852,11 +915,26 @@ export const strings = {
     checkIn: "שעת צ׳ק-אין",
     checkOut: "שעת צ׳ק-אאוט",
     address: "כתובת",
-    attachFile: "צירוף קובץ",
-    replaceFile: "החלפת קובץ",
+    // Attachments. A booking carries any number of them (migration 00037):
+    // a flight is a confirmation plus boarding passes, a car rental is the
+    // voucher plus the insurance page.
+    files: "קבצים מצורפים",
+    attachFiles: "הוספת קבצים",
+    attachHint: "‏PDF או תמונה, עד 20MB לקובץ",
+    filesNone: "עוד לא צורפו קבצים",
+    filesCount: "‏{n} קבצים",
+    filesCountOne: "קובץ אחד",
+    filePending: "ממתין להעלאה",
+    fileRemove: "הסרת הקובץ",
+    fileRemoveConfirm: "להסיר את הקובץ מההזמנה?",
+    fileTooBig: "הקובץ גדול מ-20MB",
+    fileBadType: "אפשר לצרף רק PDF או תמונה",
+    fileDuplicate: "הקובץ כבר ברשימה",
     openFile: "פתיחת קובץ",
-    uploading: "מעלה קובץ…",
-    fileAttached: "הקובץ צורף",
+    uploading: "מעלה קובץ {n} מתוך {total}…",
+    // A save that wrote the booking but not every file. Saying so beats a bare
+    // error, which would read as if nothing at all had been saved.
+    filesPartial: "ההזמנה נשמרה, אבל חלק מהקבצים לא הועלו",
     empty: "עוד אין הזמנות",
     deleteConfirm: "למחוק את ההזמנה?",
     deleteLinked: "אי אפשר למחוק - ההזמנה מקושרת לפעילות או להוצאה",
@@ -892,6 +970,19 @@ export const strings = {
     outsidePlan: "התאריכים לא נופלים על אף יום במסלול",
     whereAria: "היעד במסלול",
     cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
+    // Section headings in the add/edit sheet. Twelve fields in one column read
+    // as a wall; four short groups read as a form.
+    sectionWhat: "מה הזמנו",
+    sectionWhen: "מתי",
+    sectionDetails: "פרטי ההזמנה",
+    sectionMoney: "עלות",
+    sectionFiles: "קבצים וקישור",
+    required: "שדה חובה",
+    nights: "‏{n} לילות",
+    nightsOne: "לילה אחד",
+    days: "‏{n} ימים",
+    daysOne: "יום אחד",
+    deleteBooking: "מחיקת ההזמנה",
   },
 
   // Pulling booking confirmations out of Gmail. The mailbox is the only channel
