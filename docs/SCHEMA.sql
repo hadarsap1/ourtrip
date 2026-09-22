@@ -105,7 +105,10 @@ create table bookings (
   cost numeric(12,2),
   currency text,
   status booking_status not null default 'booked',
-  file_path text, -- Supabase Storage path
+  -- The FIRST attachment's storage path, maintained by a trigger on
+  -- booking_files (migration 00037). Kept so the weekly backup, which dumps
+  -- this table, still carries the link; nothing in the app writes it.
+  file_path text,
   link_url text,
   details jsonb not null default '{}',
   notes text,
@@ -115,6 +118,21 @@ create table bookings (
 alter table itinerary_items
   add constraint itinerary_items_booking_fk
   foreign key (booking_id) references bookings(id);
+
+-- Attachments on a booking: any number of them (migration 00037). A flight is
+-- a confirmation plus boarding passes; one path on `bookings` could not hold
+-- that. Rows carry the name as picked, which the sanitised storage path loses.
+-- No trip_id of its own - RLS joins through the parent booking.
+create table booking_files (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null references bookings(id) on delete cascade,
+  file_path text not null unique, -- path in the 'booking-files' bucket
+  file_name text not null,
+  mime_type text,
+  size_bytes bigint,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
 
 create table budget_categories (
   id uuid primary key default gen_random_uuid(),

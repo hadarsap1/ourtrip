@@ -713,6 +713,7 @@ export const strings = {
     delete: "מחיקה",
     edit: "עריכה",
     close: "סגירה",
+    open: "פתיחה",
     loading: "טוען…",
     error: "משהו השתבש, נסו שוב",
     none: "ללא",
@@ -837,6 +838,9 @@ export const strings = {
     endDate: "תאריך סיום",
     confirmationCode: "קוד אישור",
     cost: "עלות",
+    // The field inside the "עלות" group; repeating the heading on the box
+    // itself just said the same word twice.
+    amount: "סכום",
     currency: "מטבע",
     status: "סטטוס",
     statuses: {
@@ -852,11 +856,26 @@ export const strings = {
     checkIn: "שעת צ׳ק-אין",
     checkOut: "שעת צ׳ק-אאוט",
     address: "כתובת",
-    attachFile: "צירוף קובץ",
-    replaceFile: "החלפת קובץ",
+    // Attachments. A booking carries any number of them (migration 00037):
+    // a flight is a confirmation plus boarding passes, a car rental is the
+    // voucher plus the insurance page.
+    files: "קבצים מצורפים",
+    attachFiles: "הוספת קבצים",
+    attachHint: "‏PDF או תמונה, עד 20MB לקובץ",
+    filesNone: "עוד לא צורפו קבצים",
+    filesCount: "‏{n} קבצים",
+    filesCountOne: "קובץ אחד",
+    filePending: "ממתין להעלאה",
+    fileRemove: "הסרת הקובץ",
+    fileRemoveConfirm: "להסיר את הקובץ מההזמנה?",
+    fileTooBig: "הקובץ גדול מ-20MB",
+    fileBadType: "אפשר לצרף רק PDF או תמונה",
+    fileDuplicate: "הקובץ כבר ברשימה",
     openFile: "פתיחת קובץ",
-    uploading: "מעלה קובץ…",
-    fileAttached: "הקובץ צורף",
+    uploading: "מעלה קובץ {n} מתוך {total}…",
+    // A save that wrote the booking but not every file. Saying so beats a bare
+    // error, which would read as if nothing at all had been saved.
+    filesPartial: "ההזמנה נשמרה, אבל חלק מהקבצים לא הועלו",
     empty: "עוד אין הזמנות",
     deleteConfirm: "למחוק את ההזמנה?",
     deleteLinked: "אי אפשר למחוק - ההזמנה מקושרת לפעילות או להוצאה",
@@ -892,6 +911,19 @@ export const strings = {
     outsidePlan: "התאריכים לא נופלים על אף יום במסלול",
     whereAria: "היעד במסלול",
     cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
+    // Section headings in the add/edit sheet. Twelve fields in one column read
+    // as a wall; four short groups read as a form.
+    sectionWhat: "מה הזמנו",
+    sectionWhen: "מתי",
+    sectionDetails: "פרטי ההזמנה",
+    sectionMoney: "עלות",
+    sectionFiles: "קבצים וקישור",
+    required: "שדה חובה",
+    nights: "‏{n} לילות",
+    nightsOne: "לילה אחד",
+    days: "‏{n} ימים",
+    daysOne: "יום אחד",
+    deleteBooking: "מחיקת ההזמנה",
   },
 
   // Pulling booking confirmations out of Gmail. The mailbox is the only channel

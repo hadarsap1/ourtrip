@@ -20,7 +20,11 @@ import {
   subscribeItinerary,
   updateItem,
 } from "@/lib/data/itinerary";
-import { listBookings, subscribeBookings } from "@/lib/data/bookings";
+import {
+  listBookingFiles,
+  listBookings,
+  subscribeBookings,
+} from "@/lib/data/bookings";
 import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
 import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
@@ -28,6 +32,7 @@ import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type {
   Booking,
+  BookingFile,
   BudgetCategory,
   ItemStatus,
   ItineraryDay,
@@ -60,6 +65,9 @@ export function ItineraryScreen() {
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [items, setItems] = useState<ItineraryItem[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  // Attachments for the whole trip in one list; the bookings screen splits
+  // them per booking, and the form gets the ones for the row being edited.
+  const [bookingFiles, setBookingFiles] = useState<BookingFile[]>([]);
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
@@ -91,13 +99,15 @@ export function ItineraryScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [nextDays, nextBookings] = await Promise.all([
+    const [nextDays, nextBookings, nextFiles] = await Promise.all([
       listDays(tripId),
       listBookings(tripId),
+      listBookingFiles(tripId),
     ]);
     const nextItems = await listItems(nextDays.map((d) => d.id));
     setDays(nextDays);
     setBookings(nextBookings);
+    setBookingFiles(nextFiles);
     setItems(nextItems);
   }, []);
 
@@ -180,6 +190,11 @@ export function ItineraryScreen() {
     const dayDateById = new Map(days.map((d) => [d.id, d.date]));
     return buildBookingIndex(bookings, buildLinkedIndex(items, dayDateById));
   }, [bookings, items, days]);
+
+  const editingBookingFiles = useMemo(() => {
+    const id = bookingForm?.booking?.id;
+    return id ? bookingFiles.filter((f) => f.booking_id === id) : [];
+  }, [bookingForm, bookingFiles]);
 
   const refreshNow = useCallback(() => {
     if (!trip) return;
@@ -348,6 +363,7 @@ export function ItineraryScreen() {
               <BookingsList
                 bookings={bookings}
                 days={days}
+                files={bookingFiles}
                 onAdd={() => setBookingForm({ booking: null })}
                 onImportMail={() => setImportingMail(true)}
                 onEdit={(booking) => setBookingForm({ booking })}
@@ -515,6 +531,7 @@ export function ItineraryScreen() {
           open={bookingForm !== null}
           tripId={trip.id}
           booking={bookingForm?.booking ?? null}
+          files={editingBookingFiles}
           onClose={() => setBookingForm(null)}
           onSaved={(saved, isNew) => {
             setBookingForm(null);
@@ -527,7 +544,9 @@ export function ItineraryScreen() {
             showToast(
               message === "booking_linked"
                 ? strings.bookings.deleteLinked
-                : strings.common.error
+                : message === "booking_files_partial"
+                  ? strings.bookings.filesPartial
+                  : strings.common.error
             )
           }
         />

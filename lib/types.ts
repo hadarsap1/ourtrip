@@ -5,6 +5,8 @@ export type Member = Tables<"members">;
 export type ItineraryDay = Tables<"itinerary_days">;
 export type ItineraryItem = Tables<"itinerary_items">;
 export type Booking = Tables<"bookings">;
+/** One attachment on a booking. A booking has any number of them (00037). */
+export type BookingFile = Tables<"booking_files">;
 export type BudgetCategory = Tables<"budget_categories">;
 export type Expense = Tables<"expenses">;
 export type Document = Tables<"documents">;

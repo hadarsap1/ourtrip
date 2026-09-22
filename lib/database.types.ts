@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_files: {
+        Row: {
+          booking_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          sort_order: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          sort_order?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_files_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           confirmation_code: string | null
