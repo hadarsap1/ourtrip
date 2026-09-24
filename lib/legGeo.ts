@@ -25,6 +25,7 @@
 import {
   areaChoicesForCountry,
   areaChoicesForStretch,
+  haversineKm,
   type AreaChoice,
   type OptionForAreas,
 } from "@/lib/data/segments";
@@ -55,6 +56,17 @@ export type LegPoint = {
  * somewhere you can actually recognise from above. A country point IS a mean,
  * for the opposite reason - it must not look like a claim about one town.
  */
+/**
+ * How far a coordinate saved on a day may sit from the nearest place the leg is
+ * actually about before it stops being believable.
+ *
+ * The honest cases land at nearly zero: `applyLegPlan` writes an area's own
+ * centre onto the days, and a hand-picked town is at most a few tens of km off
+ * the bank's centre for that same area. 300km is far past either and still
+ * rejects what this trip actually had on it.
+ */
+const SAVED_TRUST_KM = 300;
+
 export function legPoint(
   stretch: {
     countryCode: string | null;
@@ -63,26 +75,64 @@ export function legPoint(
   },
   options: OptionForAreas[]
 ): LegPoint | null {
-  // A coordinate already on the days wins over anything derived here. It got
-  // there either from the segments planner or because someone pinned this leg
-  // by hand, and in both cases it is an answer rather than an inference.
-  const placed = stretch.days?.find((day) => day.lat != null && day.lng != null);
-  if (placed) {
-    return {
-      lat: placed.lat!,
-      lng: placed.lng!,
-      precision: "saved",
-      anchorArea: stretch.locationName,
-    };
-  }
+  const saved = stretch.days?.find((day) => day.lat != null && day.lng != null);
 
   // No country is a gap in the day's data, not a location. areaChoicesForCountry
   // treats a null code as "do not filter", so without this guard such a leg
   // would be placed at the average of all six countries - a point in the sea
-  // that looks as confident as any other.
-  if (!stretch.countryCode) return null;
+  // that looks as confident as any other. A saved coordinate is then the only
+  // thing there is, and nothing exists to check it against.
+  if (!stretch.countryCode) {
+    return saved
+      ? {
+          lat: saved.lat!,
+          lng: saved.lng!,
+          precision: "saved",
+          anchorArea: stretch.locationName,
+        }
+      : null;
+  }
 
   const areas = areaChoicesForStretch(options, stretch);
+  const scopedLocated = areas.scoped.filter(
+    (choice) => choice.lat != null && choice.lng != null
+  );
+
+  // A coordinate already on the days outranks anything derived here - BUT ONLY
+  // IF IT IS ABOUT THIS LEG.
+  //
+  // The first version trusted it outright, on the assumption that it got there
+  // from the segments planner or from someone pinning the leg by hand. That
+  // assumption was wrong. This trip's first two days carried 14.058/108.277 -
+  // the geographic centre of Vietnam, 780km south of Hanoi - left behind by the
+  // geocoder failure `geocode-places` documents in its own header, where an API
+  // answered with a country centroid for a name it did not know. So the leg
+  // that starts in Hanoi drew its pin in the central highlands and, because the
+  // saved branch named itself after the leg's label, called it "וייטנאם - צפון"
+  // and hid what had happened.
+  //
+  // The check is the leg's own areas: a real saved point is one of them, or
+  // within a short drive of one. 729km from the nearest is not a location
+  // anybody chose, and the derived answer is better than it.
+  if (saved) {
+    const reference = scopedLocated.length > 0
+      ? scopedLocated
+      : areaChoicesForCountry(options, stretch.countryCode).filter(
+          (choice) => choice.lat != null && choice.lng != null
+        );
+    const near = nearestTo(saved.lat!, saved.lng!, reference);
+    // Nothing geocoded to check against means no grounds to doubt it.
+    if (!near || near.km <= SAVED_TRUST_KM) {
+      return {
+        lat: saved.lat!,
+        lng: saved.lng!,
+        precision: "saved",
+        // Named by the town it is nearest, not by the leg's label. A pin that
+        // names a region can be wrong without looking wrong.
+        anchorArea: near ? near.choice.area : stretch.locationName,
+      };
+    }
+  }
 
   if (areas.rule !== "country") {
     const anchor = busiestLocated(areas.scoped);
@@ -118,6 +168,22 @@ function busiestLocated(choices: AreaChoice[]): AreaChoice | null {
   for (const choice of choices) {
     if (choice.lat == null || choice.lng == null) continue;
     if (!best || choice.options > best.options) best = choice;
+  }
+  return best;
+}
+
+/** The closest of `choices` to a point, with the distance. Null when there is
+ *  nothing located to compare against. */
+function nearestTo(
+  lat: number,
+  lng: number,
+  choices: AreaChoice[]
+): { choice: AreaChoice; km: number } | null {
+  let best: { choice: AreaChoice; km: number } | null = null;
+  for (const choice of choices) {
+    if (choice.lat == null || choice.lng == null) continue;
+    const km = haversineKm(lat, lng, choice.lat, choice.lng);
+    if (!best || km < best.km) best = { choice, km };
   }
   return best;
 }
