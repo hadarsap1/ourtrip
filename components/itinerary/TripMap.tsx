@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadGoogleMaps } from "@/lib/places";
+import { DAY_COLORS } from "@/lib/data/map";
 import { boundsOfPoints, legPoint, type LegPoint } from "@/lib/legGeo";
 import type { OptionForAreas } from "@/lib/data/segments";
 import type { LegOverview } from "@/lib/itineraryOverview";
@@ -46,7 +47,6 @@ export function TripMap({
   const mapRef = useRef<google.maps.Map | null>(null);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
-  const linesRef = useRef<google.maps.Polyline[]>([]);
   const [ready, setReady] = useState<boolean | null>(null);
 
   // A leg, its number in the trip, and where it sits - if anywhere.
@@ -79,6 +79,21 @@ export function TripMap({
           atPoint.get(pointKey(row.point)) === 1)
     );
   }, [legs, options]);
+
+  // One colour per country, assigned in the order the trip meets them. Keyed
+  // off the data rather than a table of countries, so a route through anywhere
+  // else colours itself the same way (CLAUDE.md #9). Reuses the map screen's
+  // existing palette instead of inventing a second one.
+  const colorOf = useMemo(() => {
+    const byCountry = new Map<string, string>();
+    for (const leg of legs) {
+      const cc = leg.stretch.countryCode;
+      if (!cc || byCountry.has(cc)) continue;
+      byCountry.set(cc, DAY_COLORS[byCountry.size % DAY_COLORS.length]);
+    }
+    return (cc: string | null) =>
+      (cc && byCountry.get(cc)) || DAY_COLORS[DAY_COLORS.length - 1];
+  }, [legs]);
 
   const unplaced = useMemo(() => {
     const placedKeys = new Set(placed.map((p) => p.leg.key));
@@ -116,9 +131,7 @@ export function TripMap({
     if (!ready || !map || !window.google) return;
 
     for (const marker of markersRef.current) marker.setMap(null);
-    for (const line of linesRef.current) line.setMap(null);
     markersRef.current = [];
-    linesRef.current = [];
 
     for (const { leg, number, point } of placed) {
       const marker = new google.maps.Marker({
@@ -128,34 +141,48 @@ export function TripMap({
         label: {
           text: String(number),
           color: "#ffffff",
-          fontSize: "11px",
+          // Follows the smaller circle; 11px overflowed a 9-radius pin.
+          fontSize: "10px",
           fontWeight: "700",
         },
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          // Bigger for a longer stay, so the shape of the trip carries how
-          // long you are anywhere without reading a single number.
-          scale: 11 + Math.min(9, leg.dayCount / 5),
-          fillColor:
-            leg.phase === "current"
-              ? "#d9931e"
-              : leg.phase === "past"
-                ? "#8d968f"
-                : "#0e7c6b",
+          // Bigger for a longer stay, but only slightly. A marker's scale is
+          // in fixed pixels while the map opens near zoom 4 to fit Vietnam and
+          // Japan at once, so the old 11-20 radius drew circles 22-40px across
+          // on a ~360px-wide map: Thailand's pin covered Thailand, and the
+          // Thailand, Cambodia and Hoi An pins merged into one blob. Compared
+          // side by side at that true scale, 8.5-12 separates all five of the
+          // mainland legs while keeping the long-stay-is-bigger cue.
+          scale: 8.5 + Math.min(3.5, leg.dayCount / 11),
+          // Colour is the country now. Eight separate Japanese legs were eight
+          // identical dots before, which is the opposite of what a map is for.
+          fillColor: colorOf(leg.stretch.countryCode),
           // A country-level pin is see-through. It is the whole country, not
           // a place, and it should not read as firmly as one that is.
           fillOpacity: point.precision === "country" ? 0.45 : 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
+          // The leg you are in keeps a heavier ring, since colour is spoken for.
+          strokeColor: leg.phase === "current" ? "#22312e" : "#ffffff",
+          strokeWeight: leg.phase === "current" ? 3 : 2,
         },
         zIndex: leg.phase === "current" ? 3 : 2,
       });
 
       marker.addListener("click", () => {
-        const where = point.anchorArea ?? leg.stretch.locationName ?? "";
+        // The town the pin is standing on leads, and the leg's own label
+        // follows it when the two differ. This used to read `locationName ??
+        // anchorArea`, so the anchor - the one thing that says WHERE the dot
+        // is - could never appear: a pin sitting on Hanoi announced itself as
+        // "וייטנאם - צפון" and the word Hanoi was nowhere on the map.
+        const town = point.anchorArea;
+        const label = leg.stretch.locationName ?? "";
+        const heading = town ?? label;
+        const sub = town && town !== label ? label : "";
         infoRef.current?.setContent(
           `<div dir="rtl" style="font-family:inherit;max-width:220px">` +
-            `<strong>${escapeHtml(leg.stretch.locationName ?? where)}</strong><br/>` +
+            `<strong>${escapeHtml(heading)}</strong>` +
+            (sub ? ` <span style="font-size:12px;color:#666">· ${escapeHtml(sub)}</span>` : "") +
+            `<br/>` +
             `<span style="font-size:12px;color:#666">` +
             `${escapeHtml(formatShortDate(leg.stretch.from))} - ${escapeHtml(formatShortDate(leg.stretch.to))}` +
             ` · ${escapeHtml(s.mapPinNights.replace("{n}", String(leg.dayCount)))}` +
@@ -179,37 +206,6 @@ export function TripMap({
       markersRef.current.push(marker);
     }
 
-    // One segment per consecutive pair, so each can say on its own whether a
-    // leg was skipped between its ends.
-    for (let i = 1; i < placed.length; i += 1) {
-      const from = placed[i - 1];
-      const to = placed[i];
-      const skipped = to.number - from.number > 1;
-      linesRef.current.push(
-        new google.maps.Polyline({
-          map,
-          path: [
-            { lat: from.point.lat, lng: from.point.lng },
-            { lat: to.point.lat, lng: to.point.lng },
-          ],
-          geodesic: true,
-          strokeColor: "#0e7c6b",
-          strokeOpacity: skipped ? 0 : 0.55,
-          strokeWeight: 2,
-          icons: skipped
-            ? [
-                {
-                  icon: { path: "M 0,-1 0,1", strokeOpacity: 0.55, scale: 3 },
-                  offset: "0",
-                  repeat: "12px",
-                },
-              ]
-            : undefined,
-          zIndex: 1,
-        })
-      );
-    }
-
     const box = boundsOfPoints(placed.map((p) => p.point));
     if (box) {
       map.fitBounds(
@@ -217,11 +213,13 @@ export function TripMap({
           { lat: box.south, lng: box.west },
           { lat: box.north, lng: box.east }
         ),
-        40
+        // 40px of padding on a ~360px-wide map spent a third of it on empty
+        // ocean, pushing the whole route further out than it needed to be.
+        24
       );
       if (placed.length === 1) map.setZoom(9);
     }
-  }, [placed, ready, s]);
+  }, [placed, ready, s, colorOf]);
 
   // The info window's "open this leg" is plain HTML, so its click is caught
   // here rather than bound to a React handler.
@@ -260,8 +258,41 @@ export function TripMap({
           {s.mapPlacedCount
             .replace("{placed}", String(placed.length))
             .replace("{total}", String(legs.length))}
-          {placed.length > 1 && ` · ${s.mapGapHint}`}
         </p>
+      )}
+
+      {!unavailable && placed.length > 0 && (
+        <section className="rounded-2xl border border-line bg-white p-3">
+          <h3 className="mb-2 text-[12.5px] font-extrabold text-ink">
+            {s.mapLegend}
+          </h3>
+          <ul className="flex flex-wrap gap-1.5">
+            {placed.map(({ leg, number, point }) => (
+              <li key={leg.key}>
+                <button
+                  type="button"
+                  onClick={() => onOpenLeg(leg.key)}
+                  className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1 text-[11.5px] active:bg-paper-deep"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: colorOf(leg.stretch.countryCode),
+                      opacity: point.precision === "country" ? 0.45 : 1,
+                    }}
+                  />
+                  <span className="font-bold tabular-nums text-ink-soft">
+                    {number}
+                  </span>
+                  <span className="font-semibold text-ink">
+                    {point.anchorArea ?? leg.stretch.locationName}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Not a footnote: eight of fourteen legs land here, and every one of

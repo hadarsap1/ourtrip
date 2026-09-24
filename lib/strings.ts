@@ -803,12 +803,13 @@ export const strings = {
     mapUnavailableHint: "המקטעים עדיין כאן, אבל בלי מפה אי אפשר להציב אותם.",
     mapSearchUnavailable: "חיפוש המקומות לא זמין כרגע, אז אי אפשר להציב את המקטע.",
     mapEmpty: "אין עדיין מספיק מידע כדי לצייר את המסלול על מפה",
-    mapLegend: "מקטעים ממוקמים",
+    // The map cannot print a Hebrew town name inside a circular marker, so
+    // the numbers on the pins are decoded here instead.
+    mapLegend: "מה כל מספר",
     // A leg the map can place, versus one it can only guess at. The second
     // never gets a pin - a pin in the middle of יפן that says "האקונה" is a
     // map that looks right and is not.
     mapPlacedCount: "‏{placed} מתוך {total} מקטעים על המפה",
-    mapGapHint: "הקו מקווקו במקום שבו יש מקטע בלי מיקום",
     mapMissingTitle: "מקטעים בלי מיקום",
     mapMissingHint: "אלה לא מופיעים על המפה. בחירת עיר תציב אותם, ותדליק גם את מזג האוויר לימים שלהם.",
     mapSetLocation: "בחירת מיקום",
