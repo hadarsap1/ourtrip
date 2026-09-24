@@ -1522,3 +1522,16 @@ X The idea counts and map points read `place_options`, which is owner-only
 no pins - worth re-checking if a guest-facing map is ever added, because the
 bank is planning content and must not leak through it.
 
+
+## Documents bucket accepts encrypted containers (00039)
+
+Locking a document uploads the AES-GCM container as
+`application/octet-stream`; the bucket's MIME allow-list (00005) rejected it
+with 400, so no document could ever be locked. 00039 adds that one type to the
+`documents` bucket. No policy change.
+
+| Check | Result |
+|---|---|
+| Kid / guest still cannot read or write the bucket | ✅ PASS - `documents_owner_*` on `storage.objects` (00005) unchanged, owner-only |
+| Other buckets unaffected | ✅ PASS - the update is `where id = 'documents'` |
+| A plaintext upload can now be disguised as octet-stream | X Only by an owner, who can already upload any allowed type; no new reader gains access |
