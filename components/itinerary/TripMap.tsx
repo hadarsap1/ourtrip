@@ -141,14 +141,20 @@ export function TripMap({
         label: {
           text: String(number),
           color: "#ffffff",
-          fontSize: "11px",
+          // Follows the smaller circle; 11px overflowed a 9-radius pin.
+          fontSize: "10px",
           fontWeight: "700",
         },
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          // Bigger for a longer stay, so the shape of the trip carries how
-          // long you are anywhere without reading a single number.
-          scale: 11 + Math.min(9, leg.dayCount / 5),
+          // Bigger for a longer stay, but only slightly. A marker's scale is
+          // in fixed pixels while the map opens near zoom 4 to fit Vietnam and
+          // Japan at once, so the old 11-20 radius drew circles 22-40px across
+          // on a ~360px-wide map: Thailand's pin covered Thailand, and the
+          // Thailand, Cambodia and Hoi An pins merged into one blob. Compared
+          // side by side at that true scale, 8.5-12 separates all five of the
+          // mainland legs while keeping the long-stay-is-bigger cue.
+          scale: 8.5 + Math.min(3.5, leg.dayCount / 11),
           // Colour is the country now. Eight separate Japanese legs were eight
           // identical dots before, which is the opposite of what a map is for.
           fillColor: colorOf(leg.stretch.countryCode),
@@ -207,7 +213,9 @@ export function TripMap({
           { lat: box.south, lng: box.west },
           { lat: box.north, lng: box.east }
         ),
-        40
+        // 40px of padding on a ~360px-wide map spent a third of it on empty
+        // ocean, pushing the whole route further out than it needed to be.
+        24
       );
       if (placed.length === 1) map.setZoom(9);
     }
