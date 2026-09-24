@@ -129,14 +129,64 @@ describe("legPoint, a leg the family placed themselves", () => {
           { lat: 35.232, lng: 139.107 },
         ],
       },
+      // Tokyo is 75km away: close enough to believe, and the name to use.
       opts([["טוקיו", 44, 35.677, 139.756]])
     );
-    expect(point).toEqual({
-      lat: 35.232,
-      lng: 139.107,
-      precision: "saved",
-      anchorArea: "האקונה",
-    });
+    expect(point?.lat).toBeCloseTo(35.232, 5);
+    expect(point?.lng).toBeCloseTo(139.107, 5);
+    expect(point?.precision).toBe("saved");
+    expect(point?.anchorArea).toBe("טוקיו");
+  });
+
+  it("ignores a saved coordinate that is nowhere near the leg", () => {
+    // The real case: this trip's first two days carried the geographic centre
+    // of Vietnam, 780km south of Hanoi, left by the old geocoder. The leg is
+    // northern Vietnam, so the point is rejected and Hanoi is derived instead.
+    const point = legPoint(
+      {
+        countryCode: "VN",
+        locationName: "וייטנאם - צפון",
+        days: [{ lat: 14.058324, lng: 108.277199 }],
+      },
+      // A southern area is in the fixture on purpose. The "צפון" rule cuts the
+      // country's own geocoded span into three bands, so without one the span
+      // is only the northern towns and the band lands above Hanoi - which is
+      // not how the real bank, spanning Saigon to Ha Giang, behaves.
+      opts(
+        [
+          ["האנוי", 46, 21.029, 105.84],
+          ["טאם קוק", 33, 20.217, 105.936],
+          ["סאפה", 30, 21.592, 104.313],
+          ["סייגון", 26, 10.78, 106.669],
+        ],
+        "VN"
+      )
+    );
+    expect(point?.precision).toBe("area");
+    expect(point?.anchorArea).toBe("האנוי");
+    expect(point?.lat).toBeCloseTo(21.029, 3);
+  });
+
+  it("keeps a saved coordinate that sits right on one of the leg's areas", () => {
+    const point = legPoint(
+      {
+        countryCode: "VN",
+        locationName: "וייטנאם - צפון",
+        days: [{ lat: 21.03, lng: 105.84 }],
+      },
+      opts([["האנוי", 46, 21.029, 105.84]], "VN")
+    );
+    expect(point?.precision).toBe("saved");
+    expect(point?.anchorArea).toBe("האנוי");
+  });
+
+  it("trusts a saved coordinate when there is nothing geocoded to doubt it with", () => {
+    const point = legPoint(
+      { countryCode: "GE", locationName: "גאורגיה", days: [{ lat: 41.7, lng: 44.8 }] },
+      []
+    );
+    expect(point?.precision).toBe("saved");
+    expect(point?.anchorArea).toBe("גאורגיה");
   });
 
   it("still derives when the days carry no coordinate", () => {

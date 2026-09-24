@@ -222,7 +222,7 @@ function bandOf(value: number, min: number, max: number): 0 | 1 | 2 {
   return 2;
 }
 
-function haversineKm(
+export function haversineKm(
   aLat: number,
   aLng: number,
   bLat: number,
