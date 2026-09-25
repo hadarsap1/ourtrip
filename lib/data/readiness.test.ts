@@ -98,7 +98,7 @@ describe("buildReadiness", () => {
   it("names the countries with nothing collected, and how many days they cost", () => {
     const check = find(base, "bank_coverage");
     expect(check?.status).toBe("warn");
-    expect(check?.values?.countries).toBe("GE");
+    expect(check?.values?.countries).toBe("גאורגיה"); // a name, not the ISO code
     expect(check?.values?.days).toBe(36);
   });
 

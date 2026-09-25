@@ -4,12 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
+import { getTodayCountryCode } from "@/lib/data/emergency";
 import {
   filterEntries,
   generateLanguage,
   languageName,
   listEntries,
   listLanguages,
+  pickDefaultLanguage,
+  usefulPhonetic,
   batchChanged,
   entryIds,
   searchLanguages,
@@ -68,12 +71,17 @@ export function PhrasebookScreen() {
       const activeTrip = await getActiveTrip();
       if (!cancelled) setTrip(activeTrip);
       const tripId = activeTrip?.id ?? "";
-      const { languages: langs } = await listLanguages(tripId);
+      const [{ languages: langs }, todayCountry] = await Promise.all([
+        listLanguages(tripId),
+        // offline-safe: falls back to today's cached snapshot
+        getTodayCountryCode(tripId).catch(() => null),
+      ]);
       if (cancelled) return;
       setLanguages(langs);
-      if (langs.length > 0) {
-        setSelected(langs[0]);
-        await loadEntries(tripId, langs[0]);
+      const first = pickDefaultLanguage(langs, todayCountry);
+      if (first) {
+        setSelected(first);
+        await loadEntries(tripId, first);
       }
       if (!cancelled) setLoading(false);
     })();
@@ -219,6 +227,7 @@ export function PhrasebookScreen() {
               key={lang}
               type="button"
               onClick={() => void selectLanguage(lang)}
+              aria-pressed={selected === lang}
               className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === lang
                   ? "bg-sea text-white"
@@ -303,9 +312,9 @@ export function PhrasebookScreen() {
                       <span className="block text-sm text-sea" dir="auto">
                         {entry.phrase_local}
                       </span>
-                      {entry.phonetic_he && (
+                      {usefulPhonetic(entry) && (
                         <span className="block text-xs text-ink-soft">
-                          {entry.phonetic_he}
+                          {usefulPhonetic(entry)}
                         </span>
                       )}
                     </button>
@@ -365,9 +374,9 @@ export function PhrasebookScreen() {
             {showEntry.phrase_local}
           </span>
           <span className="text-lg text-ink-soft">{showEntry.phrase_he}</span>
-          {showEntry.phonetic_he && (
+          {usefulPhonetic(showEntry) && (
             <span className="text-base text-ink-soft">
-              {strings.phrasebook.phonetic}: {showEntry.phonetic_he}
+              {strings.phrasebook.phonetic}: {usefulPhonetic(showEntry)}
             </span>
           )}
         </button>

@@ -511,7 +511,7 @@ export function DocumentsScreen() {
                       onClick={() => toggleLock(doc)}
                       aria-label={strings.documents.lock}
                       aria-pressed={doc.pin_protected}
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
                         doc.pin_protected
                           ? "bg-alert-tint text-alert"
                           : "bg-paper-deep text-ink-faint"
@@ -530,7 +530,7 @@ export function DocumentsScreen() {
                       onClick={() => void toggleShareWithKids(doc)}
                       aria-label={strings.documents.shareWithKids}
                       aria-pressed={doc.shared_with_kids}
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
                         doc.shared_with_kids
                           ? "bg-sun-tint text-sun-deep"
                           : "bg-paper-deep text-ink-faint"
@@ -545,7 +545,7 @@ export function DocumentsScreen() {
                     disabled={busy}
                     aria-label={strings.documents.offlineToggle}
                     aria-pressed={isOffline}
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg disabled:opacity-40 ${
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg disabled:opacity-40 ${
                       isOffline
                         ? "bg-sea-tint text-sea"
                         : "bg-paper-deep text-ink-faint"
@@ -561,7 +561,7 @@ export function DocumentsScreen() {
                     type="button"
                     onClick={() => openDoc(doc)}
                     aria-label={strings.documents.open}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-paper-deep text-ink-faint hover:bg-line"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-paper-deep text-ink-faint hover:bg-line"
                   >
                     <ExternalIcon className="h-[15px] w-[15px]" />
                   </button>

@@ -140,7 +140,7 @@ export function DayCard({
         type="button"
         onClick={onEditDay}
         aria-label={strings.itinerary.editDay}
-        className="shrink-0 rounded-lg p-1.5 text-sea/70 hover:bg-white hover:text-sea"
+        className="grid h-10 w-8 shrink-0 place-items-center rounded-lg text-sea/70 hover:bg-white hover:text-sea"
       >
         <EditIcon className="h-4 w-4" />
       </button>
@@ -148,7 +148,7 @@ export function DayCard({
         type="button"
         onClick={onDeleteDay}
         aria-label={strings.itinerary.deleteDay}
-        className="shrink-0 rounded-lg p-1.5 text-alert/70 hover:bg-white hover:text-alert"
+        className="grid h-10 w-8 shrink-0 place-items-center rounded-lg text-alert/70 hover:bg-white hover:text-alert"
       >
         <TrashIcon className="h-4 w-4" />
       </button>
@@ -265,7 +265,7 @@ function SortableItem({
         {...attributes}
         {...listeners}
         aria-label={strings.itinerary.dragHandle}
-        className="cursor-grab touch-none p-1 text-line active:cursor-grabbing"
+        className="grid h-10 w-7 shrink-0 cursor-grab touch-none place-items-center text-line active:cursor-grabbing"
       >
         <DragHandleIcon className="h-4 w-4" />
       </button>
@@ -326,7 +326,7 @@ function SortableItem({
         type="button"
         onClick={onMove}
         aria-label={strings.itinerary.moveItem}
-        className="p-1.5 text-ink-faint hover:text-sea"
+        className="grid h-10 w-9 shrink-0 place-items-center text-ink-faint hover:text-sea"
       >
         <MoveIcon className="h-[18px] w-[18px]" />
       </button>
@@ -337,7 +337,7 @@ function SortableItem({
         type="button"
         onClick={onDelete}
         aria-label={strings.itinerary.deleteItem}
-        className="p-1.5 text-ink-faint hover:text-alert"
+        className="grid h-10 w-9 shrink-0 place-items-center text-ink-faint hover:text-alert"
       >
         <TrashIcon className="h-[18px] w-[18px]" />
       </button>

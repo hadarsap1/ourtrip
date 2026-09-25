@@ -8,7 +8,11 @@ import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
 import { listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
-import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
+import {
+  resolveBudgetPace,
+  resolveBudgetProgress,
+  resolveBudgetTotals,
+} from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import { tripPosition } from "@/lib/tripDay";
 import type { BudgetCategory, Expense, Trip } from "@/lib/types";
@@ -17,14 +21,6 @@ import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
-
-function daysBetween(fromISO: string, toISO: string): number {
-  return Math.floor(
-    (new Date(`${toISO}T12:00:00`).getTime() -
-      new Date(`${fromISO}T12:00:00`).getTime()) /
-      86_400_000
-  );
-}
 
 export function BudgetScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -111,38 +107,17 @@ export function BudgetScreen() {
     );
   }
 
-  // Spending done BEFORE departure (vaccinations, visas, gear, flights bought
-  // in advance) is real budget but not a daily pace - averaging it into the
-  // burn rate once the trip starts would wildly inflate both burn and
-  // projection. So it is tracked separately and excluded from the pace math,
-  // while still counting toward the totals.
-  const preTripSpent = trip?.start_date
-    ? expenses
-        .filter((e) => e.spent_on < trip.start_date!)
-        .reduce((sum, e) => sum + e.amount_ils, 0)
-    : 0;
-  const onTripSpent = spent - preTripSpent;
-
-  // Burn/projection (ROADMAP: projection = spent + daily burn × remaining
-  // days). Before the trip starts daily burn is meaningless → projection
-  // degrades to "spent so far".
+  // Money paid in advance (vaccinations, gear, and every booking paid before
+  // departure even when it is dated inside the trip) is real budget but not a
+  // daily pace. resolveBudgetPace keeps it out of the burn rate and adds it to
+  // the projection once. See lib/budget.ts for why the split is not by date.
   const today = todayISO();
-  let burnPerDay: number | null = null;
-  let projection: number | null = null;
-  let notStarted = false;
-  if (trip?.start_date && trip.end_date) {
-    const totalDays = daysBetween(trip.start_date, trip.end_date) + 1;
-    if (today < trip.start_date) {
-      notStarted = true;
-      projection = spent;
-    } else {
-      const elapsed = Math.min(daysBetween(trip.start_date, today) + 1, totalDays);
-      const remaining = Math.max(totalDays - elapsed, 0);
-      burnPerDay = onTripSpent / elapsed;
-      // pre-trip spending is already sunk: add it once, don't project it
-      projection = preTripSpent + onTripSpent + burnPerDay * remaining;
-    }
-  }
+  const {
+    prepaid: preTripSpent,
+    burnPerDay,
+    projection,
+    notStarted,
+  } = resolveBudgetPace(expenses, trip?.start_date, trip?.end_date, today);
 
   const categoryLabel = (id: string) =>
     categories.find((c) => c.id === id)?.label_he ?? "";

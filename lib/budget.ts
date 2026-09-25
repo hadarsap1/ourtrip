@@ -84,3 +84,79 @@ export function resolveBudgetProgress(
       : 0;
   return { spent, remaining, usedPct, overSpent: remaining < 0 };
 }
+
+/**
+ * Daily burn and end-of-trip projection.
+ *
+ * WHY "PREPAID" AND NOT JUST "BEFORE THE TRIP". Splitting by `spent_on` alone
+ * let money paid in advance leak into the daily pace. A booking's expense is
+ * dated on the day the stay starts, so a hotel paid for in September and dated
+ * 22/11 counted as on-trip spending, and every prepaid flight or hotel dated
+ * inside the trip did the same. On the first morning the pace divided
+ * thousands of shekels of bookings by one day, and the projection multiplied
+ * that by the 229 days still to go: millions, on a ₪180,000 budget.
+ *
+ * So an expense counts toward the pace only when it was spent on a trip day
+ * that has already happened AND was recorded once the trip was under way.
+ * Everything else (before departure, dated in the future, or entered before
+ * the trip started whatever its date) is prepaid: part of the totals, added
+ * once to the projection, never averaged into a day.
+ */
+export type PaceExpense = {
+  amount_ils: number;
+  spent_on: string;
+  created_at?: string | null;
+};
+
+export type BudgetPace = {
+  /** Money paid in advance: counted once, excluded from the daily pace. */
+  prepaid: number;
+  /** Spent on trip days so far, the basis of the pace. */
+  onTrip: number;
+  /** Average per elapsed trip day, or null before the trip starts. */
+  burnPerDay: number | null;
+  /** Spent so far plus the pace over the days left. */
+  projection: number | null;
+  notStarted: boolean;
+};
+
+function daysBetween(fromISO: string, toISO: string): number {
+  return Math.round(
+    (Date.parse(`${toISO}T00:00:00Z`) - Date.parse(`${fromISO}T00:00:00Z`)) /
+      86_400_000
+  );
+}
+
+export function resolveBudgetPace(
+  expenses: PaceExpense[],
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  today: string
+): BudgetPace {
+  const spent = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
+  if (!startDate || !endDate) {
+    return { prepaid: 0, onTrip: spent, burnPerDay: null, projection: null, notStarted: false };
+  }
+
+  const isPace = (e: PaceExpense) =>
+    e.spent_on >= startDate &&
+    e.spent_on <= today &&
+    (!e.created_at || e.created_at.slice(0, 10) >= startDate);
+  const onTrip = expenses.filter(isPace).reduce((sum, e) => sum + e.amount_ils, 0);
+  const prepaid = spent - onTrip;
+
+  if (today < startDate) {
+    return { prepaid, onTrip, burnPerDay: null, projection: spent, notStarted: true };
+  }
+  const totalDays = daysBetween(startDate, endDate) + 1;
+  const elapsed = Math.min(daysBetween(startDate, today) + 1, totalDays);
+  const remaining = Math.max(totalDays - elapsed, 0);
+  const burnPerDay = onTrip / elapsed;
+  return {
+    prepaid,
+    onTrip,
+    burnPerDay,
+    projection: spent + burnPerDay * remaining,
+    notStarted: false,
+  };
+}

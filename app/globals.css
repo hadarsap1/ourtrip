@@ -121,3 +121,20 @@ body {
     break-inside: avoid;
   }
 }
+
+/* Truncated user content in an RTL layout. Hotel names, places and titles are
+   often Latin ("Old Quarter Family Hotel"), and inside an RTL line an LTR run
+   overflows to the left, so the ellipsis ate its beginning and the screen
+   showed "...ter Family Hotel". plaintext takes the direction from the text
+   itself, so Latin is cut at its end and Hebrew still at its end.
+   match-parent resolves "start" against the parent's direction, so short Latin
+   stays right-aligned with the Hebrew around it and a centered parent stays
+   centered (Chromium and WebKit take the prefixed form, Firefox the other). In
+   the base layer, so an explicit text-center / text-left utility still wins. */
+@layer base {
+  .truncate:dir(rtl) {
+    unicode-bidi: plaintext;
+    text-align: -webkit-match-parent;
+    text-align: match-parent;
+  }
+}

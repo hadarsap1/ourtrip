@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { batchChanged, filterEntries, searchLanguages } from "./phrasebook";
+import {
+  batchChanged,
+  filterEntries,
+  pickDefaultLanguage,
+  searchLanguages,
+  usefulPhonetic,
+} from "./phrasebook";
 
 // The phrasebook is offline-critical, so search runs over the rows already in
 // hand. What it has to match is everything you might half-remember.
@@ -136,5 +142,44 @@ describe("batchChanged", () => {
 
   it("counts a partly overlapping batch as new", () => {
     expect(batchChanged(ids("a", "b"), ids("b", "z"))).toBe(true);
+  });
+});
+
+describe("pickDefaultLanguage", () => {
+  const langs = ["ja", "th", "tl", "vi"];
+
+  it("opens on the language of the country the family is in today", () => {
+    expect(pickDefaultLanguage(langs, "VN")).toBe("vi");
+    expect(pickDefaultLanguage(langs, "PH")).toBe("tl");
+    expect(pickDefaultLanguage(langs, "jp")).toBe("ja");
+  });
+
+  it("falls back to the first language when today's has no phrasebook", () => {
+    expect(pickDefaultLanguage(langs, "KH")).toBe("ja");
+    expect(pickDefaultLanguage(langs, "ZZ")).toBe("ja");
+  });
+
+  it("falls back to the first language when there is no day today", () => {
+    expect(pickDefaultLanguage(langs, null)).toBe("ja");
+  });
+
+  it("has nothing to pick without languages", () => {
+    expect(pickDefaultLanguage([], "VN")).toBeNull();
+  });
+});
+
+describe("usefulPhonetic", () => {
+  it("hides a transliteration that only repeats the Hebrew", () => {
+    expect(usefulPhonetic({ phrase_he: "בוקר טוב", phonetic_he: "בוקר טוב" })).toBeNull();
+    expect(usefulPhonetic({ phrase_he: "תודה", phonetic_he: " תודה " })).toBeNull();
+  });
+
+  it("keeps a real one", () => {
+    expect(usefulPhonetic({ phrase_he: "תודה", phonetic_he: "קאם און" })).toBe("קאם און");
+  });
+
+  it("has nothing for an empty one", () => {
+    expect(usefulPhonetic({ phrase_he: "תודה", phonetic_he: null })).toBeNull();
+    expect(usefulPhonetic({ phrase_he: "תודה", phonetic_he: "  " })).toBeNull();
   });
 });

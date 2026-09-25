@@ -1,6 +1,6 @@
 # End-to-end tests
 
-Two suites, both driving the real app in Chromium at the 390px mobile viewport.
+Three suites, all driving the real app in Chromium.
 
 ## Smoke suite (no credentials) - `npm run test:e2e`
 
@@ -14,6 +14,26 @@ and we can verify:
 - all 21 routes mount (HTTP status, no error dialog, no uncaught exceptions)
 
 No setup needed - it runs anywhere.
+
+## Populated suite (no credentials) - `npm run test:e2e:populated`
+
+`populated.spec.ts` signs an owner in and fills every screen with a whole
+trip, still with no Supabase project. The app starts against a fake URL and
+`support/mockSupabase.ts` answers every call the browser makes, from the
+synthetic trip in `support/fixtures.ts` (ten legs, six countries, bookings,
+expenses, documents, phrasebook). It runs at 390px and at 1280px, at two
+moments: five weeks before departure and day 3 of the trip (the clock is
+fixed with `page.clock`).
+
+It checks every owner screen for one `h1`, no sideways scroll and no uncaught
+exception, plus the regressions from `docs/QA-REVIEW-2026-09-24.md`.
+
+What it does NOT test: RLS (the mock answers as an owner and enforces no
+policy - that is `docs/SECURITY-CHECKS.md`), writes (accepted, never stored),
+Realtime, Storage and Edge Functions (they answer empty or with an error).
+
+The fixtures are invented. Do not paste live rows into them: this file is
+committed.
 
 ## Authenticated suite (needs a test project) - `npm run test:e2e:auth`
 

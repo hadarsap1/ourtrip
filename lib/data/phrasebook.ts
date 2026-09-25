@@ -264,3 +264,55 @@ export function batchChanged(before: Set<string>, after: Set<string>): boolean {
   for (const id of after) if (!before.has(id)) return true;
   return false;
 }
+
+/**
+ * The main language spoken in a country, by ISO 3166 code. Broad on purpose,
+ * like SEARCHABLE_LANGUAGES: the trip must not assume where it is (CLAUDE.md
+ * rule #9), so this names the language of any country the family might add,
+ * not only today's route.
+ */
+const COUNTRY_LANGUAGE: Record<string, string> = {
+  VN: "vi", TH: "th", KH: "km", LA: "lo", PH: "tl", JP: "ja", GE: "ka",
+  CN: "zh", TW: "zh", HK: "zh", KR: "ko", ID: "id", MY: "ms", MM: "my",
+  NP: "ne", LK: "si", IN: "hi", BD: "bn",
+  AE: "ar", EG: "ar", JO: "ar", MA: "ar", IR: "fa", TR: "tr", GR: "el",
+  AM: "hy", AZ: "az", RU: "ru", UA: "uk", PL: "pl", CZ: "cs", RO: "ro",
+  HU: "hu", ES: "es", MX: "es", AR: "es", CL: "es", PE: "es", CO: "es",
+  PT: "pt", BR: "pt", FR: "fr", IT: "it", DE: "de", AT: "de", NL: "nl",
+  SE: "sv", NO: "no", DK: "da", FI: "fi", KE: "sw", TZ: "sw", ET: "am",
+  ZA: "af", AL: "sq", RS: "sr", HR: "hr", BG: "bg", SK: "sk", SI: "sl",
+  LT: "lt", LV: "lv", EE: "et",
+};
+
+/**
+ * Which language the phrasebook opens on. The one spoken where the family is
+ * today, when that language has a phrasebook; otherwise the first available.
+ *
+ * It used to always be the first in the list, which is alphabetical by code:
+ * standing in Hanoi the screen opened on Japanese, and the phrase you need in a
+ * hurry was two taps away.
+ */
+export function pickDefaultLanguage(
+  languages: string[],
+  countryCode: string | null | undefined
+): string | null {
+  if (languages.length === 0) return null;
+  const local = countryCode ? COUNTRY_LANGUAGE[countryCode.toUpperCase()] : undefined;
+  if (local && languages.includes(local)) return local;
+  return languages[0];
+}
+
+/**
+ * The transliteration worth showing, or null. Older generations wrote the
+ * Hebrew phrase back into phonetic_he ("בוקר טוב" under "בוקר טוב"): every
+ * Vietnamese row and about half the Thai and Tagalog ones. Shown, it reads as
+ * a pronunciation guide that says to pronounce the Hebrew.
+ */
+export function usefulPhonetic(entry: {
+  phrase_he: string;
+  phonetic_he: string | null;
+}): string | null {
+  const phonetic = entry.phonetic_he?.trim();
+  if (!phonetic) return null;
+  return phonetic === entry.phrase_he.trim() ? null : phonetic;
+}
