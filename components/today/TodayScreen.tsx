@@ -35,6 +35,7 @@ import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/
 import { daysUntil } from "@/lib/data/readiness";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
+import { countryName } from "@/lib/data/emergency";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
 import type { Booking, ItineraryItem, Trip } from "@/lib/types";
@@ -185,6 +186,17 @@ function AgendaCard({
 }
 
 /* -------------------------------------------------------------------------- */
+
+/** ", יפן" after a city, nothing when the place already names its country.
+ *  The header used to print the raw ISO code: "וייטנאם - צפון, VN". */
+function countrySuffix(
+  location: string | null | undefined,
+  code: string | null | undefined
+): string {
+  if (!code) return "";
+  const name = countryName(code);
+  return location?.includes(name) ? "" : `, ${name}`;
+}
 
 export function TodayScreen() {
   const [result, setResult] = useState<{
@@ -456,7 +468,7 @@ export function TodayScreen() {
               <PinIcon className="h-[17px] w-[17px] shrink-0 text-white/80" />
               <span className="truncate">
                 {data?.day?.location_name ?? strings.today.noPlace}
-                {data?.day?.country_code ? `, ${data.day.country_code}` : ""}
+                {countrySuffix(data?.day?.location_name, data?.day?.country_code)}
               </span>
             </h1>
             <p className="mt-1 text-[11.5px] text-white/70">{dayLine}</p>
@@ -603,7 +615,7 @@ export function TodayScreen() {
               {dashboard && (
                 <Tile label={strings.today.tileSpentToday}>
                   <p className="text-[19px] font-extrabold leading-none text-ink">
-                    {formatMoney(dashboard.spentToday, "ILS")}
+                    {formatMoney(Math.round(dashboard.spentToday), "ILS")}
                   </p>
                   {dashboard.budget > 0 && (
                     <ProgressBar
@@ -622,7 +634,7 @@ export function TodayScreen() {
                         remaining < 0 ? "text-alert" : "text-sun-deep"
                       }`}
                     >
-                      {formatMoney(remaining, "ILS")}
+                      {formatMoney(Math.round(remaining), "ILS")}
                     </p>
                   ) : (
                     <p className="text-[13px] text-sun-deep/70">

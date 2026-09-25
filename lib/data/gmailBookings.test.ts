@@ -110,4 +110,21 @@ describe("candidateToInsert", () => {
     expect(row.cost).toBeNull();
     expect(row.currency).toBeNull();
   });
+
+  it("drops an end date that comes before the start", () => {
+    const row = candidateToInsert(
+      candidate({ start_date: "2027-04-02", end_date: "2026-09-10" }),
+      "t"
+    );
+    expect(row.start_date).toBe("2027-04-02");
+    expect(row.end_date).toBeNull();
+  });
+
+  it("keeps an end date on or after the start", () => {
+    const row = candidateToInsert(
+      candidate({ start_date: "2027-04-02", end_date: "2027-04-10" }),
+      "t"
+    );
+    expect(row.end_date).toBe("2027-04-10");
+  });
 });

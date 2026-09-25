@@ -13,6 +13,7 @@
 
 import { listDayIdsWithItems } from "@/lib/data/itinerary";
 import { getSupabase } from "@/lib/supabase";
+import { countryName } from "@/lib/data/emergency";
 
 function requireClient() {
   const client = getSupabase();
@@ -149,7 +150,7 @@ export function buildReadiness(input: ReadinessInput): ReadyGroup[] {
       key: "bank_coverage",
       status: noBank.length === 0 ? "ok" : "warn",
       values: {
-        countries: noBank.map((c) => c.code).join(", "),
+        countries: noBank.map((c) => countryName(c.code)).join(", "),
         days: noBank.reduce((sum, c) => sum + c.days, 0),
       },
       href: "/options",
@@ -157,13 +158,13 @@ export function buildReadiness(input: ReadinessInput): ReadyGroup[] {
     {
       key: "emergency",
       status: noEmergency.length === 0 ? "ok" : "missing",
-      values: { countries: noEmergency.map((c) => c.code).join(", ") },
+      values: { countries: noEmergency.map((c) => countryName(c.code)).join(", ") },
       href: "/emergency",
     },
     {
       key: "phrasebook",
       status: noPhrasebook.length === 0 ? "ok" : "warn",
-      values: { countries: noPhrasebook.map((c) => c.code).join(", ") },
+      values: { countries: noPhrasebook.map((c) => countryName(c.code)).join(", ") },
       href: "/phrasebook",
     },
   ];

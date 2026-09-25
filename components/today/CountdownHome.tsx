@@ -110,13 +110,13 @@ export function CountdownHome({ trip }: { trip: Trip }) {
         <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/70">
           {trip.name}
         </p>
-        <p className="mt-1 text-[32px] font-extrabold leading-none">
+        <h1 className="mt-1 text-[32px] font-extrabold leading-none">
           {left == null
             ? r.noDate
             : left === 0
               ? r.countdownToday
               : r.countdown.replace("{n}", String(left))}
-        </p>
+        </h1>
         {checks !== null && (
           <p className="mt-2 text-sm text-white/80">
             {outstanding === 0

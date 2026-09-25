@@ -609,18 +609,18 @@ export function OptionsScreen() {
                                 </div>
                               </div>
 
-                              <div className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                              <div className="-me-2 -mt-2 flex shrink-0 flex-col items-end text-xs">
                                 <button
                                   type="button"
                                   onClick={() => setEditing(o)}
-                                  className="text-ink-soft"
+                                  className="min-h-10 px-2 text-ink-soft"
                                 >
                                   {strings.common.edit}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => void remove(o.id)}
-                                  className="text-rose-600"
+                                  className="min-h-10 px-2 text-rose-600"
                                 >
                                   {strings.common.delete}
                                 </button>
@@ -632,7 +632,7 @@ export function OptionsScreen() {
                                 <button
                                   type="button"
                                   onClick={() => void changeStatus(o, "shortlist")}
-                                  className="rounded-full bg-sun/20 px-3 py-1 font-medium"
+                                  className="min-h-10 rounded-full bg-sun/20 px-3 py-1 font-medium"
                                 >
                                   <StarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.markShortlist}
                                 </button>
@@ -645,7 +645,7 @@ export function OptionsScreen() {
                                 <button
                                   type="button"
                                   onClick={() => setPromoting(o)}
-                                  className="rounded-full bg-sea px-3 py-1 font-medium text-white"
+                                  className="min-h-10 rounded-full bg-sea px-3 py-1 font-medium text-white"
                                 >
                                   {s.promoteTitle}
                                 </button>
@@ -654,7 +654,7 @@ export function OptionsScreen() {
                                 <button
                                   type="button"
                                   onClick={() => void changeStatus(o, "rejected")}
-                                  className="rounded-full bg-paper-deep px-3 py-1 font-medium text-ink-soft"
+                                  className="min-h-10 rounded-full bg-paper-deep px-3 py-1 font-medium text-ink-soft"
                                 >
                                   {s.markRejected}
                                 </button>
@@ -663,7 +663,7 @@ export function OptionsScreen() {
                                 <button
                                   type="button"
                                   onClick={() => void changeStatus(o, "option")}
-                                  className="rounded-full bg-paper-deep px-3 py-1 font-medium text-ink-soft"
+                                  className="min-h-10 rounded-full bg-paper-deep px-3 py-1 font-medium text-ink-soft"
                                 >
                                   {s.markOption}
                                 </button>

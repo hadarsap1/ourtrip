@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveBudgetTotals, resolveBudgetProgress } from "./budget";
+import {
+  resolveBudgetTotals,
+  resolveBudgetProgress,
+  resolveBudgetPace,
+} from "./budget";
 import type { BudgetCategory } from "@/lib/types";
 
 const cat = (planned_amount: number) =>
@@ -117,5 +121,76 @@ describe("resolveBudgetProgress", () => {
   it("reports nothing used when there is no budget at all", () => {
     const nothing = resolveBudgetTotals(null, []);
     expect(resolveBudgetProgress(nothing, 0).usedPct).toBe(0);
+  });
+});
+
+describe("resolveBudgetPace", () => {
+  const START = "2026-10-31";
+  const END = "2027-06-17"; // 230 days
+  const e = (amount_ils: number, spent_on: string, created_at?: string) => ({
+    amount_ils,
+    spent_on,
+    created_at,
+  });
+
+  it("keeps a booking paid in advance but dated inside the trip out of the pace", () => {
+    // The real case: a Chiang Mai hotel paid in September, dated 22/11. On the
+    // morning of day 3 it must not count as three days of spending.
+    const pace = resolveBudgetPace(
+      [
+        e(1864, "2026-11-22", "2026-09-22T08:42:16Z"),
+        e(1950, "2026-10-31", "2026-09-14T16:34:43Z"),
+        e(50, "2026-11-02", "2026-11-02T12:00:00Z"),
+      ],
+      START,
+      END,
+      "2026-11-02"
+    );
+    expect(pace.prepaid).toBe(3814);
+    expect(pace.onTrip).toBe(50);
+    expect(pace.burnPerDay).toBeCloseTo(50 / 3);
+    // prepaid once, plus the real pace over the 227 days left
+    expect(pace.projection).toBeCloseTo(3864 + (50 / 3) * 227);
+  });
+
+  it("does not count an expense dated in the future, even one entered on the trip", () => {
+    const pace = resolveBudgetPace(
+      [e(900, "2026-11-20", "2026-11-02T10:00:00Z")],
+      START,
+      END,
+      "2026-11-02"
+    );
+    expect(pace.onTrip).toBe(0);
+    expect(pace.prepaid).toBe(900);
+  });
+
+  it("starts counting a future-dated expense once its day arrives", () => {
+    const pace = resolveBudgetPace(
+      [e(900, "2026-11-20", "2026-11-02T10:00:00Z")],
+      START,
+      END,
+      "2026-11-20"
+    );
+    expect(pace.onTrip).toBe(900);
+  });
+
+  it("before departure has no pace and projects what is already spent", () => {
+    const pace = resolveBudgetPace([e(624, "2026-08-10")], START, END, "2026-09-24");
+    expect(pace.notStarted).toBe(true);
+    expect(pace.burnPerDay).toBeNull();
+    expect(pace.projection).toBe(624);
+    expect(pace.prepaid).toBe(624);
+  });
+
+  it("treats rows without created_at by their date alone", () => {
+    const pace = resolveBudgetPace([e(100, "2026-11-01")], START, END, "2026-11-02");
+    expect(pace.onTrip).toBe(100);
+    expect(pace.burnPerDay).toBeCloseTo(100 / 3); // day 3 of the trip
+  });
+
+  it("has no pace without trip dates", () => {
+    const pace = resolveBudgetPace([e(100, "2026-11-01")], null, null, "2026-11-02");
+    expect(pace.burnPerDay).toBeNull();
+    expect(pace.projection).toBeNull();
   });
 });

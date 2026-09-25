@@ -170,8 +170,10 @@ export function TimelineBlock({ timeline }: { timeline: TimelineStretch[] }) {
     <section>
       <p className="ot-kicker mb-2 px-0.5">{s.timelineTitle}</p>
       {/* items-stretch so a highlighted card's extra label line does not leave
-          its neighbours short. */}
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+          its neighbours short. From lg it wraps: a desktop mouse has no swipe,
+          and the strip showed four legs out of fourteen with no way to the
+          rest short of a shift-scroll nobody knows about. */}
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-x-visible">
         {timeline.map((stretch) => (
           <StretchCard
             key={`${stretch.countryCode}::${stretch.locationName}`}

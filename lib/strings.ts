@@ -275,8 +275,8 @@ export const strings = {
     quickLinesSaved: "נוספו {n} הוצאות",
     quickLinesSomeFx: "‏{n} שורות לא נוספו - אין שער המרה למטבע",
     quickLinesNone: "לא נמצאו שורות עם סכום",
-    // pre-trip spending
-    beforeTrip: "לפני הטיול",
+    // paid in advance: before departure, or a booking paid ahead of its date
+    beforeTrip: "שולם מראש",
     beforeTripHint: "לא נכלל בקצב היומי",
     fxError: "לא הצלחנו להמיר את המטבע - נסו שוב",
     converterTitle: "המרת מטבע",
@@ -1335,13 +1335,13 @@ export const strings = {
       doc_insurance: { label: "ביטוח נסיעות", detail: "‏{n} בכספת" },
       doc_expiring: {
         label: "תוקף מסמכים",
-        detail: "‏{n} פגים לפני סוף הטיול",
+        detail: "פגים לפני סוף הטיול: {n}",
         okDetail: "אף מסמך לא פג במהלך הטיול",
       },
       first_days_planned: {
         label: "השבועיים הראשונים",
         detail: "‏{empty} מתוך {total} ימים בלי שום פעילות",
-        okDetail: "לכל היום הראשונים יש תוכנית",
+        okDetail: "לכל הימים הראשונים יש תוכנית",
       },
       bookings: { label: "הזמנות", detail: "‏{n} רשומות במערכת" },
       days_planned: {

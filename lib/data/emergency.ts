@@ -150,7 +150,7 @@ export async function getTodayCountryCode(tripId: string): Promise<string | null
   }
 }
 
-/** Countries relevant to the trip: itinerary days ∪ existing pages. */
+/** Countries relevant to the trip, in the order the route reaches them. */
 export async function listCountryOptions(tripId: string): Promise<string[]> {
   const codes = new Set<string>();
   try {
@@ -158,14 +158,15 @@ export async function listCountryOptions(tripId: string): Promise<string[]> {
       .from("itinerary_days")
       .select("country_code")
       .eq("trip_id", tripId)
-      .not("country_code", "is", null);
+      .not("country_code", "is", null)
+      .order("date");
     for (const row of data ?? []) {
       if (row.country_code) codes.add(row.country_code);
     }
   } catch {
     // offline - cached pages below still populate the list
   }
-  return [...codes].sort();
+  return [...codes];
 }
 
 /** Hebrew country name for an ISO code, falling back to the code itself. */
