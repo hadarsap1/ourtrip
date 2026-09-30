@@ -27,6 +27,7 @@ import { listDays } from "@/lib/data/itinerary";
 import { getActiveTrip } from "@/lib/data/trip";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { distinctLabels, labelKey } from "@/lib/labels";
 import type { ComponentType } from "react";
 import {
   AttractionIcon,
@@ -87,18 +88,28 @@ type Grouped = {
 }[];
 
 function group(options: PlaceOption[], ungrouped: string): Grouped {
-  const byCountry = new Map<string, Map<string, PlaceOption[]>>();
+  const byCountry = new Map<
+    string,
+    { label: string; areas: Map<string, { label: string; options: PlaceOption[] }> }
+  >();
   for (const o of options) {
-    const c = o.country?.trim() || ungrouped;
-    const a = o.area?.trim() || "";
-    if (!byCountry.has(c)) byCountry.set(c, new Map());
-    const areas = byCountry.get(c)!;
-    if (!areas.has(a)) areas.set(a, []);
-    areas.get(a)!.push(o);
+    // Keyed by labelKey so two spellings that read the same share a heading;
+    // the first spelling seen is the one shown.
+    const country = o.country?.trim() || ungrouped;
+    const area = o.area?.trim() || "";
+    const c = labelKey(country);
+    const a = labelKey(area);
+    if (!byCountry.has(c)) byCountry.set(c, { label: country, areas: new Map() });
+    const areas = byCountry.get(c)!.areas;
+    if (!areas.has(a)) areas.set(a, { label: area, options: [] });
+    areas.get(a)!.options.push(o);
   }
-  return [...byCountry.entries()].map(([country, areas]) => ({
-    country,
-    areas: [...areas.entries()].map(([area, opts]) => ({ area, options: opts })),
+  return [...byCountry.values()].map(({ label, areas }) => ({
+    country: label,
+    areas: [...areas.values()].map(({ label: area, options: opts }) => ({
+      area,
+      options: opts,
+    })),
   }));
 }
 
@@ -167,7 +178,7 @@ export function OptionsScreen() {
       if (leg) {
         const match = loaded.find(
           (o) =>
-            (o.area ?? "").trim().toLowerCase() === leg.trim().toLowerCase()
+            labelKey(o.area ?? "") === labelKey(leg)
         )?.area;
         if (match) setAreaFilter(match.trim());
       }
@@ -212,12 +223,11 @@ export function OptionsScreen() {
   const tally = useMemo(() => tallyByArea(options, days), [options, days]);
 
   const countries = useMemo(
-    () =>
-      [...new Set(options.map((o) => o.country?.trim()).filter(Boolean))] as string[],
+    () => distinctLabels(options.map((o) => o.country)),
     [options]
   );
   const areas = useMemo(
-    () => [...new Set(options.map((o) => o.area?.trim()).filter(Boolean))] as string[],
+    () => distinctLabels(options.map((o) => o.area)),
     [options]
   );
 
@@ -226,12 +236,10 @@ export function OptionsScreen() {
   const areasForCountry = useMemo(() => {
     const pool = countryFilter
       ? options.filter(
-          (o) =>
-            (o.country ?? "").trim().toLowerCase() ===
-            countryFilter.trim().toLowerCase()
+          (o) => labelKey(o.country ?? "") === labelKey(countryFilter)
         )
       : options;
-    return [...new Set(pool.map((o) => o.area?.trim()).filter(Boolean))] as string[];
+    return distinctLabels(pool.map((o) => o.area));
   }, [countryFilter, options]);
 
   const save = useCallback(
@@ -529,7 +537,7 @@ export function OptionsScreen() {
                       <h3 className="mb-1 flex flex-wrap items-baseline gap-x-1.5 pr-1 text-xs font-semibold text-ink-soft">
                         {a.area}
                         {(() => {
-                          const t = tally.get(a.area.trim().toLowerCase());
+                          const t = tally.get(labelKey(a.area));
                           if (!t) return null;
                           return (
                             <span className="font-normal text-ink-faint">
