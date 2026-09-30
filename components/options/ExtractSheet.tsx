@@ -69,6 +69,7 @@ export function ExtractSheet({
       const { places, partial } = await extractPlacesFromText(text, {
         country: country || null,
         area: area || null,
+        knownAreas: areas,
       });
       setFound(places);
       setPartial(partial);

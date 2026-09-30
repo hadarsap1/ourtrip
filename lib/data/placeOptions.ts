@@ -426,11 +426,18 @@ export async function resetGeocodeAttempts(tripId: string): Promise<void> {
 
 export async function extractPlacesFromText(
   text: string,
-  hints: { country: string | null; area: string | null }
+  hints: { country: string | null; area: string | null; knownAreas?: string[] }
 ): Promise<ExtractResult> {
   const { data, error } = await requireClient().functions.invoke(
     "extract-places",
-    { body: { text, country: hints.country, area: hints.area } }
+    {
+      body: {
+        text,
+        country: hints.country,
+        area: hints.area,
+        knownAreas: hints.knownAreas ?? [],
+      },
+    }
   );
   // Rethrow the function's own error code, not supabase-js's generic message,
   // so the UI can tell "no API key" and "no balance" apart from "try again".
