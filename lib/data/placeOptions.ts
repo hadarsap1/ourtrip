@@ -13,6 +13,7 @@ import { createBooking } from "@/lib/data/bookings";
 import { createItem } from "@/lib/data/itinerary";
 import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
+import { labelKey } from "@/lib/labels";
 import type { OptionForAreas } from "@/lib/data/segments";
 import type { Booking, PlaceOption, PlaceOptionStatus } from "@/lib/types";
 import type { TablesInsert } from "@/lib/database.types";
@@ -117,10 +118,7 @@ export function canonicalLabel(
   if (!trimmed) return typed;
 
   const normalise = (value: string) =>
-    value
-      .trim()
-      .replace(/\s+/g, " ")
-      .toLowerCase()
+    labelKey(value)
       .replace(/^ה/, "")
       .replace(/יי/g, "י")
       .replace(/וו/g, "ו");
@@ -336,7 +334,7 @@ export type OptionFilter = {
 };
 
 const sameLabel = (a: string | null | undefined, b: string | null | undefined) =>
-  (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
+  labelKey(a ?? "") === labelKey(b ?? "");
 
 /** Applies every set cut. Pure, so the list, the map and the counts can't drift
  *  apart. Country and area compare case- and whitespace-insensitively because
@@ -428,11 +426,18 @@ export async function resetGeocodeAttempts(tripId: string): Promise<void> {
 
 export async function extractPlacesFromText(
   text: string,
-  hints: { country: string | null; area: string | null }
+  hints: { country: string | null; area: string | null; knownAreas?: string[] }
 ): Promise<ExtractResult> {
   const { data, error } = await requireClient().functions.invoke(
     "extract-places",
-    { body: { text, country: hints.country, area: hints.area } }
+    {
+      body: {
+        text,
+        country: hints.country,
+        area: hints.area,
+        knownAreas: hints.knownAreas ?? [],
+      },
+    }
   );
   // Rethrow the function's own error code, not supabase-js's generic message,
   // so the UI can tell "no API key" and "no balance" apart from "try again".
@@ -486,7 +491,7 @@ export function rankForDay(
 ): DayOption[] {
   const origin =
     day.lat != null && day.lng != null ? { lat: day.lat, lng: day.lng } : null;
-  const dayArea = (day.area ?? day.location_name ?? "").trim().toLowerCase();
+  const dayArea = labelKey(day.area ?? day.location_name ?? "");
 
   return options
     .map((o) => ({
@@ -497,8 +502,8 @@ export function rankForDay(
           : null,
     }))
     .sort((a, b) => {
-      const aArea = dayArea !== "" && (a.area ?? "").trim().toLowerCase() === dayArea;
-      const bArea = dayArea !== "" && (b.area ?? "").trim().toLowerCase() === dayArea;
+      const aArea = dayArea !== "" && labelKey(a.area ?? "") === dayArea;
+      const bArea = dayArea !== "" && labelKey(b.area ?? "") === dayArea;
       if (aArea !== bArea) return aArea ? -1 : 1;
       if (a.distanceKm == null) return b.distanceKm == null ? 0 : 1;
       if (b.distanceKm == null) return -1;
@@ -602,7 +607,7 @@ export function tallyByArea(
   options: PlaceOption[],
   days: { location_name: string | null }[]
 ): Map<string, AreaTally> {
-  const key = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
+  const key = (v: string | null | undefined) => labelKey(v ?? "");
 
   const dayCounts = new Map<string, number>();
   for (const day of days) {
@@ -652,22 +657,25 @@ export function groupForDay(
   day: { location_name: string | null; lat: number | null; lng: number | null }
 ): DayOptionGroup[] {
   const ranked = rankForDay(options, day);
-  const dayArea = (day.location_name ?? "").trim().toLowerCase();
+  const dayArea = labelKey(day.location_name ?? "");
 
-  const byArea = new Map<string, DayOption[]>();
+  // Keyed by labelKey, so מאי צ'או and מאי צ׳או are one group, shown under
+  // the first spelling seen.
+  const byArea = new Map<string, { label: string; list: DayOption[] }>();
   for (const option of ranked) {
-    const key = (option.area ?? "").trim();
-    const list = byArea.get(key);
-    if (list) list.push(option);
-    else byArea.set(key, [option]);
+    const label = (option.area ?? "").trim();
+    const key = labelKey(label);
+    const group = byArea.get(key);
+    if (group) group.list.push(option);
+    else byArea.set(key, { label, list: [option] });
   }
 
-  return [...byArea.entries()]
-    .map(([area, list]) => ({ area: area === "" ? null : area, options: list }))
+  return [...byArea.values()]
+    .map(({ label, list }) => ({ area: label === "" ? null : label, options: list }))
     .sort((a, b) => {
       // The stretch's own name first when it happens to match an area.
-      const aMatch = dayArea !== "" && (a.area ?? "").toLowerCase() === dayArea;
-      const bMatch = dayArea !== "" && (b.area ?? "").toLowerCase() === dayArea;
+      const aMatch = dayArea !== "" && labelKey(a.area ?? "") === dayArea;
+      const bMatch = dayArea !== "" && labelKey(b.area ?? "") === dayArea;
       if (aMatch !== bMatch) return aMatch ? -1 : 1;
       // Then the areas with the most to choose from, since those are where the
       // planning actually happens. Unfiled options sink to the bottom.

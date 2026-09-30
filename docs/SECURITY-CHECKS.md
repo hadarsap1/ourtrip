@@ -1522,3 +1522,21 @@ X The idea counts and map points read `place_options`, which is owner-only
 no pins - worth re-checking if a guest-facing map is ever added, because the
 bank is planning content and must not leak through it.
 
+
+## place_options country code on save (migration 00040)
+
+Adds `label_key(text)` (immutable SQL, no table access) and a BEFORE INSERT/UPDATE
+trigger `place_options_fill_country_code` on `place_options`. The trigger is
+`security invoker` with an empty `search_path`, so it runs with the saving
+user's rights under the existing `place_options_owner_all` (00020) and reads only
+rows with the same `trip_id` as the row being saved. No policy changes.
+
+| Check | Result |
+|---|---|
+| Trigger cannot read another trip's options | ✅ PASS - lookup is `where p.trip_id = new.trip_id`, and RLS still applies (invoker) |
+| A kid or guest gains nothing | ✅ PASS - neither role can insert or update `place_options`, so the trigger never runs for them |
+| Behaviour verified live, rolled back | ✅ PASS - insert with ויטנאם got VN, changing to יפן re-derived JP, an uncoded country (לאוס) stayed null |
+
+`extract-places` now accepts `knownAreas` (strings only, 150 max, 60 chars
+each). It is the owner's own bank passed as a naming hint, placed outside the
+untrusted post markers; the owner gate still runs before the body is read.
