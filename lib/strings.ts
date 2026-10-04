@@ -338,6 +338,12 @@ export const strings = {
     error: "לא הצלחנו ליצור קוד - צריך חיבור",
   },
 
+  metro: {
+    label: "קו הטיול",
+    stopAria: "{place}, {dates}, {nights} לילות",
+    here: "אנחנו כאן",
+  },
+
   planMyDay: {
     open: "תכנן לי את היום",
     title: "תכנון יום · {date}",
