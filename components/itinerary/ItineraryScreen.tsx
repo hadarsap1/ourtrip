@@ -19,6 +19,7 @@ import {
   deleteItem,
   moveItemToDay,
   reorderItems,
+  shiftStretchNights,
   subscribeItinerary,
   updateItem,
 } from "@/lib/data/itinerary";
@@ -30,7 +31,7 @@ import {
   type LegOverview,
 } from "@/lib/itineraryOverview";
 import type { OptionForAreas } from "@/lib/data/segments";
-import { todayISO } from "@/lib/format";
+import { formatDate, todayISO } from "@/lib/format";
 import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -361,6 +362,36 @@ export function ItineraryScreen() {
     [days, showToast]
   );
 
+  const shiftNights = useCallback(
+    async (leg: LegOverview, delta: 1 | -1) => {
+      if (!trip) return;
+      const place = leg.stretch.locationName ?? leg.stretch.countryCode ?? "";
+      const question = (delta === 1 ? strings.itinerary.nightsAddConfirm : strings.itinerary.nightsRemoveConfirm)
+        .replace("{place}", place)
+        .replace("{date}", formatDate(leg.stretch.to));
+      if (!(await askConfirm(question))) return;
+      try {
+        const r = await shiftStretchNights(trip.id, leg.stretch.to, delta);
+        await refresh(trip.id);
+        showToast(
+          r.bookingsAfter > 0
+            ? strings.itinerary.nightsBookingsWarn.replace("{n}", String(r.bookingsAfter))
+            : strings.itinerary.nightsDone
+        );
+      } catch (e) {
+        const code = e instanceof Error ? e.message : "";
+        showToast(
+          code === "day_not_empty"
+            ? strings.itinerary.nightsDayNotEmpty
+            : code === "unavailable"
+              ? strings.itinerary.nightsUnavailable
+              : strings.common.error
+        );
+      }
+    },
+    [trip, refresh, showToast]
+  );
+
   const refreshNow = useCallback(() => {
     if (!trip) return;
     void refresh(trip.id).catch(() => showToast(strings.common.error));
@@ -663,6 +694,11 @@ export function ItineraryScreen() {
                         }}
                         todayISO={today}
                         renderDay={renderDayCard}
+                        onShiftNights={
+                          isEnabled("nightsStepper")
+                            ? (delta) => void shiftNights(leg, delta)
+                            : undefined
+                        }
                       />
                     </div>
                   ))}

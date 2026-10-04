@@ -1,5 +1,6 @@
 "use client";
 
+import { Stepper } from "@/components/ui/Progress";
 import {
   BedIcon,
   CalendarIcon,
@@ -42,6 +43,7 @@ export function LegSection({
   isDayEmpty,
   registerDayRef,
   todayISO: today,
+  onShiftNights,
 }: {
   leg: LegOverview;
   open: boolean;
@@ -57,6 +59,8 @@ export function LegSection({
    *  empty day is a target too, so every row registers and not just the cards. */
   registerDayRef?: (dayId: string, el: HTMLDivElement | null) => void;
   todayISO: string;
+  /** Nights stepper (F4). Absent → no stepper (flag off). */
+  onShiftNights?: (delta: 1 | -1) => void;
 }) {
   const { stretch, phase } = leg;
   const v2 = isEnabled("itineraryV2");
@@ -173,6 +177,21 @@ export function LegSection({
           )}
         </div>
       </button>
+
+      {open && v2 && onShiftNights && (
+        <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2">
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-ink">{strings.itinerary.nights}</span>
+            <span className="block text-[12px] text-ink-soft">{strings.itinerary.nightsHint}</span>
+          </span>
+          <Stepper
+            label={strings.itinerary.nights}
+            value={leg.dayCount}
+            min={1}
+            onChange={(next) => onShiftNights(next > leg.dayCount ? 1 : -1)}
+          />
+        </div>
+      )}
 
       {/* Outside the header button: a button cannot nest inside a button, and
           this one goes somewhere else entirely. */}
