@@ -111,11 +111,15 @@ body {
   .no-print {
     display: none !important;
   }
+  /* On screen the body is one viewport tall and <main> scrolls inside it;
+     on paper both have to grow so every page prints. */
   body {
     background: #fff;
+    height: auto !important;
+    overflow: visible !important;
   }
   main {
-    padding-bottom: 0 !important;
+    overflow: visible !important;
   }
   .print-page-break {
     break-inside: avoid;
