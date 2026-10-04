@@ -80,6 +80,9 @@ export function MessagesScreen() {
         if (!cancelled) setLoading(false);
       }
 
+      // The screen may have closed during the awaits above: subscribing now
+      // would leave a channel no cleanup ever removes.
+      if (cancelled) return;
       unsubscribe = subscribeMessages(() => {
         if (debounce) clearTimeout(debounce);
         debounce = setTimeout(() => {

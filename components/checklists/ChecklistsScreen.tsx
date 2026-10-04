@@ -71,6 +71,7 @@ export function ChecklistsScreen() {
         if (!cancelled) setLoading(false);
       }
 
+      if (cancelled) return; // closed during the awaits: no orphan channel
       // Realtime check-off: any change on either device → one refetch.
       unsubscribe = subscribeChecklists(() => {
         if (debounce) clearTimeout(debounce);

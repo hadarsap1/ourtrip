@@ -11,7 +11,7 @@
 //   4. Navigations are network-first with a short timeout, so a slow mobile
 //      connection falls back to the cached shell instead of hanging.
 
-const SHELL_CACHE = "ourtrip-shell-v14";
+const SHELL_CACHE = "ourtrip-shell-v15";
 const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
 const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
@@ -34,20 +34,49 @@ const SHELL_URLS = [
 // reads as a bug; this page names the screens that do work offline.
 const OFFLINE_URL = "/offline";
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) =>
-      // Individually, not addAll: one failing URL used to abort the whole
-      // install, leaving the app with no service worker at all.
-      Promise.all(
-        SHELL_URLS.map((url) =>
-          fetch(url, { credentials: "same-origin" })
-            .then((res) => (res.ok ? cache.put(url, res) : null))
-            .catch(() => null)
-        )
-      )
-    )
+// Build files (CSS, JS chunks) a cached page refers to. Caching the page
+// alone was not enough (found in QA): the page that installs the worker loads
+// its CSS/JS before the worker controls it, and screens not opened since the
+// last deploy never fetched theirs - offline they opened unstyled and inert.
+const STATIC_REF = /\/_next\/static\/[^"'\s)\\]+?\.(?:css|js)/g;
+
+async function precacheShell() {
+  const shell = await caches.open(SHELL_CACHE);
+  const refs = new Set();
+  // Individually, not addAll: one failing URL used to abort the whole
+  // install, leaving the app with no service worker at all.
+  await Promise.all(
+    SHELL_URLS.map(async (url) => {
+      try {
+        const res = await fetch(url, { credentials: "same-origin" });
+        if (!res.ok) return;
+        if ((res.headers.get("content-type") ?? "").includes("text/html")) {
+          for (const ref of (await res.clone().text()).match(STATIC_REF) ?? []) refs.add(ref);
+        }
+        await shell.put(url, res);
+      } catch {
+        // offline during install: the next visit caches it
+      }
+    })
   );
+  const assets = await caches.open(ASSET_CACHE);
+  await Promise.all(
+    [...refs].map(async (ref) => {
+      try {
+        const res = await fetch(ref);
+        if (!res.ok) return;
+        // delete + put moves it to the end, so trimCache keeps this build's files
+        await assets.delete(ref);
+        await assets.put(ref, res);
+      } catch {
+        // missing now; cached on first use instead
+      }
+    })
+  );
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(precacheShell());
   self.skipWaiting();
 });
 

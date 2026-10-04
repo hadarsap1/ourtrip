@@ -25,6 +25,7 @@ import {
   StarIcon,
   WeatherIcon,
 } from "@/components/icons";
+import { countryName } from "@/lib/data/emergency";
 import { loadToday, type TodayData } from "@/lib/data/today";
 import {
   loadTodayDashboard,
@@ -465,7 +466,7 @@ export function TodayScreen() {
               <PinIcon className="h-[17px] w-[17px] shrink-0 text-on-sea/80" />
               <span className="truncate">
                 {data?.day?.location_name ?? strings.today.noPlace}
-                {data?.day?.country_code ? `, ${data.day.country_code}` : ""}
+                {data?.day?.country_code ? `, ${countryName(data.day.country_code)}` : ""}
               </span>
             </h1>
             <p className="mt-1 text-[12px] text-on-sea/70">{dayLine}</p>

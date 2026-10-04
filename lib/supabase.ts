@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
-import { markReachable, markUnreachable, offlineNow, TimeoutError } from "./offline/network";
+import { markReachable, markUnreachable, offlineNow } from "./offline/network";
 
 // Browser-side Supabase client. Returns null when env vars are missing so the
 // shell still renders during local development before the project is wired up.
@@ -21,8 +21,18 @@ export function requestLimitFor(url: string): number | null {
   return REQUEST_LIMIT_MS;
 }
 
+// Every failure we cause is an "AbortError": postgrest-js (2.110+) retries a
+// failed GET three times with 1/2/4 s backoff but never retries an abort.
+// Without this, offline each read took ~7 s to fail before a screen could
+// fall back to its device copy, and a screen with three reads in a row sat on
+// its loader for 20+ s (found in QA). Auth treats it as retryable either way,
+// so the saved login is kept.
+function aborted(reason: string): DOMException {
+  return new DOMException(reason, "AbortError");
+}
+
 export function guardedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  if (offlineNow()) return Promise.reject(new TypeError("Failed to fetch (offline)"));
+  if (offlineNow()) return Promise.reject(aborted("offline"));
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   const ms = requestLimitFor(url);
   if (ms === null) return fetch(input, init);
@@ -35,7 +45,7 @@ export function guardedFetch(input: RequestInfo | URL, init?: RequestInit): Prom
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
-    controller.abort(new TimeoutError());
+    controller.abort(aborted("timeout"));
   }, ms);
   return fetch(input, { ...init, signal: controller.signal }).then(
     (res) => {
@@ -45,7 +55,12 @@ export function guardedFetch(input: RequestInfo | URL, init?: RequestInit): Prom
     },
     (err: unknown) => {
       clearTimeout(timer);
-      if (timedOut) markUnreachable();
+      if (timedOut) {
+        markUnreachable();
+        throw aborted("timeout");
+      }
+      // A plain network failure ("Failed to fetch"): same - fail once, fast.
+      if (err instanceof TypeError) throw aborted(err.message);
       throw err;
     }
   );
