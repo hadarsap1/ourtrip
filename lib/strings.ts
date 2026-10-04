@@ -848,6 +848,11 @@ export const strings = {
     jumpNext: "קפיצה למקטע הקרוב",
     // A day with nothing on it is a thin row, not a card.
     emptyDayAdd: "הוספת פעילות ליום הזה",
+    // F4
+    emptyRun: "{n} ימים ללא תוכנית",
+    planFromBank: "תכנן מהבנק",
+    emptyRunShow: "להציג את הימים",
+    emptyRunHide: "להסתיר את הימים",
     // Whole-trip line at the top of the list.
     tripSpan: "‏{days} ימים · {legs} מקטעים · {countries} מדינות",
     tripPlanned: "‏{done} ימים מתוכננים",
