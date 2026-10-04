@@ -26,6 +26,7 @@ export function DocumentFormSheet({
   initialTag,
   onShare,
   onCopy,
+  camera,
 }: {
   open: boolean;
   tripId: string;
@@ -38,6 +39,8 @@ export function DocumentFormSheet({
   /** F1/1.4: share the file through the phone's share sheet; works offline. */
   onShare?: (doc: Document) => void;
   onCopy?: (doc: Document) => void;
+  /** FAB "scan": the file picker opens the camera. */
+  camera?: boolean;
 }) {
   if (!open) return null;
   return (
@@ -51,6 +54,7 @@ export function DocumentFormSheet({
       initialTag={initialTag}
       onShare={onShare}
       onCopy={onCopy}
+      camera={camera}
     />
   );
 }
@@ -64,6 +68,7 @@ function DocumentForm({
   initialTag,
   onShare,
   onCopy,
+  camera,
 }: {
   tripId: string;
   doc: Document | null;
@@ -73,6 +78,7 @@ function DocumentForm({
   initialTag?: string;
   onShare?: (doc: Document) => void;
   onCopy?: (doc: Document) => void;
+  camera?: boolean;
 }) {
   const [title, setTitle] = useState(doc?.title ?? "");
   const [tag, setTag] = useState(doc?.tag ?? initialTag ?? "passport");
@@ -158,7 +164,8 @@ function DocumentForm({
             <input
               type="file"
               required
-              accept="application/pdf,image/*"
+              accept={camera ? "image/*" : "application/pdf,image/*"}
+              capture={camera ? "environment" : undefined}
               onChange={(e) => handleFilePick(e.target.files?.[0] ?? null)}
               className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
             />

@@ -24,7 +24,7 @@ export function Fab({ actions }: { actions: FabAction[] }) {
     <>
       {open && <button type="button" aria-label={strings.ui.close} data-tap-exempt onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-scrim" />}
       {open && (
-        <div role="menu" aria-label={strings.ui.quickAdd} className="fixed inset-x-4 bottom-[calc(9rem+env(safe-area-inset-bottom))] z-50 mx-auto grid max-w-md grid-cols-4 gap-2 rounded-3xl bg-surface p-3 shadow-[var(--e3)]">
+        <div role="menu" aria-label={strings.ui.quickAdd} className="fixed inset-x-4 bottom-[calc(9.5rem+env(safe-area-inset-bottom))] z-50 mx-auto grid max-w-md grid-cols-4 gap-2 rounded-3xl bg-surface p-3 shadow-[var(--e3)]">
           {actions.map((a) => (
             <button
               key={a.key}
@@ -48,7 +48,7 @@ export function Fab({ actions }: { actions: FabAction[] }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] start-1/2 z-50 flex h-14 w-14 translate-x-1/2 items-center justify-center rounded-full bg-sea text-on-sea shadow-[var(--e2)] lg:hidden"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] start-1/2 z-50 flex h-14 w-14 translate-x-1/2 items-center justify-center rounded-full bg-sea text-on-sea shadow-[var(--e2)] lg:hidden"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className={`h-7 w-7 motion-safe:transition-transform motion-safe:duration-[350ms] ${open ? "rotate-45" : ""}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />

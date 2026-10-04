@@ -10,6 +10,7 @@ import { SimDateBanner } from "@/components/SimDateBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
 import { ThemeSync } from "@/components/ThemeSync";
+import { CaptureFab } from "@/components/capture/CaptureFab";
 import { strings } from "@/lib/strings";
 import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
 
@@ -68,7 +69,7 @@ export default function RootLayout({
         <OfflineBanner />
         {/* ps at lg leaves room for the fixed rail, which sits at the
             inline-start (right) edge. */}
-        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain lg:ps-[216px]">
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0 lg:ps-[216px]">
           <AuthGate>{children}</AuthGate>
         </main>
         <BottomNav />
@@ -77,6 +78,7 @@ export default function RootLayout({
         <OfflineSync />
         <RegisterSW />
         <ThemeSync />
+        <CaptureFab />
       </body>
     </html>
   );

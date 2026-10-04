@@ -395,6 +395,22 @@ export const strings = {
     noResults: "לא נמצאה מדינה",
   },
 
+  capture: {
+    expense: "הוצאה",
+    note: "פתק",
+    photo: "תמונה",
+    scan: "סריקה",
+    expenseTitle: "הוצאה חדשה",
+    noteTitle: "פתק מהיום",
+    notePlaceholder: "מה קרה? שתי מילים מספיקות",
+    noteSaved: "הפתק נשמר ביומן",
+    currency: "מטבע",
+    category: "קטגוריה",
+    noCategories: "אין עדיין קטגוריות - מוסיפים אותן במסך התקציב",
+    backspace: "מחיקת ספרה",
+    save: "שמירה",
+  },
+
   simDate: {
     banner: "מצב בדיקה: התאריך מדומה ל-{date}",
     off: "ביטול",

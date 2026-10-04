@@ -88,7 +88,7 @@ export function DocumentsScreen() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  const [form, setForm] = useState<{ doc: Document | null; tag?: string } | null>(null);
+  const [form, setForm] = useState<{ doc: Document | null; tag?: string; camera?: boolean } | null>(null);
 
   // Documents PIN / vault state
   const [pinExists, setPinExists] = useState(false);
@@ -190,6 +190,15 @@ export function DocumentsScreen() {
     },
     [docs, offlineIds]
   );
+
+  // FAB "סריקה" lands here with ?scan=1: open the upload with the camera.
+  useEffect(() => {
+    if (!trip || isKid) return;
+    if (new URLSearchParams(window.location.search).get("scan") !== "1") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const t = setTimeout(() => setForm({ doc: null, camera: true }), 0);
+    return () => clearTimeout(t);
+  }, [trip, isKid]);
 
   // Runs on open, when the vault unlocks and when the connection returns.
   // Owners only: kid devices never auto-download (they see few documents and
@@ -823,6 +832,7 @@ export function DocumentsScreen() {
           tripId={trip.id}
           doc={form?.doc ?? null}
           initialTag={form?.tag}
+          camera={form?.camera}
           onShare={(d) => void shareDoc(d)}
           onCopy={(d) => void copyDoc(d)}
           onClose={() => setForm(null)}
