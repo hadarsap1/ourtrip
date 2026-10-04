@@ -62,7 +62,7 @@ import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
 import { offlineNow, withTimeout } from "@/lib/offline/network";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
-import { getSupabase } from "@/lib/supabase";
+import { storedAuthUserId } from "@/lib/supabase";
 import { DocPinSheet } from "./DocPinSheet";
 import { DocumentFormSheet } from "./DocumentFormSheet";
 
@@ -77,14 +77,6 @@ const TAG_ICON: Record<string, ComponentType<IconProps>> = {
 };
 
 const NETWORK_MS = 8000;
-
-/** The signed-in user's id from the locally stored session - no network. */
-async function sessionUserId(): Promise<string | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id ?? null;
-}
 
 export function DocumentsScreen() {
   const { member } = useMember();
@@ -126,7 +118,7 @@ export function DocumentsScreen() {
   }, []);
 
   // Offline (F1): the list itself is kept on the device per signed-in user
-  // (metadata only - titles, tags, expiry; never file contents), so the
+  // (titles, tags, expiry; never notes or file contents), so the
   // screen opens with no network and the offline copies stay reachable.
   const cacheKeyRef = useRef<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
@@ -140,7 +132,9 @@ export function DocumentsScreen() {
     setDocs(nextDocs);
     setOfflineIds(new Set(ids));
     setFromCache(false);
-    if (cacheKeyRef.current) void writeQuery(cacheKeyRef.current, nextDocs);
+    // Notes can hold a passport or policy number: they never go into the
+    // device copy, which is not encrypted. Offline the list shows without them.
+    if (cacheKeyRef.current) void writeQuery(cacheKeyRef.current, nextDocs.map((d) => ({ ...d, notes: null })));
   }, []);
 
   useEffect(() => {
@@ -152,7 +146,9 @@ export function DocumentsScreen() {
         return;
       }
       setTrip(activeTrip);
-      const uid = await withTimeout(sessionUserId(), 2000).catch(() => null);
+      // From the login saved on this phone: works offline, also after the
+      // access token expired (getSession() then reports no session).
+      const uid = storedAuthUserId();
       cacheKeyRef.current = uid ? `${queryKeys.documents(activeTrip.id)}:${uid}` : null;
       // Known locally first, so an offline open still knows a PIN exists.
       setPinExists(hasLocalDocPin(activeTrip.id));

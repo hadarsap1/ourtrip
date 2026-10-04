@@ -1572,3 +1572,14 @@ in trip 1, an owner of trip 2.
 | Missing `ai_usage` cannot bypass the limit | ✅ by code - usage read/write error → 503 before the model call (fixed during review) |
 
 X 00041/00042 RLS not yet probed live with real kid/guest sessions; they are not applied yet (connector cannot run DDL).
+
+## Offline hardening - device copies and the saved login - 04/10/2026
+
+No policy change. What is kept on the device and what it can unlock:
+
+| Check | Result |
+|---|---|
+| Saved document list holds no secrets | ✅ by code - titles, tags, expiry only; `notes` set to null before the write; files stay AES-GCM wrapped |
+| A parent's list never shows on the kids' tablet | ✅ by code - cache key `documents:<trip>:<auth user id>`; the kid login has its own id |
+| Offline "allowed" by AuthGate grants no data | ✅ by design - only a login saved on this phone (with a refresh token) opens the shell offline; every server read still carries the real token through RLS |
+| Saved member row is cosmetic | ✅ by code - `ourtrip-member:<auth user id>`, used for UI mode only; RLS checks the token |

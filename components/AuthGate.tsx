@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { needsKidUnlock } from "@/lib/data/kids";
-import { getSupabase } from "@/lib/supabase";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { getSupabase, storedAuthUserId } from "@/lib/supabase";
+import { offlineNow, TimeoutError, withTimeout } from "@/lib/offline/network";
 import { SuitcaseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
@@ -19,6 +21,8 @@ let inFlight: Promise<Exclude<GateState, "loading">> | null = null;
 // refresh" reports, and blocking buys no safety: access control is RLS in the
 // database (CLAUDE.md rule #1). The real verdict still lands when it arrives.
 const GATE_TIMEOUT_MS = 2500;
+// supabase-js retries a failed token refresh for up to ~30 s before answering.
+const SESSION_TIMEOUT_MS = 5000;
 
 async function decide(): Promise<Exclude<GateState, "loading">> {
   const supabase = getSupabase();
@@ -28,8 +32,20 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
   // rate-limited in kid-auth), regardless of any stored session.
   if (needsKidUnlock()) return "redirecting";
 
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) return "redirecting";
+  // Offline with a login saved on this phone: open the app. The login page is
+  // a dead end with no network, and the offline-critical screens must open.
+  if (offlineNow()) return storedAuthUserId() ? "allowed" : "redirecting";
+
+  const { data, error: sessionError } = await withTimeout(supabase.auth.getSession(), SESSION_TIMEOUT_MS).catch(
+    (err: unknown) => ({ data: { session: null }, error: err })
+  );
+  if (!data.session) {
+    // "No session" because the expired token could not be renewed (no signal,
+    // or a hung line) is not "signed out": the login is still on the phone and
+    // renews once there is a connection. RLS still decides every read.
+    const couldNotAsk = isAuthRetryableFetchError(sessionError) || sessionError instanceof TimeoutError;
+    return couldNotAsk && storedAuthUserId() ? "allowed" : "redirecting";
+  }
 
   // Link auth user ↔ seeded member row; null role = not allowed.
   const { data: role, error } = await supabase.rpc("link_member_to_auth_user");

@@ -1,4 +1,5 @@
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, storedAuthUserId } from "@/lib/supabase";
+import { offlineNow, withTimeout } from "@/lib/offline/network";
 import type { Member, Trip } from "@/lib/types";
 
 // The app manages a single active trip (DECISIONS #8: no multi-trip UI).
@@ -84,6 +85,42 @@ export async function listMembers(tripId: string): Promise<Member[]> {
   return data ?? [];
 }
 
+// The member row is kept on the device too, per signed-in user (F9 again):
+// offline, a kid tablet must stay in kid mode and a parent's phone must still
+// know it is a parent. Cosmetic role only - RLS checks the real token.
+const MEMBER_STORAGE_PREFIX = "ourtrip-member:";
+
+function readStoredMember(uid: string): Member | null {
+  try {
+    const raw = window.localStorage.getItem(MEMBER_STORAGE_PREFIX + uid);
+    return raw ? (JSON.parse(raw) as Member) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeMember(uid: string, member: Member | null) {
+  try {
+    if (member) window.localStorage.setItem(MEMBER_STORAGE_PREFIX + uid, JSON.stringify(member));
+  } catch {
+    // storage blocked: online-only behaviour, as before
+  }
+}
+
+async function sessionUid(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  // Offline, getSession() can spend ~30 s retrying a token refresh and then
+  // answer "no session"; the id saved with the login is enough to pick a row.
+  if (offlineNow()) return storedAuthUserId();
+  try {
+    const { data } = await withTimeout(supabase.auth.getSession(), 5000);
+    return data.session?.user?.id ?? storedAuthUserId();
+  } catch {
+    return storedAuthUserId();
+  }
+}
+
 async function fetchCurrentMember(): Promise<Member | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
@@ -92,8 +129,7 @@ async function fetchCurrentMember(): Promise<Member | null> {
   // trip revalidating it with the auth server before we can even start the
   // members query. The uid is only used to pick a row - RLS is what actually
   // enforces access, and it validates the token server-side anyway.
-  const { data: sessionData } = await supabase.auth.getSession();
-  const uid = sessionData.session?.user?.id;
+  const uid = await sessionUid();
   if (!uid) return null;
 
   const { data, error } = await supabase
@@ -107,11 +143,16 @@ async function fetchCurrentMember(): Promise<Member | null> {
   // and returning null made every screen that gates on a member tell the
   // family their session had expired and offer a sign-in link - on a trip
   // where the usual reason is a dead connection, and signing out is the one
-  // thing that actually loses them their offline data. Throw instead, so the
-  // caller can say "no connection" and offer a retry.
-  if (error) throw new Error(error.message);
+  // thing that actually loses them their offline data. Fall back to the copy
+  // on this device; with none, throw so the caller can say "no connection".
+  if (error) {
+    const stored = typeof window !== "undefined" ? readStoredMember(uid) : null;
+    if (stored) return stored; // not memoised: the next call tries the network
+    throw new Error(error.message);
+  }
 
   cachedMember = data;
+  if (typeof window !== "undefined") storeMember(uid, data);
   return data;
 }
 
