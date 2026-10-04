@@ -135,12 +135,15 @@ export async function ensureEmergencyForCountry(
 /** Country of today's itinerary day - the default emergency page. */
 export async function getTodayCountryCode(tripId: string): Promise<string | null> {
   try {
-    const { data } = await requireClient()
+    const { data, error } = await requireClient()
       .from("itinerary_days")
       .select("country_code")
       .eq("trip_id", tripId)
       .eq("date", todayISO())
       .maybeSingle();
+    // supabase-js reports a failed request in `error`, it does not throw:
+    // without this check, offline answered "no country" and skipped the snapshot.
+    if (error) throw new Error(error.message);
     return data?.country_code ?? null;
   } catch {
     // offline: today's snapshot may know the country
