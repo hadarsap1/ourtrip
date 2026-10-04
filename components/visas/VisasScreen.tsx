@@ -124,13 +124,13 @@ function RequirementCard({
   return (
     <li className="rounded-[17px] border border-line bg-surface p-3.5 shadow-sm">
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-[11px] font-bold text-ink-soft">
+        <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-[12px] font-bold text-ink-soft">
           {type}
         </span>
         <span className="font-bold text-ink">{row.title_he}</span>
         {trust && (
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[11px] font-extrabold ${trust.className}`}
+            className={`rounded-md px-1.5 py-0.5 text-[12px] font-extrabold ${trust.className}`}
           >
             {trust.label}
           </span>
@@ -179,7 +179,7 @@ function RequirementCard({
           {s.statusLabel}: {status}
         </button>
         {row.verified_at && (
-          <span className="text-[11px] text-ink-faint">
+          <span className="text-[12px] text-ink-faint">
             {fill(s.verifiedOn, { date: formatDate(row.verified_at) })}
           </span>
         )}

@@ -74,7 +74,7 @@ function Tile({
       }`}
     >
       <p
-        className={`text-[10px] font-bold uppercase tracking-[0.09em] ${
+        className={`text-[12px] font-bold uppercase tracking-[0.09em] ${
           tone === "sun" ? "text-sun-deep" : "text-ink-soft"
         }`}
       >
@@ -115,7 +115,7 @@ function AgendaCard({
     <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
       <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
         <h2 className="text-xs font-bold text-ink">{strings.today.agenda}</h2>
-        <span className="text-[10.5px] text-ink-soft">
+        <span className="text-[12px] text-ink-soft">
           {strings.today.agendaCount.replace("{n}", String(items.length))}
         </span>
       </header>
@@ -170,7 +170,7 @@ function AgendaCard({
                     {item.title}
                   </span>
                   {item.location_name && (
-                    <span className="block truncate text-[10.5px] text-ink-soft">
+                    <span className="block truncate text-[12px] text-ink-soft">
                       {item.location_name}
                     </span>
                   )}
@@ -459,12 +459,12 @@ export function TodayScreen() {
                 {data?.day?.country_code ? `, ${data.day.country_code}` : ""}
               </span>
             </h1>
-            <p className="mt-1 text-[11.5px] text-on-sea/70">{dayLine}</p>
+            <p className="mt-1 text-[12px] text-on-sea/70">{dayLine}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <Link
               href="/budget"
-              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[11px] font-bold text-on-sea active:bg-on-sea/20"
+              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-bold text-on-sea active:bg-on-sea/20"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               {strings.today.addExpenseShort}
@@ -472,7 +472,7 @@ export function TodayScreen() {
             <Link
               href="/emergency"
               aria-label={strings.emergency.title}
-              className="min-h-[44px] rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[11px] font-extrabold tracking-[0.06em] text-on-sea active:bg-on-sea/20"
+              className="min-h-[44px] rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-extrabold tracking-[0.06em] text-on-sea active:bg-on-sea/20"
             >
               {strings.emergency.sos}
             </Link>
@@ -522,7 +522,7 @@ export function TodayScreen() {
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="ot-kicker">{strings.today.nextUp}</p>
-                    <span className="text-[10.5px] font-medium text-ink-soft">
+                    <span className="text-[12px] font-medium text-ink-soft">
                       {countdownLabel(upcoming.minutesUntil)}
                     </span>
                   </div>
@@ -540,7 +540,7 @@ export function TodayScreen() {
                     </span>
                   </p>
                   {upcoming.item.location_name && (
-                    <p className="mt-1 truncate text-[11px] text-ink-soft">
+                    <p className="mt-1 truncate text-[12px] text-ink-soft">
                       {upcoming.item.location_name}
                     </p>
                   )}
@@ -566,7 +566,7 @@ export function TodayScreen() {
                       {weather.tempMin}-{weather.tempMax}°
                     </span>
                   </p>
-                  <p className="mt-1 truncate text-[11px] text-ink-soft">
+                  <p className="mt-1 truncate text-[12px] text-ink-soft">
                     {describeWeather(weather.weatherCode).label}
                     {weather.precipitationChance > 0 && (
                       <span dir="ltr"> · {weather.precipitationChance}%</span>
@@ -586,7 +586,7 @@ export function TodayScreen() {
                     </p>
                     {lodging.confirmation_code && (
                       <p
-                        className="mt-1 truncate text-[11px] font-semibold text-ink-soft"
+                        className="mt-1 truncate text-[12px] font-semibold text-ink-soft"
                         dir="ltr"
                       >
                         {lodging.confirmation_code}
@@ -646,7 +646,7 @@ export function TodayScreen() {
                     </h2>
                     <Link
                       href="/photos"
-                      className="text-[11px] font-bold text-sea"
+                      className="text-[12px] font-bold text-sea"
                     >
                       {strings.today.seeAll} ←
                     </Link>
@@ -709,7 +709,7 @@ export function TodayScreen() {
                             {booking.title}
                           </span>
                           <span
-                            className="shrink-0 text-[10.5px] text-ink-soft"
+                            className="shrink-0 text-[12px] text-ink-soft"
                             dir="ltr"
                           >
                             {booking.confirmation_code ??

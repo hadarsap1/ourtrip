@@ -358,7 +358,7 @@ export function MapScreen() {
           <button
             type="button"
             onClick={() => setDayFilter(null)}
-            className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+            className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
               dayFilter === null ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
             }`}
           >
@@ -369,7 +369,7 @@ export function MapScreen() {
               key={day.id}
               type="button"
               onClick={() => setDayFilter(dayFilter === day.id ? null : day.id)}
-              className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 dayFilter === day.id ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
               }`}
             >

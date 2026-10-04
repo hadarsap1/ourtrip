@@ -128,7 +128,7 @@ function HotelSyncForm({
                   <span className="block truncate text-[13px] font-extrabold text-ink">
                     {proposal.booking.title}
                   </span>
-                  <span className="block text-[11.5px] text-ink-soft">
+                  <span className="block text-[12px] text-ink-soft">
                     <span dir="ltr">
                       {formatShortDate(first)}
                       {first !== last ? ` - ${formatShortDate(last)}` : ""}
@@ -137,7 +137,7 @@ function HotelSyncForm({
                     {s.hotelSyncDays.replace("{n}", String(proposal.days.length))}
                     {proposal.place.countryCode && ` · ${countryName(proposal.place.countryCode)}`}
                   </span>
-                  <span className="block text-[11.5px] text-ink-soft">
+                  <span className="block text-[12px] text-ink-soft">
                     {s.hotelSyncFrom.replace("{labels}", currentLabels(proposal.days))}
                   </span>
                 </span>

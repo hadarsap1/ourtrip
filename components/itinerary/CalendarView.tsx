@@ -93,7 +93,7 @@ export function CalendarView({
             </h2>
             <div className="grid grid-cols-7 gap-1 text-center">
               {strings.itinerary.calendarWeekdays.map((w) => (
-                <div key={w} className="text-[11px] font-medium text-ink-soft">
+                <div key={w} className="text-[12px] font-medium text-ink-soft">
                   {w}
                 </div>
               ))}
@@ -142,7 +142,7 @@ export function CalendarView({
                         the rest of the block unexplained. */}
                     {cell?.label && (
                       <span
-                        className={`w-full truncate text-[8px] leading-tight ${
+                        className={`w-full truncate text-[12px] leading-tight ${
                           cell.isStart
                             ? "font-semibold text-sea-deep"
                             : "font-normal text-sea-deep/70"
@@ -166,7 +166,7 @@ export function CalendarView({
                             />
                           ))
                         ) : (
-                          <span className="text-[9px] font-semibold text-sea">
+                          <span className="text-[12px] font-semibold text-sea">
                             {cell.itemCount}
                           </span>
                         )}

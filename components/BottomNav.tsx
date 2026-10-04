@@ -42,13 +42,13 @@ export function BottomNav() {
                 <span className="relative">
                   <tab.Icon className="h-[23px] w-[23px]" strokeWidth={1.7} />
                   {tab.href === "/messages" && unread > 0 && (
-                    <span className="absolute -left-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute -left-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
                       {unread > 9 ? "9+" : unread}
                     </span>
                   )}
                 </span>
                 <span
-                  className={`text-[10.5px] leading-none tracking-[0.01em] ${
+                  className={`text-[12px] leading-none tracking-[0.01em] ${
                     active ? "font-bold" : "font-medium"
                   }`}
                 >

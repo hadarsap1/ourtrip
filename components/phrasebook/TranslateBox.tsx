@@ -27,7 +27,7 @@ export function TranslateBox({
   return (
     <section className="rounded-2xl border border-line bg-surface p-3.5">
       <h2 className="text-[13.5px] font-bold text-ink">{s.translateTitle}</h2>
-      <p className="mt-0.5 text-[11.5px] text-ink-soft">{s.translateHint}</p>
+      <p className="mt-0.5 text-[12px] text-ink-soft">{s.translateHint}</p>
 
       <div className="mt-2 flex gap-2">
         <input
@@ -54,7 +54,7 @@ export function TranslateBox({
 
       {translation && (
         <div className="mt-3 rounded-xl bg-paper-deep p-3">
-          <p className="text-[11px] font-bold text-ink-soft">
+          <p className="text-[12px] font-bold text-ink-soft">
             {s.translateResult}
           </p>
           {/* dir="auto" so Japanese, Georgian and Vietnamese each lay out

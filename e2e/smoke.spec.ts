@@ -141,7 +141,8 @@ test.describe("installability", () => {
   }) => {
     await page.goto("/");
     const manifest = await (await request.get("/manifest.webmanifest")).json();
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    // Light mode keeps the manifest colour; dark mode adds its own tag (F7).
+    await expect(page.locator('meta[name="theme-color"][media="(prefers-color-scheme: light)"]')).toHaveAttribute(
       "content",
       manifest.theme_color,
     );

@@ -347,7 +347,7 @@ export function DocumentsScreen() {
         {/* The PIN is reassurance, not only a challenge - say the vault is
             protected on the way in, not just when it blocks you. */}
         {!isKid && pinExists && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[11px] font-bold text-sea-deep">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[12px] font-bold text-sea-deep">
             <LockIcon className="h-3 w-3" />
             {strings.documents.pinBadge}
           </span>
@@ -369,7 +369,7 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setTagFilter(null)}
-          className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+          className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
             tagFilter === null
               ? "bg-sea-deep text-on-sea"
               : "bg-paper-deep text-ink-soft"
@@ -384,7 +384,7 @@ export function DocumentsScreen() {
               key={tag}
               type="button"
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
                 tagFilter === tag
                   ? "bg-sea-deep text-on-sea"
                   : "bg-paper-deep text-ink-soft"
@@ -407,7 +407,7 @@ export function DocumentsScreen() {
                 soonest.title
               )}
             </p>
-            <p className="mt-0.5 text-[11px] text-sun-deep/85">
+            <p className="mt-0.5 text-[12px] text-sun-deep/85">
               {strings.documents.expiryWarnBody
                 .replace("{expiry}", formatDate(soonest.expires_at!))
                 .replace("{end}", formatDate(trip.end_date))}
@@ -435,7 +435,7 @@ export function DocumentsScreen() {
             <h2 className="text-xs font-bold text-ink">
               {strings.documents.offlineHeader}
             </h2>
-            <span className="text-[10.5px] text-ink-soft">
+            <span className="text-[12px] text-ink-soft">
               {strings.documents.offlineCount
                 .replace("{n}", String(offlineCount))
                 .replace("{total}", String(docs.length))}
@@ -489,7 +489,7 @@ export function DocumentsScreen() {
                       </span>
                     </span>
                     <span
-                      className={`block truncate text-[10.5px] ${
+                      className={`block truncate text-[12px] ${
                         expires ? "font-semibold text-sun-deep" : "text-ink-soft"
                       }`}
                     >

@@ -40,7 +40,7 @@ function RailRow({
       <span className="relative shrink-0">
         <item.Icon className="h-5 w-5" strokeWidth={1.7} />
         {badge > 0 && (
-          <span className="absolute -left-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -left-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
             {badge > 9 ? "9+" : badge}
           </span>
         )}
@@ -137,7 +137,7 @@ export function SideRail() {
           className="flex shrink-0 items-center gap-2.5 rounded-[13px] bg-alert-tint px-3 py-[11px] text-alert"
         >
           <span
-            className="rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]"
+            className="rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]"
             aria-hidden="true"
           >
             {strings.emergency.sos}

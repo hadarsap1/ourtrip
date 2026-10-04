@@ -568,7 +568,7 @@ export function OptionsScreen() {
                                 )}
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
                                   <span
-                                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASS[status]}`}
+                                    className={`rounded-full px-2 py-0.5 text-[12px] font-medium ${STATUS_CLASS[status]}`}
                                   >
                                     {s.status[status]}
                                   </span>

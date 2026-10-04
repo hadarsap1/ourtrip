@@ -222,7 +222,7 @@ export function GooglePhotosSection({
                     )}
                   </button>
                   {/* status badges */}
-                  <div className="pointer-events-none absolute bottom-1 start-1 flex gap-1 text-[10px]">
+                  <div className="pointer-events-none absolute bottom-1 start-1 flex gap-1 text-[12px]">
                     {photo.map_pin_id && (
                       <span className="rounded-full bg-black/55 p-1 text-white">
                         <CameraIcon className="h-3 w-3" />

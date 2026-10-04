@@ -196,7 +196,7 @@ export function FactsScreen() {
                 key={key}
                 type="button"
                 onClick={() => void select(dest)}
-                className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                   on ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
                 }`}
               >

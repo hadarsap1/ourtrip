@@ -182,7 +182,7 @@ export function BudgetScreen() {
           you read a paragraph of a card to find any of them. */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
+          <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-ink-soft">
             {strings.budget.kpiSpent}
           </p>
           <p className="mt-1 text-[17px] font-extrabold leading-none text-ink">
@@ -190,7 +190,7 @@ export function BudgetScreen() {
           </p>
         </div>
         <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
+          <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-ink-soft">
             {remaining < 0 ? strings.budget.kpiOver : strings.budget.kpiRemaining}
           </p>
           <p
@@ -205,7 +205,7 @@ export function BudgetScreen() {
         </div>
         {/* the screen's single sun-filled surface */}
         <div className="rounded-2xl border border-sun/20 bg-sun-tint px-3 py-2.5">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-sun-deep">
+          <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-sun-deep">
             {strings.budget.kpiPerDay}
           </p>
           <p className="mt-1 text-[17px] font-extrabold leading-none text-sun-deep">
@@ -226,7 +226,7 @@ export function BudgetScreen() {
               : strings.budget.totalSpent}
           </p>
           {position && (
-            <span className="shrink-0 text-[11px] text-ink-soft">
+            <span className="shrink-0 text-[12px] text-ink-soft">
               {strings.today.dayOf
                 .replace("{n}", String(position.day))
                 .replace("{total}", String(position.total))}
@@ -254,7 +254,7 @@ export function BudgetScreen() {
           )}
         </div>
 
-        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[11px] text-ink-soft">
+        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[12px] text-ink-soft">
           <span>
             {strings.budget.projection}{" "}
             <span className="font-bold text-ink" dir="ltr">
@@ -273,7 +273,7 @@ export function BudgetScreen() {
           )}
         </div>
         {notStarted && (
-          <p className="mt-1 text-[11px] text-ink-faint">
+          <p className="mt-1 text-[12px] text-ink-faint">
             {strings.budget.tripNotStarted}
           </p>
         )}
@@ -283,7 +283,7 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setEditingTotal(true)}
-          className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[11px] hover:bg-paper-deep"
+          className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[12px] hover:bg-paper-deep"
         >
           <span className="text-ink-soft">
             {hasTarget
@@ -313,7 +313,7 @@ export function BudgetScreen() {
           <button
             type="button"
             onClick={() => setCategoryForm({ category: null })}
-            className="min-h-[40px] rounded-full bg-surface px-3 py-1 text-[11px] font-bold text-sea"
+            className="min-h-[44px] rounded-full bg-surface px-3 py-1 text-[12px] font-bold text-sea"
           >
             + {strings.budget.addCategory}
           </button>
@@ -346,7 +346,7 @@ export function BudgetScreen() {
                         </span>
                         {pct !== null && (
                           <span
-                            className={`shrink-0 text-[10.5px] font-bold ${
+                            className={`shrink-0 text-[12px] font-bold ${
                               over ? "text-sun-deep" : "text-ink-faint"
                             }`}
                             dir="ltr"
@@ -423,7 +423,7 @@ export function BudgetScreen() {
                     <span className="block truncate text-[13.5px] font-medium text-ink">
                       {expense.description || categoryLabel(expense.category_id)}
                     </span>
-                    <span className="flex items-center gap-1 text-[10.5px] text-ink-soft">
+                    <span className="flex items-center gap-1 text-[12px] text-ink-soft">
                       {categoryLabel(expense.category_id)} ·{" "}
                       <span dir="ltr">{formatShortDate(expense.spent_on)}</span>
                       {expense.booking_id && (
@@ -439,7 +439,7 @@ export function BudgetScreen() {
                       {formatMoney(expense.amount_ils, "ILS")}
                     </span>
                     {expense.currency !== "ILS" && (
-                      <span className="text-[10.5px] text-ink-soft" dir="ltr">
+                      <span className="text-[12px] text-ink-soft" dir="ltr">
                         {formatMoney(expense.amount, expense.currency)}
                       </span>
                     )}

@@ -84,7 +84,7 @@ export function LegSection({
         <div className="flex items-start justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             {stretch.countryCode && (
-              <span className="rounded bg-sea-tint px-1.5 py-px text-[10px] font-bold text-sea-deep">
+              <span className="rounded bg-sea-tint px-1.5 py-px text-[12px] font-bold text-sea-deep">
                 {stretch.countryCode}
               </span>
             )}
@@ -92,18 +92,18 @@ export function LegSection({
               {label}
             </span>
             {phase === "current" && (
-              <span className="rounded-full bg-sea px-2 py-0.5 text-[10px] font-bold text-on-sea">
+              <span className="rounded-full bg-sea px-2 py-0.5 text-[12px] font-bold text-on-sea">
                 {strings.itinerary.legHere}
               </span>
             )}
             {phase === "past" && (
-              <span className="rounded-full bg-paper-deep px-2 py-0.5 text-[10px] font-bold text-ink-soft">
+              <span className="rounded-full bg-paper-deep px-2 py-0.5 text-[12px] font-bold text-ink-soft">
                 {strings.itinerary.legDone}
               </span>
             )}
           </span>
           <span className="flex shrink-0 items-center gap-1.5 text-ink-soft">
-            <span className="text-[11px] font-semibold" dir="ltr">
+            <span className="text-[12px] font-semibold" dir="ltr">
               {formatShortDate(stretch.from)}
               {stretch.to !== stretch.from && ` - ${formatShortDate(stretch.to)}`}
             </span>
@@ -129,7 +129,7 @@ export function LegSection({
               }}
             />
           </span>
-          <span className="shrink-0 text-[11px] font-semibold text-ink-soft">
+          <span className="shrink-0 text-[12px] font-semibold text-ink-soft">
             {leg.dayCount === 1
               ? strings.itinerary.legDaysOne
               : strings.itinerary.legDays.replace("{n}", String(leg.dayCount))}
@@ -138,7 +138,7 @@ export function LegSection({
 
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+            className={`rounded-md px-1.5 py-0.5 text-[12px] font-semibold ${
               leg.daysPlanned === 0
                 ? "bg-paper-deep text-ink-soft"
                 : "bg-sea-tint text-sea-deep"
@@ -147,7 +147,7 @@ export function LegSection({
             {plannedLabel}
           </span>
           {leg.bookings > 0 && (
-            <span className="flex items-center gap-1 rounded-md bg-paper-deep px-1.5 py-0.5 text-[11px] font-semibold text-ink">
+            <span className="flex items-center gap-1 rounded-md bg-paper-deep px-1.5 py-0.5 text-[12px] font-semibold text-ink">
               <CalendarIcon className="h-3 w-3" />
               {leg.bookings === 1
                 ? strings.itinerary.legBookingsOne
@@ -158,7 +158,7 @@ export function LegSection({
               does not need a chip to say so; one that does not is the single
               most useful thing this row can tell you. */}
           {!leg.hasStay && (
-            <span className="flex items-center gap-1 rounded-md bg-sun-tint px-1.5 py-0.5 text-[11px] font-semibold text-sun-deep">
+            <span className="flex items-center gap-1 rounded-md bg-sun-tint px-1.5 py-0.5 text-[12px] font-semibold text-sun-deep">
               <BedIcon className="h-3 w-3" />
               {strings.itinerary.legNoStay}
             </span>
@@ -173,7 +173,7 @@ export function LegSection({
           <button
             type="button"
             onClick={onOpenIdeas}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sea/40 bg-sea-tint/40 py-1.5 text-[11.5px] font-bold text-sea-deep active:bg-sea-tint"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sea/40 bg-sea-tint/40 py-1.5 text-[12px] font-bold text-sea-deep active:bg-sea-tint"
           >
             <SparkleIcon className="h-3.5 w-3.5" />
             {leg.ideaScope === "area"
@@ -231,7 +231,7 @@ function EmptyDayRow({
       type="button"
       onClick={onAdd}
       aria-label={strings.itinerary.emptyDayAdd}
-      className={`flex min-h-[38px] w-full items-center gap-2.5 rounded-lg px-2.5 text-start active:bg-paper-deep ${
+      className={`flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-2.5 text-start active:bg-paper-deep ${
         isToday ? "bg-sea-tint" : "bg-surface/70"
       }`}
     >
@@ -245,7 +245,7 @@ function EmptyDayRow({
       >
         {formatShortDate(day.date)}
       </span>
-      <span className="w-5 shrink-0 text-[11px] text-ink-soft">
+      <span className="w-5 shrink-0 text-[12px] text-ink-soft">
         {formatWeekdayNarrow(day.date)}
       </span>
       <span className="h-px flex-1 border-t border-dashed border-line" />

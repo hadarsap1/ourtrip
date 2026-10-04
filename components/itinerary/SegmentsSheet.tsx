@@ -163,7 +163,7 @@ export function SegmentsSheet({
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
-                    <span className="rounded-full bg-paper-deep px-2.5 py-1 text-[11px] font-bold text-ink-soft">
+                    <span className="rounded-full bg-paper-deep px-2.5 py-1 text-[12px] font-bold text-ink-soft">
                       {dayLabel(item.days.length)}
                     </span>
                     <ChevronForwardIcon className="h-3.5 w-3.5 text-ink-faint" />
@@ -189,7 +189,7 @@ export function SegmentsSheet({
       <button
         type="button"
         onClick={backToList}
-        className="mb-3 inline-flex min-h-[40px] items-center gap-1 text-sm font-semibold text-sea"
+        className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-sea"
       >
         <ChevronForwardIcon className="h-3.5 w-3.5 rotate-180" />
         {s.back}
@@ -230,7 +230,7 @@ export function SegmentsSheet({
                   className="rounded-[14px] border border-line bg-surface p-3"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sea text-[11px] font-bold text-on-sea">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sea text-[12px] font-bold text-on-sea">
                       {index + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-semibold text-ink">
@@ -302,7 +302,7 @@ export function SegmentsSheet({
         {/* Say that the list is cut, and by what. A filter nobody can see is a
             list that looks like it is missing towns. */}
         {hidden.length > 0 && !showAll && (
-          <p className="mb-2 text-[11.5px] text-ink-faint">
+          <p className="mb-2 text-[12px] text-ink-faint">
             {s.regionFiltered.replace("{n}", String(hidden.length))}
           </p>
         )}
@@ -331,14 +331,14 @@ export function SegmentsSheet({
                         {choice.area}
                       </span>
                       {choice.lat === null && (
-                        <span className="block text-[11px] text-ink-faint">
+                        <span className="block text-[12px] text-ink-faint">
                           {s.noCoords}
                         </span>
                       )}
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <span className="rounded-full bg-sea-tint px-2.5 py-1 text-[11px] font-bold text-sea-deep">
+                    <span className="rounded-full bg-sea-tint px-2.5 py-1 text-[12px] font-bold text-sea-deep">
                       {optionLabel(choice.options)}
                     </span>
                     <PlusIcon className="h-4 w-4 text-ink-faint" />

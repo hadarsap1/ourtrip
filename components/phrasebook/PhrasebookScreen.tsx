@@ -219,7 +219,7 @@ export function PhrasebookScreen() {
               key={lang}
               type="button"
               onClick={() => void selectLanguage(lang)}
-              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === lang
                   ? "bg-sea text-on-sea"
                   : "bg-surface text-ink-soft shadow-sm"
@@ -439,7 +439,7 @@ function AddLanguageSheet({
                     {language.name}
                   </span>
                   {already && (
-                    <span className="shrink-0 text-[11.5px] text-ink-soft">
+                    <span className="shrink-0 text-[12px] text-ink-soft">
                       {strings.phrasebook.languageAlready}
                     </span>
                   )}

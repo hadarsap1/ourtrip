@@ -140,7 +140,7 @@ export function EmergencyScreen() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-rose-700">
-          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]">
+          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]">
             {strings.emergency.sos}
           </span>{" "}
           {strings.emergency.title}
@@ -173,7 +173,7 @@ export function EmergencyScreen() {
               key={code}
               type="button"
               onClick={() => setSelected(code)}
-              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === code
                   ? "bg-rose-600 text-white"
                   : "bg-surface text-ink-soft shadow-sm"

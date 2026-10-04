@@ -216,7 +216,7 @@ function ExpenseForm({
             </span>
           </div>
           {inIls !== null && currency !== "ILS" && (
-            <p className="mt-2 text-[11.5px] text-ink-soft">
+            <p className="mt-2 text-[12px] text-ink-soft">
               <span dir="ltr">
                 {strings.budget.approxIls.replace(
                   "{ils}",

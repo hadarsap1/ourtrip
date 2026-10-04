@@ -394,12 +394,12 @@ function CandidateRow({
           {/* The subject line is the receipt for where this came from: it is how
               the owner tells a real confirmation from something the model
               misread, without leaving the app to open the mailbox. */}
-          <span className="mt-0.5 block truncate text-[11px] text-ink-faint">
+          <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
             {candidate.subject}
           </span>
 
           {duplicateOf && (
-            <span className="mt-1 inline-block rounded-full bg-paper-deep px-2 py-0.5 text-[10.5px] font-semibold text-ink-soft">
+            <span className="mt-1 inline-block rounded-full bg-paper-deep px-2 py-0.5 text-[12px] font-semibold text-ink-soft">
               {s.alreadyHave}
             </span>
           )}

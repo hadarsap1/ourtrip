@@ -196,7 +196,7 @@ export function PocketScreen() {
                 {/* fun progress visual */}
                 <div className="mt-2 h-4 overflow-hidden rounded-full bg-paper-deep">
                   <div
-                    className={`flex h-full items-center justify-end rounded-full pe-1 text-[10px] ${
+                    className={`flex h-full items-center justify-end rounded-full pe-1 text-[12px] ${
                       pct >= 90 ? "bg-rose-400" : pct >= 60 ? "bg-amber-400" : "bg-sea"
                     }`}
                     style={{ width: `${Math.max(pct, 8)}%` }}

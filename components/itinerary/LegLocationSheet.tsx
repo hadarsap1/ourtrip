@@ -101,7 +101,7 @@ function LegLocationForm({
             {leg.stretch.locationName ??
               (leg.stretch.countryCode ? countryName(leg.stretch.countryCode) : "")}
           </p>
-          <p className="mt-0.5 text-[11.5px] text-ink-soft" dir="ltr">
+          <p className="mt-0.5 text-[12px] text-ink-soft" dir="ltr">
             {formatShortDate(leg.stretch.from)} - {formatShortDate(leg.stretch.to)}
             {" · "}
             {s.legDays.replace("{n}", String(leg.dayCount))}
@@ -130,7 +130,7 @@ function LegLocationForm({
             }}
           />
           <p
-            className={`mt-1 text-[11.5px] ${
+            className={`mt-1 text-[12px] ${
               searchable ? "text-ink-soft" : "font-semibold text-alert"
             }`}
             role={searchable ? undefined : "alert"}

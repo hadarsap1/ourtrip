@@ -165,7 +165,7 @@ export function CountdownHome({ trip }: { trip: Trip }) {
                       <span className="block text-[13.5px] font-bold text-ink">
                         {text.label}
                       </span>
-                      <span className="block text-[11.5px] text-ink-soft">
+                      <span className="block text-[12px] text-ink-soft">
                         {Object.entries(check.values ?? {}).reduce(
                           (out, [k, v]) => out.replaceAll(`{${k}}`, String(v)),
                           text.detail

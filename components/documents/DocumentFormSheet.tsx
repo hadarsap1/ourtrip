@@ -156,7 +156,7 @@ function DocumentForm({
                 key={t}
                 type="button"
                 onClick={() => setTag(t)}
-                className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
+                className={`min-h-[44px] rounded-full px-3 py-1.5 text-sm font-semibold ${
                   tag === t ? "bg-sea text-on-sea" : "bg-paper-deep text-ink-soft"
                 }`}
               >

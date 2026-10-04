@@ -80,7 +80,7 @@ export function ConverterCard() {
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
           aria-label={strings.budget.currency}
-          className="min-h-[40px] rounded-xl border border-line px-2 py-1.5 text-sm focus:border-sea focus:outline-none"
+          className="min-h-[44px] rounded-xl border border-line px-2 py-1.5 text-sm focus:border-sea focus:outline-none"
           dir="ltr"
         >
           {CURRENCIES.filter((c) => c !== "ILS").map((c) => (

@@ -624,9 +624,9 @@ function Section({
   return (
     <section className="rounded-2xl border border-line bg-paper/70 p-3">
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <h3 className="text-[11.5px] font-extrabold text-ink">{title}</h3>
+        <h3 className="text-[12px] font-extrabold text-ink">{title}</h3>
         {note && (
-          <span className="text-[11.5px] font-semibold text-sea-deep">
+          <span className="text-[12px] font-semibold text-sea-deep">
             {note}
           </span>
         )}
@@ -736,7 +736,7 @@ function FilePicker({
           <PlusIcon className="h-4 w-4" />
           {strings.bookings.attachFiles}
         </span>
-        <span className="text-[11px] text-ink-soft" dir="auto">
+        <span className="text-[12px] text-ink-soft" dir="auto">
           {strings.bookings.attachHint}
         </span>
       </button>
@@ -832,7 +832,7 @@ function FileRow({
           {name}
         </span>
         {meta && (
-          <span className="block text-[11px] text-ink-soft" dir="auto">
+          <span className="block text-[12px] text-ink-soft" dir="auto">
             {meta}
           </span>
         )}

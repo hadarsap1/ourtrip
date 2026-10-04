@@ -101,21 +101,21 @@ export function DayCard({
         onClick={onEditDay}
         className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 px-3.5 py-2.5 text-start"
       >
-        <span className="text-[11.5px] font-extrabold text-sea-deep">
+        <span className="text-[12px] font-extrabold text-sea-deep">
           {formatWeekday(day.date)} {formatDate(day.date)}
         </span>
         {day.location_name && (
-          <span className="truncate text-[11.5px] font-semibold text-sea-deep/80">
+          <span className="truncate text-[12px] font-semibold text-sea-deep/80">
             {day.location_name}
           </span>
         )}
         {isToday && (
-          <span className="rounded-full bg-sun-tint px-1.5 py-px text-[9.5px] font-extrabold text-sun-deep">
+          <span className="rounded-full bg-sun-tint px-1.5 py-px text-[12px] font-extrabold text-sun-deep">
             {strings.itinerary.todayChip}
           </span>
         )}
         {day.country_code && (
-          <span className="rounded bg-surface px-1.5 py-px text-[10px] font-bold text-sea">
+          <span className="rounded bg-surface px-1.5 py-px text-[12px] font-bold text-sea">
             {day.country_code}
           </span>
         )}
@@ -299,7 +299,7 @@ function SortableItem({
             hasBooking ||
             item.is_outdoor ||
             item.end_time) && (
-            <span className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-ink-soft">
+            <span className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
               {item.end_time && (
                 <span className="shrink-0 tabular-nums" dir="ltr">
                   {formatTime(item.start_time ?? "")}-{formatTime(item.end_time)}
@@ -345,7 +345,7 @@ function SortableItem({
       <button
         type="button"
         onClick={onCycleStatus}
-        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_CLASS[item.status]}`}
+        className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold ${STATUS_CLASS[item.status]}`}
       >
         {STATUS_LABEL[item.status]}
       </button>

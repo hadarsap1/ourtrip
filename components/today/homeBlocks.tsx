@@ -32,7 +32,7 @@ export function ChecklistBlock({
         <h2 className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink">
           {checklist.title}
         </h2>
-        <span className="shrink-0 text-[11.5px] font-semibold text-ink-soft">
+        <span className="shrink-0 text-[12px] font-semibold text-ink-soft">
           {s.checklistProgress
             .replace("{done}", String(checklist.done))
             .replace("{total}", String(checklist.total))}
@@ -110,7 +110,7 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
         <h2 className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
           {strings.nav.budget}
         </h2>
-        <span className="shrink-0 text-[11.5px] text-ink-soft">
+        <span className="shrink-0 text-[12px] text-ink-soft">
           {b.kpiSpent} {money(progress.spent)}
         </span>
       </div>
@@ -141,14 +141,14 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
           style={{ width: `${Math.min(100, Math.max(0, progress.usedPct))}%` }}
         />
       </div>
-      <p className="mt-1 text-[11px] text-ink-soft">
+      <p className="mt-1 text-[12px] text-ink-soft">
         {b.paceTitle.replace("{n}", String(progress.usedPct))}
       </p>
 
       {/* Allocation: a different question, so never the same bar. */}
       {budget.hasTarget && (
         <p
-          className={`mt-1.5 border-t border-line pt-1.5 text-[11.5px] ${
+          className={`mt-1.5 border-t border-line pt-1.5 text-[12px] ${
             budget.overTarget ? "font-semibold text-alert" : "text-ink-soft"
           }`}
         >
@@ -198,7 +198,7 @@ function StretchCard({ stretch }: { stretch: TimelineStretch }) {
     >
       {/* The label line is always present, empty when the stretch is neither
           current nor next, so every card in the strip lines up. */}
-      <p className="mb-1 h-[13px] text-[10.5px] font-bold text-sea">
+      <p className="mb-1 h-[13px] text-[12px] font-bold text-sea">
         {highlighted
           ? stretch.isCurrent
             ? s.timelineCurrent
@@ -215,12 +215,12 @@ function StretchCard({ stretch }: { stretch: TimelineStretch }) {
           Japan's stretches by city and everyone else's by country, so without
           this the strip said "יפן" nowhere and "תאילנד" twice. Empty when the
           stretch IS the country and its name is already above. */}
-      <p className="h-[13px] text-[10.5px] text-ink-soft">{area ? country : ""}</p>
-      <p className="mt-0.5 text-[11px] text-ink-soft">
+      <p className="h-[13px] text-[12px] text-ink-soft">{area ? country : ""}</p>
+      <p className="mt-0.5 text-[12px] text-ink-soft">
         {s.timelineDays.replace("{n}", String(stretch.days))}
       </p>
       <p
-        className={`mt-auto pt-1.5 text-[10.5px] ${
+        className={`mt-auto pt-1.5 text-[12px] ${
           stretch.daysWithItems === 0 ? "text-ink-faint" : "text-sea"
         }`}
       >

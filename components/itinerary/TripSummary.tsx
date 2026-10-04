@@ -28,7 +28,7 @@ export function TripSummary({
   return (
     <section className="rounded-[18px] border border-line bg-surface p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11.5px] font-semibold text-ink-soft">
+        <p className="text-[12px] font-semibold text-ink-soft">
           {strings.itinerary.tripSpan
             .replace("{days}", String(days))
             .replace("{legs}", String(legs.length))
@@ -37,7 +37,7 @@ export function TripSummary({
         <button
           type="button"
           onClick={onJump}
-          className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1 text-[11.5px] font-bold text-sea-deep active:bg-sea-tint/70"
+          className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1 text-[12px] font-bold text-sea-deep active:bg-sea-tint/70"
         >
           {current ? strings.itinerary.jumpToday : strings.itinerary.jumpNext}
         </button>
@@ -49,7 +49,7 @@ export function TripSummary({
             style={{ width: `${days === 0 ? 0 : Math.round((planned / days) * 100)}%` }}
           />
         </span>
-        <span className="shrink-0 text-[11.5px] font-bold text-ink">
+        <span className="shrink-0 text-[12px] font-bold text-ink">
           {strings.itinerary.tripPlanned.replace("{done}", String(planned))}
         </span>
       </div>

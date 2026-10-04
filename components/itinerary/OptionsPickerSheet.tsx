@@ -117,7 +117,7 @@ export function OptionsPickerSheet({
             <span className="block truncate text-[13.5px] font-medium text-ink">
               {option.title}
             </span>
-            <span className="block truncate text-[11px] text-ink-soft">
+            <span className="block truncate text-[12px] text-ink-soft">
               {option.area ? `${option.area} · ` : ""}
               {s.categories[option.category as keyof typeof s.categories] ??
                 option.category ??
@@ -136,7 +136,7 @@ export function OptionsPickerSheet({
       title={s.pickForDay.replace("{date}", formatDate(day.date))}
     >
       {plannedCount > 0 && (
-        <p className="mb-2 rounded-xl bg-paper-deep px-3 py-2 text-[11.5px] text-ink-soft">
+        <p className="mb-2 rounded-xl bg-paper-deep px-3 py-2 text-[12px] text-ink-soft">
           {s.pickAlready.replace("{n}", String(plannedCount))}
         </p>
       )}
@@ -202,11 +202,11 @@ export function OptionsPickerSheet({
                         {group.area ?? s.ungrouped}
                       </span>
                       {chosenHere > 0 && (
-                        <span className="shrink-0 rounded-full bg-sea px-2 py-0.5 text-[10.5px] font-bold text-on-sea">
+                        <span className="shrink-0 rounded-full bg-sea px-2 py-0.5 text-[12px] font-bold text-on-sea">
                           {chosenHere}
                         </span>
                       )}
-                      <span className="shrink-0 text-[11px] text-ink-faint">
+                      <span className="shrink-0 text-[12px] text-ink-faint">
                         {group.options.length}
                       </span>
                     </button>

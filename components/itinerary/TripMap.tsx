@@ -142,7 +142,7 @@ export function TripMap({
           text: String(number),
           color: "#ffffff",
           // Follows the smaller circle; 11px overflowed a 9-radius pin.
-          fontSize: "10px",
+          fontSize: "12px",
           fontWeight: "700",
         },
         icon: {
@@ -254,7 +254,7 @@ export function TripMap({
       )}
 
       {!unavailable && (
-        <p className="px-1 text-[11.5px] text-ink-soft">
+        <p className="px-1 text-[12px] text-ink-soft">
           {s.mapPlacedCount
             .replace("{placed}", String(placed.length))
             .replace("{total}", String(legs.length))}
@@ -272,7 +272,7 @@ export function TripMap({
                 <button
                   type="button"
                   onClick={() => onOpenLeg(leg.key)}
-                  className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1 text-[11.5px] active:bg-paper-deep"
+                  className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1 text-[12px] active:bg-paper-deep"
                 >
                   <span
                     aria-hidden="true"
@@ -302,7 +302,7 @@ export function TripMap({
           <h3 className="text-[12.5px] font-extrabold text-ink">
             {s.mapMissingTitle}
           </h3>
-          <p className="mt-0.5 text-[11.5px] text-ink-soft">
+          <p className="mt-0.5 text-[12px] text-ink-soft">
             {unavailable ? s.mapSearchUnavailable : s.mapMissingHint}
           </p>
           <ul className="mt-2 space-y-1.5">
@@ -311,7 +311,7 @@ export function TripMap({
                 key={leg.key}
                 className="flex items-center gap-2 rounded-lg bg-paper px-2.5 py-1.5"
               >
-                <span className="w-5 shrink-0 text-[11px] font-bold text-ink-faint tabular-nums">
+                <span className="w-5 shrink-0 text-[12px] font-bold text-ink-faint tabular-nums">
                   {number}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -321,7 +321,7 @@ export function TripMap({
                         ? countryName(leg.stretch.countryCode)
                         : "")}
                   </span>
-                  <span className="block text-[11px] text-ink-soft" dir="ltr">
+                  <span className="block text-[12px] text-ink-soft" dir="ltr">
                     {formatShortDate(leg.stretch.from)} -{" "}
                     {formatShortDate(leg.stretch.to)}
                   </span>
@@ -332,7 +332,7 @@ export function TripMap({
                   <button
                     type="button"
                     onClick={() => onSetLocation(leg)}
-                    className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-[11.5px] font-bold text-sea-deep active:bg-sea-tint/70"
+                    className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-[12px] font-bold text-sea-deep active:bg-sea-tint/70"
                   >
                     {s.mapSetLocation}
                   </button>
