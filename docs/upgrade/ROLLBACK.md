@@ -38,3 +38,9 @@ No database migrations were applied in Phase 0, so there is nothing to roll back
 ## 4. Service worker
 
 If a bad build was cached, bump `SHELL_CACHE` in `public/sw.js` (e.g. `ourtrip-shell-v15`) in the fix; clients drop the old shell on activate.
+
+## Phase 1 additions
+
+- Any Phase 1 feature: switch its flag off in `lib/flags.ts` and deploy, or per device via the `ourtrip-flags` localStorage override.
+- New push notifications (1.11): set `NOTIFY_V2=off` on the `push-send` function (no deploy needed), or run `docs/upgrade/migrations/00043_push_v2_schedules.down.sql` to remove the two cron jobs.
+- Write queue: queued items stay in IndexedDB; turning `writeQueueV2` off falls back to the old expense-only queue and leaves journal/note items waiting until it is back on.
