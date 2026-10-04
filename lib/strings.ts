@@ -349,6 +349,21 @@ export const strings = {
     visasState: "דרישות כניסה לכל מדינה",
   },
 
+  // Shared design-system components (components/ui)
+  ui: {
+    today: "היום",
+    tomorrow: "מחר",
+    inDays: "בעוד {n} ימים",
+    percent: "{n}%",
+    increase: "עוד אחד: {what}",
+    decrease: "אחד פחות: {what}",
+    undo: "ביטול",
+    close: "סגירה",
+    collapse: "כיווץ",
+    sheetHandle: "גרירה לשינוי גובה",
+    quickAdd: "הוספה מהירה",
+  },
+
   countryPicker: {
     choose: "בחירת מדינה",
     search: "חיפוש מדינה",
