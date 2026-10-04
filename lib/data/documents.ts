@@ -204,14 +204,16 @@ export async function getDocumentUrl(path: string): Promise<string> {
  */
 export async function makeAvailableOffline(
   doc: Document,
-  key: CryptoKey
+  key: CryptoKey | null,
+  onPct?: (pct: number) => void
 ): Promise<void> {
+  // Never write plaintext: an unprotected document needs the vault key.
+  if (!doc.pin_protected && !key) throw new Error("vault key required");
   const url = await getDocumentUrl(doc.file_path);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`download failed (${res.status})`);
-  const blob = await res.blob();
+  const { fetchWithProgress } = await import("@/lib/offline/docSync");
+  const blob = await fetchWithProgress(url, onPct ?? (() => {}));
 
-  const store = doc.pin_protected ? blob : await encryptBlob(key, blob);
+  const store = doc.pin_protected ? blob : await encryptBlob(key as CryptoKey, blob);
   await saveOfflineDocument({
     id: doc.id,
     title: doc.title,
