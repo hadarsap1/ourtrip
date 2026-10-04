@@ -17,6 +17,7 @@ import {
 import { useMember } from "@/lib/useMember";
 import { EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { readEmergencySnapshots } from "@/lib/offline/caches";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { isEnabled } from "@/lib/flags";
 import type { Trip } from "@/lib/types";
@@ -53,6 +54,7 @@ export function EmergencyScreen() {
   const [countryOptions, setCountryOptions] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
+  const [offlineReady, setOfflineReady] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ countryCode: string | null } | null>(null);
@@ -106,6 +108,8 @@ export function EmergencyScreen() {
       try {
         const nextPages = await refresh(tripId);
         if (cancelled) return;
+        const snaps = await readEmergencySnapshots().catch(() => []);
+        if (!cancelled) setOfflineReady(new Set(snaps.map((x) => x.countryCode)));
         const todayCountry = await getTodayCountryCode(tripId);
         const nextCountry = isEnabled("emergencyAutoCountry") ? await getCurrentOrNextCountryCode(tripId) : null;
         if (cancelled) return;
@@ -160,8 +164,17 @@ export function EmergencyScreen() {
       </div>
 
       {fromCache && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">
+        <p className="rounded-xl bg-warning-soft px-3 py-2 text-center text-xs font-medium text-warning">
           {strings.offline.fromCache}
+        </p>
+      )}
+
+      {/* Offline readiness (1.6): every page is saved on the device whenever it
+          loads online, so say so - this is the screen you open with no signal. */}
+      {selected && offlineReady.has(selected) && (
+        <p className="flex items-center justify-center gap-1.5 self-start rounded-full bg-success-soft px-3 py-1 text-xs font-bold text-success">
+          <CheckIcon className="h-3.5 w-3.5" />
+          {strings.emergency.offlineReady}
         </p>
       )}
 

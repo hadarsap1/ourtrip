@@ -189,6 +189,7 @@ export const strings = {
   },
 
   emergency: {
+    offlineReady: "שמור במכשיר - נפתח גם בלי אינטרנט",
     title: "חירום",
     sos: "SOS",
     numbers: "מספרי חירום",
