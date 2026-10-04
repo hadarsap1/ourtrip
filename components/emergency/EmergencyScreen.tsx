@@ -15,7 +15,7 @@ import {
   type EmergencyPage,
 } from "@/lib/data/emergency";
 import { useMember } from "@/lib/useMember";
-import { EditIcon, SparkleIcon } from "@/components/icons";
+import { CheckIcon, EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { readEmergencySnapshots } from "@/lib/offline/caches";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
