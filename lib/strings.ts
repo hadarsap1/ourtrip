@@ -1398,6 +1398,11 @@ export const strings = {
     synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
     syncFailed: "חלק מההוצאות שנרשמו לא מקוון לא נשמרו - כדאי לרשום אותן מחדש",
     fromCache: "מוצג מהעותק השמור במכשיר",
+    // F10
+    bannerV2: "אין חיבור - הנתונים נשמרו במכשיר",
+    syncing: "מסנכרן שינויים…",
+    lastSynced: "סונכרן לאחרונה {when}",
+    pending: "{n} שינויים ממתינים",
   },
 
   // The /offline route: the service worker serves it when a screen that was

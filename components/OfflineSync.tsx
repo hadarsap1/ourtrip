@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { replayPendingWrites } from "@/lib/offline/queue";
+import { markSynced, refreshPendingCount } from "@/lib/offline/status";
 import { strings } from "@/lib/strings";
 
 // Mounted in the root layout: replays the pending-writes queue on app start
@@ -21,7 +22,10 @@ export function OfflineSync() {
 
     const sync = () => {
       if (!navigator.onLine) return;
-      void replayPendingWrites().then(({ replayed, dropped }) => {
+      void replayPendingWrites().then(async ({ replayed, dropped }) => {
+        await refreshPendingCount();
+        // Still online after replaying = this device is in step with the server.
+        if (navigator.onLine) markSynced();
         // A dropped entry couldn't be saved at all (e.g. its category was
         // removed) - tell the family so they can re-enter it, rather than
         // letting it vanish or block the queue.

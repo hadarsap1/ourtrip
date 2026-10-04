@@ -15,6 +15,8 @@ export async function enqueueExpense(
     payload,
     createdAt: new Date().toISOString(),
   });
+  const { refreshPendingCount } = await import("./status");
+  await refreshPendingCount();
 }
 
 export type ReplayResult = { replayed: number; dropped: number };
