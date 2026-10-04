@@ -17,18 +17,12 @@ import {
   createItem,
   deleteDay,
   deleteItem,
-  listDays,
-  listItems,
   moveItemToDay,
   reorderItems,
   subscribeItinerary,
   updateItem,
 } from "@/lib/data/itinerary";
-import {
-  listBookingFiles,
-  listBookings,
-  subscribeBookings,
-} from "@/lib/data/bookings";
+import { subscribeBookings } from "@/lib/data/bookings";
 import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
 import {
   buildLegOverviews,
@@ -37,11 +31,12 @@ import {
 } from "@/lib/itineraryOverview";
 import type { OptionForAreas } from "@/lib/data/segments";
 import { todayISO } from "@/lib/format";
-import { listOptionAreas, planFromOptions } from "@/lib/data/placeOptions";
+import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
-import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { queryKeys, readQuery } from "@/lib/offline/queryCache";
+import { fetchItineraryBundle, type ItineraryBundle } from "@/lib/data/itineraryBundle";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type {
   Booking,
@@ -128,27 +123,12 @@ export function ItineraryScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [nextDays, nextBookings, nextFiles, nextAreas] = await Promise.all([
-      listDays(tripId),
-      listBookings(tripId),
-      listBookingFiles(tripId),
-      // A failure here costs the idea counts and nothing else, so it must not
-      // take the whole plan down with it.
-      listOptionAreas(tripId).catch(() => [] as OptionForAreas[]),
-    ]);
-    const nextItems = await listItems(nextDays.map((d) => d.id));
-    setDays(nextDays);
-    setBookings(nextBookings);
-    setBookingFiles(nextFiles);
-    setOptionAreas(nextAreas);
-    setItems(nextItems);
-    void writeQuery(queryKeys.itinerary(tripId), {
-      days: nextDays,
-      bookings: nextBookings,
-      files: nextFiles,
-      areas: nextAreas,
-      items: nextItems,
-    });
+    const b = await fetchItineraryBundle(tripId);
+    setDays(b.days);
+    setBookings(b.bookings);
+    setBookingFiles(b.files);
+    setOptionAreas(b.areas);
+    setItems(b.items);
   }, []);
 
   useEffect(() => {
@@ -165,13 +145,7 @@ export function ItineraryScreen() {
       }
       setTrip(activeTrip);
       // Cache-first (F9): paint the last good plan, then refresh.
-      const cached = await readQuery<{
-        days: typeof days;
-        bookings: typeof bookings;
-        files: typeof bookingFiles;
-        areas: typeof optionAreas;
-        items: typeof items;
-      }>(queryKeys.itinerary(activeTrip.id));
+      const cached = await readQuery<ItineraryBundle>(queryKeys.itinerary(activeTrip.id));
       if (cached && !cancelled) {
         setDays(cached.data.days);
         setBookings(cached.data.bookings);
