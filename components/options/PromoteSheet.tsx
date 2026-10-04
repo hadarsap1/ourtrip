@@ -6,7 +6,7 @@ import { strings } from "@/lib/strings";
 import type { PlaceOption } from "@/lib/types";
 
 const FIELD =
-  "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-sea";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-sea";
 
 /** Turns a shortlisted option into a real booking. The option itself stays in
  *  the bank marked 'הוזמן' - see promoteToBooking in lib/data/placeOptions.ts. */
@@ -87,7 +87,7 @@ export function PromoteSheet({
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-2xl bg-sea py-3 font-semibold text-white disabled:opacity-60"
+            className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
           >
             {s.promoteConfirm}
           </button>

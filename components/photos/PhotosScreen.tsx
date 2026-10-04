@@ -88,7 +88,7 @@ function GuestPhotosView() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
       {isEmpty && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>
       )}
@@ -102,7 +102,7 @@ function GuestPhotosView() {
             {dayPhotos.map((photo) => (
               <li
                 key={photo.id}
-                className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
+                className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
               >
                 {photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -258,7 +258,7 @@ function FamilyPhotosView() {
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className="w-full rounded-2xl bg-sea py-3 font-bold text-white shadow hover:bg-sea-deep disabled:opacity-60"
+        className="w-full rounded-2xl bg-sea py-3 font-bold text-on-sea shadow hover:bg-sea-deep disabled:opacity-60"
       >
         <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
         {uploading ? strings.photos.uploading : strings.photos.upload}
@@ -287,7 +287,7 @@ function FamilyPhotosView() {
           </h2>
           <ul className="space-y-3">
             {pending.map((photo) => (
-              <li key={photo.id} className="overflow-hidden rounded-xl bg-white shadow-sm">
+              <li key={photo.id} className="overflow-hidden rounded-xl bg-surface shadow-sm">
                 {photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
                   <img src={photo.url} alt={photo.caption ?? ""} className="max-h-72 w-full object-cover" />
@@ -317,7 +317,7 @@ function FamilyPhotosView() {
       )}
 
       {visible.length === 0 && pending.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>
       ) : (
@@ -325,7 +325,7 @@ function FamilyPhotosView() {
           {visible.map((photo) => (
             <li
               key={photo.id}
-              className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
             >
               {photo.url && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed URL

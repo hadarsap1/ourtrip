@@ -9,6 +9,8 @@ import {
 } from "@/lib/data/emergency";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { CountryPicker } from "@/components/ui/CountryPicker";
 
 const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
 const inputClass =
@@ -146,19 +148,23 @@ function EmergencyEditForm({
       <form onSubmit={handleSave} className="space-y-5">
         {countryCode === null && (
           <div>
-            <label htmlFor="em-country" className={labelClass}>
+            <label id="em-country-label" htmlFor="em-country" className={labelClass}>
               {strings.emergency.countryCode}
             </label>
-            <input
-              id="em-country"
-              type="text"
-              required
-              maxLength={2}
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className={inputClass}
-              dir="ltr"
-            />
+            {isEnabled("countryPicker") ? (
+              <CountryPicker id="em-country" labelledBy="em-country-label" value={code} onChange={setCode} />
+            ) : (
+              <input
+                id="em-country"
+                type="text"
+                required
+                maxLength={2}
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className={inputClass}
+                dir="ltr"
+              />
+            )}
           </div>
         )}
 
@@ -201,7 +207,7 @@ function EmergencyEditForm({
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
         >
           {strings.common.save}
         </button>

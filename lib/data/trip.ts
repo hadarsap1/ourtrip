@@ -13,17 +13,47 @@ let tripInFlight: Promise<Trip | null> | null = null;
 let cachedMember: Member | null = null;
 let memberInFlight: Promise<Member | null> | null = null;
 
+// The trip row is also kept on the device (F9): with no network the query
+// fails, and without a trip id no screen could show its cached data. RLS still
+// guards every data query, so a stale id on a shared device exposes nothing.
+const TRIP_STORAGE_KEY = "ourtrip-active-trip";
+
+function readStoredTrip(): Trip | null {
+  try {
+    const raw = window.localStorage.getItem(TRIP_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Trip) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeTrip(trip: Trip | null) {
+  try {
+    if (trip) window.localStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify(trip));
+  } catch {
+    // storage blocked: online-only behaviour, as before
+  }
+}
+
 async function fetchActiveTrip(): Promise<Trip | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
-  const { data } = await supabase
-    .from("trips")
-    .select("*")
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-  cachedTrip = data;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from("trips")
+      .select("*")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    cachedTrip = data;
+    storeTrip(data);
+    return data;
+  } catch {
+    // Offline or the request failed: fall back to the last trip seen here.
+    // Not memoised, so the next call tries the network again.
+    return readStoredTrip();
+  }
 }
 
 export async function getActiveTrip(): Promise<Trip | null> {
@@ -31,6 +61,14 @@ export async function getActiveTrip(): Promise<Trip | null> {
   tripInFlight ??= fetchActiveTrip().finally(() => {
     tripInFlight = null;
   });
+  // Cache-first (F9): a trip already stored on this device answers at once,
+  // so screens can paint their cached data while the network catches up.
+  // There is one active trip (DECISIONS #8), so the stored row is the same
+  // one the fetch is about to return.
+  if (typeof window !== "undefined") {
+    const stored = readStoredTrip();
+    if (stored) return stored;
+  }
   return tripInFlight;
 }
 

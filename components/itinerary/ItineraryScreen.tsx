@@ -41,6 +41,8 @@ import { listOptionAreas, planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type {
   Booking,
   BookingFile,
@@ -140,6 +142,13 @@ export function ItineraryScreen() {
     setBookingFiles(nextFiles);
     setOptionAreas(nextAreas);
     setItems(nextItems);
+    void writeQuery(queryKeys.itinerary(tripId), {
+      days: nextDays,
+      bookings: nextBookings,
+      files: nextFiles,
+      areas: nextAreas,
+      items: nextItems,
+    });
   }, []);
 
   useEffect(() => {
@@ -155,6 +164,22 @@ export function ItineraryScreen() {
         return;
       }
       setTrip(activeTrip);
+      // Cache-first (F9): paint the last good plan, then refresh.
+      const cached = await readQuery<{
+        days: typeof days;
+        bookings: typeof bookings;
+        files: typeof bookingFiles;
+        areas: typeof optionAreas;
+        items: typeof items;
+      }>(queryKeys.itinerary(activeTrip.id));
+      if (cached && !cancelled) {
+        setDays(cached.data.days);
+        setBookings(cached.data.bookings);
+        setBookingFiles(cached.data.files);
+        setOptionAreas(cached.data.areas);
+        setItems(cached.data.items);
+        setLoading(false);
+      }
       try {
         const [, cats] = await Promise.all([
           refresh(activeTrip.id),
@@ -162,7 +187,7 @@ export function ItineraryScreen() {
         ]);
         if (!cancelled) setCategories(cats);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -457,11 +482,7 @@ export function ItineraryScreen() {
   );
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8 sm:max-w-2xl">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   return (
@@ -482,7 +503,7 @@ export function ItineraryScreen() {
             aria-pressed={searching}
             className={`grid h-11 w-11 place-items-center rounded-[11px] transition-colors ${
               searching
-                ? "bg-sea text-white"
+                ? "bg-sea text-on-sea"
                 : "bg-paper-deep text-ink-soft active:bg-line"
             }`}
           >
@@ -513,7 +534,7 @@ export function ItineraryScreen() {
             type="button"
             onClick={() => setDayForm({ day: null })}
             aria-label={strings.itinerary.addDay}
-            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-white active:bg-sea-deep"
+            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-on-sea active:bg-sea-deep"
           >
             <PlusIcon className="h-[17px] w-[17px]" />
           </button>
@@ -602,7 +623,7 @@ export function ItineraryScreen() {
             ) : (
               <>
                 {days.length === 0 && (
-                  <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+                  <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
                     {strings.itinerary.emptyDays}
                   </p>
                 )}
@@ -642,7 +663,7 @@ export function ItineraryScreen() {
                     <button
                       type="button"
                       onClick={() => setDayForm({ day: null })}
-                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
                       style={{
                         boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)",
                       }}
@@ -652,7 +673,7 @@ export function ItineraryScreen() {
                     <button
                       type="button"
                       onClick={() => setImporting(true)}
-                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
                     >
                       <FileIcon className="h-[17px] w-[17px]" />
                       {strings.itinerary.importFromFile}

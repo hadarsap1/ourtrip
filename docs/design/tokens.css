@@ -1,0 +1,186 @@
+/*
+ * OurTrip design tokens v2 (redesign, October 2026).
+ * Source of truth: the "OurTrip Redesign" design canvas, boards A1 (Tokens) and C (Handoff).
+ * Intended destination: app/globals.css. Map into tailwind.config theme.extend
+ * as var() references (e.g. colors.surface = "var(--surface)").
+ * Theme: follows the OS; data-theme="light" | "dark" on <html> overrides it.
+ */
+
+:root {
+  color-scheme: light;
+  /* surface + text */
+  --bg: #FBF7EF;
+  --surface: #FFFFFF;
+  --surface-2: #F3EDE1;
+  --text: #22312E;
+  --text-muted: #5B6B67;
+  --border: #E4DCCB;
+
+  /* brand */
+  --brand: #0E7C6B;
+  --brand-contrast: #FFFFFF;
+  --brand-soft: #DCEFEA;
+  --brand-pressed: #0A5E51;
+  --accent-gold: #8A6114;      /* labels; 5.1:1 on bg */
+  --accent-gold-deco: #B8862B; /* decorative strokes only, never text (about 3:1) */
+
+  /* status */
+  --success: #1F7A3A;
+  --success-soft: #E1F2E6;
+  --warning: #9A5B00;
+  --warning-soft: #FCEFD8;
+  --danger: #B42318;
+  --danger-soft: #FBE4E1;
+  --danger-contrast: #FFFFFF;
+  --info: #1F5FA8;
+  --info-soft: #E3EDF9;
+  --scrim: rgba(17, 24, 22, .45);
+
+  /* country: base / soft / on. Always paired with flag + 2-letter code. */
+  --country-vn: #C42B3A; --country-vn-soft: #FBE5E7; --country-vn-on: #FFFFFF;
+  --country-kh: #A35A00; --country-kh-soft: #F8EBD9; --country-kh-on: #FFFFFF;
+  --country-la: #2F7A4A; --country-la-soft: #E2F0E6; --country-la-on: #FFFFFF;
+  --country-th: #3348A8; --country-th-soft: #E5E8F7; --country-th-on: #FFFFFF;
+  --country-ph: #0A72A8; --country-ph-soft: #DDEFF8; --country-ph-on: #FFFFFF;
+  --country-jp: #B0306E; --country-jp-soft: #F8E3EE; --country-jp-on: #FFFFFF;
+  --country-ge: #4A5361; --country-ge-soft: #E7E9ED; --country-ge-on: #FFFFFF;
+
+  /* category: map pins, timeline nodes, budget rings */
+  --cat-flight: #2563C9;
+  --cat-lodging: #7149C6;
+  --cat-activity: #D2690E;
+  --cat-food: #C93434;
+  --cat-transport: #2F7D3B;
+  --cat-doc: #8A6114;
+  --cat-ins: #0F7A9E;
+  --cat-shop: #B12F7A;
+  --cat-other: #66717B;
+  --cat-on: #FFFFFF;
+  --cat-soft-mix: 10%; /* soft = color-mix(in srgb, var(--cat-x) var(--cat-soft-mix), transparent) */
+
+  /* type (Heebo) */
+  --font-family-base: "Heebo", system-ui, sans-serif; /* app uses next/font --font-heebo */
+  --fs-caption: 12px;  --lh-caption: 16px;   /* the floor; nothing smaller */
+  --fs-body: 14px;     --lh-body: 20px;
+  --fs-label-lg: 16px; --lh-label-lg: 24px;  /* buttons, sheet titles, 600 */
+  --fs-input: 16px;    --lh-input: 24px;     /* every input, prevents iOS zoom */
+  --fs-title: 20px;    --lh-title: 28px;     /* 700 */
+  --fs-headline: 24px; --lh-headline: 32px;  /* 800, one per screen */
+  --fs-hero: 40px;     --lh-hero: 44px;      /* 800, tabular-nums, one per screen */
+
+  /* shape + space */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-full: 999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+
+  /* elevation */
+  --e1: 0 1px 2px rgba(34, 49, 46, .06), 0 1px 6px rgba(34, 49, 46, .05);
+  --e2: 0 4px 16px rgba(34, 49, 46, .10);
+  --e3: 0 12px 32px rgba(34, 49, 46, .18);
+
+  /* motion */
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 350ms;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+
+  /* layout */
+  --tap: 44px;
+  --nav-h: 56px;
+  --fab: 56px;
+  --gutter: 16px;
+  --desktop-column: 480px;
+}
+
+@media (max-width: 374px) {
+  :root { --fs-hero: 32px; --lh-hero: 36px; }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111816;
+  --surface: #1A2321;
+  --surface-2: #232E2B;
+  --text: #EEF2EF;
+  --text-muted: #A6B4AF;
+  --border: #33413D;
+  --brand: #4CC4AD;
+  --brand-contrast: #05231D;
+  --brand-soft: #173A33;
+  --brand-pressed: #7AD6C4;
+  --accent-gold: #E2B65E;
+  --success: #6BCB86; --success-soft: #18321F;
+  --warning: #F2AE55; --warning-soft: #3A2A12;
+  --danger: #F4877A;  --danger-soft: #3D1D19; --danger-contrast: #2A0A06;
+  --info: #86B6F2;    --info-soft: #172A42;
+  --scrim: rgba(0, 0, 0, .6);
+  --country-vn: #F06A76; --country-vn-soft: #3B1C20; --country-vn-on: #111816;
+  --country-kh: #E59A3C; --country-kh-soft: #3A2814; --country-kh-on: #111816;
+  --country-la: #63C08A; --country-la-soft: #17311F; --country-la-on: #111816;
+  --country-th: #8EA0F0; --country-th-soft: #1F2747; --country-th-on: #111816;
+  --country-ph: #4FB6E8; --country-ph-soft: #11303F; --country-ph-on: #111816;
+  --country-jp: #EE7FB3; --country-jp-soft: #3C1D2C; --country-jp-on: #111816;
+  --country-ge: #A9B3C2; --country-ge-soft: #2A3038; --country-ge-on: #111816;
+  --cat-flight: #7AA7F2;
+  --cat-lodging: #A98EEE;
+  --cat-activity: #F0A050;
+  --cat-food: #F28686;
+  --cat-transport: #72C682;
+  --cat-doc: #E2B65E;
+  --cat-ins: #5FC3E0;
+  --cat-shop: #EE86C0;
+  --cat-other: #A8B2BC;
+  --cat-on: #111816;
+  --cat-soft-mix: 18%;
+  --e1: 0 1px 2px rgba(0, 0, 0, .5);
+  --e2: 0 4px 16px rgba(0, 0, 0, .45);
+  --e3: 0 12px 32px rgba(0, 0, 0, .6);
+}
+
+/* No-JS fallback: follow the OS when no explicit theme is set. The app's
+   head script always sets data-theme, so this block only matters without JS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111816;
+    --surface: #1A2321;
+    --surface-2: #232E2B;
+    --text: #EEF2EF;
+    --text-muted: #A6B4AF;
+    --border: #33413D;
+    --brand: #4CC4AD;
+    --brand-contrast: #05231D;
+    --brand-soft: #173A33;
+    --brand-pressed: #7AD6C4;
+    --accent-gold: #E2B65E;
+    --success: #6BCB86; --success-soft: #18321F;
+    --warning: #F2AE55; --warning-soft: #3A2A12;
+    --danger: #F4877A;  --danger-soft: #3D1D19; --danger-contrast: #2A0A06;
+    --info: #86B6F2;    --info-soft: #172A42;
+    --scrim: rgba(0, 0, 0, .6);
+    --country-vn: #F06A76; --country-vn-soft: #3B1C20; --country-vn-on: #111816;
+    --country-kh: #E59A3C; --country-kh-soft: #3A2814; --country-kh-on: #111816;
+    --country-la: #63C08A; --country-la-soft: #17311F; --country-la-on: #111816;
+    --country-th: #8EA0F0; --country-th-soft: #1F2747; --country-th-on: #111816;
+    --country-ph: #4FB6E8; --country-ph-soft: #11303F; --country-ph-on: #111816;
+    --country-jp: #EE7FB3; --country-jp-soft: #3C1D2C; --country-jp-on: #111816;
+    --country-ge: #A9B3C2; --country-ge-soft: #2A3038; --country-ge-on: #111816;
+    --cat-flight: #7AA7F2;
+    --cat-lodging: #A98EEE;
+    --cat-activity: #F0A050;
+    --cat-food: #F28686;
+    --cat-transport: #72C682;
+    --cat-doc: #E2B65E;
+    --cat-ins: #5FC3E0;
+    --cat-shop: #EE86C0;
+    --cat-other: #A8B2BC;
+    --cat-on: #111816;
+    --cat-soft-mix: 18%;
+    --e1: 0 1px 2px rgba(0, 0, 0, .5);
+    --e2: 0 4px 16px rgba(0, 0, 0, .45);
+    --e3: 0 12px 32px rgba(0, 0, 0, .6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-base: 150ms; --dur-slow: 150ms; } /* and transforms become opacity fades */
+}

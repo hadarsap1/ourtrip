@@ -12,7 +12,7 @@ import {
 import { strings } from "@/lib/strings";
 
 const FIELD =
-  "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-sea";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-sea";
 
 type Phase = "input" | "running" | "review";
 
@@ -149,7 +149,7 @@ export function ExtractSheet({
               <ul className="space-y-2">
                 {found.map((p, i) => (
                   <li key={`${p.title}-${i}`}>
-                    <label className="flex items-start gap-3 rounded-2xl border border-line bg-white p-3">
+                    <label className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3">
                       <input
                         type="checkbox"
                         checked={picked.has(i)}
@@ -182,7 +182,7 @@ export function ExtractSheet({
                 type="button"
                 onClick={() => void save()}
                 disabled={picked.size === 0}
-                className="w-full rounded-2xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-50"
               >
                 {s.importSaveSelected} ({picked.size})
               </button>
@@ -255,7 +255,7 @@ export function ExtractSheet({
             type="button"
             onClick={() => void run()}
             disabled={phase === "running"}
-            className="w-full rounded-2xl bg-sea py-3 font-semibold text-white disabled:opacity-60"
+            className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
           >
             {phase === "running" ? s.importRunning : s.importRun}
           </button>

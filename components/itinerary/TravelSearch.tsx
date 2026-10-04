@@ -222,7 +222,7 @@ export function TravelSearch({
               setResults([]);
             }}
             className={`rounded-lg py-2 transition-colors ${
-              mode === key ? "bg-white text-sea shadow" : "text-ink-soft"
+              mode === key ? "bg-surface text-sea shadow" : "text-ink-soft"
             }`}
           >
             {label}
@@ -278,7 +278,7 @@ export function TravelSearch({
                   type="button"
                   onClick={() => setTripType(key)}
                   className={`rounded-lg py-1.5 transition-colors ${
-                    tripType === key ? "bg-white text-sea shadow" : "text-ink-soft"
+                    tripType === key ? "bg-surface text-sea shadow" : "text-ink-soft"
                   }`}
                 >
                   {label}
@@ -497,7 +497,7 @@ export function TravelSearch({
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
         >
           {loading ? strings.travelSearch.searching : strings.travelSearch.search}
         </button>
@@ -505,7 +505,7 @@ export function TravelSearch({
 
       {/* results */}
       {searched && !loading && results.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.travelSearch.empty}
         </p>
       )}

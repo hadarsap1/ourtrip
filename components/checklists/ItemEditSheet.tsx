@@ -109,7 +109,7 @@ function ItemEdit({
         <div className="flex gap-2 pt-1">
           <button
             type="submit"
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
           >
             {strings.common.save}
           </button>

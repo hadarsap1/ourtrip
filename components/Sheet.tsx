@@ -118,7 +118,7 @@ export function Sheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
+        className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-surface p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 id={titleId} className="text-lg font-bold">

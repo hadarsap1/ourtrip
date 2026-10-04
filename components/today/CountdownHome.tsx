@@ -141,7 +141,7 @@ export function CountdownHome({ trip }: { trip: Trip }) {
       {checks !== null && checks.length > 0 && (
         <section>
           <p className="ot-kicker mb-2 px-0.5">{r.nextUp}</p>
-          <ul className="overflow-hidden rounded-[18px] border border-line bg-white">
+          <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
             {checks.map((check, i) => {
               const text = r.checks[check.key];
               if (!text) return null;
@@ -165,7 +165,7 @@ export function CountdownHome({ trip }: { trip: Trip }) {
                       <span className="block text-[13.5px] font-bold text-ink">
                         {text.label}
                       </span>
-                      <span className="block text-[11.5px] text-ink-soft">
+                      <span className="block text-[12px] text-ink-soft">
                         {Object.entries(check.values ?? {}).reduce(
                           (out, [k, v]) => out.replaceAll(`{${k}}`, String(v)),
                           text.detail
@@ -183,7 +183,7 @@ export function CountdownHome({ trip }: { trip: Trip }) {
 
       <Link
         href="/ready"
-        className="flex items-center gap-2.5 rounded-[18px] border border-line bg-white px-3.5 py-3 active:bg-paper-deep"
+        className="flex items-center gap-2.5 rounded-[18px] border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
       >
         <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
           {r.seeAll}
@@ -193,7 +193,7 @@ export function CountdownHome({ trip }: { trip: Trip }) {
 
       <Link
         href="/budget"
-        className="flex items-center justify-center gap-2 rounded-2xl bg-sea py-3 text-sm font-bold text-white"
+        className="flex items-center justify-center gap-2 rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea"
       >
         <CoinIcon className="h-4 w-4" strokeWidth={1.9} />
         {strings.today.addExpenseShort}

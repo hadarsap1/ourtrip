@@ -203,8 +203,8 @@ export function RecommendScreen() {
           <button
             type="button"
             onClick={() => setCats(new Set())}
-            className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
-              cats.size === 0 ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
+            className={`min-h-[44px] rounded-full px-3 py-1.5 text-sm font-semibold ${
+              cats.size === 0 ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
             }`}
           >
             {s.filterAll}
@@ -215,8 +215,8 @@ export function RecommendScreen() {
               type="button"
               onClick={() => toggleCat(cat)}
               aria-pressed={cats.has(cat)}
-              className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
-                cats.has(cat) ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
+              className={`min-h-[44px] rounded-full px-3 py-1.5 text-sm font-semibold ${
+                cats.has(cat) ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
               }`}
             >
               <RecommendCategoryIcon
@@ -235,12 +235,12 @@ export function RecommendScreen() {
           type="button"
           onClick={fromLocation}
           disabled={loading}
-          className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
+          className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-on-sea shadow-sm disabled:opacity-50"
         >
           <PinIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.useLocation}
         </button>
         {daysWithPlace.length > 0 && (
-          <details className="rounded-2xl border border-line bg-white">
+          <details className="rounded-2xl border border-line bg-surface">
             <summary className="cursor-pointer list-none px-4 py-3 font-medium text-ink">
               <CalendarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.useDay}
             </summary>
@@ -251,7 +251,7 @@ export function RecommendScreen() {
                     type="button"
                     onClick={() => fromDay(d)}
                     disabled={loading}
-                    className="flex w-full items-center justify-between px-4 py-3 text-right text-sm hover:bg-paper-deep disabled:opacity-50"
+                    className="flex w-full items-center justify-between px-4 py-3 text-start text-sm hover:bg-paper-deep disabled:opacity-50"
                   >
                     <span className="font-medium text-ink">
                       {d.location_name || formatShortDate(d.date)}
@@ -278,7 +278,7 @@ export function RecommendScreen() {
           {results.map((rec, i) => (
             <li
               key={`${rec.title}-${i}`}
-              className="rounded-2xl border border-line bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
             >
               <div className="flex items-start gap-2">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sea-tint text-sea-deep">
@@ -301,7 +301,7 @@ export function RecommendScreen() {
                 <button
                   type="button"
                   onClick={() => (days.length ? setDayFor(rec) : showToast(s.noDays))}
-                  className="rounded-xl bg-sea px-3 py-1.5 text-sm font-medium text-white"
+                  className="rounded-xl bg-sea px-3 py-1.5 text-sm font-medium text-on-sea"
                 >
                   + {s.addToItinerary}
                 </button>
@@ -341,7 +341,7 @@ export function RecommendScreen() {
             {saved.map((r) => (
               <li
                 key={r.id}
-                className="flex items-start justify-between gap-2 rounded-2xl border border-line bg-white p-3"
+                className="flex items-start justify-between gap-2 rounded-2xl border border-line bg-surface p-3"
               >
                 <div className="flex-1">
                   <p className="font-medium text-ink">
@@ -402,7 +402,7 @@ export function RecommendScreen() {
                 <button
                   type="button"
                   onClick={() => onAddToDay(d)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-right hover:bg-paper-deep"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-start hover:bg-paper-deep"
                 >
                   <span className="font-medium text-ink">
                     {d.location_name || formatShortDate(d.date)}

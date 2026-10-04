@@ -129,7 +129,7 @@ function DocumentForm({
               required
               accept="application/pdf,image/*"
               onChange={(e) => handleFilePick(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-ink-soft file:ml-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
+              className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
             />
           </div>
         )}
@@ -156,8 +156,8 @@ function DocumentForm({
                 key={t}
                 type="button"
                 onClick={() => setTag(t)}
-                className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  tag === t ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
+                className={`min-h-[44px] rounded-full px-3 py-1.5 text-sm font-semibold ${
+                  tag === t ? "bg-sea text-on-sea" : "bg-paper-deep text-ink-soft"
                 }`}
               >
                 {strings.documents.tags[t]}
@@ -200,7 +200,7 @@ function DocumentForm({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {saving && !doc ? strings.documents.uploading : strings.common.save}
           </button>

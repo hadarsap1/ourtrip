@@ -10,7 +10,7 @@ export function PlaceholderScreen({
   return (
     <div className="mx-auto max-w-lg px-4 pt-8">
       <h1 className="mb-8 text-2xl font-bold">{title}</h1>
-      <section className="rounded-2xl border border-dashed border-line bg-white p-8 text-center">
+      <section className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
         <p className="mb-1 text-lg font-semibold text-ink-soft">
           {strings.placeholders.comingSoon}
         </p>

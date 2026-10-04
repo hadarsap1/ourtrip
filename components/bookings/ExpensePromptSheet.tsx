@@ -83,7 +83,7 @@ function ExpensePrompt({
         <p className="text-sm text-ink-soft">
           {strings.bookings.expensePromptBody}
           {booking.cost != null && (
-            <span className="mr-1 font-semibold text-ink" dir="ltr">
+            <span className="ms-1 font-semibold text-ink" dir="ltr">
               {formatMoney(booking.cost, booking.currency ?? "ILS")}
             </span>
           )}
@@ -115,7 +115,7 @@ function ExpensePrompt({
             type="button"
             onClick={() => void handleCreate()}
             disabled={saving || !categoryId}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {strings.bookings.expenseCreate}
           </button>

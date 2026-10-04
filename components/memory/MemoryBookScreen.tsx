@@ -74,7 +74,7 @@ export function MemoryBookScreen() {
             <button
               type="button"
               onClick={() => window.print()}
-              className="mt-4 w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm"
+              className="mt-4 w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow-sm"
             >
               <PrinterIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.print}
             </button>
@@ -84,11 +84,11 @@ export function MemoryBookScreen() {
       </div>
 
       {isEmpty ? (
-        <p className="no-print rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="no-print rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {s.empty}
         </p>
       ) : (
-        <article className="space-y-8 rounded-2xl bg-white p-6 shadow-sm print:p-0 print:shadow-none">
+        <article className="space-y-8 rounded-2xl bg-surface p-6 shadow-sm print:p-0 print:shadow-none">
           {/* cover */}
           <header className="border-b border-line pb-6 text-center">
             <p className="text-sm text-ink-soft">{s.coverPrefix}</p>

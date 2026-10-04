@@ -45,6 +45,7 @@ import {
 import { isPasskeySupported } from "@/lib/webauthn";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { useMember } from "@/lib/useMember";
 import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
@@ -302,11 +303,7 @@ export function DocumentsScreen() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   const query = search.trim().toLowerCase();
@@ -347,7 +344,7 @@ export function DocumentsScreen() {
         {/* The PIN is reassurance, not only a challenge - say the vault is
             protected on the way in, not just when it blocks you. */}
         {!isKid && pinExists && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[11px] font-bold text-sea-deep">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[12px] font-bold text-sea-deep">
             <LockIcon className="h-3 w-3" />
             {strings.documents.pinBadge}
           </span>
@@ -361,7 +358,7 @@ export function DocumentsScreen() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={strings.documents.searchFull}
-          className="w-full rounded-[14px] border border-line bg-white py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+          className="w-full rounded-[14px] border border-line bg-surface py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
         />
       </div>
 
@@ -369,9 +366,9 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setTagFilter(null)}
-          className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+          className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
             tagFilter === null
-              ? "bg-sea-deep text-white"
+              ? "bg-sea-deep text-on-sea"
               : "bg-paper-deep text-ink-soft"
           }`}
         >
@@ -384,9 +381,9 @@ export function DocumentsScreen() {
               key={tag}
               type="button"
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
+              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
                 tagFilter === tag
-                  ? "bg-sea-deep text-white"
+                  ? "bg-sea-deep text-on-sea"
                   : "bg-paper-deep text-ink-soft"
               }`}
             >
@@ -407,7 +404,7 @@ export function DocumentsScreen() {
                 soonest.title
               )}
             </p>
-            <p className="mt-0.5 text-[11px] text-sun-deep/85">
+            <p className="mt-0.5 text-[12px] text-sun-deep/85">
               {strings.documents.expiryWarnBody
                 .replace("{expiry}", formatDate(soonest.expires_at!))
                 .replace("{end}", formatDate(trip.end_date))}
@@ -422,7 +419,7 @@ export function DocumentsScreen() {
       )}
 
       {visible.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-faint">
+        <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {docs.length === 0
             ? isKid
               ? strings.documents.kidEmpty
@@ -430,12 +427,12 @@ export function DocumentsScreen() {
             : strings.documents.noResults}
         </p>
       ) : (
-        <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+        <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
           <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
             <h2 className="text-xs font-bold text-ink">
               {strings.documents.offlineHeader}
             </h2>
-            <span className="text-[10.5px] text-ink-soft">
+            <span className="text-[12px] text-ink-soft">
               {strings.documents.offlineCount
                 .replace("{n}", String(offlineCount))
                 .replace("{total}", String(docs.length))}
@@ -489,7 +486,7 @@ export function DocumentsScreen() {
                       </span>
                     </span>
                     <span
-                      className={`block truncate text-[10.5px] ${
+                      className={`block truncate text-[12px] ${
                         expires ? "font-semibold text-sun-deep" : "text-ink-soft"
                       }`}
                     >
@@ -576,7 +573,7 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setForm({ doc: null })}
-          className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+          className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
           style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
         >
           {strings.documents.upload}
@@ -587,7 +584,7 @@ export function DocumentsScreen() {
         <>
           {/* Enrolling needs the key in memory, so it lives behind the unlock. */}
           {bioSupported && !thisDeviceEnrolled && (
-            <div className="rounded-2xl border border-line bg-white p-4">
+            <div className="rounded-2xl border border-line bg-surface p-4">
               <h3 className="mb-1 font-semibold text-ink">
                 {strings.documents.bioEnrollTitle}
               </h3>
@@ -598,7 +595,7 @@ export function DocumentsScreen() {
                 type="button"
                 disabled={enrolling}
                 onClick={() => void enrollThisDevice()}
-                className="w-full rounded-xl bg-sea py-2.5 font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-xl bg-sea py-2.5 font-semibold text-on-sea disabled:opacity-50"
               >
                 {strings.documents.bioEnroll}
               </button>
@@ -606,7 +603,7 @@ export function DocumentsScreen() {
           )}
 
           {passkeys.length > 0 && (
-            <div className="rounded-2xl border border-line bg-white p-4">
+            <div className="rounded-2xl border border-line bg-surface p-4">
               <h3 className="mb-2 font-semibold text-ink">
                 {strings.documents.bioDevicesTitle}
               </h3>
@@ -700,7 +697,7 @@ export function DocumentsScreen() {
                 URL.revokeObjectURL(viewer.url);
                 setViewer(null);
               }}
-              className="rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-ink"
+              className="rounded-full bg-surface/90 px-4 py-2 text-sm font-semibold text-ink"
             >
               {strings.documents.viewerClose}
             </button>
@@ -714,7 +711,7 @@ export function DocumentsScreen() {
                 className="mx-auto max-h-full max-w-full object-contain"
               />
             ) : (
-              <iframe src={viewer.url} title="document" className="h-full w-full rounded-lg bg-white" />
+              <iframe src={viewer.url} title="document" className="h-full w-full rounded-lg bg-surface" />
             )}
           </div>
         </div>

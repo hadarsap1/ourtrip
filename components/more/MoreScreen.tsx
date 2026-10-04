@@ -22,6 +22,7 @@ import {
   VisaIcon,
 } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { ThemePicker } from "@/components/settings/ThemePicker";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { strings } from "@/lib/strings";
@@ -50,7 +51,7 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
         <li key={tile.href}>
           <Link
             href={tile.href}
-            className="flex h-full flex-col gap-[7px] rounded-[17px] border border-line bg-white px-3.5 py-3 active:bg-paper-deep"
+            className="flex h-full flex-col gap-[7px] rounded-[17px] border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
           >
             <span className="relative w-fit">
               <span
@@ -63,7 +64,7 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
                 <tile.Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </span>
               {tile.badge != null && tile.badge > 0 && (
-                <span className="absolute -left-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-extrabold text-white">
+                <span className="absolute -end-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
                   {tile.badge > 9 ? "9+" : tile.badge}
                 </span>
               )}
@@ -71,7 +72,7 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
             <span className="text-[13.5px] font-bold text-ink">
               {tile.label}
               {tile.count !== null && tile.count > 0 && (
-                <span className="ms-1 text-[10.5px] font-medium text-ink-faint">
+                <span className="ms-1 text-[12px] font-medium text-ink-faint">
                   · {tile.count}
                 </span>
               )}
@@ -224,6 +225,7 @@ export function MoreScreen() {
       {/* Renders only while the app is not installed yet, so it disappears for
           good once it is on the home screen. */}
       <InstallPrompt />
+      <ThemePicker />
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>
@@ -237,7 +239,7 @@ export function MoreScreen() {
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupFamily}</p>
-        <ul className="overflow-hidden rounded-[18px] border border-line bg-white">
+        <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
           {admin.map((row, i) => (
             <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
               <Link
@@ -252,7 +254,7 @@ export function MoreScreen() {
                   {row.label}
                 </span>
                 {row.state && (
-                  <span className="shrink-0 text-[11px] text-ink-soft">
+                  <span className="shrink-0 text-[12px] text-ink-soft">
                     {row.state}
                   </span>
                 )}
@@ -271,7 +273,7 @@ export function MoreScreen() {
         className="mt-auto flex items-center gap-2.5 rounded-[18px] border border-alert/20 bg-alert-tint px-3.5 py-3 text-alert"
       >
         <span
-          className="shrink-0 rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]"
+          className="shrink-0 rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]"
           aria-hidden="true"
         >
           {strings.emergency.sos}
@@ -281,7 +283,7 @@ export function MoreScreen() {
             {strings.more.menuEmergency}
             {counts?.countryCode && ` · ${countryName(counts.countryCode)}`}
           </span>
-          <span className="block text-[10.5px] text-alert/80">
+          <span className="block text-[12px] text-alert/80">
             {strings.more.emergencyMeta}
           </span>
         </span>

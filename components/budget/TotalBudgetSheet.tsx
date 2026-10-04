@@ -7,7 +7,7 @@ import { strings } from "@/lib/strings";
 import type { Trip } from "@/lib/types";
 
 const FIELD =
-  "w-full rounded-xl border border-line bg-white px-3 py-2 text-lg font-semibold outline-none focus:border-sea";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-lg font-semibold outline-none focus:border-sea";
 
 /** Sets the overall trip budget. Clearing it is a first-class action, not an
  *  edge case: with no total set the screen goes back to deriving one from the
@@ -88,7 +88,7 @@ export function TotalBudgetSheet({
         <button
           type="submit"
           disabled={busy || !valid}
-          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white disabled:opacity-60"
+          className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
         >
           {s.save}
         </button>

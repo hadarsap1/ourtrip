@@ -147,7 +147,7 @@ export function OptionsMap({
 
   if (ready === false) {
     return (
-      <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+      <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
         {s.mapUnavailable}
       </p>
     );
@@ -164,7 +164,7 @@ export function OptionsMap({
           coordinates, so say how many are missing rather than quietly
           showing a partial map. */}
       {unlocatedCount > 0 && (
-        <div className="rounded-2xl border border-line bg-white p-3">
+        <div className="rounded-2xl border border-line bg-surface p-3">
           <p className="text-xs text-ink-soft">
             {s.mapUnlocated.replace("{n}", String(unlocatedCount))}
           </p>
@@ -177,7 +177,7 @@ export function OptionsMap({
             type="button"
             onClick={onLocate}
             disabled={locating !== null}
-            className="mt-2 w-full rounded-xl bg-sea py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="mt-2 w-full rounded-xl bg-sea py-2 text-sm font-semibold text-on-sea disabled:opacity-60"
           >
             {locating ?? s.mapLocate}
           </button>

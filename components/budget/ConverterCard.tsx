@@ -39,7 +39,7 @@ export function ConverterCard() {
       : value / (rate as number);
 
   return (
-    <section className="rounded-[18px] border border-line bg-white p-3.5">
+    <section className="rounded-[18px] border border-line bg-surface p-3.5">
       <h2 className="mb-3 text-xs font-bold text-ink">
         {strings.budget.converterTitle}
       </h2>
@@ -80,7 +80,7 @@ export function ConverterCard() {
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
           aria-label={strings.budget.currency}
-          className="min-h-[40px] rounded-xl border border-line px-2 py-1.5 text-sm focus:border-sea focus:outline-none"
+          className="min-h-[44px] rounded-xl border border-line px-2 py-1.5 text-sm focus:border-sea focus:outline-none"
           dir="ltr"
         >
           {CURRENCIES.filter((c) => c !== "ILS").map((c) => (

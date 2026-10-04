@@ -35,6 +35,7 @@ import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/
 import { daysUntil } from "@/lib/data/readiness";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
 import type { Booking, ItineraryItem, Trip } from "@/lib/types";
@@ -70,11 +71,11 @@ function Tile({
       className={`rounded-[18px] border px-3.5 py-3 ${
         tone === "sun"
           ? "border-sun/20 bg-sun-tint"
-          : "border-line bg-white"
+          : "border-line bg-surface"
       }`}
     >
       <p
-        className={`text-[10px] font-bold uppercase tracking-[0.09em] ${
+        className={`text-[12px] font-bold uppercase tracking-[0.09em] ${
           tone === "sun" ? "text-sun-deep" : "text-ink-soft"
         }`}
       >
@@ -112,10 +113,10 @@ function AgendaCard({
 }) {
   const currentId = currentItemId(items, nowMinutes);
   return (
-    <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+    <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
       <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
         <h2 className="text-xs font-bold text-ink">{strings.today.agenda}</h2>
-        <span className="text-[10.5px] text-ink-soft">
+        <span className="text-[12px] text-ink-soft">
           {strings.today.agendaCount.replace("{n}", String(items.length))}
         </span>
       </header>
@@ -170,7 +171,7 @@ function AgendaCard({
                     {item.title}
                   </span>
                   {item.location_name && (
-                    <span className="block truncate text-[10.5px] text-ink-soft">
+                    <span className="block truncate text-[12px] text-ink-soft">
                       {item.location_name}
                     </span>
                   )}
@@ -273,7 +274,7 @@ export function TodayScreen() {
             <Link
               key={tile.href}
               href={tile.href}
-              className="flex flex-col items-center gap-2.5 rounded-[18px] border border-line bg-white p-6 active:bg-sea-tint/50"
+              className="flex flex-col items-center gap-2.5 rounded-[18px] border border-line bg-surface p-6 active:bg-sea-tint/50"
             >
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-sea-tint text-sea-deep">
                 <tile.Icon className="h-6 w-6" />
@@ -316,13 +317,13 @@ export function TodayScreen() {
           <Link
             href="/emergency"
             aria-label={strings.emergency.title}
-            className="shrink-0 rounded-2xl bg-alert px-3 py-2 text-sm font-bold text-white"
+            className="shrink-0 rounded-2xl bg-alert px-3 py-2 text-sm font-bold text-on-alert"
           >
             {strings.emergency.sos}
           </Link>
         </header>
 
-        <section className="rounded-[20px] bg-sea p-4 text-white">
+        <section className="rounded-[20px] bg-sea p-4 text-on-sea">
           <p className="text-sm font-medium opacity-80">
             {strings.kidHome.whereToday}
           </p>
@@ -344,7 +345,7 @@ export function TodayScreen() {
         </section>
 
         {activeItems.length > 0 && (
-          <section className="rounded-[20px] border border-line bg-white">
+          <section className="rounded-[20px] border border-line bg-surface">
             <ul className="divide-y divide-line">
               {activeItems.map((item) => (
                 <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
@@ -389,7 +390,7 @@ export function TodayScreen() {
             <Link
               key={tile.href}
               href={tile.href}
-              className="flex flex-col items-center gap-2 rounded-[18px] border border-line bg-white p-4 active:bg-sea-tint/50"
+              className="flex flex-col items-center gap-2 rounded-[18px] border border-line bg-surface p-4 active:bg-sea-tint/50"
             >
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-sea-tint text-sea-deep">
                 <tile.Icon className="h-[22px] w-[22px]" />
@@ -410,13 +411,7 @@ export function TodayScreen() {
      trip starts; no setting to forget. */
   if (!tripChecked) {
     return (
-      <div
-        className="mx-auto max-w-lg px-4 pt-16 text-center"
-        role="status"
-        aria-live="polite"
-      >
-        <p className="text-ink-soft">{strings.common.loading}</p>
-      </div>
+      <ScreenSkeleton variant="today" />
     );
   }
 
@@ -449,22 +444,22 @@ export function TodayScreen() {
       {/* Place bar. Full-bleed and flat: at this height the postcard's dashed
           arc was noise, and a solid band reads as chrome rather than as content
           competing with the cards below. */}
-      <header className="bg-sea-deep px-6 pb-3.5 pt-4 text-white">
+      <header className="bg-sea-deep px-6 pb-3.5 pt-4 text-on-sea">
         <div className="mx-auto flex max-w-lg items-start justify-between gap-3 sm:max-w-2xl lg:max-w-none">
           <div className="min-w-0">
             <h1 className="flex items-center gap-1.5 text-[19px] font-extrabold leading-tight">
-              <PinIcon className="h-[17px] w-[17px] shrink-0 text-white/80" />
+              <PinIcon className="h-[17px] w-[17px] shrink-0 text-on-sea/80" />
               <span className="truncate">
                 {data?.day?.location_name ?? strings.today.noPlace}
                 {data?.day?.country_code ? `, ${data.day.country_code}` : ""}
               </span>
             </h1>
-            <p className="mt-1 text-[11.5px] text-white/70">{dayLine}</p>
+            <p className="mt-1 text-[12px] text-on-sea/70">{dayLine}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <Link
               href="/budget"
-              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-white/28 bg-white/15 px-3 py-1.5 text-[11px] font-bold text-white active:bg-white/25"
+              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-bold text-on-sea active:bg-on-sea/20"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               {strings.today.addExpenseShort}
@@ -472,7 +467,7 @@ export function TodayScreen() {
             <Link
               href="/emergency"
               aria-label={strings.emergency.title}
-              className="min-h-[44px] rounded-[10px] border border-white/28 bg-white/15 px-3 py-1.5 text-[11px] font-extrabold tracking-[0.06em] text-white active:bg-white/25"
+              className="min-h-[44px] rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-extrabold tracking-[0.06em] text-on-sea active:bg-on-sea/20"
             >
               {strings.emergency.sos}
             </Link>
@@ -489,9 +484,11 @@ export function TodayScreen() {
         )}
 
         {loading ? (
-          <p className="pt-4 text-center text-ink-soft lg:col-span-3">
-            {strings.common.loading}
-          </p>
+          <div className="space-y-3 pt-4 lg:col-span-3" role="status" aria-busy="true" aria-label={strings.common.loading}>
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
         ) : !data || !data.day ? (
           <section className="ot-card p-8 text-center lg:col-span-3">
             <RouteIcon className="mx-auto mb-3 h-9 w-9 text-line" />
@@ -517,12 +514,12 @@ export function TodayScreen() {
 
               {upcoming && (
                 <section
-                  className="rounded-[18px] border border-line bg-white px-3.5 py-3"
+                  className="rounded-[18px] border border-line bg-surface px-3.5 py-3"
                   style={{ boxShadow: "0 8px 20px -16px rgba(34,49,46,.4)" }}
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="ot-kicker">{strings.today.nextUp}</p>
-                    <span className="text-[10.5px] font-medium text-ink-soft">
+                    <span className="text-[12px] font-medium text-ink-soft">
                       {countdownLabel(upcoming.minutesUntil)}
                     </span>
                   </div>
@@ -540,7 +537,7 @@ export function TodayScreen() {
                     </span>
                   </p>
                   {upcoming.item.location_name && (
-                    <p className="mt-1 truncate text-[11px] text-ink-soft">
+                    <p className="mt-1 truncate text-[12px] text-ink-soft">
                       {upcoming.item.location_name}
                     </p>
                   )}
@@ -557,7 +554,7 @@ export function TodayScreen() {
                   <p className="flex items-center gap-2">
                     <WeatherIcon
                       code={weather.weatherCode}
-                      className="h-[22px] w-[22px] shrink-0 text-sun"
+                      className="h-[22px] w-[22px] shrink-0 text-sun-deep"
                     />
                     <span
                       className="text-[19px] font-extrabold leading-none text-ink"
@@ -566,7 +563,7 @@ export function TodayScreen() {
                       {weather.tempMin}-{weather.tempMax}°
                     </span>
                   </p>
-                  <p className="mt-1 truncate text-[11px] text-ink-soft">
+                  <p className="mt-1 truncate text-[12px] text-ink-soft">
                     {describeWeather(weather.weatherCode).label}
                     {weather.precipitationChance > 0 && (
                       <span dir="ltr"> · {weather.precipitationChance}%</span>
@@ -586,7 +583,7 @@ export function TodayScreen() {
                     </p>
                     {lodging.confirmation_code && (
                       <p
-                        className="mt-1 truncate text-[11px] font-semibold text-ink-soft"
+                        className="mt-1 truncate text-[12px] font-semibold text-ink-soft"
                         dir="ltr"
                       >
                         {lodging.confirmation_code}
@@ -646,7 +643,7 @@ export function TodayScreen() {
                     </h2>
                     <Link
                       href="/photos"
-                      className="text-[11px] font-bold text-sea"
+                      className="text-[12px] font-bold text-sea"
                     >
                       {strings.today.seeAll} ←
                     </Link>
@@ -691,7 +688,7 @@ export function TodayScreen() {
 
               {/* today's bookings other than the bed, which has its own tile */}
               {data.bookings.filter((b) => b !== lodging).length > 0 && (
-                <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+                <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
                   <header className="bg-paper-deep px-3.5 py-2.5">
                     <h2 className="text-xs font-bold text-ink">
                       {strings.today.bookingsToday}
@@ -709,7 +706,7 @@ export function TodayScreen() {
                             {booking.title}
                           </span>
                           <span
-                            className="shrink-0 text-[10.5px] text-ink-soft"
+                            className="shrink-0 text-[12px] text-ink-soft"
                             dir="ltr"
                           >
                             {booking.confirmation_code ??
@@ -746,7 +743,7 @@ export function TodayScreen() {
             copy of a link one tap away, and it cost half the row. */}
         <Link
           href="/budget"
-          className="mt-2.5 block rounded-2xl bg-sea py-3 text-center text-sm font-bold text-white active:bg-sea-deep lg:col-span-3 lg:mt-1"
+          className="mt-2.5 block rounded-2xl bg-sea py-3 text-center text-sm font-bold text-on-sea active:bg-sea-deep lg:col-span-3 lg:mt-1"
           style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
         >
           {strings.today.quickExpense}

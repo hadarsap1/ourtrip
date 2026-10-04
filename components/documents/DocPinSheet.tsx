@@ -117,7 +117,7 @@ export function DocPinSheet({
             type="button"
             onClick={() => void tryBiometric()}
             disabled={busy}
-            className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-50"
           >
             {s.bioUnlock}
           </button>
@@ -183,7 +183,7 @@ export function DocPinSheet({
         <button
           type="submit"
           disabled={busy || (mode === "set" && !ack)}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-50"
         >
           {mode === "set" ? s.pinSave : s.pinUnlock}
         </button>

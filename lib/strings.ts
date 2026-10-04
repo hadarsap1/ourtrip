@@ -186,7 +186,7 @@ export const strings = {
     emptyPage: "עוד לא הוזן מידע חירום למדינה הזו",
     noCountries: "אין עדיין מדינות - הוסיפו ימים עם מדינה במסלול או צרו דף חדש",
     addCountry: "מדינה חדשה",
-    countryCode: "קוד מדינה (2 אותיות, למשל JP)",
+    countryCode: "מדינה",
     saved: "דף החירום נשמר",
     autofill: "מילוי אוטומטי",
     autofilling: "ממלא מספרי חירום ושגרירות…",
@@ -347,6 +347,37 @@ export const strings = {
     pocketState: "דמי כיס לילדים",
     memoryBookState: "יומן ותמונות להדפסה",
     visasState: "דרישות כניסה לכל מדינה",
+  },
+
+  // Shared design-system components (components/ui)
+  ui: {
+    today: "היום",
+    tomorrow: "מחר",
+    inDays: "בעוד {n} ימים",
+    percent: "{n}%",
+    increase: "עוד אחד: {what}",
+    decrease: "אחד פחות: {what}",
+    undo: "ביטול",
+    close: "סגירה",
+    collapse: "כיווץ",
+    sheetHandle: "גרירה לשינוי גובה",
+    quickAdd: "הוספה מהירה",
+  },
+
+  countryPicker: {
+    choose: "בחירת מדינה",
+    search: "חיפוש מדינה",
+    listLabel: "מדינות",
+    clear: "בלי מדינה",
+    noResults: "לא נמצאה מדינה",
+  },
+
+  theme: {
+    title: "מראה",
+    hint: "נשמר רק במכשיר הזה",
+    light: "בהיר",
+    dark: "כהה",
+    system: "לפי המכשיר",
   },
 
   visas: {
@@ -848,7 +879,7 @@ export const strings = {
     editDay: "עריכת יום",
     date: "תאריך",
     location: "מיקום",
-    countryCode: "קוד מדינה",
+    countryCode: "מדינה",
     countryCodeHint: "שתי אותיות, למשל JP",
     notes: "הערות",
     calendarActivityCount: "‏{n} פעילויות",
@@ -1390,6 +1421,11 @@ export const strings = {
     synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
     syncFailed: "חלק מההוצאות שנרשמו לא מקוון לא נשמרו - כדאי לרשום אותן מחדש",
     fromCache: "מוצג מהעותק השמור במכשיר",
+    // F10
+    bannerV2: "אין חיבור - הנתונים נשמרו במכשיר",
+    syncing: "מסנכרן שינויים…",
+    lastSynced: "סונכרן לאחרונה {when}",
+    pending: "{n} שינויים ממתינים",
   },
 
   // The /offline route: the service worker serves it when a screen that was

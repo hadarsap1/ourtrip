@@ -25,9 +25,9 @@ export function TranslateBox({
 }) {
   const s = strings.phrasebook;
   return (
-    <section className="rounded-2xl border border-line bg-white p-3.5">
+    <section className="rounded-2xl border border-line bg-surface p-3.5">
       <h2 className="text-[13.5px] font-bold text-ink">{s.translateTitle}</h2>
-      <p className="mt-0.5 text-[11.5px] text-ink-soft">{s.translateHint}</p>
+      <p className="mt-0.5 text-[12px] text-ink-soft">{s.translateHint}</p>
 
       <div className="mt-2 flex gap-2">
         <input
@@ -46,7 +46,7 @@ export function TranslateBox({
           disabled={translating || draft.trim() === ""}
           // Fixed width so the field does not jump when the label changes to
           // "מתרגם…", which is exactly when someone is watching it.
-          className="w-[86px] shrink-0 rounded-xl bg-sea px-2 py-2 text-sm font-bold text-white disabled:opacity-40"
+          className="w-[86px] shrink-0 rounded-xl bg-sea px-2 py-2 text-sm font-bold text-on-sea disabled:opacity-40"
         >
           {translating ? s.translating : s.translateCta}
         </button>
@@ -54,7 +54,7 @@ export function TranslateBox({
 
       {translation && (
         <div className="mt-3 rounded-xl bg-paper-deep p-3">
-          <p className="text-[11px] font-bold text-ink-soft">
+          <p className="text-[12px] font-bold text-ink-soft">
             {s.translateResult}
           </p>
           {/* dir="auto" so Japanese, Georgian and Vietnamese each lay out

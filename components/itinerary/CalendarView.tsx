@@ -66,7 +66,7 @@ export function CalendarView({
   return (
     <div className="space-y-6 pb-8">
       {days.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-4 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-4 text-center text-sm text-ink-soft">
           {strings.itinerary.calendarEmpty}
         </p>
       )}
@@ -74,7 +74,7 @@ export function CalendarView({
       <button
         type="button"
         onClick={() => setMonthsBefore((n) => n + 6)}
-        className="w-full rounded-xl border border-line bg-white py-2 text-xs font-medium text-ink-soft"
+        className="w-full rounded-xl border border-line bg-surface py-2 text-xs font-medium text-ink-soft"
       >
         {strings.itinerary.calendarEarlier}
       </button>
@@ -93,7 +93,7 @@ export function CalendarView({
             </h2>
             <div className="grid grid-cols-7 gap-1 text-center">
               {strings.itinerary.calendarWeekdays.map((w) => (
-                <div key={w} className="text-[11px] font-medium text-ink-soft">
+                <div key={w} className="text-[12px] font-medium text-ink-soft">
                   {w}
                 </div>
               ))}
@@ -142,7 +142,7 @@ export function CalendarView({
                         the rest of the block unexplained. */}
                     {cell?.label && (
                       <span
-                        className={`w-full truncate text-[8px] leading-tight ${
+                        className={`w-full truncate text-[12px] leading-tight ${
                           cell.isStart
                             ? "font-semibold text-sea-deep"
                             : "font-normal text-sea-deep/70"
@@ -166,7 +166,7 @@ export function CalendarView({
                             />
                           ))
                         ) : (
-                          <span className="text-[9px] font-semibold text-sea">
+                          <span className="text-[12px] font-semibold text-sea">
                             {cell.itemCount}
                           </span>
                         )}
@@ -205,7 +205,7 @@ export function CalendarView({
       <button
         type="button"
         onClick={() => setMonthsAfter((n) => n + 6)}
-        className="w-full rounded-xl border border-line bg-white py-2 text-xs font-medium text-ink-soft"
+        className="w-full rounded-xl border border-line bg-surface py-2 text-xs font-medium text-ink-soft"
       >
         {strings.itinerary.calendarLater}
       </button>

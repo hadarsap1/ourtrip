@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:auth": "playwright test -c playwright.auth.config.ts"
+    "test:e2e:auth": "playwright test -c playwright.auth.config.ts",
+    "report:rtl": "node scripts/physical-css-report.mjs",
+    "test:gates": "playwright test -c playwright.gates.config.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

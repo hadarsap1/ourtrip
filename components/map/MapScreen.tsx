@@ -358,8 +358,8 @@ export function MapScreen() {
           <button
             type="button"
             onClick={() => setDayFilter(null)}
-            className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-              dayFilter === null ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
+            className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              dayFilter === null ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
             }`}
           >
             {strings.map.dayFilterAll}
@@ -369,8 +369,8 @@ export function MapScreen() {
               key={day.id}
               type="button"
               onClick={() => setDayFilter(dayFilter === day.id ? null : day.id)}
-              className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                dayFilter === day.id ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
+              className={`flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                dayFilter === day.id ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
               }`}
             >
               <span
@@ -385,7 +385,7 @@ export function MapScreen() {
       )}
 
       {noKey ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.map.noKey}
         </p>
       ) : (
@@ -444,7 +444,7 @@ export function MapScreen() {
                 type="button"
                 disabled={drawCount < 2}
                 onClick={() => setRouteNameOpen(true)}
-                className="rounded-xl bg-sea px-3 py-2 text-white disabled:opacity-50"
+                className="rounded-xl bg-sea px-3 py-2 text-on-sea disabled:opacity-50"
               >
                 {strings.map.finishRoute}
               </button>
@@ -465,7 +465,7 @@ export function MapScreen() {
 
       {/* custom pins list */}
       {customPins.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+        <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
           <h2 className="mb-1 px-1 text-sm font-semibold text-ink-soft">
             {strings.map.addPin}
           </h2>
@@ -503,7 +503,7 @@ export function MapScreen() {
 
       {/* saved routes list */}
       {routes.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+        <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
           <h2 className="mb-1 px-1 text-sm font-semibold text-ink-soft">
             {strings.map.routes}
           </h2>
@@ -619,7 +619,7 @@ function PinLabelSheet({
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>
@@ -661,7 +661,7 @@ function RouteNameSheet({
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>

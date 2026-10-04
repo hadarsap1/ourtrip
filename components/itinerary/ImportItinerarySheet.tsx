@@ -79,7 +79,7 @@ export function ImportItinerarySheet({
           type="file"
           accept=".xlsx,.xls,.csv,.txt"
           onChange={(e) => void handleFile(e)}
-          className="block w-full text-sm text-ink-soft file:ml-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
+          className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
         />
 
         {busy && !preview && (
@@ -105,7 +105,7 @@ export function ImportItinerarySheet({
             {/* small preview of the first few rows */}
             <ul className="max-h-52 space-y-1 overflow-y-auto text-sm">
               {preview.rows.slice(0, 8).map((r, i) => (
-                <li key={i} className="flex gap-2 rounded-lg bg-white px-2 py-1.5 shadow-sm">
+                <li key={i} className="flex gap-2 rounded-lg bg-surface px-2 py-1.5 shadow-sm">
                   <span className="shrink-0 font-mono text-xs text-ink-soft" dir="ltr">
                     {r.date}
                     {r.start_time ? ` ${r.start_time}` : ""}
@@ -121,7 +121,7 @@ export function ImportItinerarySheet({
               type="button"
               onClick={() => void doImport()}
               disabled={busy}
-              className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-50"
             >
               {busy ? s.importing : s.importDo}
             </button>

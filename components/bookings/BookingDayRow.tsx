@@ -75,14 +75,14 @@ export function BookingDayRow({
         aria-label={`${strings.bookings.openBooking}: ${booking.title}`}
         className="flex w-full items-center gap-2.5 px-3.5 py-2 text-start hover:bg-sea-tint/60"
       >
-        <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg bg-white text-sea-deep">
+        <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg bg-surface text-sea-deep">
           <Icon className="h-[14px] w-[14px]" strokeWidth={1.7} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px] font-semibold text-sea-deep">
             {booking.title}
           </span>
-          <span className="block truncate text-[11px] text-sea-deep/70">
+          <span className="block truncate text-[12px] text-sea-deep/70">
             {strings.bookings.types[booking.type]}
             {span && ` · ${span}`}
             {entry.isStart && booking.confirmation_code && (
@@ -95,7 +95,7 @@ export function BookingDayRow({
         </span>
         {showCost && (
           <span
-            className="shrink-0 text-[11.5px] font-semibold text-sea-deep/80"
+            className="shrink-0 text-[12px] font-semibold text-sea-deep/80"
             dir="ltr"
           >
             {formatMoney(booking.cost!, booking.currency ?? "ILS")}

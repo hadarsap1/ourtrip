@@ -183,8 +183,8 @@ export function MessagesScreen() {
               onClick={() => setChannel(c)}
               className={`flex-1 rounded-2xl px-3 py-2 text-sm font-semibold ${
                 c === channel
-                  ? "bg-sea text-white"
-                  : "bg-white text-ink-soft border border-line"
+                  ? "bg-sea text-on-sea"
+                  : "bg-surface text-ink-soft border border-line"
               }`}
             >
               {c === "guests" ? strings.wall.guestTab : strings.wall.familyTab}
@@ -199,7 +199,7 @@ export function MessagesScreen() {
 
       <div className="flex-1 space-y-2 overflow-y-auto pb-3">
         {messages.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+          <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
             {strings.wall.empty}
           </p>
         ) : (
@@ -210,8 +210,8 @@ export function MessagesScreen() {
                 key={message.id}
                 className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
                   mine
-                    ? "mr-auto bg-sea text-white"
-                    : "ml-auto bg-white text-ink"
+                    ? "ms-auto bg-sea text-on-sea"
+                    : "me-auto bg-surface text-ink"
                 }`}
               >
                 <p
@@ -221,7 +221,7 @@ export function MessagesScreen() {
                 >
                   {senderName(message.sender_id)}
                   <span
-                    className={`mr-1.5 font-normal ${
+                    className={`ms-1.5 font-normal ${
                       mine ? "text-sea-tint" : "text-ink-soft"
                     }`}
                   >
@@ -245,12 +245,12 @@ export function MessagesScreen() {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={strings.wall.placeholder}
-          className="min-w-0 flex-1 rounded-2xl border border-line bg-white px-4 py-3 text-base focus:border-sea focus:outline-none"
+          className="min-w-0 flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-base focus:border-sea focus:outline-none"
         />
         <button
           type="submit"
           disabled={sending || !body.trim()}
-          className="shrink-0 rounded-2xl bg-sea px-4 py-3 font-bold text-white disabled:opacity-50"
+          className="shrink-0 rounded-2xl bg-sea px-4 py-3 font-bold text-on-sea disabled:opacity-50"
         >
           {strings.wall.send}
         </button>

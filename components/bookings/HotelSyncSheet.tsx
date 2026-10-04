@@ -128,7 +128,7 @@ function HotelSyncForm({
                   <span className="block truncate text-[13px] font-extrabold text-ink">
                     {proposal.booking.title}
                   </span>
-                  <span className="block text-[11.5px] text-ink-soft">
+                  <span className="block text-[12px] text-ink-soft">
                     <span dir="ltr">
                       {formatShortDate(first)}
                       {first !== last ? ` - ${formatShortDate(last)}` : ""}
@@ -137,7 +137,7 @@ function HotelSyncForm({
                     {s.hotelSyncDays.replace("{n}", String(proposal.days.length))}
                     {proposal.place.countryCode && ` · ${countryName(proposal.place.countryCode)}`}
                   </span>
-                  <span className="block text-[11.5px] text-ink-soft">
+                  <span className="block text-[12px] text-ink-soft">
                     {s.hotelSyncFrom.replace("{labels}", currentLabels(proposal.days))}
                   </span>
                 </span>
@@ -159,7 +159,7 @@ function HotelSyncForm({
                     )
                   }
                   disabled={!chosen[index]}
-                  className="w-full rounded-xl border border-line bg-white px-3 py-2.5 text-base text-ink focus:border-sea focus:outline-none disabled:opacity-60"
+                  className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink focus:border-sea focus:outline-none disabled:opacity-60"
                 />
               </div>
             </div>
@@ -171,7 +171,7 @@ function HotelSyncForm({
             type="button"
             onClick={() => void apply()}
             disabled={saving || !anyChosen}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {s.hotelSyncApply}
           </button>

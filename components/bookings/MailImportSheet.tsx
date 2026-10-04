@@ -162,7 +162,7 @@ export function MailImportSheet({
   return (
     <Sheet open onClose={onClose} title={s.title}>
       {!configured ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
           {s.notConfigured}
         </p>
       ) : (
@@ -214,7 +214,7 @@ export function MailImportSheet({
                 type="button"
                 onClick={() => void runScan()}
                 disabled={phase.step === "searching"}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
               >
                 <MailIcon className="h-[17px] w-[17px]" />
                 {phase.step === "searching" ? s.searching : s.scan}
@@ -249,7 +249,7 @@ export function MailImportSheet({
           {phase.step === "results" && (
             <>
               {phase.reviewed.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+                <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
                   {s.noBookings.replace("{n}", String(phase.scanned))}
                 </p>
               ) : (
@@ -301,7 +301,7 @@ export function MailImportSheet({
                   type="button"
                   onClick={() => void save(phase.reviewed)}
                   disabled={picked.size === 0}
-                  className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
                 >
                   {picked.size === 1
                     ? s.saveOne
@@ -347,13 +347,13 @@ function CandidateRow({
         onClick={onToggle}
         aria-pressed={checked}
         className={`flex w-full items-start gap-2.5 rounded-[16px] border p-3 text-start transition-colors ${
-          checked ? "border-sea bg-sea-tint/40" : "border-line bg-white"
+          checked ? "border-sea bg-sea-tint/40" : "border-line bg-surface"
         }`}
       >
         <span
           aria-hidden="true"
           className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
-            checked ? "border-sea bg-sea text-white" : "border-line bg-white"
+            checked ? "border-sea bg-sea text-on-sea" : "border-line bg-surface"
           }`}
         >
           {checked && <CheckIcon className="h-3 w-3" />}
@@ -394,12 +394,12 @@ function CandidateRow({
           {/* The subject line is the receipt for where this came from: it is how
               the owner tells a real confirmation from something the model
               misread, without leaving the app to open the mailbox. */}
-          <span className="mt-0.5 block truncate text-[11px] text-ink-faint">
+          <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
             {candidate.subject}
           </span>
 
           {duplicateOf && (
-            <span className="mt-1 inline-block rounded-full bg-paper-deep px-2 py-0.5 text-[10.5px] font-semibold text-ink-soft">
+            <span className="mt-1 inline-block rounded-full bg-paper-deep px-2 py-0.5 text-[12px] font-semibold text-ink-soft">
               {s.alreadyHave}
             </span>
           )}
