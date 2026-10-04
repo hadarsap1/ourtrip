@@ -42,6 +42,24 @@ Security: `place_options` is owner-only (RLS `place_options_owner_all`); the cac
 
 ❌ Kid-friendly filter: the bank has no kid-friendly field, so it is not filtered on. ❌ Opening hours: not in the bank, so times are a suggestion. ❌ About 40% of ideas have no coordinates; they still get proposed but without a travel chip (20 minutes assumed between stops).
 
+## 2.1 Bookings + paste-to-import - flag `bookingsV2` (off)
+
+| Acceptance criterion | Result |
+|---|---|
+| Tile grid with counts by type | "הכול" + one tile per type with live (not cancelled) count; tap filters the list |
+| Rich booking card | Status badge and price (existing) + facts strip: big departure/arrival or check-in/out times, flight number, terminal, gate, provider chips, confirmation code with Copy |
+| Detail view | ❌ Covered by the rich card plus the existing edit sheet (tap the card); no separate read-only screen |
+| Paste-to-import | "הדבקת אישור הזמנה" → `booking-paste` Edge Function → one booking with confidence per field → review form (low-confidence fields flagged "לבדוק") → save. Nothing is saved before the owner presses save |
+
+Server (`supabase/functions/booking-paste`): owner-only (verify_jwt + role re-check before reading the body), kill switch `BOOKING_PASTE=off`, rate limits in `ai_usage` (30 per parent per day, 60 per trip per day, counted before the call), model from `BOOKING_PASTE_MODEL`, 20 s timeout, schema-pinned tool output re-validated by `_shared/bookingPaste.ts` (`sanitizePaste`, tested), logs metadata only (length, duration, outcome) - never the pasted text. Prompt-injection containment as in gmail-bookings.
+
+Data: new fields go into `bookings.details` (`departure_time`, `arrival_time`, `provider`, `source: "paste"`, `confidence`) - no bookings migration. New table `ai_usage` (migration 00041, approved 04/10): counts only, service-role writes, owners read, kids/guests nothing.
+
+Files: `supabase/functions/booking-paste/index.ts`, `supabase/functions/_shared/bookingPaste.ts` (+test), `supabase/migrations/00041_ai_usage.sql` (+down), `lib/data/bookingPaste.ts` (+test), `lib/bookingsV2.ts` (+test), `components/bookings/BookingsV2Parts.tsx`, `components/bookings/PasteImportSheet.tsx`, `BookingsList.tsx`, `ItineraryScreen.tsx`, `lib/strings.ts`.
+
+❌ The booking form does not edit `departure_time`/`arrival_time` yet (paste fills them; the card shows them).
+❌ Paste is online-only by nature; offline it says so.
+
 ## 2.x Steps counter (queued after the core 4) - flag `stepsCounter` (off until tested on both iPhones)
 
 Spec from Hadar, 04/10/2026:
@@ -52,4 +70,4 @@ Spec from Hadar, 04/10/2026:
 - UI: "צעדים היום" on in-trip Home (both parents), weekly bars, total per country stay; reused later in Stats & stamps.
 - Hebrew setup guide for the Shortcut (about 2 minutes per phone).
 
-Design notes (to confirm when building): the per-phone token needs somewhere to live - proposed a small `step_tokens(member_id, token_hash, created_at, last_used_at)` table (hash only, owners-only RLS, generated from Settings), so the phone holds a token that can be revoked without touching any Supabase key.
+Design notes: approved 04/10 - the per-phone token needs somewhere to live - proposed a small `step_tokens(member_id, token_hash, created_at, last_used_at)` table (hash only, owners-only RLS, generated from Settings), so the phone holds a token that can be revoked without touching any Supabase key.

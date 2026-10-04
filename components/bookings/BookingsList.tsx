@@ -24,6 +24,8 @@ import { countryName } from "@/lib/data/emergency";
 import type { Stretch } from "@/lib/data/segments";
 import { formatDate, formatMoney, formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { BookingFactsStrip, TypeTiles } from "./BookingsV2Parts";
 import type {
   Booking,
   BookingFile,
@@ -80,6 +82,7 @@ export function BookingsList({
   onSyncHotels,
   syncingHotels,
   onError,
+  onPaste,
 }: {
   bookings: Booking[];
   /** The trip's days, which is what turns a booking's dates into a place. */
@@ -95,10 +98,18 @@ export function BookingsList({
   onSyncHotels: () => void;
   syncingHotels: boolean;
   onError: () => void;
+  /** Paste-to-import (2.1); absent when bookingsV2 is off. */
+  onPaste?: () => void;
 }) {
+  const v2 = isEnabled("bookingsV2");
+  const [typeFilter, setTypeFilter] = useState<BookingType | null>(null);
+  const shown = useMemo(
+    () => (v2 && typeFilter ? bookings.filter((b) => b.type === typeFilter) : bookings),
+    [bookings, typeFilter, v2]
+  );
   const groups = useMemo(
-    () => groupBookingsByLeg(bookings, days),
-    [bookings, days]
+    () => groupBookingsByLeg(shown, days),
+    [shown, days]
   );
 
   const filesByBooking = useMemo(() => {
@@ -118,6 +129,8 @@ export function BookingsList({
           {strings.bookings.empty}
         </p>
       )}
+
+      {v2 && <TypeTiles bookings={bookings} icons={TYPE_ICON} value={typeFilter} onChange={setTypeFilter} />}
 
       {groups.map((group) => (
         <LegSection
@@ -154,6 +167,16 @@ export function BookingsList({
           <MailIcon className="h-[17px] w-[17px]" />
           {strings.mailImport.open}
         </button>
+        {onPaste && (
+          <button
+            type="button"
+            onClick={onPaste}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          >
+            <FileIcon className="h-[17px] w-[17px]" />
+            {strings.bookingsV2.paste}
+          </button>
+        )}
         {/* Only worth offering once there is a hotel to sync from. */}
         {bookings.some((b) => b.type === "hotel" && b.status !== "cancelled") && (
           <button
@@ -319,7 +342,7 @@ function BookingCard({
                 aria-label={strings.bookings.whereAria}
               >
                 <PinIcon className="h-3 w-3 shrink-0" strokeWidth={1.7} />
-                <span className="truncate">{where}</span>
+                <span className="truncate" dir="auto">{where}</span>
               </span>
             )}
           </span>
@@ -337,6 +360,8 @@ function BookingCard({
           )}
         </span>
       </button>
+
+      {isEnabled("bookingsV2") && <BookingFactsStrip booking={booking} />}
 
       {notOnPlan && (
         <p className="mt-1.5 text-[12px] text-ink-soft">{notOnPlan}</p>
