@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CountdownHome } from "./CountdownHome";
+import { InTripNow } from "./InTripNow";
+import { isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
   BedIcon,
@@ -206,6 +208,7 @@ export function TodayScreen() {
   const [tripChecked, setTripChecked] = useState(false);
   // Re-derives "next up" and the current agenda row as the day moves on.
   const [now, setNow] = useState(() => minutesNow());
+  const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
     let cancelled = false;
@@ -249,7 +252,11 @@ export function TodayScreen() {
   }, []);
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(minutesNow()), 60_000);
+    const tick = setInterval(() => {
+      const d = new Date();
+      setNow(minutesNow(d));
+      setClock(d);
+    }, 60_000);
     return () => clearInterval(tick);
   }, []);
 
@@ -423,6 +430,7 @@ export function TodayScreen() {
   /* ---------- owner: dashboard (direction 1b) ---------- */
 
   const position = dashboard?.position ?? null;
+  const v2 = isEnabled("todayV2");
   const upcoming = nextUp(activeItems, now);
   const lodging = data ? tonightsLodging(data.bookings) : null;
   const remaining = dashboard ? dashboard.budget - dashboard.spentTotal : null;
@@ -512,7 +520,9 @@ export function TodayScreen() {
                   </p>
                 )}
 
-              {upcoming && (
+              {v2 ? (
+                <InTripNow items={activeItems} day={data.day} now={now} clock={clock} />
+              ) : upcoming && (
                 <section
                   className="rounded-[18px] border border-line bg-surface px-3.5 py-3"
                   style={{ boxShadow: "0 8px 20px -16px rgba(34,49,46,.4)" }}
