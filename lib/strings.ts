@@ -971,6 +971,21 @@ export const strings = {
     outsidePlan: "התאריכים לא נופלים על אף יום במסלול",
     whereAria: "היעד במסלול",
     cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
+    // A hotel booking correcting the plan (lib/hotelItinerarySync.ts): the
+    // hotel's address says where the family sleeps, the plan follows it.
+    hotelSyncTitle: "לעדכן את המסלול לפי המלון?",
+    hotelSyncTitleMany: "עדכון המסלול לפי המלונות",
+    hotelSyncBody: "המיקום נלקח מכתובת המלון. יום הצ׳ק-אין נשאר יום המעבר, ולכן לא משתנה.",
+    hotelSyncFrom: "כרגע במסלול: {labels}",
+    hotelSyncName: "שם המקום במסלול",
+    hotelSyncDays: "{n} ימים",
+    hotelSyncApply: "עדכון המסלול",
+    hotelSyncDone: "המסלול עודכן",
+    hotelSyncOpen: "סנכרון מסלול לפי מלונות",
+    hotelSyncWorking: "מאתר מלונות...",
+    hotelSyncNone: "המסלול כבר תואם להזמנות המלון",
+    hotelSyncMissed: "לא הצלחנו לאתר {n} מלונות לפי הכתובת",
+    hotelSyncUnavailable: "חיפוש מקומות לא זמין כרגע - אי אפשר לאתר את המלונות",
     // Section headings in the add/edit sheet. Twelve fields in one column read
     // as a wall; four short groups read as a form.
     sectionWhat: "מה הזמנו",

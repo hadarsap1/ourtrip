@@ -120,6 +120,31 @@ export async function setDaysLocation(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Relabels days as one place - name, country and coordinate together.
+ *
+ * Used when a hotel booking corrects the plan (lib/hotelItinerarySync.ts).
+ * All four fields move at once: the country drives the emergency page,
+ * phrasebook and weather, and a label without its country would leave them
+ * pointing at the old one.
+ */
+export async function setDaysPlace(
+  dayIds: string[],
+  place: {
+    location_name: string;
+    country_code: string | null;
+    lat: number;
+    lng: number;
+  }
+): Promise<void> {
+  if (dayIds.length === 0) return;
+  const { error } = await requireClient()
+    .from("itinerary_days")
+    .update(place)
+    .in("id", dayIds);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteDay(id: string): Promise<void> {
   const supabase = requireClient();
   const { error: itemsError } = await supabase

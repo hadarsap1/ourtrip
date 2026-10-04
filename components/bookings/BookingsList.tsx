@@ -77,6 +77,8 @@ export function BookingsList({
   onImportMail,
   onEdit,
   onAddToDay,
+  onSyncHotels,
+  syncingHotels,
   onError,
 }: {
   bookings: Booking[];
@@ -89,6 +91,9 @@ export function BookingsList({
   onImportMail: () => void;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
+  /** Lets the hotel bookings relabel the plan's days (one confirm sheet). */
+  onSyncHotels: () => void;
+  syncingHotels: boolean;
   onError: () => void;
 }) {
   const groups = useMemo(
@@ -149,6 +154,18 @@ export function BookingsList({
           <MailIcon className="h-[17px] w-[17px]" />
           {strings.mailImport.open}
         </button>
+        {/* Only worth offering once there is a hotel to sync from. */}
+        {bookings.some((b) => b.type === "hotel" && b.status !== "cancelled") && (
+          <button
+            type="button"
+            onClick={onSyncHotels}
+            disabled={syncingHotels}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep disabled:opacity-60 sm:col-span-2"
+          >
+            <BedIcon className="h-[17px] w-[17px]" />
+            {syncingHotels ? strings.bookings.hotelSyncWorking : strings.bookings.hotelSyncOpen}
+          </button>
+        )}
       </div>
     </div>
   );

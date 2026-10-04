@@ -1522,3 +1522,24 @@ X The idea counts and map points read `place_options`, which is owner-only
 no pins - worth re-checking if a guest-facing map is ever added, because the
 bank is planning content and must not leak through it.
 
+
+---
+
+## Hotel bookings relabel the plan (bookings tab "סנכרון מסלול לפי מלונות")
+
+No new table, no new policy, no migration. The proposal is computed in the
+browser from rows the owner already reads (`bookings`, `itinerary_days`); the
+one write is an UPDATE of `location_name`, `country_code`, `lat`, `lng` on
+`itinerary_days`, covered by the pre-existing `itinerary_days_owner_all`
+(00001: `for all using (is_owner_of(trip_id)) with check (is_owner_of(trip_id))`).
+The hotel address goes to Google's geocoder through the Maps script the app
+already loads; nothing else leaves the browser.
+
+| Check | Result |
+|---|---|
+| The write touches only the four place columns, only on the proposed days | ✅ PASS - `setDaysPlace` sends those columns with `.in("id", dayIds)` |
+| A kid or guest cannot perform the write | ✅ PASS - kids (00007) and guests (00008/00009) have SELECT-only policies on `itinerary_days`; no UPDATE policy exists for either role, and the bookings tab that triggers it reads `bookings`, which is owner-only |
+| Nothing changes without the owner confirming | ✅ PASS - every proposal goes through `HotelSyncSheet`; there is no automatic write path |
+
+X Not probed live with a kid or guest session in this change; the UPDATE
+denial rests on the absence of any non-owner UPDATE policy.
