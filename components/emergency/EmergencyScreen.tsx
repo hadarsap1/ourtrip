@@ -6,15 +6,18 @@ import { getActiveTrip } from "@/lib/data/trip";
 import {
   autofillEmergency,
   countryName,
+  getCurrentOrNextCountryCode,
   getTodayCountryCode,
   listCountryOptions,
   listEmergencyPages,
+  pickEmergencyCountry,
   type EmergencyContent,
   type EmergencyPage,
 } from "@/lib/data/emergency";
 import { useMember } from "@/lib/useMember";
 import { EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
 import type { Trip } from "@/lib/types";
 import { EmergencyEditSheet } from "./EmergencyEditSheet";
 
@@ -103,14 +106,17 @@ export function EmergencyScreen() {
         const nextPages = await refresh(tripId);
         if (cancelled) return;
         const todayCountry = await getTodayCountryCode(tripId);
+        const nextCountry = isEnabled("emergencyAutoCountry") ? await getCurrentOrNextCountryCode(tripId) : null;
         if (cancelled) return;
-        setSelected((current) => {
-          if (current) return current;
-          if (todayCountry && nextPages.some((p) => p.countryCode === todayCountry)) {
-            return todayCountry;
-          }
-          return todayCountry ?? nextPages[0]?.countryCode ?? null;
-        });
+        setSelected(
+          (current) =>
+            current ??
+            pickEmergencyCountry(
+              nextPages.map((p) => p.countryCode),
+              todayCountry,
+              nextCountry
+            )
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }

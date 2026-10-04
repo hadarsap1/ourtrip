@@ -150,6 +150,58 @@ export async function getTodayCountryCode(tripId: string): Promise<string | null
   }
 }
 
+const NEXT_COUNTRY_KEY = "ourtrip-current-or-next-country";
+
+/**
+ * The country of today's itinerary day, or of the next day that has one
+ * (pre-trip this is the first destination, not the alphabetically first page -
+ * F5: the screen used to open on Georgia). Cached on the device so it also
+ * answers offline.
+ */
+export async function getCurrentOrNextCountryCode(tripId: string, today = todayISO()): Promise<string | null> {
+  try {
+    const { data, error } = await requireClient()
+      .from("itinerary_days")
+      .select("country_code")
+      .eq("trip_id", tripId)
+      .gte("date", today)
+      .not("country_code", "is", null)
+      .order("date")
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const code = data?.country_code ?? null;
+    try {
+      if (code) window.localStorage.setItem(NEXT_COUNTRY_KEY, code);
+    } catch {
+      // storage blocked: just no offline answer
+    }
+    return code;
+  } catch {
+    try {
+      return window.localStorage.getItem(NEXT_COUNTRY_KEY);
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
+ * Which emergency page opens first: today's country, then the current-or-next
+ * country, then the first page. A country with no page yet still wins over an
+ * unrelated page, so the screen offers to create the right one.
+ */
+export function pickEmergencyCountry(
+  pageCodes: string[],
+  todayCountry: string | null,
+  currentOrNext: string | null
+): string | null {
+  for (const c of [todayCountry, currentOrNext]) {
+    if (c && pageCodes.includes(c)) return c;
+  }
+  return todayCountry ?? currentOrNext ?? pageCodes[0] ?? null;
+}
+
 /** Countries relevant to the trip: itinerary days ∪ existing pages. */
 export async function listCountryOptions(tripId: string): Promise<string[]> {
   const codes = new Set<string>();
