@@ -1,3 +1,4 @@
+import { realtimeTopic } from "@/lib/realtimeTopic";
 import { getSupabase } from "@/lib/supabase";
 import type { Tables } from "@/lib/database.types";
 
@@ -100,7 +101,7 @@ export function subscribeMessages(onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
   const channel = supabase
-    .channel("messages-sync")
+    .channel(realtimeTopic("messages-sync"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "messages" },

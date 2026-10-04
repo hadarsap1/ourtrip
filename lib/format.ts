@@ -34,7 +34,10 @@ export function formatTime(time: string): string {
 }
 
 export function formatMoney(amount: number, currency: string): string {
-  const n = amount.toLocaleString("he-IL", { maximumFractionDigits: 2 });
+  // Whole amounts stay whole (₪14,200); otherwise always two decimals - never
+  // "₪179,815.5" (found in QA).
+  const whole = Math.abs(amount - Math.round(amount)) < 0.005;
+  const n = amount.toLocaleString("he-IL", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 });
   return currency === "ILS" ? `₪${n}` : `${n} ${currency}`;
 }
 

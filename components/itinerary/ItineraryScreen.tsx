@@ -184,6 +184,7 @@ export function ItineraryScreen() {
           void refresh(activeTrip.id).catch(() => {});
         }, 250);
       };
+      if (cancelled) return; // closed during the awaits: no orphan channel
       unsubItinerary = subscribeItinerary(onRemoteChange);
       unsubBookings = subscribeBookings(onRemoteChange);
     })();

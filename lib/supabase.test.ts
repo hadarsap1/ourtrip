@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { guardedFetch, REQUEST_LIMIT_MS, requestLimitFor, storedAuthUserId } from "./supabase";
+import { PostgrestClient } from "@supabase/postgrest-js";
 import { markReachable, offlineNow } from "./offline/network";
 
 const REST = "https://abcd.supabase.co/rest/v1/documents";
@@ -25,7 +26,7 @@ describe("guardedFetch", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     vi.stubGlobal("navigator", { onLine: false });
-    await expect(guardedFetch(REST)).rejects.toBeInstanceOf(TypeError);
+    await expect(guardedFetch(REST)).rejects.toMatchObject({ name: "AbortError" });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -40,10 +41,28 @@ describe("guardedFetch", () => {
     );
     const p = guardedFetch(REST);
     vi.advanceTimersByTime(REQUEST_LIMIT_MS + 1);
-    await expect(p).rejects.toBeTruthy();
+    await expect(p).rejects.toMatchObject({ name: "AbortError" });
     expect(offlineNow()).toBe(true);
     // the next call does not wait again
-    await expect(guardedFetch(REST)).rejects.toBeInstanceOf(TypeError);
+    await expect(guardedFetch(REST)).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("turns a network failure into an abort, so postgrest-js does not retry it for 7 s", async () => {
+    vi.stubGlobal("navigator", { onLine: true });
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+    await expect(guardedFetch(REST)).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("postgrest-js gives up after ONE attempt (no 1/2/4 s retries)", async () => {
+    vi.stubGlobal("navigator", { onLine: true });
+    const net = vi.fn(async () => { throw new TypeError("Failed to fetch"); });
+    vi.stubGlobal("fetch", net);
+    const rest = new PostgrestClient("https://abcd.supabase.co/rest/v1", { fetch: guardedFetch });
+    const t0 = Date.now();
+    const { error } = await rest.from("documents").select("*");
+    expect(error).not.toBeNull();
+    expect(net).toHaveBeenCalledTimes(1);
+    expect(Date.now() - t0).toBeLessThan(500);
   });
 
   it("passes a response through", async () => {

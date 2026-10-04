@@ -1,3 +1,4 @@
+import { realtimeTopic } from "@/lib/realtimeTopic";
 import { getSupabase } from "@/lib/supabase";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { ItineraryDay, ItineraryItem } from "@/lib/types";
@@ -462,7 +463,7 @@ export function subscribeItinerary(onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
   const channel = supabase
-    .channel("itinerary-sync")
+    .channel(realtimeTopic("itinerary-sync"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "itinerary_days" },
