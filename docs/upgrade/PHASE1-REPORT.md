@@ -30,7 +30,7 @@ Branch `claude/lucid-pascal-tjjru5-phase1`, stacked on Phase 0 (`claude/lucid-pa
 
 ## 3. Flags
 
-On by default: `documentsAutoDownload`, `writeQueueV2`, `itineraryV2`, `todayV2`, `captureFab`, `emergencyAutoCountry`, `notificationsV2`. Off: `simDate` (dev builds always allow it). Server side kill switch for the new pushes: `NOTIFY_V2=off` on the `push-send` function.
+On by default: `documentsAutoDownload`, `writeQueueV2`, `itineraryV2`, `todayV2`, `captureFab`, `emergencyAutoCountry`, `notificationsV2`. Off: `simDate` (dev builds always allow it). `writeQueueV2` is declared but not wired: the queue rewrite can only be rolled back by redeploying. Server side kill switch for the new pushes: `NOTIFY_V2=off` on the `push-send` function.
 
 ## 4. Migrations
 
