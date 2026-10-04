@@ -39,6 +39,7 @@ import { isEnabled } from "@/lib/flags";
 import { queryKeys, readQuery } from "@/lib/offline/queryCache";
 import { fetchItineraryBundle, type ItineraryBundle } from "@/lib/data/itineraryBundle";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
+import { useUndoToast } from "@/components/ui/UndoToast";
 import type {
   Booking,
   BookingFile,
@@ -116,6 +117,7 @@ export function ItineraryScreen() {
   // The leg whose location is being pinned from the map.
   const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
 
+  const { show: showUndo, toast: undoToast } = useUndoToast();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -423,6 +425,19 @@ export function ItineraryScreen() {
         onItemClick={(item) => setItemForm({ dayId: day.id, item })}
         onMoveItem={setMovingItem}
         onDeleteItem={async (item) => {
+          if (isEnabled("itineraryV2")) {
+            // 1.5: delete at once, undo for 5s, then the real delete.
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            showUndo(
+              strings.itinerary.itemDeletedUndo,
+              () => setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item])),
+              () => void deleteItem(item.id).catch(() => {
+                setItems((prev) => [...prev, item]);
+                showToast(strings.common.error);
+              })
+            );
+            return;
+          }
           if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
           void run(() => deleteItem(item.id), strings.itinerary.itemDeleted);
         }}
@@ -434,7 +449,7 @@ export function ItineraryScreen() {
         onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
       />
     ),
-    [itemsOf, bookings, bookingsByDate, run, handleReorder]
+    [itemsOf, bookings, bookingsByDate, run, handleReorder, showUndo, showToast]
   );
 
   const editingBookingFiles = useMemo(() => {
@@ -882,6 +897,7 @@ export function ItineraryScreen() {
       )}
 
       <Toast message={toast} />
+      {undoToast}
     </div>
   );
 }

@@ -28,6 +28,8 @@ import { BookingDayRow } from "@/components/bookings/BookingDayRow";
 import type { BookingOnDate } from "@/lib/bookingCalendar";
 import { formatDate, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { SwipeRow } from "@/components/ui/SwipeRow";
 import type { Booking, ItemStatus, ItineraryDay, ItineraryItem } from "@/lib/types";
 
 const STATUS_LABEL: Record<ItemStatus, string> = {
@@ -251,19 +253,16 @@ function SortableItem({
   } = useSortable({ id: item.id });
 
   const done = item.status === "done";
+  const v2 = isEnabled("itineraryV2");
 
-  return (
-    <li
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-1 bg-surface px-2.5 py-2.5 ${
-        isDragging ? "relative z-10 shadow-lg" : ""
-      }`}
-    >
+  const row = (
+    <>
+
       <button
         type="button"
         {...attributes}
         {...listeners}
+        data-swipe-ignore
         aria-label={strings.itinerary.dragHandle}
         className="cursor-grab touch-none p-1 text-line active:cursor-grabbing"
       >
@@ -322,6 +321,8 @@ function SortableItem({
         </span>
       </button>
 
+      {!v2 && (
+        <>
       <button
         type="button"
         onClick={onMove}
@@ -342,6 +343,9 @@ function SortableItem({
         <TrashIcon className="h-[18px] w-[18px]" />
       </button>
 
+        </>
+      )}
+
       <button
         type="button"
         onClick={onCycleStatus}
@@ -349,6 +353,28 @@ function SortableItem({
       >
         {STATUS_LABEL[item.status]}
       </button>
+    </>
+  );
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`bg-surface ${isDragging ? "relative z-10 shadow-lg" : ""}`}
+    >
+      {v2 ? (
+        <SwipeRow
+          onFullSwipe={onDelete}
+          actions={[
+            { key: "move", label: strings.itinerary.moveItemShort, icon: <MoveIcon className="h-5 w-5" />, toneClass: "bg-info text-on-cat", onSelect: onMove },
+            { key: "delete", label: strings.itinerary.deleteItemShort, icon: <TrashIcon className="h-5 w-5" />, toneClass: "bg-alert text-on-alert", onSelect: onDelete },
+          ]}
+        >
+          <div className="flex items-center gap-1 px-2.5 py-2.5">{row}</div>
+        </SwipeRow>
+      ) : (
+        <div className="flex items-center gap-1 px-2.5 py-2.5">{row}</div>
+      )}
     </li>
   );
 }

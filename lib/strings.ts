@@ -851,6 +851,9 @@ export const strings = {
     // F4
     emptyRun: "{n} ימים ללא תוכנית",
     planFromBank: "תכנן מהבנק",
+    moveItemShort: "העברה",
+    deleteItemShort: "מחיקה",
+    itemDeletedUndo: "הפעילות נמחקה",
     emptyRunShow: "להציג את הימים",
     emptyRunHide: "להסתיר את הימים",
     // Whole-trip line at the top of the list.
