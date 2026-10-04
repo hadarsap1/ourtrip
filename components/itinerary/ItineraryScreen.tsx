@@ -53,6 +53,7 @@ import type {
 import { DayCard } from "./DayCard";
 import { LegSection } from "./LegSection";
 import { PlanMyDaySheet } from "./PlanMyDaySheet";
+import { PasteImportSheet } from "@/components/bookings/PasteImportSheet";
 import { TripSummary } from "./TripSummary";
 import { TripMap } from "./TripMap";
 import { LegLocationSheet } from "./LegLocationSheet";
@@ -119,6 +120,7 @@ export function ItineraryScreen() {
   // The leg whose location is being pinned from the map.
   const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
   const [planningDay, setPlanningDay] = useState<ItineraryDay | null>(null);
+  const [pasting, setPasting] = useState(false);
 
   const { show: showUndo, toast: undoToast } = useUndoToast();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -660,6 +662,7 @@ export function ItineraryScreen() {
                 }}
                 syncingHotels={syncingHotels}
                 onError={() => showToast(strings.common.error)}
+                onPaste={isEnabled("bookingsV2") ? () => setPasting(true) : undefined}
               />
             ) : (
               <>
@@ -935,6 +938,18 @@ export function ItineraryScreen() {
         />
       )}
 
+      {trip && (
+        <PasteImportSheet
+          open={pasting}
+          tripId={trip.id}
+          onClose={() => setPasting(false)}
+          onDone={(message) => {
+            setPasting(false);
+            refreshNow();
+            showToast(message);
+          }}
+        />
+      )}
       {trip && (
         <PlanMyDaySheet
           tripId={trip.id}
