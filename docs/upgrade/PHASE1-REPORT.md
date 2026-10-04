@@ -34,28 +34,27 @@ On by default: `documentsAutoDownload`, `writeQueueV2`, `itineraryV2`, `todayV2`
 
 ## 4. Migrations
 
-- **Proposed, not applied:** `docs/upgrade/migrations/00043_push_v2_schedules.sql` (+ `.down.sql`). Adds two pg_cron jobs (`push-hourly`, `push-leave-now`). No schema or data change. Apply only after `push-send` is deployed.
+- **Applied 04/10/2026:** `supabase/migrations/00040_push_v2_schedules.sql` (was proposed as 00043; down file in `docs/upgrade/migrations/`). Two pg_cron jobs, `push-hourly` (id 11) and `push-leave-now` (id 12), after `push-send` v13 was deployed and smoke-tested (`hourly` → 200, local time resolved, nothing sent).
+- **Applied 04/10/2026:** `supabase/migrations/00039_shift_stretch_nights.sql` (local session, PR #80); `nightsStepper` on.
 - **Proposed in PLAN, not written:** a `paid_by` column on expenses ("who paid" in the FAB sheet) and per-member quiet hours.
 - Client: IndexedDB `ourtrip-offline` v4 → v5 (adds `failed_writes`), backward compatible.
 - RLS: no policy change. Queued writes replay through the same client and policies; offline document copies are only fetched by owners (storage policies already block kids and guests).
 
 ## 5. Open risks and ❌
 
-- ❌ The new notifications do nothing until `push-send` is redeployed **and** the 00043 cron jobs are applied. Neither was done from here.
 - ❌ Cancellation reminders read `bookings.details.free_cancel_until`. Nothing writes that key yet, so this reminder stays silent until the booking form (Phase 2 `bookingsV2`) or the Gmail import fills it.
 - ❌ Leave-by is a straight-line estimate (×1.3 road factor, 22 km/h, 10 min buffer). It ignores traffic, ferries and walking-only areas. Labelled "הערכה" in the UI.
 - ❌ Visa stay-limit reminders assume one contiguous stretch per country. A second visit to the same country (e.g. back to Thailand) is measured from the first entry.
 - ❌ Local time follows the itinerary's country, not the phone. On a border-crossing day the zone switches at UTC midnight, so one slot can fire an hour early or late.
-- ❌ Nights stepper needs migration 00039 applied before the flag goes on.
 - Data-driven screens were checked with fake data only; gates run without a backend.
 
 ## 6. Recommendation
 
 Turn on: everything listed in section 3 (already on). Merge after #77, then one pass on a real phone with data: `/documents` (offline bar, airplane mode), `/itinerary` (swipe, empty runs), Home pre-trip.
-Then deploy `push-send` and apply 00043, and set `?simDate=2026-11-05` on a phone to see in-trip mode.
-Hold: `nightsStepper` until 00039 is applied.
+Set `?simDate=2026-11-05` on a phone to see in-trip mode.
+Hold: nothing.
 
 Decisions (04/10/2026):
-1. Nights stepper: later days move with it. Built (`nightsStepper` flag, off until migration 00039 is applied; tested locally on Postgres 16). Bookings never move - the toast says how many to check. Removing a night is refused while that day still has items, a route or a journal entry.
+1. Nights stepper: later days move with it. Built (`nightsStepper` flag, on since migration 00039 was applied; tested locally on Postgres 16). Bookings never move - the toast says how many to check. Removing a night is refused while that day still has items, a route or a journal entry.
 2. "Who paid": skipped for this trip.
 3. Kyoto and the other two renames: applied to the live data, rollback SQL in `segment-cleanup.md`.

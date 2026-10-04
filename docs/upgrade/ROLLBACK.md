@@ -42,5 +42,7 @@ If a bad build was cached, bump `SHELL_CACHE` in `public/sw.js` (e.g. `ourtrip-s
 ## Phase 1 additions
 
 - Any Phase 1 feature: switch its flag off in `lib/flags.ts` and deploy, or per device via the `ourtrip-flags` localStorage override.
-- New push notifications (1.11): set `NOTIFY_V2=off` on the `push-send` function (no deploy needed), or run `docs/upgrade/migrations/00043_push_v2_schedules.down.sql` to remove the two cron jobs.
+- New push notifications (1.11): set `NOTIFY_V2=off` on the `push-send` function (no deploy needed), or run `docs/upgrade/migrations/00040_push_v2_schedules.down.sql` to remove the two cron jobs.
 - Write queue v2 is not behind a runtime switch (the `writeQueueV2` flag exists but nothing reads it - the queue format changed with IndexedDB v5). Rollback is a Vercel redeploy of the previous build; items already queued stay in IndexedDB and replay once v2 is back.
+- Nights stepper: set `nightsStepper: false` in `lib/flags.ts`; the function can stay (`docs/upgrade/migrations/00039_shift_stretch_nights.down.sql` drops it).
+- push-send: redeploy version 12 from the Supabase dashboard (Edge Functions → push-send → versions) if v13 misbehaves.

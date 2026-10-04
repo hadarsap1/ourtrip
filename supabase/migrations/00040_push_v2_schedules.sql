@@ -1,5 +1,5 @@
--- PROPOSED - NOT APPLIED. Move to supabase/migrations/ (renumber to the next
--- free number) only after push-send with the 1.11 handlers is deployed.
+-- Applied to production 04/10/2026 (cron jobs 11 and 12), after push-send v13
+-- with the 1.11 handlers was deployed and smoke-tested (hourly -> 200 OK).
 --
 -- 1.11 notifications: two more pg_cron jobs calling push-send.
 --   push-hourly    every hour at :00 UTC. push-send converts to the family's
@@ -11,7 +11,7 @@
 --
 -- No schema change, no data change. Same auth as 00025 (x-cron-secret).
 -- Kill switch without a migration: set NOTIFY_V2=off on the push-send function.
--- Rollback: 00043_push_v2_schedules.down.sql.
+-- Rollback: docs/upgrade/migrations/00040_push_v2_schedules.down.sql.
 
 select cron.schedule(
   'push-hourly',

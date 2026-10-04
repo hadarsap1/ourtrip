@@ -1,4 +1,4 @@
--- Approved 04/10/2026. NOT YET APPLIED: two apply attempts through the Supabase connector timed out (nothing was created). Apply this file as is, then turn on the nightsStepper flag.
+-- Applied to production 04/10/2026 (local session, PR #80); recorded in schema_migrations.
 --
 -- F4 nights stepper. Adds or removes ONE night at the end of a stretch and
 -- moves every later day with it (decision 04/10/2026: "move forward").
