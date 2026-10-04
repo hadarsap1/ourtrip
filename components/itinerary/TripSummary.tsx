@@ -2,6 +2,9 @@
 
 import type { LegOverview } from "@/lib/itineraryOverview";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { countryName } from "@/lib/data/emergency";
+import { MetroLine } from "./MetroLine";
 
 /**
  * The whole trip in one line, above the legs.
@@ -14,9 +17,12 @@ import { strings } from "@/lib/strings";
 export function TripSummary({
   legs,
   onJump,
+  onOpenLeg,
 }: {
   legs: LegOverview[];
   onJump: () => void;
+  /** Trip overview (2.5): open one stay from the metro line. */
+  onOpenLeg?: (key: string) => void;
 }) {
   const days = legs.reduce((sum, leg) => sum + leg.dayCount, 0);
   const planned = legs.reduce((sum, leg) => sum + leg.daysPlanned, 0);
@@ -53,6 +59,22 @@ export function TripSummary({
           {strings.itinerary.tripPlanned.replace("{done}", String(planned))}
         </span>
       </div>
+      {onOpenLeg && isEnabled("tripOverview") && (
+        <div className="mt-3 border-t border-line pt-2">
+          <MetroLine
+            onOpen={onOpenLeg}
+            legs={legs.map((leg) => ({
+              key: leg.key,
+              label: leg.stretch.locationName ?? (leg.stretch.countryCode ? countryName(leg.stretch.countryCode) : ""),
+              countryCode: leg.stretch.countryCode,
+              from: leg.stretch.from,
+              to: leg.stretch.to,
+              nights: leg.dayCount,
+              phase: leg.phase,
+            }))}
+          />
+        </div>
+      )}
     </section>
   );
 }

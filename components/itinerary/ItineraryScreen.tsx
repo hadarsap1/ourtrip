@@ -699,7 +699,19 @@ export function ItineraryScreen() {
 
                 <div className="space-y-3">
                   {legs.length > 0 && (
-                    <TripSummary legs={legs} onJump={jumpToCurrentLeg} />
+                    <TripSummary
+                      legs={legs}
+                      onJump={jumpToCurrentLeg}
+                      onOpenLeg={(key) => {
+                        openLeg(key);
+                        requestAnimationFrame(() => {
+                          legRefs.current[key]?.scrollIntoView({
+                            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+                            block: "start",
+                          });
+                        });
+                      }}
+                    />
                   )}
 
                   {legs.map((leg) => (

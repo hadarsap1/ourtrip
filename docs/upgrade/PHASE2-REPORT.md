@@ -102,3 +102,9 @@ Files: `supabase/migrations/00042_steps.sql`, `supabase/functions/steps-ingest/i
 Files: `lib/ics.ts` (+test 3), `components/bookings/BookingsList.tsx`, `components/itinerary/ItineraryScreen.tsx`, `lib/strings.ts`.
 
 ❌ Not imported into a real iOS/Google calendar here - check once on a phone. ❌ A re-export creates duplicates in calendars that ignore UID (Apple Calendar import does).
+
+## 2.5 Trip overview - flag `tripOverview` (off)
+
+Metro line inside the trip summary at the top of the itinerary: one station per stay, sideways in reading order (right to left), track coloured by the country it runs into, a flag at each country change, past stays faded, the current stay as the big station ("אנחנו כאן") scrolled into view first. Tapping a station opens and scrolls to that stay. The "world map with arcs" already exists as the itinerary's map view (`TripMap`, #70), so it was not rebuilt.
+
+Files: `lib/metroLine.ts` (+test 2), `components/itinerary/MetroLine.tsx`, `TripSummary.tsx`, `ItineraryScreen.tsx`, `lib/strings.ts`. No data or policy change.
