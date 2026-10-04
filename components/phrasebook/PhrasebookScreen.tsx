@@ -22,6 +22,7 @@ import { TranslateBox } from "./TranslateBox";
 import { useMember } from "@/lib/useMember";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type { PhrasebookEntry, Trip } from "@/lib/types";
 
 export function PhrasebookScreen() {
@@ -182,11 +183,7 @@ export function PhrasebookScreen() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   // group by category, preserving entry order

@@ -84,6 +84,13 @@ export type MapSnapshot = {
   savedAt: string;
 };
 
+/** Last good result of a screen's queries, shown first on the next open (F9). */
+export type QueryCacheEntry = {
+  key: string;
+  data: unknown;
+  savedAt: string;
+};
+
 interface OurTripDB extends DBSchema {
   documents_offline: { key: string; value: OfflineDocument };
   today_itinerary: { key: string; value: TodaySnapshot };
@@ -92,13 +99,14 @@ interface OurTripDB extends DBSchema {
   pending_writes: { key: number; value: PendingWrite };
   map_snapshot: { key: string; value: MapSnapshot };
   destination_facts: { key: string; value: FactsSnapshot };
+  query_cache: { key: string; value: QueryCacheEntry };
 }
 
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 3, {
+  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 4, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore("documents_offline", { keyPath: "id" });
@@ -115,6 +123,9 @@ export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
       }
       if (oldVersion < 3) {
         db.createObjectStore("destination_facts", { keyPath: "key" });
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore("query_cache", { keyPath: "key" });
       }
     },
   });

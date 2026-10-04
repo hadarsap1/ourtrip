@@ -10,6 +10,8 @@ import { listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
 import { strings } from "@/lib/strings";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { tripPosition } from "@/lib/tripDay";
 import type { BudgetCategory, Expense, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
@@ -57,6 +59,7 @@ export function BudgetScreen() {
     ]);
     setCategories(cats);
     setExpenses(exps);
+    void writeQuery(queryKeys.budget(tripId), { cats, exps });
   }, []);
 
   useEffect(() => {
@@ -73,10 +76,18 @@ export function BudgetScreen() {
           if (!cancelled) setLocalCurrency(currencyForCountry(code));
         })
         .catch(() => {});
+      // Cache-first (F9): last good data paints at once, the network refresh follows.
+      const cached = await readQuery<{ cats: typeof categories; exps: typeof expenses }>(queryKeys.budget(activeTrip.id));
+      if (cached && !cancelled) {
+        setCategories(cached.data.cats);
+        setExpenses(cached.data.exps);
+        setLoading(false);
+      }
       try {
         await refresh(activeTrip.id);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        // With cached data on screen the offline banner already says why.
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -92,11 +103,7 @@ export function BudgetScreen() {
   }, [trip, refresh, showToast]);
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="cards" />;
   }
 
   // ---------- dashboard math ----------

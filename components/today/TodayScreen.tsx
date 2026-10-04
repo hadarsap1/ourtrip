@@ -35,6 +35,7 @@ import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/
 import { daysUntil } from "@/lib/data/readiness";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
 import type { Booking, ItineraryItem, Trip } from "@/lib/types";
@@ -410,13 +411,7 @@ export function TodayScreen() {
      trip starts; no setting to forget. */
   if (!tripChecked) {
     return (
-      <div
-        className="mx-auto max-w-lg px-4 pt-16 text-center"
-        role="status"
-        aria-live="polite"
-      >
-        <p className="text-ink-soft">{strings.common.loading}</p>
-      </div>
+      <ScreenSkeleton variant="today" />
     );
   }
 
@@ -489,9 +484,11 @@ export function TodayScreen() {
         )}
 
         {loading ? (
-          <p className="pt-4 text-center text-ink-soft lg:col-span-3">
-            {strings.common.loading}
-          </p>
+          <div className="space-y-3 pt-4 lg:col-span-3" role="status" aria-busy="true" aria-label={strings.common.loading}>
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
         ) : !data || !data.day ? (
           <section className="ot-card p-8 text-center lg:col-span-3">
             <RouteIcon className="mx-auto mb-3 h-9 w-9 text-line" />

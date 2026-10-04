@@ -17,6 +17,7 @@ import {
 import { useMember } from "@/lib/useMember";
 import { EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { isEnabled } from "@/lib/flags";
 import type { Trip } from "@/lib/types";
 import { EmergencyEditSheet } from "./EmergencyEditSheet";
@@ -127,11 +128,7 @@ export function EmergencyScreen() {
   }, [refresh]);
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   const allCountries = [

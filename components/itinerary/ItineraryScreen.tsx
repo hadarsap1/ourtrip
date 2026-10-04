@@ -41,6 +41,8 @@ import { listOptionAreas, planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type {
   Booking,
   BookingFile,
@@ -140,6 +142,13 @@ export function ItineraryScreen() {
     setBookingFiles(nextFiles);
     setOptionAreas(nextAreas);
     setItems(nextItems);
+    void writeQuery(queryKeys.itinerary(tripId), {
+      days: nextDays,
+      bookings: nextBookings,
+      files: nextFiles,
+      areas: nextAreas,
+      items: nextItems,
+    });
   }, []);
 
   useEffect(() => {
@@ -155,6 +164,22 @@ export function ItineraryScreen() {
         return;
       }
       setTrip(activeTrip);
+      // Cache-first (F9): paint the last good plan, then refresh.
+      const cached = await readQuery<{
+        days: typeof days;
+        bookings: typeof bookings;
+        files: typeof bookingFiles;
+        areas: typeof optionAreas;
+        items: typeof items;
+      }>(queryKeys.itinerary(activeTrip.id));
+      if (cached && !cancelled) {
+        setDays(cached.data.days);
+        setBookings(cached.data.bookings);
+        setBookingFiles(cached.data.files);
+        setOptionAreas(cached.data.areas);
+        setItems(cached.data.items);
+        setLoading(false);
+      }
       try {
         const [, cats] = await Promise.all([
           refresh(activeTrip.id),
@@ -162,7 +187,7 @@ export function ItineraryScreen() {
         ]);
         if (!cancelled) setCategories(cats);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -457,11 +482,7 @@ export function ItineraryScreen() {
   );
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8 sm:max-w-2xl">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   return (

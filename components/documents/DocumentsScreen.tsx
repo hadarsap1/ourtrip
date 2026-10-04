@@ -45,6 +45,7 @@ import {
 import { isPasskeySupported } from "@/lib/webauthn";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { useMember } from "@/lib/useMember";
 import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
@@ -302,11 +303,7 @@ export function DocumentsScreen() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   const query = search.trim().toLowerCase();
