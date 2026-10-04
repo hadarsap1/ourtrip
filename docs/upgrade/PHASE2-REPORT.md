@@ -76,14 +76,21 @@ Security: no schema or policy change; the bookings tab reads `bookings` like the
 
 ❌ Ideas-bank categories are not on itinerary items, so "category pins" covers booking-linked items only. ❌ The trip line needs located items; days without any are skipped (most of the trip today). ❌ Not checked against a live Google Map here (no API key in this environment) - verify on a phone.
 
-## 2.x Steps counter (queued after the core 4) - flag `stepsCounter` (off until tested on both iPhones)
+## 2.x Steps counter - flag `stepsCounter` (off until tested on both iPhones)
 
-Spec from Hadar, 04/10/2026:
-- Source: iPhone Health via an Apple Shortcuts personal automation (daily ~21:30) that POSTs today's step count to a Supabase Edge Function.
-- Per-phone secret token, no Supabase keys on the phone; `verify_jwt` off, token checked in the function; rate-limited; kill switch.
-- New table `daily_steps(member_id, date, steps, updated_at)`, unique `(member_id, date)`, upsert. Migration + rollback file.
-- RLS: owners only read/write; kids and guests no access.
-- UI: "צעדים היום" on in-trip Home (both parents), weekly bars, total per country stay; reused later in Stats & stamps.
-- Hebrew setup guide for the Shortcut (about 2 minutes per phone).
+Spec (Hadar, 04/10) → result:
 
-Design notes: approved 04/10 - the per-phone token needs somewhere to live - proposed a small `step_tokens(member_id, token_hash, created_at, last_used_at)` table (hash only, owners-only RLS, generated from Settings), so the phone holds a token that can be revoked without touching any Supabase key.
+| Requirement | Result |
+|---|---|
+| iPhone Health via Shortcuts automation (~21:30) POSTs today's steps | `steps-ingest` Edge Function; guide in-app (More → "ספירת צעדים מהאייפון") and `docs/STEPS-SHORTCUT.md` |
+| Per-phone secret token, no Supabase keys on the phone | 256-bit token made in the app, shown once; only its SHA-256 is stored (`step_tokens`) |
+| verify_jwt off, token checked in the function, rate-limited, kill switch | Token must be unrevoked and an owner's; 20 s per-phone throttle; `STEPS_INGEST=off`; fails closed; logs codes only |
+| `daily_steps(member_id, date, steps, updated_at)`, unique, upsert | Primary key `(member_id, date)`, upsert; steps 0..200000; date within 3 days back / 1 ahead |
+| Migration + rollback | `supabase/migrations/00042_steps.sql`, `docs/upgrade/migrations/00042_steps.down.sql`, local RLS test `00042_steps.test.sql` |
+| RLS owners only | Tested locally - see `docs/SECURITY-CHECKS.md` |
+| "צעדים היום" on in-trip Home, weekly bars, total per country stay | `StepsCard` under now/next: both parents, paired 7-day bars, "בשהות ב…" total; cache-first |
+| Reuse in Stats & stamps | `lib/stepsView.ts` (`totalBetween`, `weekBars`) is pure and ready |
+
+Files: `supabase/migrations/00042_steps.sql`, `supabase/functions/steps-ingest/index.ts`, `supabase/functions/_shared/stepsIngest.ts` (+test 4), `lib/stepsView.ts` (+test 3), `lib/data/steps.ts`, `components/today/StepsCard.tsx`, `components/settings/StepsSettings.tsx`, `components/today/TodayScreen.tsx`, `components/more/MoreScreen.tsx`, `docs/STEPS-SHORTCUT.md`.
+
+❌ Hebrew names of Shortcuts actions vary by iOS version; the guide gives the English names too. ❌ Not tested on a real iPhone (no device here) - the flag stays off until both phones report. ❌ 00042 is not applied yet (same connector limit as 00041).
