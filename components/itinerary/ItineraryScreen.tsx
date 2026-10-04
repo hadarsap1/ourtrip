@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
-import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
+import { CalendarIcon, CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
@@ -35,6 +35,7 @@ import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
 import { queryKeys, readQuery } from "@/lib/offline/queryCache";
 import { fetchItineraryBundle, type ItineraryBundle } from "@/lib/data/itineraryBundle";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
@@ -283,6 +284,24 @@ export function ItineraryScreen() {
       legRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [legs, openLeg]);
+
+  // 1.5: the leg and day that hold today, when the trip is under way.
+  const todayLeg = legs.find((leg) => leg.stretch.days.some((d) => d.date === today));
+  const todayDay = todayLeg?.stretch.days.find((d) => d.date === today);
+  const todayLegKey = todayLeg?.key ?? null;
+  const todayDayId = todayDay?.id ?? null;
+  const todayTarget = todayLegKey && todayDayId;
+
+  const jumpToToday = useCallback(() => {
+    if (!todayLegKey || !todayDayId) return;
+    openLeg(todayLegKey);
+    requestAnimationFrame(() => {
+      (dayRefs.current[todayDayId] ?? legRefs.current[todayLegKey])?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }, [todayLegKey, todayDayId, openLeg]);
 
   /** Opens the options bank already cut to this leg. The cut travels in the
    *  URL so the bank can be reached the same way from anywhere, and so going
@@ -632,6 +651,17 @@ export function ItineraryScreen() {
                       />
                     </div>
                   ))}
+
+                  {todayTarget && isEnabled("itineraryV2") && (
+                    <button
+                      type="button"
+                      onClick={jumpToToday}
+                      className="fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] start-4 z-30 flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-bold text-sea shadow-[var(--e2)] lg:bottom-6"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      {strings.itinerary.jumpToday}
+                    </button>
+                  )}
 
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     <button
