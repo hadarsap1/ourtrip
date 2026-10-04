@@ -52,6 +52,7 @@ import type {
 } from "@/lib/types";
 import { DayCard } from "./DayCard";
 import { LegSection } from "./LegSection";
+import { PlanMyDaySheet } from "./PlanMyDaySheet";
 import { TripSummary } from "./TripSummary";
 import { TripMap } from "./TripMap";
 import { LegLocationSheet } from "./LegLocationSheet";
@@ -117,6 +118,7 @@ export function ItineraryScreen() {
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
   // The leg whose location is being pinned from the map.
   const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
+  const [planningDay, setPlanningDay] = useState<ItineraryDay | null>(null);
 
   const { show: showUndo, toast: undoToast } = useUndoToast();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -694,6 +696,7 @@ export function ItineraryScreen() {
                         }}
                         todayISO={today}
                         renderDay={renderDayCard}
+                        onPlanDay={isEnabled("planMyDay") ? setPlanningDay : undefined}
                         onShiftNights={
                           isEnabled("nightsStepper")
                             ? (delta) => void shiftNights(leg, delta)
@@ -932,6 +935,19 @@ export function ItineraryScreen() {
         />
       )}
 
+      {trip && (
+        <PlanMyDaySheet
+          tripId={trip.id}
+          day={planningDay}
+          startSortOrder={planningDay ? items.filter((i) => i.day_id === planningDay.id).length : 0}
+          onClose={() => setPlanningDay(null)}
+          onDone={(message) => {
+            setPlanningDay(null);
+            refreshNow();
+            showToast(message);
+          }}
+        />
+      )}
       <Toast message={toast} />
       {undoToast}
     </div>

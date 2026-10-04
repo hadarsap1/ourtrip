@@ -62,6 +62,8 @@ export async function prefetchOfflineEssentials(force = false): Promise<void> {
         }
         if (landed + ids.length > 0) await requestPersistentStorage();
       })(),
+      // Plan-my-day (2.2): the slim ideas bank, so an empty day can be planned offline.
+      import("@/lib/data/placeOptions").then((m) => m.loadPlanCandidates(trip.id)),
       // Exchange rates (Phase 2.4): every currency on the route plus USD, so a
       // purchase converts in airplane mode with the last known rate.
       (async () => {
