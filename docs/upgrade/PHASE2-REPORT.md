@@ -122,3 +122,17 @@ Reads only what each role may already read (itinerary days/items; kids have SELE
 Files: `lib/tripStats.ts` (+test 4), `components/stats/StatsScreen.tsx`, `app/stats/page.tsx`, `components/more/MoreScreen.tsx`, `components/today/TodayScreen.tsx`, `lib/strings.ts`.
 
 ❌ km are straight-line between planned places, not road distance. ❌ With the flag off the page renders empty (only the flagged tiles link to it).
+
+## 2.8 Backup / export - flag `backupExport` (off)
+
+More → "גיבוי הטיול" (parents only):
+- **Export**: one JSON file (`ourtrip-backup-YYYY-MM-DD.json`) with the trip, days, items, bookings (+ attachment metadata), budget, expenses, ideas bank, journal, checklists, visas, emergency pages, pins, routes, phrasebook, facts, wall messages, photo metadata, pocket money. **Not included**: documents and their PIN/passkeys, push subscriptions, kid devices, the guest allowlist, Google Photos links, read receipts, FX cache, member emails and auth ids; attachments/photos as metadata only.
+- **Restore dry run**: pick a backup file → validated (app, version, shape; a file that contains an excluded table is rejected) → compared with the current data per table: rows that would come back, rows that would change (ignoring `updated_at`), rows created since. **Nothing is written**; there is no restore-apply in this phase.
+
+The server-side weekly backup (`backup-weekly` → private bucket) is unchanged.
+
+Files: `lib/backup.ts` (+test 4), `lib/data/backup.ts`, `components/settings/BackupCard.tsx`, `components/more/MoreScreen.tsx`, `lib/strings.ts`.
+
+Security: reads only through the owner's own session (RLS); kids/guests never see the card. The file lands on the parent's phone - it contains the itinerary, bookings with confirmation codes and the budget, so it should be kept like any private file.
+
+❌ Not exercised against the live database here (no signed-in session); verify once on a phone. ❌ A full restore (writing back) is intentionally not built.
