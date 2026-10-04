@@ -46,16 +46,16 @@ On by default: `documentsAutoDownload`, `writeQueueV2`, `itineraryV2`, `todayV2`
 - ❌ Leave-by is a straight-line estimate (×1.3 road factor, 22 km/h, 10 min buffer). It ignores traffic, ferries and walking-only areas. Labelled "הערכה" in the UI.
 - ❌ Visa stay-limit reminders assume one contiguous stretch per country. A second visit to the same country (e.g. back to Thailand) is measured from the first entry.
 - ❌ Local time follows the itinerary's country, not the phone. On a border-crossing day the zone switches at UTC midnight, so one slot can fire an hour early or late.
-- Nights stepper (F4) not built: changing a stretch's nights shifts every later day, which is a bulk data operation. Needs your decision on the behavior first.
+- ❌ Nights stepper needs migration 00044 applied before the flag goes on.
 - Data-driven screens were checked with fake data only; gates run without a backend.
 
 ## 6. Recommendation
 
 Turn on: everything listed in section 3 (already on). Merge after #77, then one pass on a real phone with data: `/documents` (offline bar, airplane mode), `/itinerary` (swipe, empty runs), Home pre-trip.
 Then deploy `push-send` and apply 00043, and set `?simDate=2026-11-05` on a phone to see in-trip mode.
-Hold: nights stepper and "who paid" until you decide (questions below).
+Hold: `nightsStepper` until 00044 is applied.
 
-Open decisions:
-1. Nights stepper: when Vietnam gets one more night, should every later day move forward one day (my default), or should the next country lose a night?
-2. "Who paid": add the `paid_by` column now (small, additive), or skip for this trip?
-3. Kyoto rename in `segment-cleanup.md` (joins two segments) - still open from Phase 0.
+Decisions (04/10/2026):
+1. Nights stepper: later days move with it. Built (`nightsStepper` flag, off until migration 00044 is applied; tested locally on Postgres 16). Bookings never move - the toast says how many to check. Removing a night is refused while that day still has items, a route or a journal entry.
+2. "Who paid": skipped for this trip.
+3. Kyoto and the other two renames: applied to the live data, rollback SQL in `segment-cleanup.md`.
