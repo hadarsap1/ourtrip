@@ -54,7 +54,7 @@ function occupiesCheckoutDate(type: Booking["type"]): boolean {
   return type !== "hotel";
 }
 
-function addDays(dateISO: string, delta: number): string {
+export function addDays(dateISO: string, delta: number): string {
   const d = new Date(`${dateISO}T00:00:00`);
   d.setDate(d.getDate() + delta);
   return iso(d.getFullYear(), d.getMonth(), d.getDate());

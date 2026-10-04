@@ -9,6 +9,9 @@ import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
 import { MailImportSheet } from "@/components/bookings/MailImportSheet";
+import { HotelSyncSheet } from "@/components/bookings/HotelSyncSheet";
+import { proposeHotelSyncs, type HotelSyncProposal } from "@/lib/hotelItinerarySync";
+import { canLocateHotels, locateHotel } from "@/lib/locateHotel";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   createItem,
@@ -107,6 +110,9 @@ export function ItineraryScreen() {
   const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
   const [importingMail, setImportingMail] = useState(false);
+  // Hotels proposing a place for the plan's days, waiting on a confirm.
+  const [hotelSync, setHotelSync] = useState<HotelSyncProposal[] | null>(null);
+  const [syncingHotels, setSyncingHotels] = useState(false);
   // The day that is currently pulling from the options bank.
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
   // The leg whose location is being pinned from the map.
@@ -296,6 +302,43 @@ export function ItineraryScreen() {
       router.push(`/options?${params.toString()}`);
     },
     [router]
+  );
+
+  /**
+   * Looks the hotels up and asks to relabel the days they disagree with.
+   * `announce` is for the sync button: there an answer of "nothing to change"
+   * is still an answer. After a save it is silent - most saves change nothing.
+   */
+  const syncHotels = useCallback(
+    async (hotels: Booking[], announce: boolean) => {
+      const active = hotels.filter(
+        (b) => b.type === "hotel" && b.status !== "cancelled" && b.start_date && b.end_date
+      );
+      if (active.length === 0) return;
+      if (!(await canLocateHotels())) {
+        if (announce) showToast(strings.bookings.hotelSyncUnavailable);
+        return;
+      }
+      const entries: Parameters<typeof proposeHotelSyncs>[0] = [];
+      let missed = 0;
+      // One at a time: a handful of hotels, and the geocoder rate-limits bursts.
+      for (const booking of active) {
+        const place = await locateHotel(booking);
+        if (place) entries.push({ booking, place });
+        else missed++;
+      }
+      const proposals = proposeHotelSyncs(entries, days);
+      if (proposals.length > 0) {
+        setHotelSync(proposals);
+      } else if (announce) {
+        showToast(
+          missed > 0
+            ? strings.bookings.hotelSyncMissed.replace("{n}", String(missed))
+            : strings.bookings.hotelSyncNone
+        );
+      }
+    },
+    [days, showToast]
   );
 
   const refreshNow = useCallback(() => {
@@ -547,6 +590,13 @@ export function ItineraryScreen() {
                 onImportMail={() => setImportingMail(true)}
                 onEdit={(booking) => setBookingForm({ booking })}
                 onAddToDay={setDayPickFor}
+                onSyncHotels={() => {
+                  setSyncingHotels(true);
+                  void syncHotels(bookings, true)
+                    .catch(() => showToast(strings.common.error))
+                    .finally(() => setSyncingHotels(false));
+                }}
+                syncingHotels={syncingHotels}
                 onError={() => showToast(strings.common.error)}
               />
             ) : (
@@ -687,6 +737,8 @@ export function ItineraryScreen() {
             if (isNew && saved.cost != null && saved.cost > 0) {
               setExpenseFor(saved);
             }
+            // The booking leads, the plan follows - see hotelItinerarySync.
+            if (saved.type === "hotel") void syncHotels([saved], false).catch(() => {});
           }}
           onError={(message) =>
             showToast(
@@ -707,6 +759,18 @@ export function ItineraryScreen() {
           setLocatingLeg(null);
           refreshNow();
           showToast(strings.itinerary.mapSaved);
+        }}
+        onError={() => showToast(strings.common.error)}
+      />
+
+      {/* Waits behind the expense prompt: one question at a time. */}
+      <HotelSyncSheet
+        proposals={expenseFor === null ? hotelSync : null}
+        onClose={() => setHotelSync(null)}
+        onDone={() => {
+          setHotelSync(null);
+          refreshNow();
+          showToast(strings.bookings.hotelSyncDone);
         }}
         onError={() => showToast(strings.common.error)}
       />
