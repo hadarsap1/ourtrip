@@ -22,7 +22,7 @@ export const FLAG_DEFAULTS = {
   simDate: false, // dev builds always allow it; in production switch on per device (lib/simDate.ts)
   notificationsV2: true,
   // Needs supabase/migrations/00039_shift_stretch_nights.sql applied first.
-  nightsStepper: false,
+  nightsStepper: true,
   // Phase 2 (flip after tests pass)
   bookingsV2: false,
   planMyDay: false,
