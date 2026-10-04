@@ -6,6 +6,13 @@
 //   - daily (cron)  : rain-on-outdoor-day alert + flight check-in 24h reminder
 //   - backup-stale  : the weekly backup has not landed → owners (migration
 //                     00026; see the incident note in backup-weekly)
+//   - hourly (cron, 1.11): in the family's LOCAL time - 09:00 cancellation +
+//                     visa deadlines, 19:00 tomorrow digest, 20:00 evening
+//                     journal. Quiet hours 22:00-07:00. Policy lives in
+//                     _shared/notifyPolicy.ts (tested).
+//   - leave-now (cron every 15 min, 1.11): the next placed item's leave-by
+//                     time falls in the coming 15 minutes → owners.
+//   Kill switch for both: set NOTIFY_V2=off on the function.
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
 // so it is deployed verify_jwt=false. A forged call leaks no content - the
@@ -16,6 +23,18 @@
 
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  addDays,
+  cancelDeadline,
+  isReminderDay,
+  leaveNowDue,
+  localNow,
+  slotsDue,
+  visaRemindersDue,
+  zoneFor,
+  type LocalNow,
+} from "../_shared/notifyPolicy.ts";
+import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from "../_shared/travel.ts";
 
 // ---- shared-secret gate (review findings M3/M4) ----
 // This function runs verify_jwt=false because pg_cron carries no JWT, which
@@ -256,6 +275,161 @@ async function handleDaily(): Promise<{ weather: number; checkin: number }> {
   return { weather: weatherSent, checkin: checkinSent };
 }
 
+
+// ---------------------------------------------------------------------------
+// 1.11 - local-time notifications
+// ---------------------------------------------------------------------------
+
+async function activeTripId(): Promise<string | null> {
+  const { data } = await service.from("trips").select("id").eq("is_active", true).limit(1).maybeSingle();
+  return data?.id ?? null;
+}
+
+/** The family's local clock: the zone of the latest itinerary country up to today (UTC), else Israel. */
+async function familyLocalNow(tripId: string): Promise<LocalNow> {
+  const now = new Date();
+  const { data } = await service
+    .from("itinerary_days")
+    .select("country_code")
+    .eq("trip_id", tripId)
+    .lte("date", addDays(now.toISOString().slice(0, 10), 1))
+    .not("country_code", "is", null)
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return localNow(now, zoneFor(data?.country_code));
+}
+
+const hm = (time: string) => time.slice(0, 5);
+
+async function sendDeadlines(tripId: string, today: string): Promise<number> {
+  const owners = await ownerIds(tripId);
+  let sent = 0;
+
+  const { data: bookings } = await service
+    .from("bookings")
+    .select("id, title, details")
+    .eq("trip_id", tripId)
+    .neq("status", "cancelled");
+  for (const b of bookings ?? []) {
+    const until = cancelDeadline(b.details);
+    if (!until || !isReminderDay(today, until)) continue;
+    const [y, m, d] = until.split("-");
+    sent += await pushToMembers(owners, {
+      title: "⏳ ביטול חינם עומד להסתיים",
+      body: `${b.title} - אפשר לבטל בלי עלות עד ${d}/${m}/${y}`,
+      url: "/itinerary",
+      tag: `cancel-${b.id}`,
+    });
+  }
+
+  const [{ data: visas }, { data: days }] = await Promise.all([
+    service.from("visa_requirements").select("country_code, requirement_type, status, max_days, title_he").eq("trip_id", tripId),
+    service.from("itinerary_days").select("date, country_code").eq("trip_id", tripId),
+  ]);
+  for (const r of visaRemindersDue(today, visas ?? [], days ?? [])) {
+    const [y, m, d] = r.date.split("-");
+    sent += await pushToMembers(owners, {
+      title: r.kind === "apply" ? "🛂 ויזה / טופס כניסה עדיין פתוח" : "🛂 תקופת השהייה מתקרבת לסוף",
+      body:
+        r.kind === "apply"
+          ? `${r.title} - נכנסים ב-${d}/${m}/${y}`
+          : `${r.title} - היום האחרון המותר ${d}/${m}/${y}`,
+      url: "/visas",
+      tag: `visa-${r.kind}-${r.country}`,
+    });
+  }
+  return sent;
+}
+
+async function sendTomorrowDigest(tripId: string, today: string): Promise<number> {
+  const tomorrow = addDays(today, 1);
+  const { data: day } = await service
+    .from("itinerary_days")
+    .select("id, location_name")
+    .eq("trip_id", tripId)
+    .eq("date", tomorrow)
+    .maybeSingle();
+  if (!day) return 0; // before the trip, or a day not planned yet
+  const [{ data: items }, { data: bookings }] = await Promise.all([
+    service.from("itinerary_items").select("title, start_time").eq("day_id", day.id).neq("status", "cancelled").order("start_time"),
+    service.from("bookings").select("title, type").eq("trip_id", tripId).eq("start_date", tomorrow).neq("status", "cancelled"),
+  ]);
+  const list = items ?? [];
+  const first = list.find((i) => i.start_time);
+  const parts = [
+    list.length > 0 ? `${list.length} פעילויות` : "יום פנוי",
+    first ? `הראשונה ב-${hm(first.start_time as string)} (${first.title})` : null,
+    ...(bookings ?? []).map((b) => (b.type === "flight" ? `טיסה: ${b.title}` : b.type === "hotel" ? `צ'ק-אין: ${b.title}` : b.title)),
+  ].filter(Boolean);
+  return pushToMembers(await ownerIds(tripId), {
+    title: `🗓️ מחר${day.location_name ? ` ב${day.location_name}` : ""}`,
+    body: parts.join(" · "),
+    url: "/itinerary",
+    tag: `digest-${tomorrow}`,
+  });
+}
+
+async function sendEveningJournal(tripId: string, today: string): Promise<number> {
+  const { data: day } = await service.from("itinerary_days").select("id").eq("trip_id", tripId).eq("date", today).maybeSingle();
+  if (!day) return 0; // only while travelling
+  const family = await familyIds(tripId);
+  const { data: wrote } = await service.from("journal_entries").select("author_id").eq("trip_id", tripId).eq("entry_date", today);
+  const done = new Set((wrote ?? []).map((w) => w.author_id));
+  return pushToMembers(
+    family.filter((id) => !done.has(id)),
+    { title: "✍️ איך היה היום?", body: "שתי שורות ביומן, לפני שהיום מתערבב עם מחר", url: "/journal", tag: `journal-${today}` }
+  );
+}
+
+async function handleHourly(): Promise<Record<string, number | string>> {
+  const tripId = await activeTripId();
+  if (!tripId) return { skipped: "no trip" };
+  const local = await familyLocalNow(tripId);
+  const out: Record<string, number | string> = { local: `${local.date} ${Math.floor(local.minutes / 60)}h` };
+  for (const slot of slotsDue(local.minutes)) {
+    if (slot === "deadlines") out.deadlines = await sendDeadlines(tripId, local.date);
+    if (slot === "tomorrowDigest") out.digest = await sendTomorrowDigest(tripId, local.date);
+    if (slot === "eveningJournal") out.journal = await sendEveningJournal(tripId, local.date);
+  }
+  return out;
+}
+
+async function handleLeaveNow(): Promise<number> {
+  const tripId = await activeTripId();
+  if (!tripId) return 0;
+  const local = await familyLocalNow(tripId);
+  const { data: day } = await service
+    .from("itinerary_days")
+    .select("id, lat, lng")
+    .eq("trip_id", tripId)
+    .eq("date", local.date)
+    .maybeSingle();
+  if (!day) return 0;
+  const { data: items } = await service
+    .from("itinerary_items")
+    .select("id, title, start_time, lat, lng, status")
+    .eq("day_id", day.id)
+    .neq("status", "cancelled");
+  const list = items ?? [];
+  let sent = 0;
+  for (const it of list) {
+    const start = minutesOfTime(it.start_time);
+    const to = placeOf(it);
+    if (start === null || !to || it.status === "done") continue;
+    const from = originFor(list, it, placeOf(day));
+    const leaveBy = leaveByMinutes(start, from, to);
+    if (!leaveNowDue(leaveBy, local.minutes)) continue;
+    sent += await pushToMembers(await ownerIds(tripId), {
+      title: "🚶 הגיע הזמן לצאת",
+      body: `${it.title} ב-${hm(it.start_time as string)} - כ-${from ? travelMinutes(from, to) : 0} דקות דרך (הערכה)`,
+      url: "/",
+      tag: `leave-${it.id}`,
+    });
+  }
+  return sent;
+}
+
 Deno.serve(async (req) => {
   if (!cronAuthorized(req)) return json({ ok: false, error: "forbidden" }, 401);
 
@@ -291,6 +465,13 @@ Deno.serve(async (req) => {
       }
       case "daily": {
         return json({ ok: true, ...(await handleDaily()) });
+      }
+      case "hourly":
+      case "leave-now": {
+        if (Deno.env.get("NOTIFY_V2") === "off") return json({ ok: true, skipped: "NOTIFY_V2=off" });
+        return body.type === "hourly"
+          ? json({ ok: true, ...(await handleHourly()) })
+          : json({ ok: true, sent: await handleLeaveNow() });
       }
       case "backup-stale": {
         const age = typeof body.age_days === "number" ? body.age_days : -1;

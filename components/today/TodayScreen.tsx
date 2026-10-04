@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CountdownHome } from "./CountdownHome";
 import { InTripNow } from "./InTripNow";
+import { IosInstallHint } from "./IosInstallHint";
 import { isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
@@ -484,6 +485,11 @@ export function TodayScreen() {
       </header>
 
       <div className="mx-auto max-w-lg px-4 pt-3 sm:max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_282px_282px] lg:items-start lg:gap-4 lg:px-9 lg:pt-6">
+        {v2 && (
+          <div className="mb-2.5 lg:col-span-3">
+            <IosInstallHint />
+          </div>
+        )}
         {result?.fromCache && (
           <p className="mb-2.5 rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun-deep lg:col-span-3">
             {strings.offline.fromCache}

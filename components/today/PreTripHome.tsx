@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IosInstallHint } from "./IosInstallHint";
 import { ChevronForwardIcon, DocumentIcon, PhrasebookIcon, PinIcon, WarningIcon } from "@/components/icons";
 import { Ring, ProgressBar } from "@/components/ui/Progress";
 import { CountdownChip } from "@/components/ui/Chip";
@@ -61,6 +62,7 @@ export function PreTripHome({
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 pt-4 pb-8 sm:max-w-2xl">
+      <IosInstallHint />
       {/* Hero: photo slot of the first country (gradient + flag until a photo exists). */}
       <section aria-label={t.countdownLabel}>
         <div className={`relative h-[200px] overflow-hidden rounded-3xl ${fill}`}>

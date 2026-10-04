@@ -425,6 +425,8 @@ export const strings = {
     eveningBody: "שתי שורות ביומן עכשיו, לפני שהיום מתערבב עם מחר",
     eveningCta: "לכתוב ביומן",
     nothingLeft: "סיימנו את התוכנית להיום",
+    iosHintTitle: "התראות באייפון דורשות התקנה",
+    iosHintBody: "מוסיפים את האפליקציה למסך הבית - ההסבר כאן",
   },
 
   capture: {
