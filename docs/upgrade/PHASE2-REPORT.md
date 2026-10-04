@@ -60,6 +60,22 @@ Files: `supabase/functions/booking-paste/index.ts`, `supabase/functions/_shared/
 ❌ The booking form does not edit `departure_time`/`arrival_time` yet (paste fills them; the card shows them).
 ❌ Paste is online-only by nature; offline it says so.
 
+## 2.9 Map bottom sheet - flag `mapSheet` (off)
+
+| Acceptance criterion | Result |
+|---|---|
+| Split layout, draggable bottom sheet | Map fills the screen; the existing `BottomSheet` (peek / half / full, drag or tap the grabber) sits over it |
+| Tabs מסלול / ימים / הזמנות | Route: country stays as a timeline (tap frames that stay on the map), then the existing pin / route / car tools. Days: chips outlined in their country's colour, tap filters the map. Bookings: live bookings by date with a navigate link (address, else title) |
+| Category pins | Items that came from a booking show its type glyph (✈️ 🏨 🚆 🚗 🎟️); others stay plain dots |
+| Country-coloured route | One geodesic line through each day's centroid in date order, each leg in the arrival country's colour (`tokens.json` light base) |
+| Day chips coloured by segment | Yes (country colour) |
+
+Files: `lib/mapV2.ts` (+test, 4), `components/map/MapV2Layout.tsx`, `components/map/MapScreen.tsx` (layout switch, country colours, trip line, `focusStretch`), `lib/strings.ts`.
+
+Security: no schema or policy change; the bookings tab reads `bookings` like the itinerary does (owners; guests have their own read-only map).
+
+❌ Ideas-bank categories are not on itinerary items, so "category pins" covers booking-linked items only. ❌ The trip line needs located items; days without any are skipped (most of the trip today). ❌ Not checked against a live Google Map here (no API key in this environment) - verify on a phone.
+
 ## 2.x Steps counter (queued after the core 4) - flag `stepsCounter` (off until tested on both iPhones)
 
 Spec from Hadar, 04/10/2026:

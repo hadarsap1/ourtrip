@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
@@ -34,9 +34,17 @@ import type {
   Trip,
 } from "@/lib/types";
 import { CarCard } from "./CarCard";
+import { MapV2Layout } from "./MapV2Layout";
+import { isEnabled } from "@/lib/flags";
+import { listBookings } from "@/lib/data/bookings";
+import { countryHex, dayCentroids, itemGlyph, tripSegments } from "@/lib/mapV2";
+import type { Stretch } from "@/lib/data/segments";
+import type { Booking } from "@/lib/types";
 import { ImportRouteSheet } from "./ImportRouteSheet";
 
 type Mode = "view" | "addPin" | "draw";
+
+const noopSubscribe = () => () => {};
 
 export function MapScreen() {
   const { member } = useMember();
@@ -68,6 +76,9 @@ export function MapScreen() {
   const [routeNameOpen, setRouteNameOpen] = useState(false);
   const [importingRoute, setImportingRoute] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Map v2 (2.9): bottom-sheet layout, country colours, trip line.
+  const v2 = useSyncExternalStore(noopSubscribe, () => isEnabled("mapSheet"), () => false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -90,7 +101,8 @@ export function MapScreen() {
     setPins(nextPins);
     setRoutes(nextRoutes);
     setItems(await listItems(nextDays.map((d) => d.id)));
-  }, []);
+    if (v2) setBookings(await listBookings(tripId).catch(() => []));
+  }, [v2]);
 
   // init: data + map
   useEffect(() => {
@@ -197,6 +209,26 @@ export function MapScreen() {
     const bounds = new google.maps.LatLngBounds();
     const dayIndex = new Map(days.map((d, i) => [d.id, i]));
     const dayById = new Map(days.map((d) => [d.id, d]));
+    const bookingsById = new Map(bookings.map((b) => [b.id, b]));
+
+    // v2: the trip as one line, day to day, each leg in its country's colour.
+    if (v2 && !dayFilter) {
+      for (const seg of tripSegments(dayCentroids(days, items))) {
+        polylinesRef.current.push(
+          new google.maps.Polyline({
+            map,
+            path: [
+              { lat: seg.from.lat, lng: seg.from.lng },
+              { lat: seg.to.lat, lng: seg.to.lng },
+            ],
+            strokeColor: seg.color,
+            strokeOpacity: 0.85,
+            strokeWeight: 3,
+            geodesic: true,
+          })
+        );
+      }
+    }
 
     const openInfo = (marker: google.maps.Marker, title: string, lat: number, lng: number, extra = "") => {
       const html =
@@ -212,11 +244,15 @@ export function MapScreen() {
     for (const item of items) {
       if (item.lat == null || item.lng == null) continue;
       if (dayFilter && item.day_id !== dayFilter) continue;
-      const color = DAY_COLORS[(dayIndex.get(item.day_id) ?? 0) % DAY_COLORS.length];
+      const color = v2
+        ? countryHex(dayById.get(item.day_id)?.country_code)
+        : DAY_COLORS[(dayIndex.get(item.day_id) ?? 0) % DAY_COLORS.length];
+      const glyph = v2 ? itemGlyph(item, bookingsById) : null;
       const marker = new google.maps.Marker({
         map,
         position: { lat: item.lat, lng: item.lng },
         title: item.title,
+        ...(glyph ? { label: { text: glyph, fontSize: "13px" } } : {}),
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 9,
@@ -309,7 +345,25 @@ export function MapScreen() {
       map.setCenter(myLoc);
       map.setZoom(12);
     }
-  }, [mapReady, items, pins, routes, days, dayFilter, pinPhotos, myLoc]);
+  }, [mapReady, items, pins, routes, days, dayFilter, pinPhotos, myLoc, v2, bookings]);
+
+  /** v2: frame one country stay - its located items, else nothing to do. */
+  const focusStretch = useCallback(
+    (stretch: Stretch) => {
+      const map = mapRef.current;
+      if (!map || typeof google === "undefined") return;
+      const ids = new Set(stretch.days.map((d) => d.id));
+      const b = new google.maps.LatLngBounds();
+      for (const i of items) if (ids.has(i.day_id) && i.lat != null && i.lng != null) b.extend({ lat: i.lat, lng: i.lng });
+      if (b.isEmpty()) {
+        showToast(strings.mapV2.noPlaces);
+        return;
+      }
+      setDayFilter(null);
+      map.fitBounds(b, 48);
+    },
+    [items, showToast]
+  );
 
   function startDraw() {
     if (!mapRef.current || typeof google === "undefined") return;
@@ -348,53 +402,8 @@ export function MapScreen() {
 
   const customPins = pins.filter((p) => p.kind !== "car");
 
-  return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.map.title}</h1>
-
-      {/* day filter */}
-      {days.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          <button
-            type="button"
-            onClick={() => setDayFilter(null)}
-            className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-              dayFilter === null ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
-            }`}
-          >
-            {strings.map.dayFilterAll}
-          </button>
-          {days.map((day, i) => (
-            <button
-              key={day.id}
-              type="button"
-              onClick={() => setDayFilter(dayFilter === day.id ? null : day.id)}
-              className={`flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                dayFilter === day.id ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
-              }`}
-            >
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: DAY_COLORS[i % DAY_COLORS.length] }}
-                aria-hidden="true"
-              />
-              {formatShortDate(day.date)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {noKey ? (
-        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
-          {strings.map.noKey}
-        </p>
-      ) : (
-        <div
-          ref={containerRef}
-          className="h-[45dvh] w-full overflow-hidden rounded-2xl border border-line shadow-sm"
-        />
-      )}
-
+  const tools = (
+    <>
       {/* mode controls (family only - guests get a read-only map) */}
       {mapReady && !isGuest && (
         <div className="flex flex-wrap gap-2 text-sm font-semibold">
@@ -534,6 +543,11 @@ export function MapScreen() {
         </section>
       )}
 
+    </>
+  );
+
+  const overlays = (
+    <>
       {/* new pin label sheet */}
       {pinAt && trip && (
         <PinLabelSheet
@@ -580,6 +594,77 @@ export function MapScreen() {
           }}
         />
       )}
+
+    </>
+  );
+
+  if (v2) {
+    return (
+      <MapV2Layout
+        containerRef={containerRef}
+        noKey={noKey}
+        days={days}
+        bookings={bookings}
+        dayFilter={dayFilter}
+        onDayFilter={setDayFilter}
+        onFocusStretch={focusStretch}
+        tools={tools}
+        overlays={overlays}
+        toast={toast}
+      />
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
+      <h1 className="text-2xl font-bold">{strings.map.title}</h1>
+
+      {/* day filter */}
+      {days.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setDayFilter(null)}
+            className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              dayFilter === null ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
+            }`}
+          >
+            {strings.map.dayFilterAll}
+          </button>
+          {days.map((day, i) => (
+            <button
+              key={day.id}
+              type="button"
+              onClick={() => setDayFilter(dayFilter === day.id ? null : day.id)}
+              className={`flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                dayFilter === day.id ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
+              }`}
+            >
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: DAY_COLORS[i % DAY_COLORS.length] }}
+                aria-hidden="true"
+              />
+              {formatShortDate(day.date)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {noKey ? (
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
+          {strings.map.noKey}
+        </p>
+      ) : (
+        <div
+          ref={containerRef}
+          className="h-[45dvh] w-full overflow-hidden rounded-2xl border border-line shadow-sm"
+        />
+      )}
+
+      {tools}
+
+      {overlays}
 
       <Toast message={toast} />
     </div>
