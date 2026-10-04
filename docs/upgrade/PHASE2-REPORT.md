@@ -94,3 +94,11 @@ Spec (Hadar, 04/10) → result:
 Files: `supabase/migrations/00042_steps.sql`, `supabase/functions/steps-ingest/index.ts`, `supabase/functions/_shared/stepsIngest.ts` (+test 4), `lib/stepsView.ts` (+test 3), `lib/data/steps.ts`, `components/today/StepsCard.tsx`, `components/settings/StepsSettings.tsx`, `components/today/TodayScreen.tsx`, `components/more/MoreScreen.tsx`, `docs/STEPS-SHORTCUT.md`.
 
 ❌ Hebrew names of Shortcuts actions vary by iOS version; the guide gives the English names too. ❌ Not tested on a real iPhone (no device here) - the flag stays off until both phones report. ❌ 00042 is not applied yet (same connector limit as 00041).
+
+## 2.7 ICS export - flag `icsExport` (off)
+
+"ייצוא ליומן" in the bookings tab downloads `ourtrip.ics`: one all-day event per country stay (not 230 day events) and one per live booking - timed from `details` (departure/arrival or check-in/out, floating local time; an overnight flight ends the next day) or all-day when no times. RFC 5545: CRLF, UTF-8-safe 75-octet folding, escaped text, exclusive all-day DTEND. Cancelled and undated bookings are skipped. Built on the device from data already loaded - nothing leaves the phone except into the user's own calendar app.
+
+Files: `lib/ics.ts` (+test 3), `components/bookings/BookingsList.tsx`, `components/itinerary/ItineraryScreen.tsx`, `lib/strings.ts`.
+
+❌ Not imported into a real iOS/Google calendar here - check once on a phone. ❌ A re-export creates duplicates in calendars that ignore UID (Apple Calendar import does).

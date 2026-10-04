@@ -53,6 +53,9 @@ import type {
 import { DayCard } from "./DayCard";
 import { LegSection } from "./LegSection";
 import { PlanMyDaySheet } from "./PlanMyDaySheet";
+import { buildIcs } from "@/lib/ics";
+import { splitIntoStretches } from "@/lib/data/segments";
+import { countryName } from "@/lib/data/emergency";
 import { PasteImportSheet } from "@/components/bookings/PasteImportSheet";
 import { TripSummary } from "./TripSummary";
 import { TripMap } from "./TripMap";
@@ -396,6 +399,27 @@ export function ItineraryScreen() {
     [trip, refresh, showToast]
   );
 
+  /** ICS export (2.7): stays + bookings as one file the phone's calendar imports. */
+  const exportIcs = useCallback(() => {
+    if (!trip) return;
+    const ics = buildIcs({
+      tripName: trip.name,
+      stretches: splitIntoStretches(days),
+      bookings,
+      countryName,
+      typeLabel: (t) => strings.bookings.types[t],
+    });
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ourtrip.ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    showToast(strings.bookingsV2.exportedIcs);
+  }, [trip, days, bookings, showToast]);
+
   const refreshNow = useCallback(() => {
     if (!trip) return;
     void refresh(trip.id).catch(() => showToast(strings.common.error));
@@ -663,6 +687,7 @@ export function ItineraryScreen() {
                 syncingHotels={syncingHotels}
                 onError={() => showToast(strings.common.error)}
                 onPaste={isEnabled("bookingsV2") ? () => setPasting(true) : undefined}
+                onExportIcs={isEnabled("icsExport") ? exportIcs : undefined}
               />
             ) : (
               <>
