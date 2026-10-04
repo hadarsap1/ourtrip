@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
+import { isEnabled } from "@/lib/flags";
 import {
   BellIcon,
   ChecklistIcon,
@@ -11,6 +12,7 @@ import {
   type IconProps,
   JournalIcon,
   MailIcon,
+  GlobeIcon,
   MapIcon,
   MemoryBookIcon,
   MessagesIcon,
@@ -85,7 +87,10 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
   );
 }
 
+const noopSubscribe = () => () => {};
+
 export function MoreScreen() {
+  const statsOn = useSyncExternalStore(noopSubscribe, () => isEnabled("statsStamps"), () => false);
   const [counts, setCounts] = useState<MoreCounts | null>(null);
 
   useEffect(() => {
@@ -134,6 +139,9 @@ export function MoreScreen() {
       Icon: SparkleIcon,
       count: null,
     },
+    ...(statsOn
+      ? [{ href: "/stats", label: strings.more.menuStats, Icon: GlobeIcon, count: null } satisfies Tile]
+      : []),
   ];
 
   const memories: Tile[] = [
