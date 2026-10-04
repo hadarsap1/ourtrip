@@ -23,6 +23,7 @@ import {
 } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { ThemePicker } from "@/components/settings/ThemePicker";
+import { StepsSettings } from "@/components/settings/StepsSettings";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { strings } from "@/lib/strings";
@@ -226,6 +227,7 @@ export function MoreScreen() {
           good once it is on the home screen. */}
       <InstallPrompt />
       <ThemePicker />
+      <StepsSettings />
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>

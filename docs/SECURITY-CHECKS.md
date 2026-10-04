@@ -1543,3 +1543,32 @@ already loads; nothing else leaves the browser.
 
 X Not probed live with a kid or guest session in this change; the UPDATE
 denial rests on the absence of any non-owner UPDATE policy.
+
+## Phase 2 - steps counter (migration 00042, `steps-ingest`) - 04/10/2026
+
+`daily_steps` and `step_tokens` are new, parents only. Tested on a local
+Postgres 16 with a stub of `members` / `current_member_id` / `is_owner_of`
+(`docs/upgrade/migrations/00042_steps.test.sql`): two owners, a kid and a guest
+in trip 1, an owner of trip 2.
+
+| Check | Result |
+|---|---|
+| Both parents read both parents' steps and tokens | ✅ PASS - owner A and owner B each see 2 step rows, 1 token |
+| A parent creates a token only for themself | ✅ PASS - B inserting for A: "new row violates row-level security policy" |
+| Either parent can revoke any token of the trip (lost phone) | ✅ PASS - B's UPDATE of A's token succeeds |
+| Kid: no read, no write | ✅ PASS - 0 rows; inserts into both tables rejected by RLS |
+| Guest: no read | ✅ PASS - 0 rows |
+| Owner of another trip: no cross-trip read or write | ✅ PASS - sees only own row; insert for trip 1's member rejected |
+| anon: nothing | ✅ PASS - "permission denied for table daily_steps" |
+| Garbage rejected | ✅ PASS - non-hex token hash and steps > 200000 fail CHECK constraints |
+| `steps-ingest` (verify_jwt off) accepts only an unrevoked token of an OWNER | ✅ by code: hash lookup, `revoked_at` null, `members.role = 'owner'`, 401 for every miss without saying which; 20 s per-phone throttle; fails closed (503) if the tables are missing; logs outcome codes only |
+
+## Phase 2 - `ai_usage` (migration 00041, `booking-paste`) - 04/10/2026
+
+| Check | Result |
+|---|---|
+| No client can write usage counts | ✅ by policy set - only a SELECT policy exists (owners of the member's trip); writes are service-role only |
+| Unauthenticated call never reaches the model | ✅ PASS live - `booking-paste` without Authorization → 401 `UNAUTHORIZED_NO_AUTH_HEADER` |
+| Missing `ai_usage` cannot bypass the limit | ✅ by code - usage read/write error → 503 before the model call (fixed during review) |
+
+X 00041/00042 RLS not yet probed live with real kid/guest sessions; they are not applied yet (connector cannot run DDL).

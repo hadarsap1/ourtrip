@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CountdownHome } from "./CountdownHome";
 import { InTripNow } from "./InTripNow";
+import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
 import { isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
@@ -527,7 +528,10 @@ export function TodayScreen() {
                 )}
 
               {v2 ? (
-                <InTripNow items={activeItems} day={data.day} now={now} clock={clock} />
+                <>
+                  <InTripNow items={activeItems} day={data.day} now={now} clock={clock} />
+                  {trip && <StepsCard tripId={trip.id} />}
+                </>
               ) : upcoming && (
                 <section
                   className="rounded-[18px] border border-line bg-surface px-3.5 py-3"
