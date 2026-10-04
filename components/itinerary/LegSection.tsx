@@ -44,6 +44,7 @@ export function LegSection({
   registerDayRef,
   todayISO: today,
   onShiftNights,
+  onPlanDay,
 }: {
   leg: LegOverview;
   open: boolean;
@@ -61,6 +62,8 @@ export function LegSection({
   todayISO: string;
   /** Nights stepper (F4). Absent → no stepper (flag off). */
   onShiftNights?: (delta: 1 | -1) => void;
+  /** Plan-my-day (2.2). Absent → no button (flag off). */
+  onPlanDay?: (day: ItineraryDay) => void;
 }) {
   const { stretch, phase } = leg;
   const v2 = isEnabled("itineraryV2");
@@ -231,6 +234,7 @@ export function LegSection({
                 to={block.to}
                 onPlan={onOpenIdeas}
                 onAdd={onAddToDay}
+                onPlanDay={onPlanDay}
                 registerDayRef={registerDayRef}
               />
             ) : (
@@ -244,6 +248,7 @@ export function LegSection({
                     day={block.day}
                     isToday={block.day.date === today}
                     onAdd={() => onAddToDay(block.day)}
+                    onPlan={onPlanDay ? () => onPlanDay(block.day) : undefined}
                   />
                 ) : (
                   renderDay(block.day)
@@ -263,12 +268,15 @@ function EmptyDayRow({
   day,
   isToday,
   onAdd,
+  onPlan,
 }: {
   day: ItineraryDay;
   isToday: boolean;
   onAdd: () => void;
+  /** Plan-my-day (2.2); absent when the flag is off. */
+  onPlan?: () => void;
 }) {
-  return (
+  const row = (
     <button
       type="button"
       onClick={onAdd}
@@ -294,6 +302,20 @@ function EmptyDayRow({
       <PlusIcon className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
     </button>
   );
+  if (!onPlan) return row;
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="min-w-0 flex-1">{row}</div>
+      <button
+        type="button"
+        onClick={onPlan}
+        className="flex shrink-0 items-center gap-1 rounded-lg bg-sea-tint px-3 text-[13px] font-bold text-sea-deep"
+      >
+        <SparkleIcon className="h-3.5 w-3.5" />
+        {strings.planMyDay.open}
+      </button>
+    </div>
+  );
 }
 
 // Literal classes so Tailwind keeps them: the leg's country as a side stripe.
@@ -314,6 +336,7 @@ function EmptyRun({
   to,
   onPlan,
   onAdd,
+  onPlanDay,
   registerDayRef,
 }: {
   days: ItineraryDay[];
@@ -321,6 +344,7 @@ function EmptyRun({
   to: string;
   onPlan: () => void;
   onAdd: (day: ItineraryDay) => void;
+  onPlanDay?: (day: ItineraryDay) => void;
   registerDayRef?: (dayId: string, el: HTMLDivElement | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -362,7 +386,7 @@ function EmptyRun({
       {expanded && (
         <div className="mt-2 space-y-1.5">
           {days.map((day) => (
-            <EmptyDayRow key={day.id} day={day} isToday={false} onAdd={() => onAdd(day)} />
+            <EmptyDayRow key={day.id} day={day} isToday={false} onAdd={() => onAdd(day)} onPlan={onPlanDay ? () => onPlanDay(day) : undefined} />
           ))}
         </div>
       )}

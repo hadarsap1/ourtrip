@@ -9,6 +9,7 @@
 // Owner-only (RLS policy place_options_owner_all) - planning content is never
 // visible to kids or guests.
 
+import type { PlanCandidate } from "@/lib/planMyDay";
 import { createBooking } from "@/lib/data/bookings";
 import { createItem } from "@/lib/data/itinerary";
 import { functionErrorCode } from "@/lib/functionError";
@@ -544,10 +545,12 @@ function isOutdoorCategory(category: string | null): boolean {
 export async function planFromOption(
   option: PlaceOption,
   dayId: string,
-  sortOrder: number
+  sortOrder: number,
+  startTime: string | null = null
 ): Promise<string> {
   const itemId = await createItem({
     day_id: dayId,
+    start_time: startTime,
     title: option.title,
     location_name: option.location_name ?? option.area ?? null,
     lat: option.lat,
@@ -696,4 +699,41 @@ export async function planFromOptions(
     planned += 1;
   }
   return planned;
+}
+
+/**
+ * Plan-my-day (2.2): the undecided bank, slimmed to what the planner reads and
+ * cached so a day can be planned offline. Accepting still needs a connection.
+ */
+export async function loadPlanCandidates(tripId: string): Promise<PlanCandidate[]> {
+  const { queryKeys, readQuery, writeQuery } = await import("@/lib/offline/queryCache");
+  try {
+    const { data, error } = await requireClient()
+      .from("place_options")
+      .select("id, title, category, area, lat, lng, status, country_code")
+      .eq("trip_id", tripId)
+      .in("status", ["option", "shortlist"]);
+    if (error) throw new Error(error.message);
+    void writeQuery(queryKeys.planCandidates(tripId), data ?? []);
+    return data ?? [];
+  } catch {
+    return (await readQuery<PlanCandidate[]>(queryKeys.planCandidates(tripId)))?.data ?? [];
+  }
+}
+
+/** Accepts a plan: every stop becomes an item at its suggested time, in order. */
+export async function acceptPlan(stops: { option: PlanCandidate; start: string }[], dayId: string, startSortOrder: number): Promise<number> {
+  const { data, error } = await requireClient()
+    .from("place_options")
+    .select("*")
+    .in("id", stops.map((s) => s.option.id));
+  if (error) throw new Error(error.message);
+  const byId = new Map((data ?? []).map((o) => [o.id, o]));
+  let order = startSortOrder;
+  for (const s of stops) {
+    const full = byId.get(s.option.id);
+    if (!full) continue; // taken off the bank meanwhile
+    await planFromOption(full, dayId, order++, s.start);
+  }
+  return order - startSortOrder;
 }
