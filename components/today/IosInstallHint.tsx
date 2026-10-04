@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { BellIcon, CloseIcon } from "@/components/icons";
+import { isEnabled } from "@/lib/flags";
 import { isIos, isStandalone } from "@/lib/push";
 import { strings } from "@/lib/strings";
 
@@ -10,6 +11,7 @@ const DISMISS_KEY = "ourtrip-ios-hint-dismissed";
 const noop = () => () => {};
 
 function shouldShow(): boolean {
+  if (!isEnabled("notificationsV2")) return false;
   try {
     if (localStorage.getItem(DISMISS_KEY)) return false;
   } catch {
