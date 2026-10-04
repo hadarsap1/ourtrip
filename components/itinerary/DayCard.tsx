@@ -17,11 +17,16 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { WeatherLine } from "@/components/WeatherLine";
 import {
+  BedIcon,
+  CarIcon,
   DragHandleIcon,
   EditIcon,
   MoveIcon,
   SunIcon,
+  PlaneIcon,
+  StarIcon,
   TicketIcon,
+  TrainIcon,
   TrashIcon,
 } from "@/components/icons";
 import { BookingDayRow } from "@/components/bookings/BookingDayRow";
@@ -186,10 +191,12 @@ export function DayCard({
             strategy={verticalListSortingStrategy}
           >
             <ul className="divide-y divide-line">
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <SortableItem
                   key={item.id}
                   item={item}
+                  position={items.length === 1 ? "only" : index === 0 ? "first" : index === items.length - 1 ? "last" : "middle"}
+                  bookingType={bookings.find((b) => b.id === item.booking_id)?.type}
                   hasBooking={
                     item.booking_id != null &&
                     bookings.some((b) => b.id === item.booking_id)
@@ -231,6 +238,8 @@ export function DayCard({
 function SortableItem({
   item,
   hasBooking,
+  position = "middle",
+  bookingType,
   onClick,
   onDelete,
   onMove,
@@ -238,6 +247,9 @@ function SortableItem({
 }: {
   item: ItineraryItem;
   hasBooking: boolean;
+  /** Where the row sits, so the timeline spine starts and ends at the nodes. */
+  position?: "only" | "first" | "middle" | "last";
+  bookingType?: string;
   onClick: () => void;
   onDelete: () => void;
   onMove: () => void;
@@ -284,6 +296,7 @@ function SortableItem({
         >
           {item.start_time ? formatTime(item.start_time) : "-"}
         </span>
+        {v2 && <TimelineNode type={nodeType(bookingType, item.is_outdoor)} position={position} muted={done || item.status === "cancelled"} />}
         <span className="min-w-0 flex-1">
           <span
             className={`block truncate text-[13.5px] ${
@@ -376,5 +389,51 @@ function SortableItem({
         <div className="flex items-center gap-1 px-2.5 py-2.5">{row}</div>
       )}
     </li>
+  );
+}
+
+type NodeType = "flight" | "lodging" | "transport" | "car" | "activity" | "outdoor" | "other";
+
+function nodeType(bookingType: string | undefined, outdoor: boolean): NodeType {
+  switch (bookingType) {
+    case "flight":
+      return "flight";
+    case "hotel":
+      return "lodging";
+    case "train":
+      return "transport";
+    case "car_rental":
+      return "car";
+    case "attraction":
+      return "activity";
+    case "other":
+      return "other";
+  }
+  return outdoor ? "outdoor" : "activity";
+}
+
+// Literal classes so Tailwind keeps them: one category color per type
+// (design tokens: the same colors as map pins and budget rings).
+const NODE_STYLE: Record<NodeType, { cls: string; Icon: (p: { className?: string }) => React.ReactNode }> = {
+  flight: { cls: "bg-cat-flight/10 text-cat-flight", Icon: PlaneIcon },
+  lodging: { cls: "bg-cat-lodging/10 text-cat-lodging", Icon: BedIcon },
+  transport: { cls: "bg-cat-transport/10 text-cat-transport", Icon: TrainIcon },
+  car: { cls: "bg-cat-transport/10 text-cat-transport", Icon: CarIcon },
+  activity: { cls: "bg-cat-activity/10 text-cat-activity", Icon: TicketIcon },
+  outdoor: { cls: "bg-cat-activity/10 text-cat-activity", Icon: SunIcon },
+  other: { cls: "bg-cat-other/10 text-cat-other", Icon: StarIcon },
+};
+
+/** A type icon on the day's vertical spine (1.5). Decorative: the row's text says it all. */
+function TimelineNode({ type, position, muted }: { type: NodeType; position: "only" | "first" | "middle" | "last"; muted: boolean }) {
+  const { cls, Icon } = NODE_STYLE[type];
+  return (
+    <span aria-hidden="true" className="-my-2.5 flex w-7 shrink-0 flex-col items-center self-stretch">
+      <span className={`w-0.5 flex-1 ${position === "first" || position === "only" ? "bg-transparent" : "bg-line"}`} />
+      <span className={`flex h-7 w-7 items-center justify-center rounded-full ${cls} ${muted ? "opacity-60" : ""}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className={`w-0.5 flex-1 ${position === "last" || position === "only" ? "bg-transparent" : "bg-line"}`} />
+    </span>
   );
 }
