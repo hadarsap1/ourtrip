@@ -63,7 +63,8 @@ function compare(a: BookingPlacement, b: BookingPlacement): number {
 }
 
 /**
- * Every booking grouped under the leg it starts in, legs in trip order.
+ * Every booking grouped under the leg it starts in, legs in trip order -
+ * except a hotel, which goes under the leg holding most of its nights.
  *
  * A booking belongs to where it STARTS, even when it spans a change of place:
  * the flight out of Hanoi is part of the Hanoi leg, because that is where you
@@ -114,6 +115,30 @@ export function groupBookingsByLeg(
 
     if (touched.length === 0) {
       unplaced.push({ booking, stretches: [], unplaced: "outside_plan" });
+      continue;
+    }
+
+    if (booking.type === "hotel") {
+      // A stay is not a journey: it does not cross from one leg to the next,
+      // it belongs to the place you sleep. Check-in day is usually a travel
+      // day, and the plan files a travel day under the leg being left - so
+      // "where it starts" would put a Tokyo hotel under the Philippines. The
+      // leg holding most of its nights wins; a tie goes to the later leg,
+      // because the earlier one only owns the arrival day.
+      const nights = new Map<number, number>();
+      for (const date of dates) {
+        const index = legByDate.get(date);
+        if (index !== undefined) nights.set(index, (nights.get(index) ?? 0) + 1);
+      }
+      let home = touched[0];
+      for (const index of touched) {
+        if ((nights.get(index) ?? 0) >= (nights.get(home) ?? 0)) home = index;
+      }
+      groups[home].bookings.push({
+        booking,
+        stretches: [stretches[home]],
+        unplaced: null,
+      });
       continue;
     }
 
