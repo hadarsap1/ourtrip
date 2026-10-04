@@ -22,6 +22,7 @@ import {
   VisaIcon,
 } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { ThemePicker } from "@/components/settings/ThemePicker";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { strings } from "@/lib/strings";
@@ -50,7 +51,7 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
         <li key={tile.href}>
           <Link
             href={tile.href}
-            className="flex h-full flex-col gap-[7px] rounded-[17px] border border-line bg-white px-3.5 py-3 active:bg-paper-deep"
+            className="flex h-full flex-col gap-[7px] rounded-[17px] border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
           >
             <span className="relative w-fit">
               <span
@@ -224,6 +225,7 @@ export function MoreScreen() {
       {/* Renders only while the app is not installed yet, so it disappears for
           good once it is on the home screen. */}
       <InstallPrompt />
+      <ThemePicker />
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>
@@ -237,7 +239,7 @@ export function MoreScreen() {
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupFamily}</p>
-        <ul className="overflow-hidden rounded-[18px] border border-line bg-white">
+        <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
           {admin.map((row, i) => (
             <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
               <Link

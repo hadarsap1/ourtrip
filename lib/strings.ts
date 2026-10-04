@@ -349,6 +349,14 @@ export const strings = {
     visasState: "דרישות כניסה לכל מדינה",
   },
 
+  theme: {
+    title: "מראה",
+    hint: "נשמר רק במכשיר הזה",
+    light: "בהיר",
+    dark: "כהה",
+    system: "לפי המכשיר",
+  },
+
   visas: {
     title: "ויזות ואישורי כניסה",
     // The header leads with what is not verified, because that is the number

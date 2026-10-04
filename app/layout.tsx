@@ -8,7 +8,9 @@ import { SideRail } from "@/components/SideRail";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
+import { ThemeSync } from "@/components/ThemeSync";
 import { strings } from "@/lib/strings";
+import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
@@ -32,7 +34,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e7c6b",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -44,7 +49,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
+    // data-theme is set by the head script before hydration, hence
+    // suppressHydrationWarning on <html> only.
+    <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Runs before first paint: picks light/dark from the saved choice or the
+            OS, so a dark-mode phone never flashes cream on open (F7). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       {/* The body never scrolls: it is exactly one screen tall and <main> is
           the only scroller. With the document scrolling and the bottom bar
           position:fixed, iOS WebKit could leave the visual viewport offset
@@ -62,6 +74,7 @@ export default function RootLayout({
         <ConfirmHost />
         <OfflineSync />
         <RegisterSW />
+        <ThemeSync />
       </body>
     </html>
   );
