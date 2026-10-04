@@ -25,6 +25,8 @@ import {
   listDocuments,
   listOfflineDocumentIds,
   makeAvailableOffline,
+  getPlainDocument,
+  documentDetailsText,
   openDocument,
   protectDocument,
   removeOfflineDocument,
@@ -86,7 +88,7 @@ export function DocumentsScreen() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  const [form, setForm] = useState<{ doc: Document | null } | null>(null);
+  const [form, setForm] = useState<{ doc: Document | null; tag?: string } | null>(null);
 
   // Documents PIN / vault state
   const [pinExists, setPinExists] = useState(false);
@@ -341,6 +343,49 @@ export function DocumentsScreen() {
     }
   }
 
+  // 1.4: share through the phone's own share sheet (works offline from the
+  // device copy). The app itself never uploads the file anywhere.
+  async function shareDoc(doc: Document, key: CryptoKey | null = null) {
+    const result = await getPlainDocument(doc, key ?? (trip ? getVaultKey(trip.id) : null));
+    if (result === "needs-key") {
+      withKey((k) => void shareDoc(doc, k));
+      return;
+    }
+    if (!result) {
+      showToast(strings.documents.openFailed);
+      return;
+    }
+    const ext = (result.type.split("/")[1] ?? "bin").replace("jpeg", "jpg");
+    const file = new File([result], `${doc.title}.${ext}`, { type: result.type });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: doc.title });
+        return;
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
+    }
+    // No file sharing on this browser: save it instead.
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+
+  async function copyDoc(doc: Document) {
+    const text = documentDetailsText(doc, strings.documents.tags[doc.tag] ?? doc.tag, (d) =>
+      strings.documents.expiresOn.replace("{date}", formatDate(d))
+    );
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(strings.documents.copied);
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
   function toggleLock(doc: Document) {
     withKey((key) =>
       void runDoc(
@@ -487,6 +532,18 @@ export function DocumentsScreen() {
         </div>
       )}
 
+      {!isKid && !docs.some((d) => d.tag === "insurance") && (
+        <section aria-labelledby="ins-missing" className="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-alert/40 bg-alert-tint p-4">
+          <WarningIcon className="h-6 w-6 shrink-0 text-alert" />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span id="ins-missing" className="text-sm font-bold text-ink">{strings.documents.insuranceMissing}</span>
+            <span className="text-xs text-ink-soft">{strings.documents.insuranceMissingHint}</span>
+          </span>
+          <button type="button" onClick={() => setForm({ doc: null, tag: "insurance" })} className="shrink-0 rounded-xl border-[1.5px] border-sea bg-surface px-3 text-sm font-bold text-sea">
+            {strings.documents.insuranceUpload}
+          </button>
+        </section>
+      )}
       {visible.length === 0 ? (
         <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {docs.length === 0
@@ -572,14 +629,22 @@ export function DocumentsScreen() {
                       }`}
                     >
                       {strings.documents.tags[doc.tag] ?? doc.tag}
-                      {doc.expires_at
-                        ? ` · ${strings.documents.expiresOn.replace(
-                            "{date}",
-                            formatDate(doc.expires_at)
-                          )}`
-                        : doc.notes
-                          ? ` · ${doc.notes}`
-                          : ""}
+                      {doc.expires_at ? (
+                        <span
+                          className={`ms-1.5 inline-flex rounded-full px-1.5 text-[12px] font-bold ${
+                            expires ? "bg-warning-soft text-warning" : "bg-paper-deep text-ink-soft"
+                          }`}
+                        >
+                          {(expires ? strings.documents.expiryChipSoon : strings.documents.expiryChip).replace(
+                            "{mmyyyy}",
+                            `${doc.expires_at.slice(5, 7)}/${doc.expires_at.slice(0, 4)}`
+                          )}
+                        </span>
+                      ) : doc.notes ? (
+                        ` · ${doc.notes}`
+                      ) : (
+                        ""
+                      )}
                     </span>
                   </button>
 
@@ -757,6 +822,9 @@ export function DocumentsScreen() {
           open={form !== null}
           tripId={trip.id}
           doc={form?.doc ?? null}
+          initialTag={form?.tag}
+          onShare={(d) => void shareDoc(d)}
+          onCopy={(d) => void copyDoc(d)}
           onClose={() => setForm(null)}
           onDone={() => {
             setForm(null);

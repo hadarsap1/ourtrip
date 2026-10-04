@@ -169,6 +169,50 @@ export async function decryptDocument(
   }
 }
 
+/**
+ * The readable file for sharing (1.4): online or from the device copy,
+ * decrypted where needed. "needs-key" when only a vault-encrypted copy is
+ * reachable and no key was given. Never sent anywhere by this app; the caller
+ * hands it to the phone's own share sheet.
+ */
+export async function getPlainDocument(
+  doc: Document,
+  key: CryptoKey | null
+): Promise<Blob | "needs-key" | null> {
+  if (doc.pin_protected) {
+    if (!key) return "needs-key";
+    return decryptDocument(doc, key);
+  }
+  if (typeof navigator !== "undefined" && navigator.onLine) {
+    try {
+      const res = await fetch(await getDocumentUrl(doc.file_path));
+      if (res.ok) return await res.blob();
+    } catch {
+      // fall through to the device copy
+    }
+  }
+  const offline = await readOfflineDocument(doc.id);
+  if (!offline) return null;
+  if (!offline.offlineEncrypted) return offline.blob;
+  if (!key) return "needs-key";
+  try {
+    return await decryptBlob(key, offline.blob, offline.mime);
+  } catch {
+    return null;
+  }
+}
+
+/** Plain-text summary for "copy details": title, type, expiry, notes. */
+export function documentDetailsText(
+  doc: Pick<Document, "title" | "tag" | "expires_at" | "notes">,
+  tagLabel: string,
+  expiresLabel: (date: string) => string
+): string {
+  return [doc.title, tagLabel, doc.expires_at ? expiresLabel(doc.expires_at) : null, doc.notes]
+    .filter(Boolean)
+    .join("\n");
+}
+
 /** Removes row, storage object, and any offline copy. */
 export async function deleteDocument(doc: Document): Promise<void> {
   const supabase = requireClient();
