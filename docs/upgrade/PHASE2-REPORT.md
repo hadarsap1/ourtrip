@@ -108,3 +108,17 @@ Files: `lib/ics.ts` (+test 3), `components/bookings/BookingsList.tsx`, `componen
 Metro line inside the trip summary at the top of the itinerary: one station per stay, sideways in reading order (right to left), track coloured by the country it runs into, a flag at each country change, past stays faded, the current stay as the big station ("אנחנו כאן") scrolled into view first. Tapping a station opens and scrolls to that stay. The "world map with arcs" already exists as the itinerary's map view (`TripMap`, #70), so it was not rebuilt.
 
 Files: `lib/metroLine.ts` (+test 2), `components/itinerary/MetroLine.tsx`, `TripSummary.tsx`, `ItineraryScreen.tsx`, `lib/strings.ts`. No data or policy change.
+
+## 2.6 Stats & stamps - flag `statsStamps` (off)
+
+New page `/stats` ("הטיול במספרים"), reached from More (parents) and a "הדרכון שלי" tile on the kids' Home:
+- countries visited / total, days done / total, km on the plan so far / total (great-circle between day centroids, labelled as such);
+- nights per country so far, bars in country colours;
+- parents' steps since departure when `stepsCounter` is on (owners only - kids never query steps; RLS would return nothing anyway);
+- a passport page: one stamp per country in order of first arrival - solid with arrival date once there, dashed/grey "בקרוב" before.
+
+Reads only what each role may already read (itinerary days/items; kids have SELECT on both). Cache-first from the itinerary cache, so it opens offline.
+
+Files: `lib/tripStats.ts` (+test 4), `components/stats/StatsScreen.tsx`, `app/stats/page.tsx`, `components/more/MoreScreen.tsx`, `components/today/TodayScreen.tsx`, `lib/strings.ts`.
+
+❌ km are straight-line between planned places, not road distance. ❌ With the flag off the page renders empty (only the flagged tiles link to it).

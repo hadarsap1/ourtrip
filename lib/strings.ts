@@ -10,6 +10,7 @@ export const strings = {
   // entries and a screen reader announced nothing on arrival. The root layout
   // appends " · OurTrip" through a title template.
   pageTitles: {
+    stats: "הטיול במספרים",
     today: "היום",
     itinerary: "מסלול",
     budget: "תקציב",
@@ -344,6 +345,25 @@ export const strings = {
     here: "אנחנו כאן",
   },
 
+  stats: {
+    title: "הטיול במספרים",
+    countries: "מדינות",
+    days: "ימים",
+    km: "ק\"מ במסלול",
+    kmHint: "לפי המקומות שבתוכנית, בקו אווירי",
+    ofTotal: "מתוך {n}",
+    nightsTitle: "לילות בכל מדינה",
+    nights: "{n} לילות",
+    stepsTitle: "צעדים מתחילת הטיול",
+    passport: "הדרכון שלנו",
+    stampDate: "{date}",
+    stampSoon: "בקרוב",
+    stampAria: "חותמת {country}, {state}",
+    earned: "התקבלה",
+    notYet: "עוד לא הגענו",
+    empty: "כשהמסלול יתמלא, כאן יופיעו המספרים והחותמות",
+  },
+
   planMyDay: {
     open: "תכנן לי את היום",
     title: "תכנון יום · {date}",
@@ -504,6 +524,7 @@ export const strings = {
     menuChecklists: "רשימות",
     menuEmergency: "דף חירום",
     menuMap: "מפה",
+    menuStats: "הטיול במספרים",
     menuPhrasebook: "שיחון",
     menuJournal: "יומן",
     menuPhotos: "תמונות",
@@ -1462,6 +1483,7 @@ export const strings = {
     tilePocket: "דמי הכיס שלי",
     tilePhrasebook: "שיחון",
     tileFacts: "הידעת?",
+    tileStamps: "הדרכון שלי",
     tileDocuments: "המסמכים שלנו",
   },
 

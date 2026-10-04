@@ -22,6 +22,7 @@ import {
   PlusIcon,
   RouteIcon,
   SparkleIcon,
+  StarIcon,
   WeatherIcon,
 } from "@/components/icons";
 import { loadToday, type TodayData } from "@/lib/data/today";
@@ -311,6 +312,9 @@ export function TodayScreen() {
         Icon: SparkleIcon,
         label: strings.kidHome.tileFacts,
       },
+      ...(isEnabled("statsStamps")
+        ? [{ href: "/stats", Icon: StarIcon, label: strings.kidHome.tileStamps }]
+        : []),
       {
         href: "/documents",
         Icon: DocumentIcon,
