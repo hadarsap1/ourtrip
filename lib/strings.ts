@@ -242,6 +242,8 @@ export const strings = {
     copy: "העתקת קוד ההזמנה",
     copied: "הקוד הועתק",
     paste: "הדבקת אישור הזמנה",
+    exportIcs: "ייצוא ליומן",
+    exportedIcs: "קובץ היומן הורד - פותחים אותו כדי להוסיף ליומן",
   },
 
   bookingPaste: {

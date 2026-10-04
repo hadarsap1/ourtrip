@@ -83,6 +83,7 @@ export function BookingsList({
   syncingHotels,
   onError,
   onPaste,
+  onExportIcs,
 }: {
   bookings: Booking[];
   /** The trip's days, which is what turns a booking's dates into a place. */
@@ -100,6 +101,8 @@ export function BookingsList({
   onError: () => void;
   /** Paste-to-import (2.1); absent when bookingsV2 is off. */
   onPaste?: () => void;
+  /** ICS export (2.7); absent when icsExport is off. */
+  onExportIcs?: () => void;
 }) {
   const v2 = isEnabled("bookingsV2");
   const [typeFilter, setTypeFilter] = useState<BookingType | null>(null);
@@ -167,6 +170,16 @@ export function BookingsList({
           <MailIcon className="h-[17px] w-[17px]" />
           {strings.mailImport.open}
         </button>
+        {onExportIcs && (
+          <button
+            type="button"
+            onClick={onExportIcs}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          >
+            <CalendarIcon className="h-[17px] w-[17px]" />
+            {strings.bookingsV2.exportIcs}
+          </button>
+        )}
         {onPaste && (
           <button
             type="button"
