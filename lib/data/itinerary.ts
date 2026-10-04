@@ -185,7 +185,7 @@ export async function deleteDay(id: string): Promise<void> {
 /**
  * F4 nights stepper: one night more (+1) or less (-1) at the end of a stretch,
  * and every later day moves with it. One transaction in the database
- * (shift_stretch_nights, proposed migration 00044) - never a loop of updates
+ * (shift_stretch_nights, proposed migration 00039) - never a loop of updates
  * from here, which could leave half the trip shifted. Bookings do not move;
  * `bookingsAfter` says how many to check.
  *

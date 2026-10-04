@@ -1,4 +1,4 @@
--- Local test for 00044 (stub schema). Run: psql -d <scratch db> -f this file from the repo root.
+-- Local test for 00039 (stub schema). Run: psql -d <scratch db> -f this file from the repo root.
 -- Expected: 'owners only', then shifts, 'day_not_empty', 'delta must be 1 or -1', 'no day on 2027-01-01'.
 \set ON_ERROR_STOP 0
 create table trips (id uuid primary key, end_date date);
@@ -12,7 +12,7 @@ insert into trips values ('00000000-0000-0000-0000-000000000001', '2026-11-10');
 insert into itinerary_days (trip_id, date, location_name, country_code) select '00000000-0000-0000-0000-000000000001', d::date, case when d < '2026-11-05' then 'האנוי' else 'בנגקוק' end, case when d < '2026-11-05' then 'VN' else 'TH' end from generate_series('2026-11-01'::date, '2026-11-10', '1 day') d;
 insert into itinerary_items (day_id) select id from itinerary_days where date = '2026-11-07';
 insert into bookings (trip_id, start_date) values ('00000000-0000-0000-0000-000000000001','2026-11-06'),('00000000-0000-0000-0000-000000000001','2026-11-02');
-\i docs/upgrade/migrations/00044_shift_stretch_nights.sql
+\i supabase/migrations/00039_shift_stretch_nights.sql
 \echo '--- not owner'
 select shift_stretch_nights('00000000-0000-0000-0000-000000000001', '2026-11-04', 1);
 set test.owner = 'yes';

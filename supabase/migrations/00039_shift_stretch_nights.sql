@@ -1,4 +1,4 @@
--- PROPOSED - NOT APPLIED. Move to supabase/migrations/ (next free number) to apply.
+-- Approved 04/10/2026. NOT YET APPLIED: two apply attempts through the Supabase connector timed out (nothing was created). Apply this file as is, then turn on the nightsStepper flag.
 --
 -- F4 nights stepper. Adds or removes ONE night at the end of a stretch and
 -- moves every later day with it (decision 04/10/2026: "move forward").
@@ -22,7 +22,7 @@
 -- in two phases (park far in the future, then land) inside this one function -
 -- one transaction, all or nothing.
 --
--- Rollback: 00044_shift_stretch_nights.down.sql (drops the function only).
+-- Rollback: docs/upgrade/migrations/00039_shift_stretch_nights.down.sql (drops the function only).
 
 create or replace function public.shift_stretch_nights(p_trip_id uuid, p_last_date date, p_delta int)
 returns jsonb

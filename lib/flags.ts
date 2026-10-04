@@ -21,7 +21,7 @@ export const FLAG_DEFAULTS = {
   emergencyAutoCountry: true,
   simDate: false, // dev builds always allow it; in production switch on per device (lib/simDate.ts)
   notificationsV2: true,
-  // Needs migration 00044 (shift_stretch_nights) applied first.
+  // Needs supabase/migrations/00039_shift_stretch_nights.sql applied first.
   nightsStepper: false,
   // Phase 2 (flip after tests pass)
   bookingsV2: false,
