@@ -339,7 +339,7 @@ export function DocumentsScreen() {
   const offlineCount = docs.filter((d) => offlineIds.has(d.id)).length;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
       <header className="flex items-center justify-between gap-2">
         <h1 className="text-[22px] font-extrabold text-ink">
           {isKid ? strings.documents.kidTitle : strings.nav.documents}

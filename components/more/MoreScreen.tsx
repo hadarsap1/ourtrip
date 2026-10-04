@@ -218,7 +218,7 @@ export function MoreScreen() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-4 px-4 pt-6 pb-4 sm:max-w-2xl lg:max-w-4xl">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-4 px-4 pt-6 pb-4 sm:max-w-2xl lg:max-w-4xl">
       <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.more}</h1>
 
       {/* Renders only while the app is not installed yet, so it disappears for

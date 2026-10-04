@@ -165,7 +165,7 @@ export function MessagesScreen() {
       : (members.find((m) => m.id === id)?.display_name ?? "");
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col px-4 pt-4">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pt-4">
       <h1 className="mb-3 text-2xl font-bold">
         <MessagesIcon className="inline-block h-5 w-5 align-text-bottom text-sea" />{" "}
           {channel === "guests" ? strings.wall.guestTitle : strings.wall.title}
@@ -238,7 +238,7 @@ export function MessagesScreen() {
 
       <form
         onSubmit={(e) => void handleSend(e)}
-        className="sticky bottom-20 flex gap-2 bg-paper-deep py-2"
+        className="sticky bottom-0 flex gap-2 bg-paper-deep py-2"
       >
         <input
           type="text"

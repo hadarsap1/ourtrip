@@ -23,7 +23,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-5 pb-16">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 pb-16">
       <div className="ot-postcard mb-8 p-7 text-center">
         <SuitcaseIcon className="relative z-10 mx-auto h-12 w-12 text-sea" />
         <h1 className="relative z-10 mt-3 text-3xl font-bold">{strings.appName}</h1>
