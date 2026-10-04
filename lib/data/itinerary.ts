@@ -107,6 +107,32 @@ export async function updateDay(
  * One request for the whole leg rather than one per day - a 38-day leg would
  * otherwise be 38 round trips from a phone.
  */
+/** Saves a day's notes, or queues the edit offline (field-level LWW on replay). */
+export async function saveDayNotesOrQueue(dayId: string, notes: string | null): Promise<"saved" | "queued"> {
+  const editedAt = new Date().toISOString();
+  try {
+    await updateDay(dayId, { notes });
+    return "saved";
+  } catch (e) {
+    const { isConnectivityError } = await import("@/lib/data/expenses");
+    if (!isConnectivityError(e)) throw e;
+    const { enqueueDayNote } = await import("@/lib/offline/queue");
+    await enqueueDayNote({ dayId, notes, editedAt });
+    return "queued";
+  }
+}
+
+/** The row's trigger-maintained updated_at, or null when it no longer exists. */
+export async function getDayUpdatedAt(id: string): Promise<string | null> {
+  const { data, error } = await requireClient()
+    .from("itinerary_days")
+    .select("updated_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.updated_at ?? null;
+}
+
 export async function setDaysLocation(
   dayIds: string[],
   lat: number,

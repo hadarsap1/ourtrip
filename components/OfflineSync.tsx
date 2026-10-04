@@ -22,7 +22,7 @@ export function OfflineSync() {
 
     const sync = () => {
       if (!navigator.onLine) return;
-      void replayPendingWrites().then(async ({ replayed, dropped }) => {
+      void replayPendingWrites().then(async ({ replayed, dropped, conflicts }) => {
         await refreshPendingCount();
         // Still online after replaying = this device is in step with the server.
         if (navigator.onLine) markSynced();
@@ -30,6 +30,7 @@ export function OfflineSync() {
         // removed) - tell the family so they can re-enter it, rather than
         // letting it vanish or block the queue.
         if (dropped > 0) flash(strings.offline.syncFailed);
+        else if (conflicts > 0) flash(strings.offline.syncConflict);
         else if (replayed > 0) flash(strings.offline.synced);
       });
     };
