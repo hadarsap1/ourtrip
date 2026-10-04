@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
-import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
+import { CalendarIcon, CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
@@ -17,18 +17,13 @@ import {
   createItem,
   deleteDay,
   deleteItem,
-  listDays,
-  listItems,
   moveItemToDay,
   reorderItems,
+  shiftStretchNights,
   subscribeItinerary,
   updateItem,
 } from "@/lib/data/itinerary";
-import {
-  listBookingFiles,
-  listBookings,
-  subscribeBookings,
-} from "@/lib/data/bookings";
+import { subscribeBookings } from "@/lib/data/bookings";
 import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
 import {
   buildLegOverviews,
@@ -36,13 +31,16 @@ import {
   type LegOverview,
 } from "@/lib/itineraryOverview";
 import type { OptionForAreas } from "@/lib/data/segments";
-import { todayISO } from "@/lib/format";
-import { listOptionAreas, planFromOptions } from "@/lib/data/placeOptions";
+import { formatDate, todayISO } from "@/lib/format";
+import { planFromOptions } from "@/lib/data/placeOptions";
 import { listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
-import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { isEnabled } from "@/lib/flags";
+import { queryKeys, readQuery } from "@/lib/offline/queryCache";
+import { fetchItineraryBundle, type ItineraryBundle } from "@/lib/data/itineraryBundle";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
+import { useUndoToast } from "@/components/ui/UndoToast";
 import type {
   Booking,
   BookingFile,
@@ -120,6 +118,7 @@ export function ItineraryScreen() {
   // The leg whose location is being pinned from the map.
   const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
 
+  const { show: showUndo, toast: undoToast } = useUndoToast();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -128,27 +127,12 @@ export function ItineraryScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [nextDays, nextBookings, nextFiles, nextAreas] = await Promise.all([
-      listDays(tripId),
-      listBookings(tripId),
-      listBookingFiles(tripId),
-      // A failure here costs the idea counts and nothing else, so it must not
-      // take the whole plan down with it.
-      listOptionAreas(tripId).catch(() => [] as OptionForAreas[]),
-    ]);
-    const nextItems = await listItems(nextDays.map((d) => d.id));
-    setDays(nextDays);
-    setBookings(nextBookings);
-    setBookingFiles(nextFiles);
-    setOptionAreas(nextAreas);
-    setItems(nextItems);
-    void writeQuery(queryKeys.itinerary(tripId), {
-      days: nextDays,
-      bookings: nextBookings,
-      files: nextFiles,
-      areas: nextAreas,
-      items: nextItems,
-    });
+    const b = await fetchItineraryBundle(tripId);
+    setDays(b.days);
+    setBookings(b.bookings);
+    setBookingFiles(b.files);
+    setOptionAreas(b.areas);
+    setItems(b.items);
   }, []);
 
   useEffect(() => {
@@ -165,13 +149,7 @@ export function ItineraryScreen() {
       }
       setTrip(activeTrip);
       // Cache-first (F9): paint the last good plan, then refresh.
-      const cached = await readQuery<{
-        days: typeof days;
-        bookings: typeof bookings;
-        files: typeof bookingFiles;
-        areas: typeof optionAreas;
-        items: typeof items;
-      }>(queryKeys.itinerary(activeTrip.id));
+      const cached = await readQuery<ItineraryBundle>(queryKeys.itinerary(activeTrip.id));
       if (cached && !cancelled) {
         setDays(cached.data.days);
         setBookings(cached.data.bookings);
@@ -310,6 +288,24 @@ export function ItineraryScreen() {
     });
   }, [legs, openLeg]);
 
+  // 1.5: the leg and day that hold today, when the trip is under way.
+  const todayLeg = legs.find((leg) => leg.stretch.days.some((d) => d.date === today));
+  const todayDay = todayLeg?.stretch.days.find((d) => d.date === today);
+  const todayLegKey = todayLeg?.key ?? null;
+  const todayDayId = todayDay?.id ?? null;
+  const todayTarget = todayLegKey && todayDayId;
+
+  const jumpToToday = useCallback(() => {
+    if (!todayLegKey || !todayDayId) return;
+    openLeg(todayLegKey);
+    requestAnimationFrame(() => {
+      (dayRefs.current[todayDayId] ?? legRefs.current[todayLegKey])?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }, [todayLegKey, todayDayId, openLeg]);
+
   /** Opens the options bank already cut to this leg. The cut travels in the
    *  URL so the bank can be reached the same way from anywhere, and so going
    *  back does not lose it. Country code, never the Hebrew name: the bank
@@ -364,6 +360,36 @@ export function ItineraryScreen() {
       }
     },
     [days, showToast]
+  );
+
+  const shiftNights = useCallback(
+    async (leg: LegOverview, delta: 1 | -1) => {
+      if (!trip) return;
+      const place = leg.stretch.locationName ?? leg.stretch.countryCode ?? "";
+      const question = (delta === 1 ? strings.itinerary.nightsAddConfirm : strings.itinerary.nightsRemoveConfirm)
+        .replace("{place}", place)
+        .replace("{date}", formatDate(leg.stretch.to));
+      if (!(await askConfirm(question))) return;
+      try {
+        const r = await shiftStretchNights(trip.id, leg.stretch.to, delta);
+        await refresh(trip.id);
+        showToast(
+          r.bookingsAfter > 0
+            ? strings.itinerary.nightsBookingsWarn.replace("{n}", String(r.bookingsAfter))
+            : strings.itinerary.nightsDone
+        );
+      } catch (e) {
+        const code = e instanceof Error ? e.message : "";
+        showToast(
+          code === "day_not_empty"
+            ? strings.itinerary.nightsDayNotEmpty
+            : code === "unavailable"
+              ? strings.itinerary.nightsUnavailable
+              : strings.common.error
+        );
+      }
+    },
+    [trip, refresh, showToast]
   );
 
   const refreshNow = useCallback(() => {
@@ -430,6 +456,19 @@ export function ItineraryScreen() {
         onItemClick={(item) => setItemForm({ dayId: day.id, item })}
         onMoveItem={setMovingItem}
         onDeleteItem={async (item) => {
+          if (isEnabled("itineraryV2")) {
+            // 1.5: delete at once, undo for 5s, then the real delete.
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            showUndo(
+              strings.itinerary.itemDeletedUndo,
+              () => setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item])),
+              () => void deleteItem(item.id).catch(() => {
+                setItems((prev) => [...prev, item]);
+                showToast(strings.common.error);
+              })
+            );
+            return;
+          }
           if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
           void run(() => deleteItem(item.id), strings.itinerary.itemDeleted);
         }}
@@ -441,7 +480,7 @@ export function ItineraryScreen() {
         onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
       />
     ),
-    [itemsOf, bookings, bookingsByDate, run, handleReorder]
+    [itemsOf, bookings, bookingsByDate, run, handleReorder, showUndo, showToast]
   );
 
   const editingBookingFiles = useMemo(() => {
@@ -655,9 +694,25 @@ export function ItineraryScreen() {
                         }}
                         todayISO={today}
                         renderDay={renderDayCard}
+                        onShiftNights={
+                          isEnabled("nightsStepper")
+                            ? (delta) => void shiftNights(leg, delta)
+                            : undefined
+                        }
                       />
                     </div>
                   ))}
+
+                  {todayTarget && isEnabled("itineraryV2") && (
+                    <button
+                      type="button"
+                      onClick={jumpToToday}
+                      className="fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] start-4 z-30 flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-bold text-sea shadow-[var(--e2)] lg:bottom-6"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      {strings.itinerary.jumpToday}
+                    </button>
+                  )}
 
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     <button
@@ -878,6 +933,7 @@ export function ItineraryScreen() {
       )}
 
       <Toast message={toast} />
+      {undoToast}
     </div>
   );
 }

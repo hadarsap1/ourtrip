@@ -47,6 +47,8 @@ export async function createJournalEntry(input: {
   body: string;
   mood: string | null;
   locationName: string | null;
+  /** Defaults to today; a replayed offline entry keeps the day it was written. */
+  entryDate?: string;
 }): Promise<JournalEntry> {
   const { data, error } = await requireClient()
     .from("journal_entries")
@@ -55,13 +57,39 @@ export async function createJournalEntry(input: {
       author_id: input.authorId,
       body: input.body.trim(),
       mood: input.mood,
-      entry_date: todayISO(),
+      entry_date: input.entryDate ?? todayISO(),
       location_name: input.locationName,
     })
     .select()
     .single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+/**
+ * Saves, or queues when the connection is down (F10 write queue). The entry
+ * keeps the date it was written on. Returns the saved row, or "queued".
+ */
+export async function createJournalEntryOrQueue(
+  input: Parameters<typeof createJournalEntry>[0]
+): Promise<JournalEntry | "queued"> {
+  const entryDate = input.entryDate ?? todayISO();
+  try {
+    return await createJournalEntry({ ...input, entryDate });
+  } catch (e) {
+    const { isConnectivityError } = await import("@/lib/data/expenses");
+    if (!isConnectivityError(e)) throw e;
+    const { enqueueJournal } = await import("@/lib/offline/queue");
+    await enqueueJournal({
+      tripId: input.tripId,
+      authorId: input.authorId,
+      body: input.body.trim(),
+      mood: input.mood,
+      locationName: input.locationName,
+      entryDate,
+    });
+    return "queued";
+  }
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {

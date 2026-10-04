@@ -23,6 +23,10 @@ export function DocumentFormSheet({
   onClose,
   onDone,
   onError,
+  initialTag,
+  onShare,
+  onCopy,
+  camera,
 }: {
   open: boolean;
   tripId: string;
@@ -30,16 +34,27 @@ export function DocumentFormSheet({
   onClose: () => void;
   onDone: () => void;
   onError: () => void;
+  /** Preset tag for a new document (the missing-insurance prompt). */
+  initialTag?: string;
+  /** F1/1.4: share the file through the phone's share sheet; works offline. */
+  onShare?: (doc: Document) => void;
+  onCopy?: (doc: Document) => void;
+  /** FAB "scan": the file picker opens the camera. */
+  camera?: boolean;
 }) {
   if (!open) return null;
   return (
     <DocumentForm
-      key={doc?.id ?? "new"}
+      key={doc?.id ?? `new-${initialTag ?? ""}`}
       tripId={tripId}
       doc={doc}
       onClose={onClose}
       onDone={onDone}
       onError={onError}
+      initialTag={initialTag}
+      onShare={onShare}
+      onCopy={onCopy}
+      camera={camera}
     />
   );
 }
@@ -50,15 +65,23 @@ function DocumentForm({
   onClose,
   onDone,
   onError,
+  initialTag,
+  onShare,
+  onCopy,
+  camera,
 }: {
   tripId: string;
   doc: Document | null;
   onClose: () => void;
   onDone: () => void;
   onError: () => void;
+  initialTag?: string;
+  onShare?: (doc: Document) => void;
+  onCopy?: (doc: Document) => void;
+  camera?: boolean;
 }) {
   const [title, setTitle] = useState(doc?.title ?? "");
-  const [tag, setTag] = useState(doc?.tag ?? "passport");
+  const [tag, setTag] = useState(doc?.tag ?? initialTag ?? "passport");
   const [notes, setNotes] = useState(doc?.notes ?? "");
   const [expiresAt, setExpiresAt] = useState(doc?.expires_at ?? "");
   const [file, setFile] = useState<File | null>(null);
@@ -120,6 +143,20 @@ function DocumentForm({
       onClose={onClose}
       title={doc ? strings.documents.edit : strings.documents.upload}
     >
+      {doc && (onShare || onCopy) && (
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {onShare && (
+            <button type="button" onClick={() => onShare(doc)} className="flex items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
+              {strings.documents.share}
+            </button>
+          )}
+          {onCopy && (
+            <button type="button" onClick={() => onCopy(doc)} className="flex items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
+              {strings.documents.copyDetails}
+            </button>
+          )}
+        </div>
+      )}
       <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
         {!doc && (
           <div>
@@ -127,7 +164,8 @@ function DocumentForm({
             <input
               type="file"
               required
-              accept="application/pdf,image/*"
+              accept={camera ? "image/*" : "application/pdf,image/*"}
+              capture={camera ? "environment" : undefined}
               onChange={(e) => handleFilePick(e.target.files?.[0] ?? null)}
               className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
             />

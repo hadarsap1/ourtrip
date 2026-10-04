@@ -107,6 +107,32 @@ export async function updateDay(
  * One request for the whole leg rather than one per day - a 38-day leg would
  * otherwise be 38 round trips from a phone.
  */
+/** Saves a day's notes, or queues the edit offline (field-level LWW on replay). */
+export async function saveDayNotesOrQueue(dayId: string, notes: string | null): Promise<"saved" | "queued"> {
+  const editedAt = new Date().toISOString();
+  try {
+    await updateDay(dayId, { notes });
+    return "saved";
+  } catch (e) {
+    const { isConnectivityError } = await import("@/lib/data/expenses");
+    if (!isConnectivityError(e)) throw e;
+    const { enqueueDayNote } = await import("@/lib/offline/queue");
+    await enqueueDayNote({ dayId, notes, editedAt });
+    return "queued";
+  }
+}
+
+/** The row's trigger-maintained updated_at, or null when it no longer exists. */
+export async function getDayUpdatedAt(id: string): Promise<string | null> {
+  const { data, error } = await requireClient()
+    .from("itinerary_days")
+    .select("updated_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.updated_at ?? null;
+}
+
 export async function setDaysLocation(
   dayIds: string[],
   lat: number,
@@ -154,6 +180,35 @@ export async function deleteDay(id: string): Promise<void> {
   if (itemsError) throw new Error(itemsError.message);
   const { error } = await supabase.from("itinerary_days").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * F4 nights stepper: one night more (+1) or less (-1) at the end of a stretch,
+ * and every later day moves with it. One transaction in the database
+ * (shift_stretch_nights, proposed migration 00039) - never a loop of updates
+ * from here, which could leave half the trip shifted. Bookings do not move;
+ * `bookingsAfter` says how many to check.
+ *
+ * Throws "day_not_empty" when removing a night whose last day has items,
+ * routes or a journal entry, and "unavailable" when the function is not
+ * deployed yet.
+ */
+export async function shiftStretchNights(
+  tripId: string,
+  lastDate: string,
+  delta: 1 | -1
+): Promise<{ moved: number; bookingsAfter: number }> {
+  const { data, error } = await requireClient().rpc(
+    "shift_stretch_nights" as never,
+    { p_trip_id: tripId, p_last_date: lastDate, p_delta: delta } as never
+  );
+  if (error) {
+    if (error.message.includes("day_not_empty")) throw new Error("day_not_empty");
+    if (error.code === "PGRST202" || error.code === "42883") throw new Error("unavailable");
+    throw new Error(error.message);
+  }
+  const r = (data ?? {}) as { moved?: number; bookings_after?: number };
+  return { moved: r.moved ?? 0, bookingsAfter: r.bookings_after ?? 0 };
 }
 
 /** Imports parsed spreadsheet rows: reuses a day per date (creating missing

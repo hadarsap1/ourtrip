@@ -5,6 +5,7 @@ import { Toast } from "@/components/Toast";
 import { replayPendingWrites } from "@/lib/offline/queue";
 import { markSynced, refreshPendingCount } from "@/lib/offline/status";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
 
 // Mounted in the root layout: replays the pending-writes queue on app start
 // and whenever connectivity returns, with a Hebrew toast when writes synced.
@@ -22,14 +23,21 @@ export function OfflineSync() {
 
     const sync = () => {
       if (!navigator.onLine) return;
-      void replayPendingWrites().then(async ({ replayed, dropped }) => {
+      void replayPendingWrites().then(async ({ replayed, dropped, conflicts }) => {
         await refreshPendingCount();
         // Still online after replaying = this device is in step with the server.
-        if (navigator.onLine) markSynced();
+        if (navigator.onLine) {
+          markSynced();
+          if (isEnabled("documentsAutoDownload")) {
+            const { prefetchOfflineEssentials } = await import("@/lib/offline/prefetch");
+            void prefetchOfflineEssentials();
+          }
+        }
         // A dropped entry couldn't be saved at all (e.g. its category was
         // removed) - tell the family so they can re-enter it, rather than
         // letting it vanish or block the queue.
         if (dropped > 0) flash(strings.offline.syncFailed);
+        else if (conflicts > 0) flash(strings.offline.syncConflict);
         else if (replayed > 0) flash(strings.offline.synced);
       });
     };

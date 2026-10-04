@@ -5,7 +5,7 @@ import { Toast } from "@/components/Toast";
 import { CameraIcon, PinIcon, TrashIcon } from "@/components/icons";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
-  createJournalEntry,
+  createJournalEntryOrQueue,
   deleteJournalEntry,
   getAutoLocation,
   listJournal,
@@ -84,13 +84,21 @@ export function JournalScreen() {
       // auto-tag: entry_date = today (createJournalEntry), location from
       // today's itinerary day (Sprint 6 acceptance)
       const locationName = await getAutoLocation(trip.id);
-      const entry = await createJournalEntry({
+      const entry = await createJournalEntryOrQueue({
         tripId: trip.id,
         authorId: member.id,
         body,
         mood,
         locationName,
       });
+      if (entry === "queued") {
+        // Text waits in the offline queue; a photo needs a connection, so it
+        // stays attached in the composer for the next try.
+        setBody("");
+        setMood(null);
+        showToast(photo ? strings.journal.queuedNoPhoto : strings.journal.queued);
+        return;
+      }
       if (photo) {
         await uploadPhoto({
           tripId: trip.id,

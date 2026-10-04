@@ -42,3 +42,22 @@ update itinerary_days set location_name = 'קיוטו'
 ## Needs a decision
 
 Adjacent segments that look like the same place. Renaming them to the same label joins them into one segment in the app. Only do that if it really is one stay.
+
+## Applied 04/10/2026 (approved by Hadar: "push it first, checking later")
+
+All three renames above ran in one statement, scoped to the active trip `834d870a-…`. Rows changed: Chiang Mai 3, Tokyo 7, Kyoto 7. Kyoto now reads as one stay, 30/03-09/04/2027 (11 days). Nothing else was touched.
+
+Rollback (restores the exact previous labels by row id):
+
+```sql
+update itinerary_days set location_name = 'Amphoe Mueang Chiang Mai' where id in (
+  'c5890734-bbe8-43c1-9153-8f73528499f5','bd706f17-817b-482c-ba7f-3a11598556c4','738c3a17-40e4-49b2-812b-ec69172b5734');
+update itinerary_days set location_name = 'Tokyo' where id in (
+  'a8cf5386-f64b-4d2a-9130-c449d06c3404','f6eb086e-05a3-40d4-ae67-2b134cafaa0e','64032e3a-8fc7-4a93-8311-015d121124db',
+  '5f9233ba-b48f-45f6-8391-fe7c26e41de3','1cbd1359-6a45-4eac-ae7f-865a7a585290','a95cb012-8fb4-429a-8480-3fc7d19a45e4',
+  '7a4df6a4-81b8-44dc-89f7-3ae8ecea37c8');
+update itinerary_days set location_name = 'Kyoto' where id in (
+  '7fc08070-3c62-4705-9b18-fa3d037c0ef4','1b7ac2b0-f088-424a-9e59-3471b9f29929','6b9db42a-8d58-48d6-b906-26a7ab6c0403',
+  'adb36fd3-8f38-4d7a-b907-c3eccc92aa32','9900d8e4-6d0d-4bb9-91d3-7ca4abfd34f3','37e57c1f-994f-4e17-b351-a641eaf836c9',
+  'eecc073a-cd0d-4215-aaa9-b717ea82c483');
+```

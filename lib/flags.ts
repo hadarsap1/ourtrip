@@ -19,8 +19,10 @@ export const FLAG_DEFAULTS = {
   todayV2: true,
   captureFab: true,
   emergencyAutoCountry: true,
-  simDate: true, // also requires dev mode or this flag; see lib/simDate.ts
+  simDate: false, // dev builds always allow it; in production switch on per device (lib/simDate.ts)
   notificationsV2: true,
+  // Needs supabase/migrations/00039_shift_stretch_nights.sql applied first.
+  nightsStepper: false,
   // Phase 2 (flip after tests pass)
   bookingsV2: false,
   planMyDay: false,

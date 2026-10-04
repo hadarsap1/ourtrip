@@ -25,6 +25,8 @@ import {
   listDocuments,
   listOfflineDocumentIds,
   makeAvailableOffline,
+  getPlainDocument,
+  documentDetailsText,
   openDocument,
   protectDocument,
   removeOfflineDocument,
@@ -46,6 +48,14 @@ import { isPasskeySupported } from "@/lib/webauthn";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
+import { isEnabled } from "@/lib/flags";
+import { useOfflineStatus } from "@/components/OfflineBanner";
+import {
+  isStoragePersisted,
+  planDocSync,
+  requestPersistentStorage,
+  type DocSyncStatus,
+} from "@/lib/offline/docSync";
 import { useMember } from "@/lib/useMember";
 import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
@@ -69,11 +79,16 @@ export function DocumentsScreen() {
   const [docs, setDocs] = useState<Document[]>([]);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  // F1: per-file download status and whether storage is persistent.
+  const [syncStatus, setSyncStatus] = useState<Record<string, DocSyncStatus>>({});
+  const [persisted, setPersisted] = useState<boolean | null>(null);
+  const syncingRef = useRef(false);
+  const { online } = useOfflineStatus();
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  const [form, setForm] = useState<{ doc: Document | null } | null>(null);
+  const [form, setForm] = useState<{ doc: Document | null; tag?: string; camera?: boolean } | null>(null);
 
   // Documents PIN / vault state
   const [pinExists, setPinExists] = useState(false);
@@ -138,6 +153,71 @@ export function DocumentsScreen() {
     if (!trip) return;
     void refresh(trip.id).catch(() => showToast(strings.common.error));
   }, [trip, refresh, showToast]);
+
+  // F1: download every document that can be stored right now (PIN files need
+  // no key; the rest need the vault open), one at a time, then ask for
+  // persistent storage after the first success.
+  const syncAll = useCallback(
+    async (key: CryptoKey | null) => {
+      if (syncingRef.current || !navigator.onLine) return;
+      syncingRef.current = true;
+      try {
+        const { fetch, locked } = planDocSync(docs, offlineIds, Boolean(key));
+        setSyncStatus((prev) => {
+          const next = { ...prev };
+          for (const d of locked) next[d.id] = { state: "locked" };
+          for (const d of fetch) next[d.id] = { state: "queued" };
+          return next;
+        });
+        let landed = 0;
+        for (const doc of fetch) {
+          setSyncStatus((prev) => ({ ...prev, [doc.id]: { state: "downloading", pct: 0 } }));
+          try {
+            await makeAvailableOffline(doc, key, (pct) =>
+              setSyncStatus((prev) => ({ ...prev, [doc.id]: { state: "downloading", pct } }))
+            );
+            landed++;
+            setOfflineIds((prev) => new Set(prev).add(doc.id));
+            setSyncStatus((prev) => ({ ...prev, [doc.id]: { state: "ready" } }));
+          } catch {
+            setSyncStatus((prev) => ({ ...prev, [doc.id]: { state: "failed" } }));
+          }
+        }
+        if (landed > 0 || offlineIds.size > 0) setPersisted((await requestPersistentStorage()) === "persisted");
+      } finally {
+        syncingRef.current = false;
+      }
+    },
+    [docs, offlineIds]
+  );
+
+  // FAB "סריקה" lands here with ?scan=1: open the upload with the camera.
+  useEffect(() => {
+    if (!trip || isKid) return;
+    if (new URLSearchParams(window.location.search).get("scan") !== "1") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const t = setTimeout(() => setForm({ doc: null, camera: true }), 0);
+    return () => clearTimeout(t);
+  }, [trip, isKid]);
+
+  // Runs on open, when the vault unlocks and when the connection returns.
+  // Owners only: kid devices never auto-download (they see few documents and
+  // the tablet is shared).
+  useEffect(() => {
+    if (!trip || isKid || !online || docs.length === 0 || !isEnabled("documentsAutoDownload")) return;
+    const key = getVaultKey(trip.id);
+    const t = setTimeout(() => void syncAll(key), 0);
+    return () => clearTimeout(t);
+    // syncAll changes with offlineIds as files land; the ref guard keeps one run.
+  }, [trip, isKid, online, docs.length, unlocked, syncAll]);
+
+  useEffect(() => {
+    let alive = true;
+    void isStoragePersisted().then((p) => alive && setPersisted(p));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Removing a copy needs no key; adding one does. Split here so the vault
   // prompt only appears when it is actually required.
@@ -267,6 +347,49 @@ export function DocumentsScreen() {
       await fn();
       await refresh(trip.id);
       showToast(message);
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
+  // 1.4: share through the phone's own share sheet (works offline from the
+  // device copy). The app itself never uploads the file anywhere.
+  async function shareDoc(doc: Document, key: CryptoKey | null = null) {
+    const result = await getPlainDocument(doc, key ?? (trip ? getVaultKey(trip.id) : null));
+    if (result === "needs-key") {
+      withKey((k) => void shareDoc(doc, k));
+      return;
+    }
+    if (!result) {
+      showToast(strings.documents.openFailed);
+      return;
+    }
+    const ext = (result.type.split("/")[1] ?? "bin").replace("jpeg", "jpg");
+    const file = new File([result], `${doc.title}.${ext}`, { type: result.type });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: doc.title });
+        return;
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
+    }
+    // No file sharing on this browser: save it instead.
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+
+  async function copyDoc(doc: Document) {
+    const text = documentDetailsText(doc, strings.documents.tags[doc.tag] ?? doc.tag, (d) =>
+      strings.documents.expiresOn.replace("{date}", formatDate(d))
+    );
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(strings.documents.copied);
     } catch {
       showToast(strings.common.error);
     }
@@ -418,6 +541,18 @@ export function DocumentsScreen() {
         </div>
       )}
 
+      {!isKid && !docs.some((d) => d.tag === "insurance") && (
+        <section aria-labelledby="ins-missing" className="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-alert/40 bg-alert-tint p-4">
+          <WarningIcon className="h-6 w-6 shrink-0 text-alert" />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span id="ins-missing" className="text-sm font-bold text-ink">{strings.documents.insuranceMissing}</span>
+            <span className="text-xs text-ink-soft">{strings.documents.insuranceMissingHint}</span>
+          </span>
+          <button type="button" onClick={() => setForm({ doc: null, tag: "insurance" })} className="shrink-0 rounded-xl border-[1.5px] border-sea bg-surface px-3 text-sm font-bold text-sea">
+            {strings.documents.insuranceUpload}
+          </button>
+        </section>
+      )}
       {visible.length === 0 ? (
         <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {docs.length === 0
@@ -427,6 +562,18 @@ export function DocumentsScreen() {
             : strings.documents.noResults}
         </p>
       ) : (
+        <>
+        {!isKid && isEnabled("documentsAutoDownload") && (
+          <OfflineBar
+            ready={offlineCount}
+            total={docs.length}
+            lockedCount={Object.values(syncStatus).filter((x) => x.state === "locked").length}
+            busy={Object.values(syncStatus).some((x) => x.state === "downloading" || x.state === "queued")}
+            persisted={persisted}
+            online={online}
+            onDownloadAll={() => withKey((key) => void syncAll(key))}
+          />
+        )}
         <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
           <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
             <h2 className="text-xs font-bold text-ink">
@@ -491,14 +638,22 @@ export function DocumentsScreen() {
                       }`}
                     >
                       {strings.documents.tags[doc.tag] ?? doc.tag}
-                      {doc.expires_at
-                        ? ` · ${strings.documents.expiresOn.replace(
-                            "{date}",
-                            formatDate(doc.expires_at)
-                          )}`
-                        : doc.notes
-                          ? ` · ${doc.notes}`
-                          : ""}
+                      {doc.expires_at ? (
+                        <span
+                          className={`ms-1.5 inline-flex rounded-full px-1.5 text-[12px] font-bold ${
+                            expires ? "bg-warning-soft text-warning" : "bg-paper-deep text-ink-soft"
+                          }`}
+                        >
+                          {(expires ? strings.documents.expiryChipSoon : strings.documents.expiryChip).replace(
+                            "{mmyyyy}",
+                            `${doc.expires_at.slice(5, 7)}/${doc.expires_at.slice(0, 4)}`
+                          )}
+                        </span>
+                      ) : doc.notes ? (
+                        ` · ${doc.notes}`
+                      ) : (
+                        ""
+                      )}
                     </span>
                   </button>
 
@@ -540,7 +695,17 @@ export function DocumentsScreen() {
                     type="button"
                     onClick={() => void toggleOffline(doc)}
                     disabled={busy}
-                    aria-label={strings.documents.offlineToggle}
+                    aria-label={`${strings.documents.offlineToggle}: ${
+                      isOffline
+                        ? strings.documents.syncReady
+                        : syncStatus[doc.id]?.state === "downloading"
+                          ? strings.documents.syncDownloading.replace("{pct}", String(syncStatus[doc.id]?.pct ?? 0))
+                          : syncStatus[doc.id]?.state === "locked"
+                            ? strings.documents.syncLocked
+                            : syncStatus[doc.id]?.state === "failed"
+                              ? strings.documents.syncFailed
+                              : strings.documents.syncMissing
+                    }`}
                     aria-pressed={isOffline}
                     className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg disabled:opacity-40 ${
                       isOffline
@@ -548,8 +713,16 @@ export function DocumentsScreen() {
                         : "bg-paper-deep text-ink-faint"
                     }`}
                   >
-                    {isOffline ? (
+                    {syncStatus[doc.id]?.state === "downloading" ? (
+                      <span className="text-[12px] font-bold tabular-nums text-sea-deep">
+                        <bdi>{syncStatus[doc.id]?.pct ?? 0}%</bdi>
+                      </span>
+                    ) : isOffline ? (
                       <CheckIcon className="h-[15px] w-[15px]" />
+                    ) : syncStatus[doc.id]?.state === "locked" ? (
+                      <LockIcon className="h-[15px] w-[15px]" />
+                    ) : syncStatus[doc.id]?.state === "failed" ? (
+                      <WarningIcon className="h-[15px] w-[15px] text-alert" />
                     ) : (
                       <DownloadIcon className="h-[15px] w-[15px]" />
                     )}
@@ -567,6 +740,7 @@ export function DocumentsScreen() {
             })}
           </ul>
         </section>
+        </>
       )}
 
       {!isKid && (
@@ -657,6 +831,10 @@ export function DocumentsScreen() {
           open={form !== null}
           tripId={trip.id}
           doc={form?.doc ?? null}
+          initialTag={form?.tag}
+          camera={form?.camera}
+          onShare={(d) => void shareDoc(d)}
+          onCopy={(d) => void copyDoc(d)}
           onClose={() => setForm(null)}
           onDone={() => {
             setForm(null);
@@ -718,6 +896,58 @@ export function DocumentsScreen() {
       )}
 
       <Toast message={toast} />
+    </div>
+  );
+}
+
+/** F1: sticky "everything on this device" bar. */
+function OfflineBar({
+  ready,
+  total,
+  lockedCount,
+  busy,
+  persisted,
+  online,
+  onDownloadAll,
+}: {
+  ready: number;
+  total: number;
+  lockedCount: number;
+  busy: boolean;
+  persisted: boolean | null;
+  online: boolean;
+  onDownloadAll: () => void;
+}) {
+  const all = ready >= total;
+  const s = strings.documents;
+  return (
+    <div role="status" aria-live="polite" className="sticky top-0 z-10 flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-2 shadow-card">
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-sm font-bold text-ink">
+          {all ? s.allOnDevice : s.onDevice.replace("{n}", String(ready)).replace("{total}", String(total))}
+        </span>
+        <span className="text-xs text-ink-soft">
+          {busy
+            ? s.syncingNow
+            : lockedCount > 0
+              ? s.lockedHint.replace("{n}", String(lockedCount))
+              : persisted
+                ? s.persisted
+                : persisted === false
+                  ? s.notPersisted
+                  : ""}
+        </span>
+      </span>
+      {!all && (
+        <button
+          type="button"
+          onClick={onDownloadAll}
+          disabled={!online || busy}
+          className="shrink-0 rounded-xl bg-sea px-3.5 text-sm font-bold text-on-sea disabled:bg-paper-deep disabled:text-ink-soft"
+        >
+          {online ? s.downloadAll : s.downloadAllOffline}
+        </button>
+      )}
     </div>
   );
 }
