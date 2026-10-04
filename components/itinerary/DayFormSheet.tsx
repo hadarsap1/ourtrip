@@ -6,6 +6,8 @@ import { Sheet } from "@/components/Sheet";
 import { createDay, deleteDay, updateDay } from "@/lib/data/itinerary";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { CountryPicker } from "@/components/ui/CountryPicker";
 import type { ItineraryDay } from "@/lib/types";
 
 const labelClass = "mb-1 block text-sm font-medium text-ink-soft";
@@ -124,19 +126,23 @@ function DayForm({
         </div>
 
         <div>
-          <label htmlFor="day-country" className={labelClass}>
+          <label id="day-country-label" htmlFor="day-country" className={labelClass}>
             {strings.itinerary.countryCode}
           </label>
-          <input
-            id="day-country"
-            type="text"
-            maxLength={2}
-            value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-            placeholder={strings.itinerary.countryCodeHint}
-            className={inputClass}
-            dir="ltr"
-          />
+          {isEnabled("countryPicker") ? (
+            <CountryPicker id="day-country" labelledBy="day-country-label" value={countryCode} onChange={setCountryCode} />
+          ) : (
+            <input
+              id="day-country"
+              type="text"
+              maxLength={2}
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
+              placeholder={strings.itinerary.countryCodeHint}
+              className={inputClass}
+              dir="ltr"
+            />
+          )}
         </div>
 
         <div>

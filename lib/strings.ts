@@ -186,7 +186,7 @@ export const strings = {
     emptyPage: "עוד לא הוזן מידע חירום למדינה הזו",
     noCountries: "אין עדיין מדינות - הוסיפו ימים עם מדינה במסלול או צרו דף חדש",
     addCountry: "מדינה חדשה",
-    countryCode: "קוד מדינה (2 אותיות, למשל JP)",
+    countryCode: "מדינה",
     saved: "דף החירום נשמר",
     autofill: "מילוי אוטומטי",
     autofilling: "ממלא מספרי חירום ושגרירות…",
@@ -347,6 +347,14 @@ export const strings = {
     pocketState: "דמי כיס לילדים",
     memoryBookState: "יומן ותמונות להדפסה",
     visasState: "דרישות כניסה לכל מדינה",
+  },
+
+  countryPicker: {
+    choose: "בחירת מדינה",
+    search: "חיפוש מדינה",
+    listLabel: "מדינות",
+    clear: "בלי מדינה",
+    noResults: "לא נמצאה מדינה",
   },
 
   theme: {
@@ -856,7 +864,7 @@ export const strings = {
     editDay: "עריכת יום",
     date: "תאריך",
     location: "מיקום",
-    countryCode: "קוד מדינה",
+    countryCode: "מדינה",
     countryCodeHint: "שתי אותיות, למשל JP",
     notes: "הערות",
     calendarActivityCount: "‏{n} פעילויות",
