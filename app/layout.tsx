@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { ConfirmHost } from "@/components/ConfirmSheet";
 import { SideRail } from "@/components/SideRail";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { SimDateBanner } from "@/components/SimDateBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
 import { ThemeSync } from "@/components/ThemeSync";
@@ -63,6 +64,7 @@ export default function RootLayout({
           after its toolbars or keyboard moved, so the bar floated up and a
           screen of blank paper opened below it. */}
       <body className="flex h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)] text-ink">
+        <SimDateBanner />
         <OfflineBanner />
         {/* ps at lg leaves room for the fixed rail, which sits at the
             inline-start (right) edge. */}

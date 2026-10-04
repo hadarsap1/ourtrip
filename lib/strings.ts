@@ -395,6 +395,11 @@ export const strings = {
     noResults: "לא נמצאה מדינה",
   },
 
+  simDate: {
+    banner: "מצב בדיקה: התאריך מדומה ל-{date}",
+    off: "ביטול",
+  },
+
   theme: {
     title: "מראה",
     hint: "נשמר רק במכשיר הזה",

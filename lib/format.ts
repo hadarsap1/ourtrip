@@ -1,3 +1,4 @@
+import { getSimDate } from "./simDate";
 // Date and money formatting (CLAUDE.md hard rule #4: DD/MM/YYYY, ₪ for ILS).
 
 /** "2026-10-24" → "24/10/2026" */
@@ -37,8 +38,10 @@ export function formatMoney(amount: number, currency: string): string {
   return currency === "ILS" ? `₪${n}` : `${n} ${currency}`;
 }
 
-/** Today as an ISO date in local time. */
+/** Today as an ISO date in local time (or the dev simulated date, 1.10). */
 export function todayISO(): string {
+  const sim = getSimDate();
+  if (sim) return sim;
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
