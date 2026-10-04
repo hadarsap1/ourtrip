@@ -7,6 +7,7 @@
  */
 
 :root {
+  color-scheme: light;
   /* surface + text */
   --bg: #FBF7EF;
   --surface: #FFFFFF;
@@ -58,7 +59,7 @@
   --cat-soft-mix: 10%; /* soft = color-mix(in srgb, var(--cat-x) var(--cat-soft-mix), transparent) */
 
   /* type (Heebo) */
-  --font-sans: "Heebo", system-ui, sans-serif;
+  --font-family-base: "Heebo", system-ui, sans-serif; /* app uses next/font --font-heebo */
   --fs-caption: 12px;  --lh-caption: 16px;   /* the floor; nothing smaller */
   --fs-body: 14px;     --lh-body: 20px;
   --fs-label-lg: 16px; --lh-label-lg: 24px;  /* buttons, sheet titles, 600 */
@@ -96,6 +97,7 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #111816;
   --surface: #1A2321;
   --surface-2: #232E2B;
@@ -135,10 +137,48 @@
   --e3: 0 12px 32px rgba(0, 0, 0, .6);
 }
 
-/* Follow the OS when no explicit theme is set: copy the [data-theme="dark"] block here
-   (or generate both from tokens.json) so the two never drift. */
+/* No-JS fallback: follow the OS when no explicit theme is set. The app's
+   head script always sets data-theme, so this block only matters without JS. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { /* same values as :root[data-theme="dark"] */ }
+  :root:not([data-theme="light"]) {
+    --bg: #111816;
+    --surface: #1A2321;
+    --surface-2: #232E2B;
+    --text: #EEF2EF;
+    --text-muted: #A6B4AF;
+    --border: #33413D;
+    --brand: #4CC4AD;
+    --brand-contrast: #05231D;
+    --brand-soft: #173A33;
+    --brand-pressed: #7AD6C4;
+    --accent-gold: #E2B65E;
+    --success: #6BCB86; --success-soft: #18321F;
+    --warning: #F2AE55; --warning-soft: #3A2A12;
+    --danger: #F4877A;  --danger-soft: #3D1D19; --danger-contrast: #2A0A06;
+    --info: #86B6F2;    --info-soft: #172A42;
+    --scrim: rgba(0, 0, 0, .6);
+    --country-vn: #F06A76; --country-vn-soft: #3B1C20; --country-vn-on: #111816;
+    --country-kh: #E59A3C; --country-kh-soft: #3A2814; --country-kh-on: #111816;
+    --country-la: #63C08A; --country-la-soft: #17311F; --country-la-on: #111816;
+    --country-th: #8EA0F0; --country-th-soft: #1F2747; --country-th-on: #111816;
+    --country-ph: #4FB6E8; --country-ph-soft: #11303F; --country-ph-on: #111816;
+    --country-jp: #EE7FB3; --country-jp-soft: #3C1D2C; --country-jp-on: #111816;
+    --country-ge: #A9B3C2; --country-ge-soft: #2A3038; --country-ge-on: #111816;
+    --cat-flight: #7AA7F2;
+    --cat-lodging: #A98EEE;
+    --cat-activity: #F0A050;
+    --cat-food: #F28686;
+    --cat-transport: #72C682;
+    --cat-doc: #E2B65E;
+    --cat-ins: #5FC3E0;
+    --cat-shop: #EE86C0;
+    --cat-other: #A8B2BC;
+    --cat-on: #111816;
+    --cat-soft-mix: 18%;
+    --e1: 0 1px 2px rgba(0, 0, 0, .5);
+    --e2: 0 4px 16px rgba(0, 0, 0, .45);
+    --e3: 0 12px 32px rgba(0, 0, 0, .6);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

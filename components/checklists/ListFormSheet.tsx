@@ -96,7 +96,7 @@ function ListForm({
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>

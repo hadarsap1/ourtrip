@@ -33,8 +33,8 @@ function RailRow({
         compact ? "py-[9px]" : "py-2.5"
       } ${
         active
-          ? "bg-white font-bold text-sea-deep"
-          : "font-medium text-ink-soft hover:bg-white/60"
+          ? "bg-surface font-bold text-sea-deep"
+          : "font-medium text-ink-soft hover:bg-surface/60"
       }`}
     >
       <span className="relative shrink-0">
@@ -85,7 +85,7 @@ export function SideRail() {
     >
       <div className="flex items-center gap-[9px] ps-1.5">
         <span
-          className="grid h-[26px] w-[26px] place-items-center rounded-lg bg-sea text-xs font-extrabold text-white"
+          className="grid h-[26px] w-[26px] place-items-center rounded-lg bg-sea text-xs font-extrabold text-on-sea"
           aria-hidden="true"
         >
           OT

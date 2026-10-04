@@ -384,28 +384,28 @@ export function OptionsScreen() {
         <button
           type="button"
           onClick={() => setEditing("new")}
-          className="rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm"
+          className="rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow-sm"
         >
           + {s.add}
         </button>
         <button
           type="button"
           onClick={() => setExtracting(true)}
-          className="rounded-2xl border border-sea bg-white py-3 font-semibold text-sea shadow-sm"
+          className="rounded-2xl border border-sea bg-surface py-3 font-semibold text-sea shadow-sm"
         >
           <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.importTitle}
         </button>
       </div>
 
       {options.length > 0 && (
-        <div className="flex rounded-2xl border border-line bg-white p-1">
+        <div className="flex rounded-2xl border border-line bg-surface p-1">
           {(["list", "map"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => setView(mode)}
               className={`flex-1 rounded-xl py-2 text-sm font-semibold ${
-                view === mode ? "bg-sea text-white" : "text-ink-soft"
+                view === mode ? "bg-sea text-on-sea" : "text-ink-soft"
               }`}
             >
               {mode === "list" ? s.viewList : s.viewMap}
@@ -424,7 +424,7 @@ export function OptionsScreen() {
               // silently select nothing.
               setAreaFilter(null);
             }}
-            className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
+            className="rounded-xl border border-line bg-surface px-3 py-2 text-sm"
           >
             <option value="">{s.allCountries}</option>
             {countries.map((c) => (
@@ -436,7 +436,7 @@ export function OptionsScreen() {
           <select
             value={areaFilter ?? ""}
             onChange={(e) => setAreaFilter(e.target.value || null)}
-            className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
+            className="rounded-xl border border-line bg-surface px-3 py-2 text-sm"
           >
             <option value="">{s.allAreas}</option>
             {areasForCountry.map((a) => (
@@ -456,7 +456,7 @@ export function OptionsScreen() {
               type="button"
               onClick={() => setStatusFilter(statusFilter === st ? null : st)}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-                statusFilter === st ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
+                statusFilter === st ? "bg-ink text-paper" : "bg-paper-deep text-ink-soft"
               }`}
             >
               {s.status[st]}
@@ -471,7 +471,7 @@ export function OptionsScreen() {
             type="button"
             onClick={() => setCategoryFilter(null)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-              categoryFilter === null ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
+              categoryFilter === null ? "bg-ink text-paper" : "bg-paper-deep text-ink-soft"
             }`}
           >
             {s.filterAll}
@@ -483,7 +483,7 @@ export function OptionsScreen() {
                 type="button"
                 onClick={() => setCategoryFilter(c)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-                  categoryFilter === c ? "bg-ink text-white" : "bg-paper-deep text-ink-soft"
+                  categoryFilter === c ? "bg-ink text-paper" : "bg-paper-deep text-ink-soft"
                 }`}
               >
                 <CategoryIcon
@@ -498,7 +498,7 @@ export function OptionsScreen() {
       )}
 
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
           <p className="text-sm font-medium text-ink">
             {activeCuts > 0 ? s.noneForCut : s.empty}
           </p>
@@ -550,7 +550,7 @@ export function OptionsScreen() {
                         return (
                           <li
                             key={o.id}
-                            className="rounded-2xl border border-line bg-white p-3 shadow-sm"
+                            className="rounded-2xl border border-line bg-surface p-3 shadow-sm"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
@@ -645,7 +645,7 @@ export function OptionsScreen() {
                                 <button
                                   type="button"
                                   onClick={() => setPromoting(o)}
-                                  className="rounded-full bg-sea px-3 py-1 font-medium text-white"
+                                  className="rounded-full bg-sea px-3 py-1 font-medium text-on-sea"
                                 >
                                   {s.promoteTitle}
                                 </button>

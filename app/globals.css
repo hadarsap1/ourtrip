@@ -1,50 +1,101 @@
 @import "tailwindcss";
+/* Design tokens v2 (docs/design/tokens.css): light + dark custom properties.
+   The theme is chosen by data-theme on <html>, set before first paint by the
+   head script in app/layout.tsx (lib/theme.ts). */
+@import "../docs/design/tokens.css";
+
+/* App-only tokens that tokens.css does not carry. */
+:root {
+  --text-faint: #66706b; /* was #8d968f (3:1); now 4.8:1 on paper */
+  --sun: #d9931e;        /* warm accent fills; never small text */
+  --sun-deep: #9c6a0e;   /* text on sun-tint */
+  --postcard-from: #0e7c6b;
+  --postcard-to: #0b5f54;
+  --shadow-card-value: 0 1px 2px rgba(34, 49, 46, 0.05), 0 10px 26px -14px rgba(34, 49, 46, 0.18);
+}
+:root[data-theme="dark"] {
+  --text-faint: #8e9c97;
+  --sun: #e2b65e;
+  --sun-deep: #e2b65e;
+  /* The postcard band keeps a deep teal in dark mode so its white text holds. */
+  --postcard-from: #0f5f53;
+  --postcard-to: #0a3d36;
+  --shadow-card-value: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 26px -14px rgba(0, 0, 0, 0.6);
+}
 
 /* ---------------------------------------------------------------------------
-   OurTrip design system - "Paper · Sea · Sun"
-   A family round-the-world trip journal. Warm ivory paper instead of cold
-   grey; deep teal "sea" as the brand; marigold "sun" as a sparing accent.
-   Tokens below generate Tailwind utilities (bg-sea, text-sun, border-line …).
+   OurTrip design system - "Paper · Sea · Sun", now theme-aware.
+   The original utility names (bg-paper, text-ink, bg-sea, border-line …) are
+   kept and point at the v2 variables, so every screen follows the theme
+   without per-screen changes. New code should prefer the semantic names
+   (surface, brand, success, warning, danger, info, country-*, cat-*).
 --------------------------------------------------------------------------- */
 @theme {
-  --color-paper: #fbf7ef;
-  --color-paper-deep: #f3ead9;
-  --color-ink: #22312e;
-  --color-ink-soft: #6b756e;
-  --color-sea: #0e7c6b;
-  --color-sea-deep: #0b5f54;
-  --color-sea-tint: #e3efeb;
-  --color-sun: #d9931e;
-  --color-sun-tint: #fbedcf;
-  /* Text on sun-tint surfaces: --color-sun itself fails contrast on #fbedcf. */
-  --color-sun-deep: #9c6a0e;
-  --color-line: #ece3d3;
-  /* Lighter than ink-soft, for text that must recede: inactive nav labels,
-     completed itinerary rows, placeholders. */
-  --color-ink-faint: #8d968f;
-  /* Emergency only - never decorative. */
-  --color-alert: #c8123c;
-  --color-alert-tint: #fdecef;
+  --color-paper: var(--bg);
+  --color-paper-deep: var(--surface-2);
+  --color-ink: var(--text);
+  --color-ink-soft: var(--text-muted);
+  --color-ink-faint: var(--text-faint);
+  --color-sea: var(--brand);
+  --color-sea-deep: var(--brand-pressed);
+  --color-sea-tint: var(--brand-soft);
+  --color-on-sea: var(--brand-contrast);
+  --color-sun: var(--sun);
+  --color-sun-tint: var(--warning-soft);
+  --color-sun-deep: var(--sun-deep);
+  --color-line: var(--border);
+  /* Emergency and destructive only - never decorative. */
+  --color-alert: var(--danger);
+  --color-alert-tint: var(--danger-soft);
+  --color-on-alert: var(--danger-contrast);
+
+  /* v2 semantic names */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--accent-gold);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-scrim: var(--scrim);
+  --color-vn: var(--country-vn);
+  --color-kh: var(--country-kh);
+  --color-la: var(--country-la);
+  --color-th: var(--country-th);
+  --color-ph: var(--country-ph);
+  --color-jp: var(--country-jp);
+  --color-ge: var(--country-ge);
+  --color-cat-flight: var(--cat-flight);
+  --color-cat-lodging: var(--cat-lodging);
+  --color-cat-activity: var(--cat-activity);
+  --color-cat-food: var(--cat-food);
+  --color-cat-transport: var(--cat-transport);
+  --color-cat-doc: var(--cat-doc);
+  --color-cat-ins: var(--cat-ins);
+  --color-cat-shop: var(--cat-shop);
+  --color-cat-other: var(--cat-other);
+  --color-on-cat: var(--cat-on);
 
   /* Cards sit at 20px. Anything softer made every card read as the same weight. */
   --radius-stamp: 1.25rem;
-  --shadow-card: 0 1px 2px rgba(34, 49, 46, 0.05), 0 10px 26px -14px rgba(34, 49, 46, 0.18);
-}
-
-:root {
-  --background: #fbf7ef;
-  --foreground: #22312e;
+  --shadow-card: var(--shadow-card-value);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
   --font-sans: var(--font-heebo);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-heebo), system-ui, sans-serif;
 }
 
@@ -61,23 +112,24 @@ body {
 .ot-card {
   border-radius: var(--radius-stamp);
   border: 1px solid var(--color-line);
-  background: #fff;
+  background: var(--surface);
   box-shadow: var(--shadow-card);
 }
 
 /* Small colored label that sits above a section title - a travel-log "eyebrow". */
 .ot-kicker {
-  font-size: 10.5px;
+  font-size: 12px; /* type floor (F3) */
+  line-height: 16px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--color-sun);
+  letter-spacing: 0.06em;
+  color: var(--accent-gold); /* AA on paper; #d9931e was about 2.4:1 */
 }
 
 /* The signature postcard band: a soft sea gradient with a faint horizon line. */
 .ot-postcard {
   border-radius: var(--radius-stamp);
   background:
-    linear-gradient(135deg, var(--color-sea) 0%, var(--color-sea-deep) 100%);
+    linear-gradient(135deg, var(--postcard-from) 0%, var(--postcard-to) 100%);
   color: #fff;
   box-shadow: var(--shadow-card);
   position: relative;

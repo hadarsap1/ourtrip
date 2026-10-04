@@ -176,7 +176,7 @@ export function ChecklistsScreen() {
           )}
         </div>
 
-        <section className="rounded-2xl border border-line bg-white shadow-sm">
+        <section className="rounded-2xl border border-line bg-surface shadow-sm">
           {listItems.length === 0 ? (
             <p className="px-4 py-4 text-sm text-ink-soft">
               {strings.checklists.emptyItems}
@@ -248,7 +248,7 @@ export function ChecklistsScreen() {
             />
             <button
               type="submit"
-              className="shrink-0 rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-white hover:bg-sea-deep"
+              className="shrink-0 rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-on-sea hover:bg-sea-deep"
             >
               {strings.checklists.add}
             </button>
@@ -294,7 +294,7 @@ export function ChecklistsScreen() {
           {strings.checklists.lists}
         </h2>
         {regularLists.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+          <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
             {strings.checklists.empty}
           </p>
         ) : (
@@ -307,7 +307,7 @@ export function ChecklistsScreen() {
                   <button
                     type="button"
                     onClick={() => setOpenListId(list.id)}
-                    className="flex w-full items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-start shadow-sm"
+                    className="flex w-full items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 text-start shadow-sm"
                   >
                     <span className="font-semibold text-ink">{list.title}</span>
                     <span className="text-sm font-semibold text-ink-soft" dir="ltr">
@@ -332,7 +332,7 @@ export function ChecklistsScreen() {
             {templates.map((template) => (
               <li
                 key={template.id}
-                className="rounded-2xl border border-line bg-white px-4 py-3 shadow-sm"
+                className="rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-2">
                   <button
@@ -368,14 +368,14 @@ export function ChecklistsScreen() {
         <button
           type="button"
           onClick={() => setListForm({ rename: null })}
-          className="flex-1 rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+          className="flex-1 rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow hover:bg-sea-deep"
         >
           {strings.checklists.addList}
         </button>
         <button
           type="button"
           onClick={() => setImporting(true)}
-          className="rounded-2xl border border-line bg-white px-4 py-3 font-semibold text-ink-soft shadow-sm"
+          className="rounded-2xl border border-line bg-surface px-4 py-3 font-semibold text-ink-soft shadow-sm"
         >
           ⤓ {strings.checklists.importList}
         </button>

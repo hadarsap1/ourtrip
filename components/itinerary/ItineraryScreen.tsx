@@ -482,7 +482,7 @@ export function ItineraryScreen() {
             aria-pressed={searching}
             className={`grid h-11 w-11 place-items-center rounded-[11px] transition-colors ${
               searching
-                ? "bg-sea text-white"
+                ? "bg-sea text-on-sea"
                 : "bg-paper-deep text-ink-soft active:bg-line"
             }`}
           >
@@ -513,7 +513,7 @@ export function ItineraryScreen() {
             type="button"
             onClick={() => setDayForm({ day: null })}
             aria-label={strings.itinerary.addDay}
-            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-white active:bg-sea-deep"
+            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-on-sea active:bg-sea-deep"
           >
             <PlusIcon className="h-[17px] w-[17px]" />
           </button>
@@ -602,7 +602,7 @@ export function ItineraryScreen() {
             ) : (
               <>
                 {days.length === 0 && (
-                  <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+                  <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
                     {strings.itinerary.emptyDays}
                   </p>
                 )}
@@ -642,7 +642,7 @@ export function ItineraryScreen() {
                     <button
                       type="button"
                       onClick={() => setDayForm({ day: null })}
-                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
                       style={{
                         boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)",
                       }}
@@ -652,7 +652,7 @@ export function ItineraryScreen() {
                     <button
                       type="button"
                       onClick={() => setImporting(true)}
-                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
                     >
                       <FileIcon className="h-[17px] w-[17px]" />
                       {strings.itinerary.importFromFile}

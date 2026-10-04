@@ -107,7 +107,7 @@ export function OptionsPickerSheet({
         >
           <span
             className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
-              on ? "border-sea bg-sea text-white" : "border-line bg-white"
+              on ? "border-sea bg-sea text-on-sea" : "border-line bg-surface"
             }`}
             aria-hidden="true"
           >
@@ -146,7 +146,7 @@ export function OptionsPickerSheet({
           {strings.common.loading}
         </p>
       ) : flat.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
           <p className="text-sm font-medium text-ink">{s.pickEmpty}</p>
           <p className="mt-1 text-xs text-ink-soft">{s.pickEmptyBody}</p>
         </div>
@@ -202,7 +202,7 @@ export function OptionsPickerSheet({
                         {group.area ?? s.ungrouped}
                       </span>
                       {chosenHere > 0 && (
-                        <span className="shrink-0 rounded-full bg-sea px-2 py-0.5 text-[10.5px] font-bold text-white">
+                        <span className="shrink-0 rounded-full bg-sea px-2 py-0.5 text-[10.5px] font-bold text-on-sea">
                           {chosenHere}
                         </span>
                       )}
@@ -227,7 +227,7 @@ export function OptionsPickerSheet({
             type="button"
             onClick={confirm}
             disabled={picked.size === 0}
-            className="sticky bottom-0 mt-3 w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm disabled:opacity-40"
+            className="sticky bottom-0 mt-3 w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow-sm disabled:opacity-40"
           >
             {picked.size === 0
               ? s.pickNoneChosen

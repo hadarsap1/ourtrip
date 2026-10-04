@@ -108,13 +108,13 @@ export function RegisterSW() {
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-20 z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-white shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
+      className="fixed inset-x-4 bottom-20 z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-paper shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
     >
       <span className="flex-1 text-sm font-medium">{strings.update.ready}</span>
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="shrink-0 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-bold text-ink"
+        className="shrink-0 rounded-full bg-surface px-3.5 py-1.5 text-[13px] font-bold text-ink"
       >
         {strings.update.action}
       </button>

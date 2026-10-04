@@ -114,7 +114,7 @@ export function BookingsList({
   return (
     <div className="space-y-4 pb-8">
       {bookings.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.bookings.empty}
         </p>
       )}
@@ -134,7 +134,7 @@ export function BookingsList({
         <button
           type="button"
           onClick={onAdd}
-          className="rounded-2xl bg-sea py-3 text-sm font-bold text-white hover:bg-sea-deep"
+          className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea hover:bg-sea-deep"
         >
           {strings.bookings.add}
         </button>
@@ -149,7 +149,7 @@ export function BookingsList({
         <button
           type="button"
           onClick={onImportMail}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
         >
           <MailIcon className="h-[17px] w-[17px]" />
           {strings.mailImport.open}
@@ -160,7 +160,7 @@ export function BookingsList({
             type="button"
             onClick={onSyncHotels}
             disabled={syncingHotels}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep disabled:opacity-60 sm:col-span-2"
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep disabled:opacity-60 sm:col-span-2"
           >
             <BedIcon className="h-[17px] w-[17px]" />
             {syncingHotels ? strings.bookings.hotelSyncWorking : strings.bookings.hotelSyncOpen}
@@ -205,7 +205,7 @@ function LegSection({
           {stretch ? legLabel(stretch) : strings.bookings.legUnplaced}
         </h2>
         {stretch?.countryCode && (
-          <span className="rounded bg-white px-1.5 py-px text-[10px] font-bold text-sea">
+          <span className="rounded bg-surface px-1.5 py-px text-[10px] font-bold text-sea">
             {stretch.countryCode}
           </span>
         )}
@@ -279,7 +279,7 @@ function BookingCard({
     : address;
 
   return (
-    <section className="rounded-[18px] border border-line bg-white p-3">
+    <section className="rounded-[18px] border border-line bg-surface p-3">
       <button
         type="button"
         onClick={onEdit}

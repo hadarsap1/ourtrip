@@ -103,7 +103,7 @@ export function ImportChecklistSheet({
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-50"
         >
           {busy ? strings.common.loading : s.importDo}
         </button>

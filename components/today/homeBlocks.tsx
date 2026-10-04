@@ -27,7 +27,7 @@ export function ChecklistBlock({
 }) {
   const s = strings.home;
   return (
-    <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+    <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
       <div className="flex items-baseline gap-2 border-b border-line px-3.5 py-2.5">
         <h2 className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink">
           {checklist.title}
@@ -55,7 +55,7 @@ export function ChecklistBlock({
                 className="flex w-full items-center gap-3 px-3.5 py-3 text-start active:bg-paper-deep"
               >
                 <span
-                  className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-line bg-white"
+                  className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-line bg-surface"
                   aria-hidden="true"
                 >
                   <CheckIcon className="h-3.5 w-3.5 text-line" strokeWidth={2.5} />
@@ -104,7 +104,7 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
   return (
     <Link
       href="/budget"
-      className="block rounded-[18px] border border-line bg-white p-3.5 active:bg-paper-deep"
+      className="block rounded-[18px] border border-line bg-surface p-3.5 active:bg-paper-deep"
     >
       <div className="flex items-baseline gap-2">
         <h2 className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
@@ -193,7 +193,7 @@ function StretchCard({ stretch }: { stretch: TimelineStretch }) {
   return (
     <div
       className={`flex w-[136px] shrink-0 flex-col rounded-[16px] border p-3 ${
-        highlighted ? "border-sea bg-sea-tint/40" : "border-line bg-white"
+        highlighted ? "border-sea bg-sea-tint/40" : "border-line bg-surface"
       }`}
     >
       {/* The label line is always present, empty when the stretch is neither

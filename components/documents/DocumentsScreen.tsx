@@ -361,7 +361,7 @@ export function DocumentsScreen() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={strings.documents.searchFull}
-          className="w-full rounded-[14px] border border-line bg-white py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+          className="w-full rounded-[14px] border border-line bg-surface py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
         />
       </div>
 
@@ -371,7 +371,7 @@ export function DocumentsScreen() {
           onClick={() => setTagFilter(null)}
           className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
             tagFilter === null
-              ? "bg-sea-deep text-white"
+              ? "bg-sea-deep text-on-sea"
               : "bg-paper-deep text-ink-soft"
           }`}
         >
@@ -386,7 +386,7 @@ export function DocumentsScreen() {
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
               className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-[11.5px] font-bold ${
                 tagFilter === tag
-                  ? "bg-sea-deep text-white"
+                  ? "bg-sea-deep text-on-sea"
                   : "bg-paper-deep text-ink-soft"
               }`}
             >
@@ -422,7 +422,7 @@ export function DocumentsScreen() {
       )}
 
       {visible.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-faint">
+        <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {docs.length === 0
             ? isKid
               ? strings.documents.kidEmpty
@@ -430,7 +430,7 @@ export function DocumentsScreen() {
             : strings.documents.noResults}
         </p>
       ) : (
-        <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+        <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
           <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
             <h2 className="text-xs font-bold text-ink">
               {strings.documents.offlineHeader}
@@ -576,7 +576,7 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setForm({ doc: null })}
-          className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+          className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
           style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
         >
           {strings.documents.upload}
@@ -587,7 +587,7 @@ export function DocumentsScreen() {
         <>
           {/* Enrolling needs the key in memory, so it lives behind the unlock. */}
           {bioSupported && !thisDeviceEnrolled && (
-            <div className="rounded-2xl border border-line bg-white p-4">
+            <div className="rounded-2xl border border-line bg-surface p-4">
               <h3 className="mb-1 font-semibold text-ink">
                 {strings.documents.bioEnrollTitle}
               </h3>
@@ -598,7 +598,7 @@ export function DocumentsScreen() {
                 type="button"
                 disabled={enrolling}
                 onClick={() => void enrollThisDevice()}
-                className="w-full rounded-xl bg-sea py-2.5 font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-xl bg-sea py-2.5 font-semibold text-on-sea disabled:opacity-50"
               >
                 {strings.documents.bioEnroll}
               </button>
@@ -606,7 +606,7 @@ export function DocumentsScreen() {
           )}
 
           {passkeys.length > 0 && (
-            <div className="rounded-2xl border border-line bg-white p-4">
+            <div className="rounded-2xl border border-line bg-surface p-4">
               <h3 className="mb-2 font-semibold text-ink">
                 {strings.documents.bioDevicesTitle}
               </h3>
@@ -700,7 +700,7 @@ export function DocumentsScreen() {
                 URL.revokeObjectURL(viewer.url);
                 setViewer(null);
               }}
-              className="rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-ink"
+              className="rounded-full bg-surface/90 px-4 py-2 text-sm font-semibold text-ink"
             >
               {strings.documents.viewerClose}
             </button>
@@ -714,7 +714,7 @@ export function DocumentsScreen() {
                 className="mx-auto max-h-full max-w-full object-contain"
               />
             ) : (
-              <iframe src={viewer.url} title="document" className="h-full w-full rounded-lg bg-white" />
+              <iframe src={viewer.url} title="document" className="h-full w-full rounded-lg bg-surface" />
             )}
           </div>
         </div>

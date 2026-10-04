@@ -35,7 +35,7 @@ export function SegmentedControl<T extends string>({
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-[3px] -z-10 rounded-[10px] bg-white transition-[inset-inline-start] duration-[180ms] ease-out"
+        className="absolute inset-y-[3px] -z-10 rounded-[10px] bg-surface transition-[inset-inline-start] duration-[180ms] ease-out"
         style={{
           width: `calc(${width}% - 6px)`,
           insetInlineStart: `calc(${index * width}% + 3px)`,

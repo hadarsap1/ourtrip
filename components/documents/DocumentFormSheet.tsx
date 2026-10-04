@@ -157,7 +157,7 @@ function DocumentForm({
                 type="button"
                 onClick={() => setTag(t)}
                 className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  tag === t ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
+                  tag === t ? "bg-sea text-on-sea" : "bg-paper-deep text-ink-soft"
                 }`}
               >
                 {strings.documents.tags[t]}
@@ -200,7 +200,7 @@ function DocumentForm({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {saving && !doc ? strings.documents.uploading : strings.common.save}
           </button>

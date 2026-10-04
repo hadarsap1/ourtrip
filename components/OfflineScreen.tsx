@@ -48,7 +48,7 @@ export function OfflineScreen() {
         <p className="mt-1 text-sm text-ink-soft">{s.body}</p>
       </header>
 
-      <ul className="overflow-hidden rounded-[18px] border border-line bg-white">
+      <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
         {LIFELINES.map((row, i) => (
           <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
             <Link
@@ -71,7 +71,7 @@ export function OfflineScreen() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="w-full rounded-2xl border border-line bg-white py-3 text-sm font-medium text-ink-soft active:bg-paper-deep"
+        className="w-full rounded-2xl border border-line bg-surface py-3 text-sm font-medium text-ink-soft active:bg-paper-deep"
       >
         {s.retry}
       </button>

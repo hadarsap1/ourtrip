@@ -39,7 +39,7 @@ export function ConverterCard() {
       : value / (rate as number);
 
   return (
-    <section className="rounded-[18px] border border-line bg-white p-3.5">
+    <section className="rounded-[18px] border border-line bg-surface p-3.5">
       <h2 className="mb-3 text-xs font-bold text-ink">
         {strings.budget.converterTitle}
       </h2>

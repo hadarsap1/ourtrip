@@ -92,7 +92,7 @@ export function DayCard({
   const isToday = day.date === todayISO();
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-line bg-white">
+    <section className="overflow-hidden rounded-[20px] border border-line bg-surface">
       {/* Day header on paper-deep rather than sea-tint: the tint now means
           "happening now" and shouldn't mark every day on the screen. */}
       <div className="flex items-center gap-1 bg-paper-deep pe-1.5">
@@ -115,7 +115,7 @@ export function DayCard({
           </span>
         )}
         {day.country_code && (
-          <span className="rounded bg-white px-1.5 py-px text-[10px] font-bold text-sea">
+          <span className="rounded bg-surface px-1.5 py-px text-[10px] font-bold text-sea">
             {day.country_code}
           </span>
         )}
@@ -140,7 +140,7 @@ export function DayCard({
         type="button"
         onClick={onEditDay}
         aria-label={strings.itinerary.editDay}
-        className="shrink-0 rounded-lg p-1.5 text-sea/70 hover:bg-white hover:text-sea"
+        className="shrink-0 rounded-lg p-1.5 text-sea/70 hover:bg-surface hover:text-sea"
       >
         <EditIcon className="h-4 w-4" />
       </button>
@@ -148,7 +148,7 @@ export function DayCard({
         type="button"
         onClick={onDeleteDay}
         aria-label={strings.itinerary.deleteDay}
-        className="shrink-0 rounded-lg p-1.5 text-alert/70 hover:bg-white hover:text-alert"
+        className="shrink-0 rounded-lg p-1.5 text-alert/70 hover:bg-surface hover:text-alert"
       >
         <TrashIcon className="h-4 w-4" />
       </button>
@@ -256,7 +256,7 @@ function SortableItem({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-1 bg-white px-2.5 py-2.5 ${
+      className={`flex items-center gap-1 bg-surface px-2.5 py-2.5 ${
         isDragging ? "relative z-10 shadow-lg" : ""
       }`}
     >
@@ -310,7 +310,7 @@ function SortableItem({
               )}
               {item.is_outdoor && (
                 <SunIcon
-                  className="h-3.5 w-3.5 shrink-0 text-sun"
+                  className="h-3.5 w-3.5 shrink-0 text-sun-deep"
                   aria-label={strings.itinerary.outdoor}
                 />
               )}

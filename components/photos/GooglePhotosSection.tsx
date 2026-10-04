@@ -180,7 +180,7 @@ export function GooglePhotosSection({
           <button
             type="button"
             onClick={() => setSheetOpen(true)}
-            className="shrink-0 rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white shadow-sm"
+            className="shrink-0 rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-on-sea shadow-sm"
           >
             <PlusIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
             {strings.googlePhotos.import}
@@ -191,7 +191,7 @@ export function GooglePhotosSection({
       {loading ? (
         <p className="text-center text-sm text-ink-soft">{strings.common.loading}</p>
       ) : groups.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
           {strings.googlePhotos.empty}
         </p>
       ) : (
@@ -229,7 +229,7 @@ export function GooglePhotosSection({
                       </span>
                     )}
                     {photo.shared_with_guests && (
-                      <span className="rounded-full bg-sea/85 p-1 text-white">
+                      <span className="rounded-full bg-sea/85 p-1 text-on-sea">
                         <UsersIcon className="h-3 w-3" />
                       </span>
                     )}
@@ -278,7 +278,7 @@ export function GooglePhotosSection({
               type="button"
               onClick={() => void runImport()}
               disabled={busy}
-              className="w-full rounded-2xl bg-ink py-3 font-bold text-white shadow disabled:opacity-60"
+              className="w-full rounded-2xl bg-ink py-3 font-bold text-on-sea shadow disabled:opacity-60"
             >
               {phase === "connecting"
                 ? strings.googlePhotos.connecting
@@ -403,7 +403,7 @@ export function GooglePhotosSection({
                   onClick={() => void attachToPin(attaching, pin.id)}
                   className={`w-full rounded-xl px-3 py-2.5 text-start text-sm font-medium ${
                     attaching.map_pin_id === pin.id
-                      ? "bg-sea text-white"
+                      ? "bg-sea text-on-sea"
                       : "bg-paper-deep text-ink"
                   }`}
                 >

@@ -242,7 +242,7 @@ export function TripMap({
   return (
     <div className="space-y-2.5 pb-8">
       {unavailable ? (
-        <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
           <p className="text-sm font-semibold text-ink-soft">{s.mapUnavailable}</p>
           <p className="mt-1 text-[12px] text-ink-faint">{s.mapUnavailableHint}</p>
         </div>
@@ -262,7 +262,7 @@ export function TripMap({
       )}
 
       {!unavailable && placed.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-3">
+        <section className="rounded-2xl border border-line bg-surface p-3">
           <h3 className="mb-2 text-[12.5px] font-extrabold text-ink">
             {s.mapLegend}
           </h3>
@@ -298,7 +298,7 @@ export function TripMap({
       {/* Not a footnote: eight of fourteen legs land here, and every one of
           them is a tap away from being on the map. */}
       {(unplaced.length > 0 || unavailable) && (
-        <section className="rounded-2xl border border-line bg-white p-3">
+        <section className="rounded-2xl border border-line bg-surface p-3">
           <h3 className="text-[12.5px] font-extrabold text-ink">
             {s.mapMissingTitle}
           </h3>

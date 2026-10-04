@@ -128,7 +128,7 @@ export function PlaceAutocomplete({
         className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
       />
       {predictions.length > 0 && (
-        <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-xl border border-line bg-white shadow-lg">
+        <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-lg">
           {predictions.map((p) => (
             <li key={p.place_id}>
               <button

@@ -66,7 +66,7 @@ export function CalendarView({
   return (
     <div className="space-y-6 pb-8">
       {days.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-4 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-4 text-center text-sm text-ink-soft">
           {strings.itinerary.calendarEmpty}
         </p>
       )}
@@ -74,7 +74,7 @@ export function CalendarView({
       <button
         type="button"
         onClick={() => setMonthsBefore((n) => n + 6)}
-        className="w-full rounded-xl border border-line bg-white py-2 text-xs font-medium text-ink-soft"
+        className="w-full rounded-xl border border-line bg-surface py-2 text-xs font-medium text-ink-soft"
       >
         {strings.itinerary.calendarEarlier}
       </button>
@@ -205,7 +205,7 @@ export function CalendarView({
       <button
         type="button"
         onClick={() => setMonthsAfter((n) => n + 6)}
-        className="w-full rounded-xl border border-line bg-white py-2 text-xs font-medium text-ink-soft"
+        className="w-full rounded-xl border border-line bg-surface py-2 text-xs font-medium text-ink-soft"
       >
         {strings.itinerary.calendarLater}
       </button>

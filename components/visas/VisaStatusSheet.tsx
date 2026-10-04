@@ -39,7 +39,7 @@ export function VisaStatusSheet({
                     className={`flex min-h-11 w-full items-center justify-between rounded-xl border px-3 py-2.5 text-start text-sm font-medium ${
                       current
                         ? "border-sea bg-sea-tint text-sea-deep"
-                        : "border-line bg-white text-ink active:bg-paper-deep"
+                        : "border-line bg-surface text-ink active:bg-paper-deep"
                     }`}
                   >
                     {s.statuses[status]}

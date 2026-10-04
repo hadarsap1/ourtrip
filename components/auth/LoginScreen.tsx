@@ -32,7 +32,7 @@ export function LoginScreen() {
       <button
         type="button"
         onClick={signIn}
-        className="rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-white shadow-sm active:bg-sea-deep"
+        className="rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-on-sea shadow-sm active:bg-sea-deep"
       >
         {strings.auth.signIn}
       </button>

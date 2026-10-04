@@ -26,7 +26,7 @@ export function TripSummary({
   const current = legs.find((leg) => leg.phase === "current");
 
   return (
-    <section className="rounded-[18px] border border-line bg-white p-3">
+    <section className="rounded-[18px] border border-line bg-surface p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11.5px] font-semibold text-ink-soft">
           {strings.itinerary.tripSpan

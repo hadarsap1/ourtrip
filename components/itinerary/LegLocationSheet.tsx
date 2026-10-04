@@ -155,7 +155,7 @@ function LegLocationForm({
             // in the box (the autocomplete degrades to a plain input without
             // an API key) but it cannot place anything on a map.
             disabled={saving || picked === null}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white active:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea active:bg-sea-deep disabled:opacity-60"
           >
             {strings.common.save}
           </button>

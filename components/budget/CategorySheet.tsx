@@ -13,7 +13,7 @@ import { strings } from "@/lib/strings";
 import type { BudgetCategory } from "@/lib/types";
 
 const FIELD =
-  "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-sea";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-sea";
 
 /** Add, rename, re-budget or remove a category. Categories used to come only
  *  from the seed file, so one it did not anticipate could not be created at
@@ -125,7 +125,7 @@ export function CategorySheet({
         <button
           type="submit"
           disabled={busy || !canSave}
-          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white disabled:opacity-60"
+          className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
         >
           {s.save}
         </button>

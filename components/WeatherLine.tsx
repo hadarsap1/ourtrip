@@ -35,7 +35,7 @@ export function WeatherLine({
 
   return (
     <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
-      <WeatherIcon code={weather.weatherCode} className="h-3.5 w-3.5 text-sun" />
+      <WeatherIcon code={weather.weatherCode} className="h-3.5 w-3.5 text-sun-deep" />
       <span dir="ltr">
         {weather.tempMin}-{weather.tempMax}°
       </span>

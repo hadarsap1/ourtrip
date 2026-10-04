@@ -141,7 +141,7 @@ export function ReadyScreen() {
                 <Icon className="h-4 w-4" strokeWidth={1.7} />
                 {s.groups[group.key as keyof typeof s.groups]}
               </h2>
-              <ul className="overflow-hidden rounded-[18px] border border-line bg-white">
+              <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
                 {group.checks.map((check, i) => {
                   const text = s.checks[check.key];
                   if (!text) return null;

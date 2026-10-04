@@ -49,7 +49,7 @@ export function InstallPrompt() {
           type="button"
           onClick={onInstall}
           disabled={busy}
-          className="shrink-0 rounded-full bg-sea px-4 py-2 text-[13px] font-bold text-white disabled:opacity-50"
+          className="shrink-0 rounded-full bg-sea px-4 py-2 text-[13px] font-bold text-on-sea disabled:opacity-50"
         >
           {busy ? s.working : s.button}
         </button>

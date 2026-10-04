@@ -209,7 +209,7 @@ export function PhrasebookScreen() {
       )}
 
       {languages.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.phrasebook.empty}
         </p>
       ) : (
@@ -221,8 +221,8 @@ export function PhrasebookScreen() {
               onClick={() => void selectLanguage(lang)}
               className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === lang
-                  ? "bg-sea text-white"
-                  : "bg-white text-ink-soft shadow-sm"
+                  ? "bg-sea text-on-sea"
+                  : "bg-surface text-ink-soft shadow-sm"
               }`}
             >
               {languageName(lang)}
@@ -244,7 +244,7 @@ export function PhrasebookScreen() {
           type="button"
           onClick={() => setAddOpen(true)}
           disabled={generating}
-          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep disabled:opacity-60"
+          className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow hover:bg-sea-deep disabled:opacity-60"
         >
           {generating ? strings.phrasebook.generating : strings.phrasebook.addLanguage}
         </button>
@@ -265,7 +265,7 @@ export function PhrasebookScreen() {
 
       {selected && entries.length > 0 && (
         <>
-          <label className="flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2">
+          <label className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2">
             <SearchIcon className="h-4 w-4 shrink-0 text-ink-faint" />
             <input
               type="search"
@@ -276,7 +276,7 @@ export function PhrasebookScreen() {
             />
           </label>
           {query.trim() !== "" && visible.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+            <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
               {strings.phrasebook.searchNone}
             </p>
           )}
@@ -284,7 +284,7 @@ export function PhrasebookScreen() {
           {[...grouped.entries()].map(([category, categoryEntries]) => (
             <section
               key={category}
-              className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
             >
               <h2 className="border-b border-line bg-paper-deep px-3 py-2 text-sm font-bold text-ink">
                 {category}
@@ -340,7 +340,7 @@ export function PhrasebookScreen() {
       )}
 
       {selected && entries.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.phrasebook.emptyLanguage}
         </p>
       )}
@@ -359,7 +359,7 @@ export function PhrasebookScreen() {
           type="button"
           onClick={() => setShowEntry(null)}
           aria-label={strings.common.close}
-          className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 bg-white p-6"
+          className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 bg-surface p-6"
         >
           <span className="text-4xl font-bold leading-relaxed text-ink" dir="auto">
             {showEntry.phrase_local}

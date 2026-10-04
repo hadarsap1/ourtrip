@@ -99,7 +99,7 @@ export function KidsAdminScreen() {
       <h1 className="text-2xl font-bold">{strings.kids.title}</h1>
 
       {kids.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
           {strings.kids.noKids}
         </p>
       )}
@@ -111,7 +111,7 @@ export function KidsAdminScreen() {
         return (
           <section
             key={kid.id}
-            className="rounded-2xl border border-line bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-ink">
@@ -193,7 +193,7 @@ export function KidsAdminScreen() {
         />
         <button
           type="submit"
-          className="shrink-0 rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-white hover:bg-sea-deep"
+          className="shrink-0 rounded-xl bg-sea px-4 py-2.5 text-sm font-semibold text-on-sea hover:bg-sea-deep"
         >
           + {strings.kids.addKid}
         </button>
@@ -257,7 +257,7 @@ function GenerateCodeSheet({
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-xl bg-sea py-3 font-semibold text-white"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
           >
             {strings.common.close}
           </button>
@@ -288,7 +288,7 @@ function GenerateCodeSheet({
           <button
             type="submit"
             disabled={busy || !/^\d{4,6}$/.test(pin)}
-            className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-50"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-50"
           >
             {strings.kids.generateCode}
           </button>

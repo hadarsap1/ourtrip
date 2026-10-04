@@ -70,7 +70,7 @@ export function LegSection({
 
   return (
     <section
-      className={`overflow-hidden rounded-[18px] border bg-white ${
+      className={`overflow-hidden rounded-[18px] border bg-surface ${
         phase === "current" ? "border-sea" : "border-line"
       } ${phase === "past" ? "opacity-70" : ""}`}
     >
@@ -92,7 +92,7 @@ export function LegSection({
               {label}
             </span>
             {phase === "current" && (
-              <span className="rounded-full bg-sea px-2 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-sea px-2 py-0.5 text-[10px] font-bold text-on-sea">
                 {strings.itinerary.legHere}
               </span>
             )}
@@ -232,7 +232,7 @@ function EmptyDayRow({
       onClick={onAdd}
       aria-label={strings.itinerary.emptyDayAdd}
       className={`flex min-h-[38px] w-full items-center gap-2.5 rounded-lg px-2.5 text-start active:bg-paper-deep ${
-        isToday ? "bg-sea-tint" : "bg-white/70"
+        isToday ? "bg-sea-tint" : "bg-surface/70"
       }`}
     >
       {/* DD/MM, not the day number alone: a leg runs 38 days here and crosses

@@ -201,7 +201,7 @@ function EmergencyEditForm({
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
         >
           {strings.common.save}
         </button>

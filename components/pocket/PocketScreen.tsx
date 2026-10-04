@@ -142,7 +142,7 @@ export function PocketScreen() {
           <p className="mb-4 text-sm text-ink-soft">{strings.pocket.noKidsBody}</p>
           <Link
             href="/kids"
-            className="inline-block rounded-xl bg-sea px-5 py-2.5 font-semibold text-white active:bg-sea-deep"
+            className="inline-block rounded-xl bg-sea px-5 py-2.5 font-semibold text-on-sea active:bg-sea-deep"
           >
             {strings.pocket.noKidsCta}
           </Link>
@@ -160,7 +160,7 @@ export function PocketScreen() {
         return (
           <section
             key={kid.id}
-            className="rounded-2xl border border-line bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
           >
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-bold text-ink">
@@ -211,7 +211,7 @@ export function PocketScreen() {
               <button
                 type="button"
                 onClick={() => setAddFor(kid.id)}
-                className="mt-3 w-full rounded-xl bg-sea py-3 font-bold text-white hover:bg-sea-deep"
+                className="mt-3 w-full rounded-xl bg-sea py-3 font-bold text-on-sea hover:bg-sea-deep"
               >
                 <BagIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
                 {strings.pocket.addExpense}
@@ -350,7 +350,7 @@ function AddPocketExpenseSheet({
         <button
           type="submit"
           disabled={!Number.isFinite(value) || value <= 0}
-          className="w-full rounded-xl bg-sea py-3 font-bold text-white hover:bg-sea-deep disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-bold text-on-sea hover:bg-sea-deep disabled:opacity-50"
         >
           {strings.pocket.save}
         </button>
@@ -406,7 +406,7 @@ function AllowanceSheet({
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
         >
           {strings.common.save}
         </button>

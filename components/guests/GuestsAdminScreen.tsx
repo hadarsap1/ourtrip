@@ -69,7 +69,7 @@ export function GuestsAdminScreen() {
       <h1 className="text-2xl font-bold">{strings.guests.title}</h1>
 
       {allowlist.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
           {strings.guests.empty}
         </p>
       ) : (
@@ -79,7 +79,7 @@ export function GuestsAdminScreen() {
             return (
               <li
                 key={row.email}
-                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 shadow-sm"
+                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-ink" dir="ltr">
@@ -119,7 +119,7 @@ export function GuestsAdminScreen() {
       <button
         type="button"
         onClick={() => setInviteOpen(true)}
-        className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+        className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow hover:bg-sea-deep"
       >
         <MailIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.invite}
       </button>
@@ -182,7 +182,7 @@ function InviteSheet({
                 .then(() => onToast(strings.guests.copied))
                 .catch(() => {});
             }}
-            className="w-full rounded-xl bg-sea py-3 font-semibold text-white"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
           >
             <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
             {strings.guests.copyLink}
@@ -228,7 +228,7 @@ function InviteSheet({
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {strings.guests.send}
           </button>

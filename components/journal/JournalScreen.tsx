@@ -172,7 +172,7 @@ export function JournalScreen() {
       </div>
 
       {entries.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-faint">
+        <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {strings.journal.empty}
         </p>
       ) : (
@@ -180,7 +180,7 @@ export function JournalScreen() {
           {entries.map((entry) => (
             <li
               key={entry.id}
-              className="rounded-[20px] border border-line bg-white px-3.5 py-3.5"
+              className="rounded-[20px] border border-line bg-surface px-3.5 py-3.5"
             >
               <div className="flex items-start gap-2.5">
                 <span
@@ -280,7 +280,7 @@ export function JournalScreen() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={strings.journal.placeholder}
-            className="mt-2.5 w-full rounded-[13px] border border-sun-deep/20 bg-white/70 px-3 py-2.5 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+            className="mt-2.5 w-full rounded-[13px] border border-sun-deep/20 bg-surface/70 px-3 py-2.5 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
           />
           <div className="mt-2 flex items-center justify-between gap-2">
             <div
@@ -296,7 +296,7 @@ export function JournalScreen() {
                   aria-checked={mood === m}
                   onClick={() => setMood(mood === m ? null : m)}
                   className={`grid h-11 w-11 place-items-center rounded-full text-xl leading-none transition-opacity ${
-                    mood === m ? "bg-white/80" : "opacity-50"
+                    mood === m ? "bg-surface/80" : "opacity-50"
                   }`}
                 >
                   {m}
@@ -305,7 +305,7 @@ export function JournalScreen() {
             </div>
             <label
               className={`flex cursor-pointer items-center gap-1.5 rounded-[11px] px-2.5 py-2 text-[11.5px] font-bold ${
-                photo ? "bg-sea-tint text-sea" : "bg-white/70 text-ink-soft"
+                photo ? "bg-sea-tint text-sea" : "bg-surface/70 text-ink-soft"
               }`}
             >
               <CameraIcon className="h-4 w-4" />
@@ -322,7 +322,7 @@ export function JournalScreen() {
             type="button"
             onClick={() => void handlePublish()}
             disabled={saving || !body.trim()}
-            className="mt-2.5 min-h-[44px] w-full rounded-[13px] bg-sun-deep py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
+            className="mt-2.5 min-h-[44px] w-full rounded-[13px] bg-sun-deep py-2.5 text-[12.5px] font-bold text-paper disabled:opacity-50"
           >
             {strings.journal.publish}
           </button>

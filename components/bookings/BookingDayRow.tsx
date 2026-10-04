@@ -75,7 +75,7 @@ export function BookingDayRow({
         aria-label={`${strings.bookings.openBooking}: ${booking.title}`}
         className="flex w-full items-center gap-2.5 px-3.5 py-2 text-start hover:bg-sea-tint/60"
       >
-        <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg bg-white text-sea-deep">
+        <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg bg-surface text-sea-deep">
           <Icon className="h-[14px] w-[14px]" strokeWidth={1.7} />
         </span>
         <span className="min-w-0 flex-1">

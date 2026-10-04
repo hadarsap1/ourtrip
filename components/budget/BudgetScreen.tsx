@@ -181,7 +181,7 @@ export function BudgetScreen() {
       {/* Three numbers, three cards - spent, left, per day. The old screen made
           you read a paragraph of a card to find any of them. */}
       <div className="grid grid-cols-3 gap-2.5">
-        <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
+        <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
           <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
             {strings.budget.kpiSpent}
           </p>
@@ -189,7 +189,7 @@ export function BudgetScreen() {
             {formatMoney(Math.round(spent), "ILS")}
           </p>
         </div>
-        <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
+        <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
           <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
             {remaining < 0 ? strings.budget.kpiOver : strings.budget.kpiRemaining}
           </p>
@@ -218,7 +218,7 @@ export function BudgetScreen() {
 
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
-      <section className="rounded-[18px] border border-line bg-white px-3.5 py-3">
+      <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[12.5px] font-bold text-ink">
             {budgetForProgress > 0
@@ -305,7 +305,7 @@ export function BudgetScreen() {
       </section>
 
       {/* category rows, ruled rather than carded; tap → edit planned amount */}
-      <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+      <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
         <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
           <h2 className="text-xs font-bold text-ink">
             {strings.budget.byCategory}
@@ -313,7 +313,7 @@ export function BudgetScreen() {
           <button
             type="button"
             onClick={() => setCategoryForm({ category: null })}
-            className="min-h-[40px] rounded-full bg-white px-3 py-1 text-[11px] font-bold text-sea"
+            className="min-h-[40px] rounded-full bg-surface px-3 py-1 text-[11px] font-bold text-sea"
           >
             + {strings.budget.addCategory}
           </button>
@@ -400,7 +400,7 @@ export function BudgetScreen() {
       <ConverterCard />
 
       {/* recent expenses */}
-      <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+      <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
         <header className="bg-paper-deep px-3.5 py-2.5">
           <h2 className="text-xs font-bold text-ink">
             {strings.budget.recentExpenses}
@@ -456,7 +456,7 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setExpenseForm({ expense: null })}
-          className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+          className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
           style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
         >
           {strings.budget.addExpense}
@@ -465,7 +465,7 @@ export function BudgetScreen() {
           type="button"
           onClick={() => setQuickLines(true)}
           disabled={categories.length === 0}
-          className="rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft disabled:opacity-50"
+          className="rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft disabled:opacity-50"
         >
           {strings.budget.quickLines}
         </button>
