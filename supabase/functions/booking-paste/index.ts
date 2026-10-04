@@ -100,12 +100,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const today = new Date().toISOString().slice(0, 10);
   const { data: tripMembers } = await service.from("members").select("id").eq("trip_id", me.trip_id);
   const ids = (tripMembers ?? []).map((m) => m.id);
-  const { data: usage } = await service.from("ai_usage").select("member_id, calls").eq("fn", FN).eq("day", today).in("member_id", ids);
+  const { data: usage, error: usageError } = await service.from("ai_usage").select("member_id, calls").eq("fn", FN).eq("day", today).in("member_id", ids);
+  // Fail CLOSED: without the usage table (00041) there is no limit to enforce,
+  // and an unlimited paid endpoint is worse than a disabled one.
+  if (usageError) {
+    console.error(`${FN}: ai_usage unavailable`);
+    return json({ ok: false, error: "not_configured" }, 503);
+  }
   const mine = usage?.find((u) => u.member_id === me.id)?.calls ?? 0;
   const tripTotal = (usage ?? []).reduce((s, u) => s + u.calls, 0);
   if (mine >= PER_MEMBER_DAILY || tripTotal >= TRIP_DAILY) return json({ ok: false, error: "rate_limited" }, 429);
   // Counted before the call: a timed-out call still cost money.
-  await service.from("ai_usage").upsert({ member_id: me.id, fn: FN, day: today, calls: mine + 1, updated_at: new Date().toISOString() });
+  const { error: countError } = await service
+    .from("ai_usage")
+    .upsert({ member_id: me.id, fn: FN, day: today, calls: mine + 1, updated_at: new Date().toISOString() });
+  if (countError) return json({ ok: false, error: "not_configured" }, 503);
 
   const started = Date.now();
   const anthropic = new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 0 });
