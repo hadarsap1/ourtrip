@@ -38,7 +38,8 @@ export function Ring({
     <span role="img" aria-label={label ?? strings.ui.percent.replace("{n}", String(Math.round(frac * 100)))} className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={trackVar} strokeWidth={stroke} />
-        <circle
+        {/* No arc at 0: a zero-length dash with a round cap draws a stray dot. */}
+        {frac > 0 && <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
@@ -48,7 +49,7 @@ export function Ring({
           strokeLinecap="round"
           strokeDasharray={`${c * frac} ${c}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
+        />}
       </svg>
       {children && <span className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</span>}
     </span>

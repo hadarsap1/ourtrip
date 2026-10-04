@@ -19,6 +19,10 @@ import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
+import { BudgetV2 } from "./BudgetV2";
+import { isEnabled } from "@/lib/flags";
+import { listDays } from "@/lib/data/itinerary";
+import type { ItineraryDay } from "@/lib/types";
 
 function daysBetween(fromISO: string, toISO: string): number {
   return Math.floor(
@@ -44,6 +48,8 @@ export function BudgetScreen() {
   const [quickLines, setQuickLines] = useState(false);
   // Today's local currency, so a new expense opens in the money you're holding.
   const [localCurrency, setLocalCurrency] = useState<string | null>(null);
+  // Budget v2: itinerary days place each expense in a country.
+  const [days, setDays] = useState<ItineraryDay[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -76,6 +82,16 @@ export function BudgetScreen() {
           if (!cancelled) setLocalCurrency(currencyForCountry(code));
         })
         .catch(() => {});
+      if (isEnabled("budgetV2")) {
+        void readQuery<{ days: ItineraryDay[] }>(queryKeys.itinerary(activeTrip.id)).then((hit) => {
+          if (!cancelled && hit?.data.days) setDays(hit.data.days);
+        });
+        void listDays(activeTrip.id)
+          .then((d) => {
+            if (!cancelled) setDays(d);
+          })
+          .catch(() => {});
+      }
       // Cache-first (F9): last good data paints at once, the network refresh follows.
       const cached = await readQuery<{ cats: typeof categories; exps: typeof expenses }>(queryKeys.budget(activeTrip.id));
       if (cached && !cancelled) {
@@ -155,6 +171,7 @@ export function BudgetScreen() {
     categories.find((c) => c.id === id)?.label_he ?? "";
 
   const position = tripPosition(trip?.start_date, trip?.end_date, today);
+  const v2 = isEnabled("budgetV2");
   // Shared with the home screen's budget block, so the two cannot drift apart
   // again: they once drew the same bar from different numbers.
   const { remaining, usedPct } = resolveBudgetProgress(
@@ -185,8 +202,21 @@ export function BudgetScreen() {
     <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
       <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.budget}</h1>
 
+      {v2 && (
+        <BudgetV2
+          trip={trip}
+          categories={categories}
+          expenses={expenses}
+          days={days}
+          budgetForProgress={budgetForProgress}
+          remaining={remaining}
+          onEditCategory={(category) => setCategoryForm({ category })}
+        />
+      )}
+
       {/* Three numbers, three cards - spent, left, per day. The old screen made
           you read a paragraph of a card to find any of them. */}
+      {!v2 && (
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
           <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-ink-soft">
@@ -222,6 +252,7 @@ export function BudgetScreen() {
           </p>
         </div>
       </div>
+      )}
 
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
@@ -312,6 +343,7 @@ export function BudgetScreen() {
       </section>
 
       {/* category rows, ruled rather than carded; tap → edit planned amount */}
+      {!v2 && (
       <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
         <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
           <h2 className="text-xs font-bold text-ink">
@@ -403,6 +435,17 @@ export function BudgetScreen() {
           </ul>
         )}
       </section>
+      )}
+
+      {v2 && (
+        <button
+          type="button"
+          onClick={() => setCategoryForm({ category: null })}
+          className="self-start rounded-full px-3 text-[12px] font-bold text-sea"
+        >
+          + {strings.budget.addCategory}
+        </button>
+      )}
 
       <ConverterCard />
 

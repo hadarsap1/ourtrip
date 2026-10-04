@@ -62,6 +62,19 @@ export async function prefetchOfflineEssentials(force = false): Promise<void> {
         }
         if (landed + ids.length > 0) await requestPersistentStorage();
       })(),
+      // Exchange rates (Phase 2.4): every currency on the route plus USD, so a
+      // purchase converts in airplane mode with the last known rate.
+      (async () => {
+        const [{ listDays }, { currencyForCountry }, { warmFxRates }] = await Promise.all([
+          import("@/lib/data/itinerary"),
+          import("@/lib/currencies"),
+          import("@/lib/data/expenses"),
+        ]);
+        const days = await listDays(trip.id);
+        const codes = [...new Set(days.map((d) => d.country_code).filter(Boolean))] as string[];
+        const currencies = codes.map((c) => currencyForCountry(c)).filter((c): c is string => Boolean(c));
+        await warmFxRates([...currencies, "USD"]);
+      })(),
     ];
     const results = await Promise.allSettled(steps);
     if (results.every((r) => r.status === "fulfilled")) {
