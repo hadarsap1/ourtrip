@@ -64,7 +64,7 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
                 <tile.Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </span>
               {tile.badge != null && tile.badge > 0 && (
-                <span className="absolute -left-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
+                <span className="absolute -end-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
                   {tile.badge > 9 ? "9+" : tile.badge}
                 </span>
               )}

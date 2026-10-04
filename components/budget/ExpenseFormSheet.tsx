@@ -265,7 +265,7 @@ function ExpenseForm({
           <span className={labelClass}>
             {strings.budget.category}
             {isNew && (
-              <span className="mr-1 text-xs font-normal text-ink-soft">
+              <span className="ms-1 text-xs font-normal text-ink-soft">
                 · {strings.budget.categoryTapHint}
               </span>
             )}

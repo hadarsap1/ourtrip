@@ -83,7 +83,7 @@ function ExpensePrompt({
         <p className="text-sm text-ink-soft">
           {strings.bookings.expensePromptBody}
           {booking.cost != null && (
-            <span className="mr-1 font-semibold text-ink" dir="ltr">
+            <span className="ms-1 font-semibold text-ink" dir="ltr">
               {formatMoney(booking.cost, booking.currency ?? "ILS")}
             </span>
           )}

@@ -91,7 +91,7 @@ export function GuestsAdminScreen() {
                     }`}
                   >
                     {revoked ? strings.guests.revoked : strings.guests.active}
-                    <span className="mr-1 font-normal text-ink-soft">
+                    <span className="ms-1 font-normal text-ink-soft">
                       · {formatDate(row.created_at.slice(0, 10))}
                     </span>
                   </span>

@@ -164,7 +164,7 @@ export function ChecklistsScreen() {
           <h1 className="text-2xl font-bold">
             {openList.title}
             {openList.is_template && (
-              <span className="mr-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
+              <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
                 {strings.checklists.templates}
               </span>
             )}
@@ -341,7 +341,7 @@ export function ChecklistsScreen() {
                     className="min-w-0 flex-1 text-start font-semibold text-ink"
                   >
                     {template.title}
-                    <span className="mr-2 text-xs font-normal text-ink-soft" dir="ltr">
+                    <span className="ms-2 text-xs font-normal text-ink-soft" dir="ltr">
                       ({itemsOf(template.id).length})
                     </span>
                   </button>

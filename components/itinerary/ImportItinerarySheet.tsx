@@ -79,7 +79,7 @@ export function ImportItinerarySheet({
           type="file"
           accept=".xlsx,.xls,.csv,.txt"
           onChange={(e) => void handleFile(e)}
-          className="block w-full text-sm text-ink-soft file:ml-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
+          className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
         />
 
         {busy && !preview && (

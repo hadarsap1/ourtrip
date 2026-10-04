@@ -210,8 +210,8 @@ export function MessagesScreen() {
                 key={message.id}
                 className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
                   mine
-                    ? "mr-auto bg-sea text-on-sea"
-                    : "ml-auto bg-surface text-ink"
+                    ? "ms-auto bg-sea text-on-sea"
+                    : "me-auto bg-surface text-ink"
                 }`}
               >
                 <p
@@ -221,7 +221,7 @@ export function MessagesScreen() {
                 >
                   {senderName(message.sender_id)}
                   <span
-                    className={`mr-1.5 font-normal ${
+                    className={`ms-1.5 font-normal ${
                       mine ? "text-sea-tint" : "text-ink-soft"
                     }`}
                   >

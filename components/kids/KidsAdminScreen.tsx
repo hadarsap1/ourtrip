@@ -145,7 +145,7 @@ export function KidsAdminScreen() {
                         {strings.kids.deviceActive}
                       </>
                     )}
-                    <span className="mr-1 font-normal text-ink-soft">
+                    <span className="ms-1 font-normal text-ink-soft">
                       · {strings.kids.connectedAt}{" "}
                       {formatDate(device.created_at.slice(0, 10))}
                     </span>

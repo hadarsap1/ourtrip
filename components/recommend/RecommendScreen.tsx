@@ -251,7 +251,7 @@ export function RecommendScreen() {
                     type="button"
                     onClick={() => fromDay(d)}
                     disabled={loading}
-                    className="flex w-full items-center justify-between px-4 py-3 text-right text-sm hover:bg-paper-deep disabled:opacity-50"
+                    className="flex w-full items-center justify-between px-4 py-3 text-start text-sm hover:bg-paper-deep disabled:opacity-50"
                   >
                     <span className="font-medium text-ink">
                       {d.location_name || formatShortDate(d.date)}
@@ -402,7 +402,7 @@ export function RecommendScreen() {
                 <button
                   type="button"
                   onClick={() => onAddToDay(d)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-right hover:bg-paper-deep"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-start hover:bg-paper-deep"
                 >
                   <span className="font-medium text-ink">
                     {d.location_name || formatShortDate(d.date)}

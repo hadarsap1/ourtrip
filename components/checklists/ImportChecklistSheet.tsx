@@ -95,7 +95,7 @@ export function ImportChecklistSheet({
           type="file"
           accept=".xlsx,.xls,.csv,.txt"
           required
-          className="block w-full text-base text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
+          className="block w-full text-base text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
         />
 
         {error && <p className="text-sm text-rose-600">{error}</p>}

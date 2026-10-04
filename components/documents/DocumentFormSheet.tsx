@@ -129,7 +129,7 @@ function DocumentForm({
               required
               accept="application/pdf,image/*"
               onChange={(e) => handleFilePick(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-ink-soft file:ml-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
+              className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
             />
           </div>
         )}

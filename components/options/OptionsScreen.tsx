@@ -526,7 +526,7 @@ export function OptionsScreen() {
                 {g.areas.map((a) => (
                   <div key={a.area || "_"}>
                     {a.area && (
-                      <h3 className="mb-1 flex flex-wrap items-baseline gap-x-1.5 pr-1 text-xs font-semibold text-ink-soft">
+                      <h3 className="mb-1 flex flex-wrap items-baseline gap-x-1.5 ps-1 text-xs font-semibold text-ink-soft">
                         {a.area}
                         {(() => {
                           const t = tally.get(a.area.trim().toLowerCase());
