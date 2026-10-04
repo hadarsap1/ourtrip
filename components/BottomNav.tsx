@@ -21,9 +21,10 @@ export function BottomNav() {
 
   return (
     // Opaque, not paper/90 + blur: translucency muddies text over the warm
-    // background. Hidden from lg up, where the side rail takes over.
+    // background. Hidden from lg up, where the side rail takes over. A flex
+    // row under <main>, not position:fixed - see the body in app/layout.tsx.
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="relative z-50 shrink-0 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label={strings.nav.bottomBarLabel}
     >
       <ul className="flex items-start gap-0.5 px-1.5 pt-[9px] pb-3">

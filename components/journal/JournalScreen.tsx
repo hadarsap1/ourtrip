@@ -136,7 +136,7 @@ export function JournalScreen() {
   const initial = (id: string) => (memberName(id) || "•").slice(0, 1);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-5 pb-8 sm:max-w-2xl lg:max-w-4xl">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-5 pb-8 sm:max-w-2xl lg:max-w-4xl">
       {/* The place leads, the way a scrapbook page would - logistics sit quiet
           beneath it. Heebo 800 stands in for the display face. */}
       <header>
