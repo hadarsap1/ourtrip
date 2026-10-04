@@ -98,6 +98,11 @@ async function fetchPinRow(tripId: string): Promise<PinRow | null> {
   return readLocal(tripId);
 }
 
+/** Whether a PIN is known on this device, without the network (offline open). */
+export function hasLocalDocPin(tripId: string): boolean {
+  return readLocal(tripId) !== null;
+}
+
 export async function hasDocPin(tripId: string): Promise<boolean> {
   return (await fetchPinRow(tripId)) !== null;
 }
