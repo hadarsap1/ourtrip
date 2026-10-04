@@ -39,7 +39,7 @@ export type ChecklistPreview = {
   open: { id: string; label: string }[];
 };
 
-export type BudgetSummary = BudgetTotals & { spent: number };
+export type BudgetSummary = BudgetTotals & { spent: number; spentToday?: number };
 
 export type HomeSummary = {
   budget: BudgetSummary | null;
@@ -109,7 +109,7 @@ export async function loadHomeSummary(
     await Promise.all([
       client.from("trips").select("total_budget").eq("id", tripId).maybeSingle(),
       client.from("budget_categories").select("planned_amount").eq("trip_id", tripId),
-      client.from("expenses").select("amount_ils").eq("trip_id", tripId),
+      client.from("expenses").select("amount_ils, spent_on").eq("trip_id", tripId),
       // The oldest list is the one the trip was planned around; a list made
       // later is usually a side list (packing, shopping) and not the deadline
       // one the home screen should lead with.
@@ -129,6 +129,9 @@ export async function loadHomeSummary(
   const budget: BudgetSummary = {
     ...resolveBudgetTotals(trip.data?.total_budget ?? null, categories.data ?? []),
     spent: (expenses.data ?? []).reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
+    spentToday: (expenses.data ?? [])
+      .filter((e) => e.spent_on === todayISO)
+      .reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
   };
 
   const checklistRow = checklists.data?.[0] ?? null;

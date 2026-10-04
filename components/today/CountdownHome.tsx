@@ -24,6 +24,8 @@ import {
 } from "@/lib/data/readiness";
 import { todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { PreTripHome } from "./PreTripHome";
 import type { Trip } from "@/lib/types";
 
 // The home screen between now and departure.
@@ -97,6 +99,10 @@ export function CountdownHome({ trip }: { trip: Trip }) {
     );
     await setItemChecked(itemId, true).catch(() => {});
     await loadSummary();
+  }
+
+  if (isEnabled("todayV2")) {
+    return <PreTripHome trip={trip} checks={checks} outstanding={outstanding} summary={summary} onTick={(id) => void tick(id)} />;
   }
 
   const left = daysUntil(todayISO(), trip.start_date);

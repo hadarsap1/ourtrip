@@ -396,6 +396,24 @@ export const strings = {
     noResults: "לא נמצאה מדינה",
   },
 
+  // Today v2 (1.6)
+  todayV2: {
+    countdownLabel: "ספירה לאחור",
+    firstStop: "{place} ראשונה",
+    daysToGo: "ימים ליציאה",
+    departs: "יציאה ב-{date}",
+    openItems: "דברים פתוחים",
+    left: "נשאר",
+    leftToday: "נשאר להיום",
+    dailyShare: "מתוך {amount} ליום",
+    leftWholeTrip: "נשאר לכל הטיול",
+    segmentsTitle: "המדינות בדרך",
+    fullRoute: "כל המסלול",
+    nightsPlanned: "ימים מתוכננים",
+    urgentTitle: "הכי דחוף עכשיו",
+    quickActions: "קיצורים",
+  },
+
   capture: {
     expense: "הוצאה",
     note: "פתק",
