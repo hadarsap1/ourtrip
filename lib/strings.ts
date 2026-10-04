@@ -287,6 +287,19 @@ export const strings = {
     },
   },
 
+  mapV2: {
+    sheetLabel: "פרטי המפה",
+    tabsLabel: "תצוגה",
+    tabRoute: "מסלול",
+    tabDays: "ימים",
+    tabBookings: "הזמנות",
+    allDays: "כל הימים",
+    noPlaces: "אין עדיין מקומות עם מיקום בשהות הזאת",
+    noBookings: "אין עדיין הזמנות",
+    navigate: "ניווט",
+    nights: "{n} לילות",
+  },
+
   planMyDay: {
     open: "תכנן לי את היום",
     title: "תכנון יום · {date}",
