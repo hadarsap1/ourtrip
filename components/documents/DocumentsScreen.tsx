@@ -37,6 +37,7 @@ import {
   enrollPasskey,
   getVaultKey,
   hasDocPin,
+  hasLocalDocPin,
   isThisDeviceEnrolled,
   isVaultUnlocked,
   listPasskeys,
@@ -59,6 +60,9 @@ import {
 import { useMember } from "@/lib/useMember";
 import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
+import { offlineNow, withTimeout } from "@/lib/offline/network";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { getSupabase } from "@/lib/supabase";
 import { DocPinSheet } from "./DocPinSheet";
 import { DocumentFormSheet } from "./DocumentFormSheet";
 
@@ -71,6 +75,16 @@ const TAG_ICON: Record<string, ComponentType<IconProps>> = {
   visa: VisaIcon,
   other: DocumentIcon,
 };
+
+const NETWORK_MS = 8000;
+
+/** The signed-in user's id from the locally stored session - no network. */
+async function sessionUserId(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
 
 export function DocumentsScreen() {
   const { member } = useMember();
@@ -111,13 +125,22 @@ export function DocumentsScreen() {
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
+  // Offline (F1): the list itself is kept on the device per signed-in user
+  // (metadata only - titles, tags, expiry; never file contents), so the
+  // screen opens with no network and the offline copies stay reachable.
+  const cacheKeyRef = useRef<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+
   const refresh = useCallback(async (tripId: string) => {
+    if (offlineNow()) throw new Error("offline");
     const [nextDocs, ids] = await Promise.all([
-      listDocuments(tripId),
+      withTimeout(listDocuments(tripId), NETWORK_MS),
       listOfflineDocumentIds(),
     ]);
     setDocs(nextDocs);
     setOfflineIds(new Set(ids));
+    setFromCache(false);
+    if (cacheKeyRef.current) void writeQuery(cacheKeyRef.current, nextDocs);
   }, []);
 
   useEffect(() => {
@@ -129,20 +152,37 @@ export function DocumentsScreen() {
         return;
       }
       setTrip(activeTrip);
+      const uid = await withTimeout(sessionUserId(), 2000).catch(() => null);
+      cacheKeyRef.current = uid ? `${queryKeys.documents(activeTrip.id)}:${uid}` : null;
+      // Known locally first, so an offline open still knows a PIN exists.
+      setPinExists(hasLocalDocPin(activeTrip.id));
+      setUnlocked(isVaultUnlocked(activeTrip.id));
+      setThisDeviceEnrolled(isThisDeviceEnrolled(activeTrip.id));
       try {
         await refresh(activeTrip.id);
-        if (!cancelled) {
-          setPinExists(await hasDocPin(activeTrip.id));
-          setUnlocked(isVaultUnlocked(activeTrip.id));
-          setThisDeviceEnrolled(isThisDeviceEnrolled(activeTrip.id));
-          setPasskeys(await listPasskeys(activeTrip.id));
-          setBioSupported(await isPasskeySupported());
-        }
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        const cached = cacheKeyRef.current ? await readQuery<Document[]>(cacheKeyRef.current) : null;
+        if (cancelled) return;
+        if (cached) {
+          setDocs(cached.data);
+          setOfflineIds(new Set(await listOfflineDocumentIds()));
+          setFromCache(true);
+        } else if (!offlineNow()) {
+          showToast(strings.common.error);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
+      // Online extras - never block the list.
+      void withTimeout(hasDocPin(activeTrip.id), NETWORK_MS)
+        .then((v) => !cancelled && setPinExists(v))
+        .catch(() => {});
+      void withTimeout(listPasskeys(activeTrip.id), NETWORK_MS)
+        .then((v) => !cancelled && setPasskeys(v))
+        .catch(() => {});
+      void isPasskeySupported()
+        .then((v) => !cancelled && setBioSupported(v))
+        .catch(() => {});
     })();
     return () => {
       cancelled = true;
@@ -201,6 +241,13 @@ export function DocumentsScreen() {
   }, [trip, isKid]);
 
   // Runs on open, when the vault unlocks and when the connection returns.
+  // Back online after an offline open: swap the device copy for the live list.
+  useEffect(() => {
+    if (!trip || !online || !fromCache) return;
+    const t = setTimeout(() => void refresh(trip.id).catch(() => {}), 0);
+    return () => clearTimeout(t);
+  }, [trip, online, fromCache, refresh]);
+
   // Owners only: kid devices never auto-download (they see few documents and
   // the tablet is shared).
   useEffect(() => {
@@ -473,6 +520,12 @@ export function DocumentsScreen() {
           </span>
         )}
       </header>
+
+      {fromCache && (
+        <p className="rounded-[12px] bg-paper-deep px-3 py-2 text-[12px] font-semibold text-ink-soft">
+          {strings.offline.fromCache}
+        </p>
+      )}
 
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute inset-y-0 start-3.5 my-auto h-[17px] w-[17px] text-ink-faint" />
