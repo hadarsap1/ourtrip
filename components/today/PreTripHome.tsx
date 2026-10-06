@@ -46,7 +46,6 @@ export function PreTripHome({
   const today = todayISO();
   const left = daysUntil(today, trip.start_date);
   const first = summary?.timeline[0] ?? null;
-  const fill = (first && COUNTRY_FILL[first.countryCode]) || "bg-sea";
 
   const budget = summary?.budget ?? null;
   const progress = budget ? resolveBudgetProgress(budget, budget.spent) : null;
@@ -59,15 +58,19 @@ export function PreTripHome({
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 pt-4 pb-8 sm:max-w-2xl">
       <IosInstallHint />
-      {/* Hero: photo slot of the first country (gradient + flag until a photo exists). */}
+      {/* Hero: the first country's flag on a calm tint (a full-bleed country
+          colour read as a warning - Hadar, 06/10/2026). */}
       <section aria-label={t.countdownLabel}>
-        <div className={`relative h-[200px] overflow-hidden rounded-3xl ${fill}`}>
-          <div className="absolute inset-0 bg-gradient-to-b from-white/15 to-black/35" />
+        <div className="relative flex h-[200px] flex-col items-center overflow-hidden rounded-3xl bg-sea-tint pt-5">
           {first && (
-            <span className="absolute start-4 top-4 flex h-8 items-center gap-1.5 rounded-full bg-black/35 pe-3 ps-2 text-sm font-semibold text-white">
-              <span aria-hidden="true">{flagEmoji(first.countryCode)}</span>
-              {t.firstStop.replace("{place}", splitDestinationLabel(first.countryCode, first.locationName).country)}
-            </span>
+            <>
+              <span aria-hidden="true" className="text-[72px] leading-none">
+                {flagEmoji(first.countryCode)}
+              </span>
+              <p className="mt-2 text-sm font-bold text-sea-deep">
+                {t.firstStop.replace("{place}", splitDestinationLabel(first.countryCode, first.locationName).country)}
+              </p>
+            </>
           )}
         </div>
         <div className="relative mx-4 -mt-14 flex items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-[var(--e2)]">

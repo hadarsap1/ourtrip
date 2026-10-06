@@ -628,7 +628,7 @@ export const strings = {
   // Today v2 (1.6)
   todayV2: {
     countdownLabel: "ספירה לאחור",
-    firstStop: "{place} ראשונה",
+    firstStop: "היעד הראשון: {place}",
     daysToGo: "ימים ליציאה",
     departs: "יציאה ב-{date}",
     openItems: "דברים פתוחים",
