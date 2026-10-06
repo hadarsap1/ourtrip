@@ -24,7 +24,6 @@ import {
   SparkleIcon,
   VisaIcon,
 } from "@/components/icons";
-import { InstallPrompt } from "@/components/InstallPrompt";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { strings } from "@/lib/strings";
@@ -240,9 +239,6 @@ export function MoreScreen() {
         </Link>
       </header>
 
-      {/* Renders only while the app is not installed yet, so it disappears for
-          good once it is on the home screen. */}
-      <InstallPrompt />
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>
