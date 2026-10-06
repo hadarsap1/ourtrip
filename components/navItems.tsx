@@ -21,6 +21,7 @@ import {
   RouteIcon,
   SparkleIcon,
   VisaIcon,
+  SettingsIcon,
 } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
@@ -107,6 +108,7 @@ export const ownerRailGroups: NavGroup[] = [
       { href: "/notifications", label: strings.more.menuNotifications, Icon: BellIcon },
       { href: "/ready", label: strings.ready.menu, Icon: PlaneIcon },
       { href: "/visas", label: strings.more.menuVisas, Icon: VisaIcon },
+      { href: "/settings", label: strings.settings.title, Icon: SettingsIcon },
     ],
   },
 ];

@@ -8,6 +8,7 @@ import {
   ChecklistIcon,
   PlaneIcon,
   ChevronForwardIcon,
+  SettingsIcon,
   CoinIcon,
   type IconProps,
   JournalIcon,
@@ -24,9 +25,6 @@ import {
   VisaIcon,
 } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { ThemePicker } from "@/components/settings/ThemePicker";
-import { StepsSettings } from "@/components/settings/StepsSettings";
-import { BackupCard } from "@/components/settings/BackupCard";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { strings } from "@/lib/strings";
@@ -230,14 +228,21 @@ export function MoreScreen() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col gap-4 px-4 pt-6 pb-4 sm:max-w-2xl lg:max-w-4xl">
-      <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.more}</h1>
+      <header className="flex items-center justify-between gap-2">
+        <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.more}</h1>
+        {/* Theme, steps, backup live in Settings - More stays a menu. */}
+        <Link
+          href="/settings"
+          aria-label={strings.settings.title}
+          className="-me-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-soft active:bg-paper-deep"
+        >
+          <SettingsIcon className="h-6 w-6" />
+        </Link>
+      </header>
 
       {/* Renders only while the app is not installed yet, so it disappears for
           good once it is on the home screen. */}
       <InstallPrompt />
-      <ThemePicker />
-      <StepsSettings />
-      <BackupCard />
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>
