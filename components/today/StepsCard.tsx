@@ -62,6 +62,8 @@ export function StepsCard({ tripId }: { tripId: string }) {
   const ids = data.parents.map((p) => p.id);
   const week = weekBars(data.rows, ids, today);
   const max = barScale(week);
+  // No reports this week: names + "not reported" only, no row of empty bars.
+  const anyWeek = week.some((d) => ids.some((id) => (d.steps[id] ?? 0) > 0));
   const place = stay ? findCountry(stay.code)?.he ?? stay.code : null;
 
   return (
@@ -84,6 +86,7 @@ export function StepsCard({ tripId }: { tripId: string }) {
           );
         })}
       </div>
+      {anyWeek && (
       <figure className="mt-3" aria-label={t.weekAria}>
         <div className="flex h-16 items-end justify-between gap-1.5" dir="ltr">
           {week.map((d) => (
@@ -104,6 +107,7 @@ export function StepsCard({ tripId }: { tripId: string }) {
           ))}
         </figcaption>
       </figure>
+      )}
     </section>
   );
 }
