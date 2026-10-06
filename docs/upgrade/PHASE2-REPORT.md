@@ -93,7 +93,7 @@ Spec (Hadar, 04/10) → result:
 
 Files: `supabase/migrations/00042_steps.sql`, `supabase/functions/steps-ingest/index.ts`, `supabase/functions/_shared/stepsIngest.ts` (+test 4), `lib/stepsView.ts` (+test 3), `lib/data/steps.ts`, `components/today/StepsCard.tsx`, `components/settings/StepsSettings.tsx`, `components/today/TodayScreen.tsx`, `components/more/MoreScreen.tsx`, `docs/STEPS-SHORTCUT.md`.
 
-❌ Hebrew names of Shortcuts actions vary by iOS version; the guide gives the English names too. ❌ Not tested on a real iPhone (no device here) - the flag stays off until both phones report. ❌ 00042 is not applied yet (same connector limit as 00041).
+❌ Hebrew names of Shortcuts actions vary by iOS version; the guide gives the English names too. ❌ Not tested on a real iPhone (no device here) - the flag stays off until both phones report. 00041 and 00042 applied 06/10/2026 (versions 20261006103933 `ai_usage`, 20261006104002 `steps`).
 
 ## 2.7 ICS export - flag `icsExport` (off)
 

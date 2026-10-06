@@ -1571,7 +1571,15 @@ in trip 1, an owner of trip 2.
 | Unauthenticated call never reaches the model | ✅ PASS live - `booking-paste` without Authorization → 401 `UNAUTHORIZED_NO_AUTH_HEADER` |
 | Missing `ai_usage` cannot bypass the limit | ✅ by code - usage read/write error → 503 before the model call (fixed during review) |
 
-X 00041/00042 RLS not yet probed live with real kid/guest sessions; they are not applied yet (connector cannot run DDL).
+Applied live 06/10/2026 (versions 20261006103933, 20261006104002). Catalog check on the live DB:
+
+| Table | RLS | Policies | anon SELECT |
+|---|---|---|---|
+| `ai_usage` | on | `ai_usage_owner_select` (select only) | none |
+| `daily_steps` | on | `daily_steps_owner_all` | none |
+| `step_tokens` | on | owner select / update / delete, `step_tokens_self_insert` | none |
+
+X Not yet probed live with real kid/guest sessions (the local Postgres test covers it).
 
 ## Offline hardening - device copies and the saved login - 04/10/2026
 
