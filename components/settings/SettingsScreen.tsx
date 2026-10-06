@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronBackIcon } from "@/components/icons";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { ThemePicker } from "@/components/settings/ThemePicker";
 import { StepsSettings } from "@/components/settings/StepsSettings";
 import { BackupCard } from "@/components/settings/BackupCard";
@@ -20,6 +21,9 @@ export function SettingsScreen() {
         </Link>
         <h1 className="text-[22px] font-extrabold text-ink">{strings.settings.title}</h1>
       </header>
+      {/* Renders only while the app is not installed yet (Safari tab), and
+          disappears for good once it is on the home screen. */}
+      <InstallPrompt />
       <ThemePicker />
       <StepsSettings />
       <BackupCard />
