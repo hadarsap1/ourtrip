@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
 import { ChevronForwardIcon, DocumentIcon, PhrasebookIcon, PinIcon, WarningIcon } from "@/components/icons";
 import { Ring, ProgressBar } from "@/components/ui/Progress";
@@ -97,6 +98,10 @@ export function PreTripHome({
           </Link>
         </div>
       </section>
+
+      {/* Steps (Phase 2, flag stepsCounter): also before departure, so the
+          parents can check the iPhone setup and see the training walks. */}
+      <StepsCard tripId={trip.id} />
 
       {/* Budget with today's share. */}
       {budget && progress && (
