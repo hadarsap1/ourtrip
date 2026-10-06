@@ -204,7 +204,6 @@ export function BudgetScreen() {
 
       {v2 && (
         <BudgetV2
-          trip={trip}
           categories={categories}
           expenses={expenses}
           days={days}

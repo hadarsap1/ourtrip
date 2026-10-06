@@ -11,7 +11,6 @@ import { daysUntil, type ReadyCheck } from "@/lib/data/readiness";
 import { splitDestinationLabel } from "@/lib/data/facts";
 import type { HomeSummary, TimelineStretch } from "@/lib/data/homeDashboard";
 import { resolveBudgetProgress } from "@/lib/budget";
-import { todayAllowance } from "@/lib/todayBudget";
 import { flagEmoji } from "@/lib/countries";
 import { formatDate, formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -51,10 +50,6 @@ export function PreTripHome({
 
   const budget = summary?.budget ?? null;
   const progress = budget ? resolveBudgetProgress(budget, budget.spent) : null;
-  const allowance =
-    budget && progress
-      ? todayAllowance({ remaining: progress.remaining, spentToday: budget.spentToday ?? 0, today, start: trip.start_date, end: trip.end_date })
-      : null;
   const money = (n: number) => formatMoney(Math.round(n), "ILS");
 
   // Readiness ring: share of checks done is unknown here, so the ring shows
@@ -103,7 +98,7 @@ export function PreTripHome({
           parents can check the iPhone setup and see the training walks. */}
       <StepsCard tripId={trip.id} />
 
-      {/* Budget with today's share. */}
+      {/* Budget: what is left for the whole trip (no daily share - much is prepaid). */}
       {budget && progress && (
         <Link href="/budget" className="block rounded-2xl border border-line bg-surface p-4 shadow-card">
           <p className="ot-kicker">{strings.nav.budget}</p>
@@ -115,19 +110,10 @@ export function PreTripHome({
               <span className="text-xs text-ink-soft">{t.left}</span>
             </Ring>
             <div className="min-w-0">
-              {allowance ? (
-                <>
-                  <p className="text-sm text-ink-soft">{t.leftToday}</p>
-                  <p className={`text-[40px] font-extrabold leading-[44px] tabular-nums ${allowance.leftToday < 0 ? "text-alert" : "text-ink"}`}>
-                    <bdi>{money(allowance.leftToday)}</bdi>
-                  </p>
-                  <p className="text-xs text-ink-soft">{t.dailyShare.replace("{amount}", money(allowance.dailyShare))}</p>
-                </>
-              ) : (
-                <p className="text-xl font-extrabold text-ink">
-                  <bdi>{money(progress.remaining)}</bdi>
-                </p>
-              )}
+              <p className="text-sm text-ink-soft">{t.leftWholeTrip}</p>
+              <p className={`text-[40px] font-extrabold leading-[44px] tabular-nums ${progress.remaining < 0 ? "text-alert" : "text-ink"}`}>
+                <bdi>{money(progress.remaining)}</bdi>
+              </p>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3">
@@ -136,8 +122,8 @@ export function PreTripHome({
               <span className="text-base font-bold tabular-nums text-ink"><bdi>{money(progress.spent)}</bdi></span>
             </p>
             <p className="flex flex-col">
-              <span className="text-xs text-ink-soft">{t.leftWholeTrip}</span>
-              <span className="text-base font-bold tabular-nums text-ink"><bdi>{money(progress.remaining)}</bdi></span>
+              <span className="text-xs text-ink-soft">{t.spentToday}</span>
+              <span className="text-base font-bold tabular-nums text-ink"><bdi>{money(budget.spentToday ?? 0)}</bdi></span>
             </p>
           </div>
         </Link>
