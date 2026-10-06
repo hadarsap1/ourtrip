@@ -7,9 +7,8 @@ import { dailySpend, finishedVisitSummaries, sparkPoints, spendByCountry } from 
 import { flagEmoji, findCountry } from "@/lib/countries";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { readFxStore } from "@/lib/fxCache";
-import { todayAllowance } from "@/lib/todayBudget";
 import { strings } from "@/lib/strings";
-import type { BudgetCategory, Expense, ItineraryDay, Trip } from "@/lib/types";
+import type { BudgetCategory, Expense, ItineraryDay } from "@/lib/types";
 
 const t = strings.budgetV2;
 const ils = (n: number) => formatMoney(Math.round(n), "ILS");
@@ -31,7 +30,6 @@ function ratesStamp(): string | null {
  * the itinerary days for the country view - so it all renders offline.
  */
 export function BudgetV2({
-  trip,
   categories,
   expenses,
   days,
@@ -39,7 +37,6 @@ export function BudgetV2({
   remaining,
   onEditCategory,
 }: {
-  trip: Trip | null;
   categories: BudgetCategory[];
   expenses: Expense[];
   days: ItineraryDay[];
@@ -52,38 +49,34 @@ export function BudgetV2({
   const today = todayISO();
 
   const spentToday = expenses.filter((e) => e.spent_on === today).reduce((s, e) => s + e.amount_ils, 0);
-  const allowance =
-    budgetForProgress > 0
-      ? todayAllowance({ remaining, spentToday, today, start: trip?.start_date ?? null, end: trip?.end_date ?? null })
-      : null;
+  const spentTotal = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
   const series = dailySpend(expenses, today, 14);
   const spentBy = new Map<string, number>();
   for (const e of expenses) spentBy.set(e.category_id, (spentBy.get(e.category_id) ?? 0) + e.amount_ils);
   const byCountry = spendByCountry(expenses, days, today);
   const summaries = finishedVisitSummaries(expenses, days, today);
   const catLabel = (id: string | null) => categories.find((c) => c.id === id)?.label_he ?? "";
-  const over = allowance ? allowance.leftToday < 0 : false;
+  // No "left today": much is prepaid (flights, hotels, attractions), so a
+  // daily share means nothing (Hadar, 06/10/2026). The trip total is the number.
+  const over = remaining < 0;
 
   return (
     <div className="space-y-3">
-      {/* hero: the one number for today */}
+      {/* hero: what is left for the whole trip */}
       <section className="rounded-[20px] border border-line bg-surface px-4 py-3.5 shadow-[var(--e1)]">
-        <p className="ot-kicker">{over ? t.overToday : t.leftToday}</p>
-        {allowance ? (
-          <>
-            <p className={`mt-1 text-[40px] font-extrabold leading-[46px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
-              <bdi>{ils(Math.abs(allowance.leftToday))}</bdi>
-            </p>
-            <p className="text-[12px] text-ink-soft">{t.dailyShare.replace("{amount}", ils(allowance.dailyShare))}</p>
-          </>
+        <p className="ot-kicker">{over ? t.overTrip : t.leftTrip}</p>
+        {budgetForProgress > 0 ? (
+          <p className={`mt-1 text-[40px] font-extrabold leading-[46px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
+            <bdi>{ils(Math.abs(remaining))}</bdi>
+          </p>
         ) : (
           <p className="mt-1 text-sm text-ink-soft">{t.noBudget}</p>
         )}
         <div className="mt-3 flex items-end justify-between gap-3 border-t border-line pt-3">
           <div>
-            <p className="text-[12px] text-ink-soft">{remaining < 0 ? t.overTrip : t.leftTrip}</p>
-            <p className={`text-[17px] font-extrabold tabular-nums ${remaining < 0 ? "text-danger" : "text-ink"}`}>
-              <bdi>{budgetForProgress > 0 ? ils(Math.abs(remaining)) : "-"}</bdi>
+            <p className="text-[12px] text-ink-soft">{t.spentTotal}</p>
+            <p className="text-[17px] font-extrabold tabular-nums text-ink">
+              <bdi>{ils(spentTotal)}</bdi>
             </p>
           </div>
           <figure className="text-end">

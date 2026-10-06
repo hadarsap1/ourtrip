@@ -11,7 +11,6 @@ import { daysUntil, type ReadyCheck } from "@/lib/data/readiness";
 import { splitDestinationLabel } from "@/lib/data/facts";
 import type { HomeSummary, TimelineStretch } from "@/lib/data/homeDashboard";
 import { resolveBudgetProgress } from "@/lib/budget";
-import { todayAllowance } from "@/lib/todayBudget";
 import { flagEmoji } from "@/lib/countries";
 import { formatDate, formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -47,14 +46,9 @@ export function PreTripHome({
   const today = todayISO();
   const left = daysUntil(today, trip.start_date);
   const first = summary?.timeline[0] ?? null;
-  const fill = (first && COUNTRY_FILL[first.countryCode]) || "bg-sea";
 
   const budget = summary?.budget ?? null;
   const progress = budget ? resolveBudgetProgress(budget, budget.spent) : null;
-  const allowance =
-    budget && progress
-      ? todayAllowance({ remaining: progress.remaining, spentToday: budget.spentToday ?? 0, today, start: trip.start_date, end: trip.end_date })
-      : null;
   const money = (n: number) => formatMoney(Math.round(n), "ILS");
 
   // Readiness ring: share of checks done is unknown here, so the ring shows
@@ -64,15 +58,19 @@ export function PreTripHome({
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 pt-4 pb-8 sm:max-w-2xl">
       <IosInstallHint />
-      {/* Hero: photo slot of the first country (gradient + flag until a photo exists). */}
+      {/* Hero: the first country's flag on a calm tint (a full-bleed country
+          colour read as a warning - Hadar, 06/10/2026). */}
       <section aria-label={t.countdownLabel}>
-        <div className={`relative h-[200px] overflow-hidden rounded-3xl ${fill}`}>
-          <div className="absolute inset-0 bg-gradient-to-b from-white/15 to-black/35" />
+        <div className="relative flex h-[200px] flex-col items-center overflow-hidden rounded-3xl bg-sea-tint pt-5">
           {first && (
-            <span className="absolute start-4 top-4 flex h-8 items-center gap-1.5 rounded-full bg-black/35 pe-3 ps-2 text-sm font-semibold text-white">
-              <span aria-hidden="true">{flagEmoji(first.countryCode)}</span>
-              {t.firstStop.replace("{place}", splitDestinationLabel(first.countryCode, first.locationName).country)}
-            </span>
+            <>
+              <span aria-hidden="true" className="text-[72px] leading-none">
+                {flagEmoji(first.countryCode)}
+              </span>
+              <p className="mt-2 text-sm font-bold text-sea-deep">
+                {t.firstStop.replace("{place}", splitDestinationLabel(first.countryCode, first.locationName).country)}
+              </p>
+            </>
           )}
         </div>
         <div className="relative mx-4 -mt-14 flex items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-[var(--e2)]">
@@ -103,7 +101,7 @@ export function PreTripHome({
           parents can check the iPhone setup and see the training walks. */}
       <StepsCard tripId={trip.id} />
 
-      {/* Budget with today's share. */}
+      {/* Budget: what is left for the whole trip (no daily share - much is prepaid). */}
       {budget && progress && (
         <Link href="/budget" className="block rounded-2xl border border-line bg-surface p-4 shadow-card">
           <p className="ot-kicker">{strings.nav.budget}</p>
@@ -115,19 +113,10 @@ export function PreTripHome({
               <span className="text-xs text-ink-soft">{t.left}</span>
             </Ring>
             <div className="min-w-0">
-              {allowance ? (
-                <>
-                  <p className="text-sm text-ink-soft">{t.leftToday}</p>
-                  <p className={`text-[40px] font-extrabold leading-[44px] tabular-nums ${allowance.leftToday < 0 ? "text-alert" : "text-ink"}`}>
-                    <bdi>{money(allowance.leftToday)}</bdi>
-                  </p>
-                  <p className="text-xs text-ink-soft">{t.dailyShare.replace("{amount}", money(allowance.dailyShare))}</p>
-                </>
-              ) : (
-                <p className="text-xl font-extrabold text-ink">
-                  <bdi>{money(progress.remaining)}</bdi>
-                </p>
-              )}
+              <p className="text-sm text-ink-soft">{t.leftWholeTrip}</p>
+              <p className={`text-[40px] font-extrabold leading-[44px] tabular-nums ${progress.remaining < 0 ? "text-alert" : "text-ink"}`}>
+                <bdi>{money(progress.remaining)}</bdi>
+              </p>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3">
@@ -136,8 +125,8 @@ export function PreTripHome({
               <span className="text-base font-bold tabular-nums text-ink"><bdi>{money(progress.spent)}</bdi></span>
             </p>
             <p className="flex flex-col">
-              <span className="text-xs text-ink-soft">{t.leftWholeTrip}</span>
-              <span className="text-base font-bold tabular-nums text-ink"><bdi>{money(progress.remaining)}</bdi></span>
+              <span className="text-xs text-ink-soft">{t.spentToday}</span>
+              <span className="text-base font-bold tabular-nums text-ink"><bdi>{money(budget.spentToday ?? 0)}</bdi></span>
             </p>
           </div>
         </Link>
