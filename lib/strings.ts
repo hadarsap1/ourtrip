@@ -10,6 +10,7 @@ export const strings = {
   // entries and a screen reader announced nothing on arrival. The root layout
   // appends " · OurTrip" through a title template.
   pageTitles: {
+    settings: "הגדרות",
     stats: "הטיול במספרים",
     today: "היום",
     itinerary: "מסלול",
@@ -1784,5 +1785,9 @@ export const strings = {
     ready: "יש גרסה חדשה של האפליקציה",
     action: "רענון",
     dismiss: "אחר כך",
+  },
+  settings: {
+    title: "הגדרות",
+    back: "חזרה לעוד",
   },
 } as const;
