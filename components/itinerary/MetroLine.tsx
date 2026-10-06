@@ -28,7 +28,8 @@ export function MetroLine({ legs, onOpen }: { legs: MetroLeg[]; onOpen: (key: st
 
   return (
     <nav aria-label={t.label} className="-mx-1 overflow-x-auto pb-1">
-      <ol className="flex min-w-max px-1">
+      {/* pe-8: the last stop clears the edge, so it reads as "scroll for more" */}
+      <ol className="flex min-w-max ps-1 pe-8">
         {stops.map((s, i) => {
           const current = s.phase === "current";
           const dates = `${formatShortDate(s.from)}-${formatShortDate(s.to)}`;

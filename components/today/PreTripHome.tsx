@@ -105,19 +105,18 @@ export function PreTripHome({
       {budget && progress && (
         <Link href="/budget" className="block rounded-2xl border border-line bg-surface p-4 shadow-card">
           <p className="ot-kicker">{strings.nav.budget}</p>
-          <div className="mt-1 flex items-center gap-4">
-            <Ring value={Math.max(0, 100 - progress.usedPct)} size={88} stroke={8} colorVar={progress.overSpent ? "var(--danger)" : "var(--brand)"} trackVar="var(--brand-soft)">
-              <span className="text-base font-extrabold tabular-nums text-ink">
-                <bdi>{Math.max(0, 100 - progress.usedPct)}%</bdi>
-              </span>
-              <span className="text-xs text-ink-soft">{t.left}</span>
-            </Ring>
-            <div className="min-w-0">
-              <p className="text-sm text-ink-soft">{t.leftWholeTrip}</p>
-              <p className={`text-[40px] font-extrabold leading-[44px] tabular-nums ${progress.remaining < 0 ? "text-alert" : "text-ink"}`}>
-                <bdi>{money(progress.remaining)}</bdi>
-              </p>
-            </div>
+          <p className="mt-1 text-sm text-ink-soft">{t.leftWholeTrip}</p>
+          <p className={`text-[36px] font-extrabold leading-[42px] tabular-nums ${progress.remaining < 0 ? "text-alert" : "text-ink"}`}>
+            <bdi>{money(progress.remaining)}</bdi>
+          </p>
+          {/* One number + a thin bar of what is used (a ring said the same twice). */}
+          <div className="mt-2">
+            <ProgressBar
+              value={Math.min(100, progress.usedPct)}
+              colorClass={progress.overSpent ? "bg-danger" : "bg-sea"}
+              label={t.usedPct.replace("{pct}", String(progress.usedPct))}
+            />
+            <p className="mt-1 text-xs text-ink-soft">{t.usedPct.replace("{pct}", String(progress.usedPct))}</p>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3">
             <p className="flex flex-col">
@@ -195,24 +194,16 @@ export function PreTripHome({
 function SegmentCard({ stretch, today }: { stretch: TimelineStretch; today: string }) {
   const { country, area } = splitDestinationLabel(stretch.countryCode, stretch.locationName);
   const until = daysUntil(today, stretch.from);
-  const fill = COUNTRY_FILL[stretch.countryCode] ?? "bg-sea";
   return (
     <article className={`flex w-[248px] shrink-0 flex-col gap-3 rounded-2xl border bg-surface p-4 ${stretch.isCurrent || stretch.isNext ? "border-sea" : "border-line"}`}>
       <div className="flex items-center gap-3">
-        <span className="relative h-14 w-14 shrink-0">
-          <span className={`block h-14 w-14 rounded-full ${fill}`}>
-            <span className="block h-full w-full rounded-full bg-gradient-to-b from-white/20 to-black/30" />
-          </span>
-          <span aria-hidden="true" className="absolute -bottom-0.5 -end-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-surface text-sm">
-            {flagEmoji(stretch.countryCode)}
-          </span>
+        {/* The flag itself, not a full country colour (Hadar, 06/10/2026). */}
+        <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-paper-deep text-[30px] leading-none">
+          {flagEmoji(stretch.countryCode)}
         </span>
         <span className="min-w-0">
           <span className="block truncate text-base font-bold text-ink">{area ?? country}</span>
-          <span className="block text-xs text-ink-soft">
-            {area ? `${country} · ` : ""}
-            <bdi>{stretch.countryCode}</bdi>
-          </span>
+          {area && <span className="block text-xs text-ink-soft">{country}</span>}
           <span className="block text-xs text-ink-soft" dir="ltr">
             {formatShortDate(stretch.from)} - {formatShortDate(stretch.to)}
           </span>

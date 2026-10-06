@@ -635,6 +635,7 @@ export const strings = {
     openItems: "דברים פתוחים",
     left: "נשאר",
     spentToday: "הוצאנו היום",
+    usedPct: "{pct}% מהתקציב נוצל",
     leftWholeTrip: "נשאר לכל הטיול",
     segmentsTitle: "המדינות בדרך",
     fullRoute: "כל המסלול",

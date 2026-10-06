@@ -314,7 +314,7 @@ export function EmergencyScreen() {
                     href="https://embassies.gov.il"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold underline"
+                    className="mt-1 flex min-h-[44px] items-center font-semibold underline"
                   >
                     {strings.emergency.verifyLink}
                   </a>
