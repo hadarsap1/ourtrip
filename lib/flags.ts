@@ -78,3 +78,15 @@ export function setFlagOverride(key: FlagKey, value: boolean | null): void {
     // Private mode or blocked storage: overrides are a testing aid only.
   }
 }
+
+/**
+ * Testing on a phone: `?test=budgetV2,stepsCounter` switches flags on for THIS
+ * device only (same localStorage override as above), `?test=-budgetV2` turns
+ * one off, `?test=reset` clears every override. Runs as an inline script
+ * before first paint, so every screen reads the new value; then the parameter
+ * is removed from the address bar. Flags are UI only: what a role can read is
+ * still decided by RLS, so a kid turning on budgetV2 sees an empty screen.
+ */
+export const FLAG_BOOT_SCRIPT = `(function(){try{var u=new URL(location.href);var v=u.searchParams.get("test");if(v===null)return;var k=${JSON.stringify(
+  "ourtrip-flags"
+)};var known=${JSON.stringify(Object.keys(FLAG_DEFAULTS))};var o={};try{o=JSON.parse(localStorage.getItem(k)||"{}")||{}}catch(e){}if(v==="reset"){o={}}else{v.split(",").forEach(function(s){s=s.trim();var off=s.charAt(0)==="-";if(off)s=s.slice(1);if(known.indexOf(s)>=0)o[s]=!off})}localStorage.setItem(k,JSON.stringify(o));u.searchParams.delete("test");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch(e){}})();`;

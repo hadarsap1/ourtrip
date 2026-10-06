@@ -13,6 +13,7 @@ import { ThemeSync } from "@/components/ThemeSync";
 import { CaptureFab } from "@/components/capture/CaptureFab";
 import { strings } from "@/lib/strings";
 import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
+import { FLAG_BOOT_SCRIPT } from "@/lib/flags";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
@@ -58,6 +59,8 @@ export default function RootLayout({
         {/* Runs before first paint: picks light/dark from the saved choice or the
             OS, so a dark-mode phone never flashes cream on open (F7). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* ?test=flagA,flagB - per-device feature testing (lib/flags.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: FLAG_BOOT_SCRIPT }} />
       </head>
       {/* The body never scrolls: it is exactly one screen tall and <main> is
           the only scroller. With the document scrolling and the bottom bar
