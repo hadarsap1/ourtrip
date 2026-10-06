@@ -26,7 +26,6 @@ import {
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { ThemePicker } from "@/components/settings/ThemePicker";
 import { StepsSettings } from "@/components/settings/StepsSettings";
-import { FeatureTestToggles } from "@/components/settings/FeatureTestToggles";
 import { BackupCard } from "@/components/settings/BackupCard";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
@@ -238,7 +237,6 @@ export function MoreScreen() {
       <InstallPrompt />
       <ThemePicker />
       <StepsSettings />
-      <FeatureTestToggles />
       <BackupCard />
 
       <section>

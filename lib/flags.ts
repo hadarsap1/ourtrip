@@ -23,18 +23,19 @@ export const FLAG_DEFAULTS = {
   notificationsV2: true,
   // Needs supabase/migrations/00039_shift_stretch_nights.sql applied first.
   nightsStepper: true,
-  // Phase 2 (flip after tests pass)
-  bookingsV2: false,
-  // Needs migration 00042 (daily_steps, step_tokens) + the steps-ingest function; on after both iPhones are tested.
-  stepsCounter: true, // on 06/10/2026 at Hadar's request (live on his iPhone)
-  planMyDay: false,
-  ideaVotes: false,
-  budgetV2: false,
-  tripOverview: false,
-  statsStamps: false,
-  icsExport: false,
-  backupExport: false,
-  mapSheet: false,
+  // Phase 2 - all built items on 06/10/2026 at Hadar's request, to be tested live.
+  // Turn one off here (or per device: ?test=-name) to roll it back.
+  bookingsV2: true,
+  // Needs migration 00042 (daily_steps, step_tokens) + the steps-ingest function.
+  stepsCounter: true,
+  planMyDay: true,
+  ideaVotes: false, // skipped (decision 04/10/2026), not built
+  budgetV2: true,
+  tripOverview: true,
+  statsStamps: true,
+  icsExport: true,
+  backupExport: true,
+  mapSheet: true,
   // Phase 3 (off by default)
   cameraTranslate: false,
   receiptScan: false,

@@ -1788,20 +1788,4 @@ export const strings = {
     action: "רענון",
     dismiss: "אחר כך",
   },
-  featureTest: {
-    title: "פיצ'רים בבדיקה",
-    hint: "מדליק או מכבה פיצ'ר חדש רק במכשיר הזה, כדי לבדוק אותו לפני שמפעילים לכולם. האפליקציה תתרענן.",
-    reset: "חזרה לברירת המחדל",
-    names: {
-      stepsCounter: "מונה צעדים",
-      budgetV2: "תקציב חדש",
-      planMyDay: "תכנון היום",
-      bookingsV2: "הזמנות חדשות + ייבוא מטקסט",
-      mapSheet: "מפה חדשה",
-      tripOverview: "קו המסע",
-      icsExport: "ייצוא ליומן",
-      statsStamps: "סטטיסטיקות וחותמות",
-      backupExport: "גיבוי וייצוא",
-    },
-  },
 } as const;

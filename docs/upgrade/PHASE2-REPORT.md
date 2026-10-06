@@ -136,3 +136,7 @@ Files: `lib/backup.ts` (+test 4), `lib/data/backup.ts`, `components/settings/Bac
 Security: reads only through the owner's own session (RLS); kids/guests never see the card. The file lands on the parent's phone - it contains the itinerary, bookings with confirmation codes and the budget, so it should be kept like any private file.
 
 ❌ Not exercised against the live database here (no signed-in session); verify once on a phone. ❌ A full restore (writing back) is intentionally not built.
+
+## Rollout (06/10/2026)
+
+At Hadar's request every built Phase 2 item is on by default, to be tested live: `bookingsV2`, `stepsCounter`, `planMyDay`, `budgetV2`, `tripOverview`, `statsStamps`, `icsExport`, `backupExport`, `mapSheet`. `ideaVotes` stays off (skipped, not built). The per-device testing switches were removed from More. To roll one back: set it to `false` in `lib/flags.ts` and deploy, or on one device open `?test=-name`. QA run against the fake backend with all of them on: 80/80.
