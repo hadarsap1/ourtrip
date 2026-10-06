@@ -26,7 +26,7 @@ export const FLAG_DEFAULTS = {
   // Phase 2 (flip after tests pass)
   bookingsV2: false,
   // Needs migration 00042 (daily_steps, step_tokens) + the steps-ingest function; on after both iPhones are tested.
-  stepsCounter: false,
+  stepsCounter: true, // on 06/10/2026 at Hadar's request (live on his iPhone)
   planMyDay: false,
   ideaVotes: false,
   budgetV2: false,
