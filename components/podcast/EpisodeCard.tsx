@@ -1,6 +1,6 @@
 "use client";
 
-import { ShareIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { roundMinutes } from "@/lib/audio";
 import { formatDate } from "@/lib/format";
@@ -20,6 +20,7 @@ export function EpisodeCard({
   onReject,
   onToggleShared,
   onDelete,
+  onEdit,
   onShare,
   onFeedbackChanged,
   onToast,
@@ -36,6 +37,8 @@ export function EpisodeCard({
   onReject?: () => void;
   onToggleShared?: (shared: boolean) => void;
   onDelete?: () => void;
+  /** Parents: trim, cut, add, rename (EpisodeEditor). */
+  onEdit?: () => void;
   onShare?: () => void;
   onFeedbackChanged: () => void;
   onToast: (message: string) => void;
@@ -118,7 +121,7 @@ export function EpisodeCard({
         />
       )}
 
-      {(onShare || onDelete) && (
+      {(onShare || onDelete || onEdit) && (
         <div className="flex items-center justify-end gap-2 border-t border-sv-line pt-3">
           {onShare && (
             <button
@@ -127,6 +130,15 @@ export function EpisodeCard({
               className="flex items-center gap-1.5 rounded-xl border border-sv-line px-3 py-2 text-sm font-semibold text-sv-ink"
             >
               <ShareIcon className="h-4 w-4" /> {strings.share.whatsapp}
+            </button>
+          )}
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex items-center gap-1.5 rounded-xl border border-sv-line px-3 py-2 text-sm font-semibold text-sv-ink"
+            >
+              <EditIcon className="h-4 w-4" /> {strings.podcastEdit.open}
             </button>
           )}
           {onDelete && (

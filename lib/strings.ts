@@ -1536,7 +1536,7 @@ export const strings = {
   guestHome: {
     welcome: "ברוכים הבאים!",
     subtitle: "הסיפורים, התמונות והפודקאסט של משפחת סו מהדרך",
-    tileStories: "סיפורים מהשביל",
+    tileStories: "סיפורים מהמסע",
     tilePodcast: "הפודקאסט",
     tilePhotos: "תמונות",
     tileJournal: "יומן מסע",
@@ -1829,7 +1829,7 @@ export const strings = {
   // "סו-בב עולם!" - the sharing brand (docs/DESIGN-sharing.md)
   sovev: {
     name: "סו-בב עולם!",
-    tagline: "סיפורים, תמונות וקולות מהשביל",
+    tagline: "סיפורים, תמונות וקולות מהמסע",
     family: "משפחת סו",
   },
 
@@ -1844,7 +1844,7 @@ export const strings = {
   },
 
   stories: {
-    title: "סיפורים מהשביל",
+    title: "סיפורים מהמסע",
     newStory: "סיפור חדש",
     empty: "עוד אין סיפורים. הראשון יכול להיות שלכם",
     emptyGuest: "עוד אין סיפורים. הם יופיעו כאן כשנתחיל לכתוב מהדרך",
@@ -1941,6 +1941,38 @@ export const strings = {
     deleteConfirm: "למחוק את הפרק?",
     playError: "לא הצלחנו לנגן. מנסים שוב",
     rejected: "לא אושר",
+  },
+
+  // parents' podcast editor (migration 00047)
+  podcastEdit: {
+    open: "עריכה",
+    title: "עריכת פרק",
+    loading: "טוען את ההקלטה…",
+    decodeFailed: "הדפדפן הזה לא הצליח לפתוח את ההקלטה לעריכה. אפשר עדיין לשנות שם ותיאור",
+    selection: "הקטע המסומן",
+    from: "מ-",
+    to: "עד",
+    startLabel: "תחילת הקטע",
+    endLabel: "סוף הקטע",
+    playSelection: "השמעת הקטע",
+    playAll: "השמעת הכל",
+    stopPlaying: "עצירה",
+    keep: "להשאיר רק את הקטע",
+    cut: "למחוק את הקטע",
+    undo: "ביטול הפעולה האחרונה",
+    addTitle: "הוספה בסוף הפרק",
+    recordMore: "הקלטה נוספת",
+    appendTake: "הוספה לפרק",
+    appendEpisode: "צירוף פרק אחר",
+    pickEpisode: "בחירת פרק לצירוף",
+    appended: "נוסף בסוף הפרק",
+    length: "אורך: {time}",
+    tooLong: "הפרק ארוך מ-{n} דקות. מקצרים לפני השמירה",
+    save: "שמירה",
+    saving: "שומר…",
+    saved: "הפרק עודכן",
+    deleteMerged: "הצירוף נשמר. למחוק את הפרקים שצורפו, כדי שלא יופיעו פעמיים?",
+    audioUnchanged: "ההקלטה לא השתנתה",
   },
 
   feedback: {

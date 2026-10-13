@@ -1643,3 +1643,14 @@ anonymous REST check (anon key against `posts`, `post_photos`, `episodes`,
 `comments`, `reactions`) and one guest-session check of `guest-media`. The
 local shim reproduces the policy semantics, not Supabase's storage server or
 Edge runtime.
+
+### Addendum - parents edit episodes (migration 00047) - 13/10/2026
+
+Same local harness. `47_podcast_editing.sql`: a kid cannot swap the audio of
+even their own pending take (episodes_guard reverts `file_path`); a parent
+replaces the audio and the episode keeps `approved` + `shared_with_guests`; a
+guest cannot touch it; the bucket accepts `audio/wav`. 4/4 PASS (71 probes in
+total across 00043-00047). Browser check against PostgREST: decode, cut, undo,
+keep, join another episode, rename, save (new `.wav`, duration 5 s, approval
+and sharing kept, joined episode deleted after confirmation), and no edit
+button for a kid - 8/8 PASS.

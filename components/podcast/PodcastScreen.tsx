@@ -7,6 +7,7 @@ import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
 import { EpisodeCard } from "@/components/podcast/EpisodeCard";
 import { Recorder, type Take } from "@/components/podcast/Recorder";
+import { EpisodeEditor } from "@/components/podcast/EpisodeEditor";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
   countQueuedEpisodes,
@@ -37,6 +38,7 @@ export function PodcastScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState<{ text: string; url: string } | null>(null);
+  const [editing, setEditing] = useState<Episode | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const scrolled = useRef(false);
 
@@ -221,6 +223,7 @@ export function PodcastScreen() {
               })()
           : undefined
       }
+      onEdit={isOwner ? () => setEditing(episode) : undefined}
       onShare={
         episode.status === "approved" && (role === "guest" || (isOwner && episode.shared_with_guests))
           ? () => offerShare(episode)
@@ -269,6 +272,20 @@ export function PodcastScreen() {
         </section>
       </div>
 
+      {editing && (
+        <EpisodeEditor
+          episode={editing}
+          url={urls.get(editing.id) ?? null}
+          others={episodes}
+          urlOf={(id) => urls.get(id) ?? null}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void refresh(trip.id).catch(() => {});
+          }}
+          onToast={showToast}
+        />
+      )}
       {sharing && (
         <SharePrompt text={sharing.text} url={sharing.url} onClose={() => setSharing(null)} onToast={showToast} />
       )}

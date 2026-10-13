@@ -127,3 +127,43 @@ export async function deleteEpisode(episode: Episode): Promise<void> {
   if (error) throw new Error(error.message);
   await supabase.storage.from(BUCKET).remove([episode.file_path]);
 }
+
+// ---------- parents' editor (migration 00047) ----------
+
+export async function updateEpisodeDetails(
+  id: string,
+  details: { title: string; description: string | null }
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("episodes")
+    .update({ title: details.title.trim(), description: details.description?.trim() || null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Swaps in an edited take. The new file goes up first and the row moves to
+ * it; only then is the old file removed, so a failure part-way never leaves
+ * an episode pointing at nothing. Approval and sharing are untouched.
+ */
+export async function replaceEpisodeAudio(
+  episode: Episode,
+  wav: Blob,
+  durationSeconds: number
+): Promise<void> {
+  const supabase = requireClient();
+  const path = `${episode.trip_id}/${crypto.randomUUID()}.wav`;
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, wav, { contentType: "audio/wav" });
+  if (uploadError) throw new Error(uploadError.message);
+  const { error } = await supabase
+    .from("episodes")
+    .update({ file_path: path, mime_type: "audio/wav", duration_seconds: Math.round(durationSeconds) })
+    .eq("id", episode.id);
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([path]);
+    throw new Error(error.message);
+  }
+  await supabase.storage.from(BUCKET).remove([episode.file_path]);
+}

@@ -17,9 +17,13 @@ export type Take = { blob: Blob; mime: string; durationSeconds: number };
 export function Recorder({
   busy,
   onSave,
+  onAppend,
 }: {
   busy: boolean;
-  onSave: (take: Take, title: string, description: string) => Promise<boolean>;
+  /** New episode: the review step asks for a title and saves. */
+  onSave?: (take: Take, title: string, description: string) => Promise<boolean>;
+  /** Editor: the review step only offers to add this take to the episode. */
+  onAppend?: (take: Take) => Promise<boolean>;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [seconds, setSeconds] = useState(0);
@@ -141,7 +145,37 @@ export function Recorder({
 
   const progress = Math.min(1, seconds / MAX_EPISODE_SECONDS);
 
-  if (phase === "review" && take) {
+  if (phase === "review" && take && onAppend) {
+    return (
+      <div className="space-y-3">
+        <audio controls src={take.url} className="w-full" />
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={reset}
+            className="rounded-2xl border border-sv-line py-3 font-semibold text-sv-ink-soft disabled:opacity-60"
+          >
+            {strings.podcast.rerecord}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void onAppend(take).then((added) => {
+                if (added) reset();
+              })
+            }
+            className="rounded-2xl bg-sv-sage-fill py-3 font-bold text-white disabled:opacity-60"
+          >
+            {strings.podcastEdit.appendTake}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "review" && take && onSave) {
     return (
       <div className="space-y-3">
         <audio controls src={take.url} className="w-full" />
