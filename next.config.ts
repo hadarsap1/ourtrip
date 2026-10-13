@@ -10,8 +10,9 @@ import type { NextConfig } from "next";
 //   Permissions-Policy   geolocation is the app's most sensitive capability.
 //                        Restricting it to `self` means an embedded third
 //                        party can never prompt for the family's location.
-//                        Camera stays available for photo capture; the
-//                        microphone is never used, so it is denied outright.
+//                        Camera stays available for photo capture, and the
+//                        microphone for the kids' podcast (00044) - both
+//                        `self` only, never an embedded third party.
 //   Referrer-Policy      without it the full URL - and therefore which screen
 //                        and sometimes which record is open - rides along in
 //                        the Referer to Google, OSM and Open-Meteo on every
@@ -55,6 +56,9 @@ const CSP_REPORT_ONLY = [
   // Supabase REST/realtime/storage, weather, FX, OSM, Google (Maps + the GIS
   // token endpoint the Photos picker calls)
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://open.er-api.com https://api.frankfurter.dev https://nominatim.openstreetmap.org https://overpass-api.de https://maps.googleapis.com https://accounts.google.com https://www.googleapis.com",
+  // podcast audio: signed URLs from Supabase storage, blob: for the preview of
+  // a take before it is saved
+  "media-src 'self' blob: https://*.supabase.co",
   // GIS runs its OAuth token flow in an iframe
   "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
@@ -78,7 +82,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Permissions-Policy",
-            value: "geolocation=(self), camera=(self), microphone=()",
+            value: "geolocation=(self), camera=(self), microphone=(self)",
           },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
