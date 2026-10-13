@@ -5,14 +5,18 @@ import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
+  bridgeMessage,
+  bridgeTarget,
   channelsFor,
   listMessages,
   markRead,
   sendMessage,
   subscribeMessages,
+  unbridgeMessage,
   type MessageChannel,
   type WallMessage,
 } from "@/lib/data/messages";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
 import { MessagesIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
@@ -166,6 +170,17 @@ export function MessagesScreen() {
     id === member.id
       ? strings.wall.me
       : (members.find((m) => m.id === id)?.display_name ?? "");
+  const roleOf = (id: string) => members.find((m) => m.id === id)?.role;
+  const isOwner = member.role === "owner";
+
+  // The bridge (DESIGN-wall-bridge): parents carry one message at a time
+  // between the feeds. Every write here is an owner write RLS already allows.
+  const runBridge = (fn: () => Promise<void>) => {
+    if (!trip) return;
+    void fn()
+      .then(() => refresh(trip.id, member.id, channel))
+      .catch(() => showToast(strings.common.error));
+  };
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pt-4">
@@ -208,6 +223,9 @@ export function MessagesScreen() {
         ) : (
           messages.map((message) => {
             const mine = message.sender_id === member.id;
+            const isCopy = Boolean(message.origin_message_id || message.origin_comment_id);
+            const target = isOwner ? bridgeTarget(message, roleOf(message.sender_id)) : null;
+            const soft = mine ? "text-sea-tint" : "text-ink-soft";
             return (
               <div
                 key={message.id}
@@ -231,7 +249,44 @@ export function MessagesScreen() {
                     {formatShortDate(message.created_at.slice(0, 10))}
                   </span>
                 </p>
+                {message.bridged_context && (
+                  <p className={`text-xs ${soft}`}>{message.bridged_context}</p>
+                )}
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                {isCopy && message.bridged_by && (
+                  <p className={`mt-1 flex items-center gap-2 text-xs ${soft}`}>
+                    {(message.channel === "guests" ? strings.wall.bridgedBy : strings.wall.shownBy).replace(
+                      "{name}",
+                      senderName(message.bridged_by)
+                    )}
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!(await askConfirm(strings.wall.undoConfirm))) return;
+                          runBridge(() => unbridgeMessage(message));
+                        }}
+                        className="font-semibold underline"
+                      >
+                        {strings.wall.undoBridge}
+                      </button>
+                    )}
+                  </p>
+                )}
+                {!isCopy && message.bridged_at && (isOwner || (mine && member.role === "kid")) && (
+                  <p className={`mt-1 text-xs font-semibold ${soft}`}>
+                    {isOwner ? strings.wall.bridgedOut : strings.wall.kidShared}
+                  </p>
+                )}
+                {target && !message.bridged_at && (
+                  <button
+                    type="button"
+                    onClick={() => runBridge(() => bridgeMessage(message, target, member.id))}
+                    className="mt-1 rounded-full bg-sea-tint px-3 text-xs font-bold text-sea-deep"
+                  >
+                    {target === "guests" ? strings.wall.shareWithGuests : strings.wall.showKids}
+                  </button>
+                )}
               </div>
             );
           })
