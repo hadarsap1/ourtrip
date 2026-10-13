@@ -70,6 +70,17 @@ Acceptance:
 
 Cut order if sprint 8 overruns: notifications first, recommendations second. Security checks and backups are never cut.
 
+## Sharing - "סו-בב עולם!" (approved 13/10/2026, docs/DESIGN-sharing.md)
+Build: bulk guest invites with labels; stories with audience + approval + journal-to-story; guest feed in the new brand; WhatsApp share prompt; kids' podcast with offline outbox and two-step approval/sharing; likes and comments; the parent-operated bridge between the walls; the open blog with copied photos.
+Acceptance:
+- [x] A kid's story or recording can never reach a guest without a parent approving it, and a kid's story can never be public - enforced in the database (scripts/rls probes 43/44/46)
+- [x] A guest sees a story's photos only when each is approved AND shared (probe 43)
+- [x] Kids never read comments; a comment reaches them only when a parent bridges it (probe 45, UI flow)
+- [x] Anonymous visitors read only live public stories and their copied photos (probe 46, REST check)
+- [x] Publishing offers a prepared WhatsApp line with the right link (UI flow)
+- [ ] Applied to the live project and the live anon + guest checks re-run
+- [ ] A real recording played back on an iPhone and an Android phone
+
 ## Backlog (post-launch / during trip)
 - ~~Email-forward booking extraction (Edge Function + Anthropic parsing)~~ **shipped 2026-09-14** as `gmail-bookings`: Gmail read-only via GIS, Anthropic extraction, owner reviews every candidate. See DECISIONS #21/#22
 - Memory book PDF export

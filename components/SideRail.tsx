@@ -70,7 +70,7 @@ export function SideRail() {
   const role = member?.role ?? (isKid ? "kid" : "owner");
   const unread = useUnreadWall();
 
-  if (pathname === "/kid-login" || pathname === "/login") return null;
+  if (pathname === "/kid-login" || pathname === "/login" || pathname.startsWith("/s/")) return null;
 
   const isOwner = role === "owner";
   const primary = isOwner

@@ -16,6 +16,7 @@ import {
   JournalIcon,
   MapIcon,
   MessagesIcon,
+  MicIcon,
   PhotosIcon,
   PhrasebookIcon,
   PinIcon,
@@ -23,8 +24,10 @@ import {
   RouteIcon,
   SparkleIcon,
   StarIcon,
+  StoryIcon,
   WeatherIcon,
 } from "@/components/icons";
+import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
 import { countryName } from "@/lib/data/emergency";
 import { loadToday, type TodayData } from "@/lib/data/today";
 import {
@@ -271,36 +274,53 @@ export function TodayScreen() {
   // ---------- guest portal home ----------
   if (member?.role === "guest") {
     const tiles = [
+      { href: "/stories", Icon: StoryIcon, label: strings.guestHome.tileStories },
+      { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
       { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
-      { href: "/journal", Icon: JournalIcon, label: strings.guestHome.tileJournal },
       { href: "/map", Icon: MapIcon, label: strings.guestHome.tileMap },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall },
+      { href: "/journal", Icon: JournalIcon, label: strings.guestHome.tileJournal },
     ];
+    // The guest portal wears the "סו-בב עולם!" brand: the illustration from
+    // the farewell invitation, parchment and ink (docs/DESIGN-sharing.md).
     return (
-      <div className="mx-auto max-w-lg space-y-4 px-4 pt-8 pb-8 sm:max-w-2xl">
-        <h1 className="text-2xl font-bold">{strings.guestHome.welcome}</h1>
-        <p className="text-sm text-ink-soft">{strings.guestHome.subtitle}</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {tiles.map((tile) => (
-            <Link
-              key={tile.href}
-              href={tile.href}
-              className="flex flex-col items-center gap-2.5 rounded-[18px] border border-line bg-surface p-6 active:bg-sea-tint/50"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-sea-tint text-sea-deep">
-                <tile.Icon className="h-6 w-6" />
-              </span>
-              <span className="font-semibold text-ink">{tile.label}</span>
-            </Link>
-          ))}
+      <SovevScreen>
+        <div className="mx-auto max-w-lg space-y-5 px-4 pt-6 pb-8 sm:max-w-2xl">
+          <SovevBrand size="lg" subtitle={strings.sovev.tagline} />
+          {/* eslint-disable-next-line @next/next/no-img-element -- static brand illustration */}
+          <img
+            src="/sovev/scene.jpg"
+            alt=""
+            className="aspect-[5/3] w-full rounded-[22px] border-2 border-sv-ink object-cover"
+          />
+          <div>
+            <h1 className="sovev-display text-2xl font-extrabold text-sv-ink">{strings.guestHome.welcome}</h1>
+            <p className="text-sm text-sv-ink-soft">{strings.guestHome.subtitle}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {tiles.map((tile) => (
+              <Link
+                key={tile.href}
+                href={tile.href}
+                className="flex flex-col items-center gap-2.5 rounded-[18px] border-2 border-sv-line bg-sv-card p-5 active:bg-sv-sage-soft"
+              >
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
+                  <tile.Icon className="h-6 w-6" />
+                </span>
+                <span className="sovev-display text-center font-bold text-sv-ink">{tile.label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      </SovevScreen>
     );
   }
 
   // ---------- kid home variant (SPEC 2.1) ----------
   if (member?.role === "kid") {
     const kidTiles = [
+      { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
+      { href: "/stories", Icon: StoryIcon, label: strings.kidHome.tileStories },
       { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos },
       { href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket },
       {

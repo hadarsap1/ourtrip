@@ -14,7 +14,9 @@ function requireClient() {
  *  link + whether it was emailed via Resend. */
 export async function inviteGuest(
   email: string,
-  displayName: string
+  displayName: string,
+  /** Group label; undefined leaves an existing guest's label as it is. */
+  label?: string | null
 ): Promise<{ link: string; emailed: boolean }> {
   const { data, error } = await requireClient().functions.invoke(
     "guest-invite",
@@ -23,6 +25,7 @@ export async function inviteGuest(
         email,
         display_name: displayName,
         redirect_to: window.location.origin,
+        ...(label === undefined ? {} : { label }),
       },
     }
   );
@@ -49,6 +52,52 @@ export async function listAllowlist(
     .order("created_at");
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Group label for managing the list (migration 00043). Owner-only by RLS. */
+export async function setGuestLabel(
+  tripId: string,
+  email: string,
+  label: string | null
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("guests_allowlist")
+    .update({ label })
+    .eq("trip_id", tripId)
+    .eq("email", email);
+  if (error) throw new Error(error.message);
+}
+
+export type BulkInviteResult = {
+  email: string;
+  name: string;
+  ok: boolean;
+  link?: string;
+  emailed?: boolean;
+};
+
+/**
+ * One invite at a time, in order: Resend's free tier takes a couple of
+ * requests a second, and a class list arriving all at once would trip it.
+ * A failure is recorded and the rest carry on.
+ */
+export async function inviteMany(
+  guests: { name: string; email: string }[],
+  label: string | null,
+  onProgress: (done: number) => void
+): Promise<BulkInviteResult[]> {
+  const results: BulkInviteResult[] = [];
+  for (const [i, guest] of guests.entries()) {
+    try {
+      const { link, emailed } = await inviteGuest(guest.email, guest.name, label);
+      results.push({ ...guest, ok: true, link, emailed });
+    } catch {
+      results.push({ ...guest, ok: false });
+    }
+    onProgress(i + 1);
+    if (i < guests.length - 1) await new Promise((r) => setTimeout(r, 600));
+  }
+  return results;
 }
 
 /** Sets revoked_at - every guest policy re-checks it per query, so access

@@ -1591,3 +1591,66 @@ No policy change. What is kept on the device and what it can unlock:
 | A parent's list never shows on the kids' tablet | ✅ by code - cache key `documents:<trip>:<auth user id>`; the kid login has its own id |
 | Offline "allowed" by AuthGate grants no data | ✅ by design - only a login saved on this phone (with a refresh token) opens the shell offline; every server read still carries the real token through RLS |
 | Saved member row is cosmetic | ✅ by code - `ourtrip-member:<auth user id>`, used for UI mode only; RLS checks the token |
+
+## Sharing - stories, podcast, likes/comments, bridge, open blog (migrations 00043-00046) - 13/10/2026
+
+Environment: **local**, not the live project (the Supabase MCP connection was
+down in this session). `scripts/rls/run.sh` applies all 46 migrations to a
+throwaway Postgres 16 database on top of `scripts/rls/shim.sql` - the same
+roles (`anon`, `authenticated`, `service_role`), `auth.uid()` / `auth.jwt()`
+read from `request.jwt.claims` the way PostgREST sets them, and `storage`
+tables with RLS - then runs the probe files in `scripts/rls/probes/` as each
+role (owner, kid via a device-style `member_id` claim, active guest, revoked
+guest, signed-in stranger, anon). Every probe runs in a transaction that is
+rolled back. Re-run with `scripts/rls/run.sh`.
+
+Policies covering the feature: `posts_owner_all`, `posts_kid_select/insert/update/delete`,
+`posts_guest_select`, `posts_public_select`, `post_photos_select`,
+`post_photos_owner_write`, `post_photos_kid_insert/delete`,
+`post_photos_public_select`, `episodes_owner_all`,
+`episodes_kid_select/insert/update/delete`, `episodes_guest_select`,
+`reactions_owner_all`, `reactions_member_select/insert`, `reactions_self_delete`,
+`comments_owner_all`, `comments_guest_select/insert/delete` (no kid policy on
+comments, by design); triggers `posts_guard`, `episodes_enforce_kid_rules`,
+`episodes_guard`, `messages_bridge_guard`; storage policies `audio_bucket_*`
+(family read/upload, owner update/delete) and `public_stories_owner_*`.
+
+| Probe file | Checks | Result |
+|---|---|---|
+| `43_stories.sql` - kid insert forced to pending/family/unapproved; kid cannot approve, change audience, edit or delete an approved story, set a public copy path, or attach photos to a published story; a kid's story cannot be made public even by a parent; guest sees only approved guests stories past `publish_after`, and only the story photos that are approved AND shared; guest cannot write; revoked guest, stranger and anon see nothing | 23 | ✅ all PASS |
+| `44_podcast.sql` - kid recording forced pending + unshared, frozen after approval; guest hears nothing until approved AND shared; un-approving un-shares and re-approving does not re-share; guest cannot read or upload to the `audio` bucket; revoked guest and anon see nothing | 13 | ✅ all PASS |
+| `45_feedback_bridge.sql` - guest cannot like/comment what they cannot see, comment in someone else's name, or pre-mark a comment as shown to kids; bridge columns are stripped from a guest's own message; kid sees likes (with names) but zero comments and cannot comment; a comment is bridged once; the kid sees the bridged copy with its context and still cannot read `comments` | 17 | ✅ all PASS |
+| `46_public_stories.sql` - anon reads exactly the live public story and only its copied photo paths; no `photos`, `members`, `comments` or `reactions`; anon cannot comment or edit; a scheduled or draft public story stays hidden; guest/kid cannot write the public bucket; unpublishing removes the story and its photo rows from anon at once | 14 | ✅ all PASS |
+
+UI check against the same database (PostgREST 12 in front of it, a local stub
+for auth/storage/`guest-media`, the production build at 390px): owner, kid
+and guest sessions drove approve → publish → WhatsApp prompt, comment → "show
+the kids", kid message → "share with guests", a guest like and comment, and a
+kid story sent for approval. 19/19 assertions passed, including: the kid's
+unapproved story never reaches the guest, the kid sees no comment box and no
+comment text, the guest sees a passed-on message with "שיתף/ה: הדר". The new
+screens met the 44px tap-target and 12px type floors with no horizontal
+scroll, light and dark. Public page: `noindex, nofollow`, Open Graph from the
+public copy only; unknown and malformed slugs render "not available" without
+querying.
+
+Also fixed on the way: `guest-invite` interpolated the guest's display name
+into the invitation email unescaped; it is now HTML-escaped (a name pasted
+from a class list is untrusted text).
+
+X **To do on the live project after applying 00043-00046:** re-run the
+anonymous REST check (anon key against `posts`, `post_photos`, `episodes`,
+`comments`, `reactions`) and one guest-session check of `guest-media`. The
+local shim reproduces the policy semantics, not Supabase's storage server or
+Edge runtime.
+
+### Addendum - parents edit episodes (migration 00047) - 13/10/2026
+
+Same local harness. `47_podcast_editing.sql`: a kid cannot swap the audio of
+even their own pending take (episodes_guard reverts `file_path`); a parent
+replaces the audio and the episode keeps `approved` + `shared_with_guests`; a
+guest cannot touch it; the bucket accepts `audio/wav`. 4/4 PASS (71 probes in
+total across 00043-00047). Browser check against PostgREST: decode, cut, undo,
+keep, join another episode, rename, save (new `.wav`, duration 5 s, approval
+and sharing kept, joined episode deleted after confirmation), and no edit
+button for a kid - 8/8 PASS.

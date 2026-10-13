@@ -191,3 +191,69 @@ body {
     break-inside: avoid;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   "סו-בב עולם!" - the sharing brand (docs/DESIGN-sharing.md, canvas linked
+   there). Parchment, ink and watercolour from the farewell-party invitation;
+   used on what guests and the public see (stories, podcast, guest home,
+   public story page) and nowhere else, so the planning app keeps its own
+   look. Text colours are the -ink / sage / clay tokens; -fill tokens are for
+   solid buttons carrying white text (both themes hold 4.5:1 or better).
+--------------------------------------------------------------------------- */
+:root {
+  --sv-paper: #f7ebd6;
+  --sv-card: #fff9ee;
+  --sv-ink: #3a2c24;
+  --sv-ink-soft: #6b5a4e; /* 5.6:1 on paper */
+  --sv-line: #d9c6a5;
+  --sv-sage: #4e6b45;
+  --sv-sage-fill: #4e6b45;
+  --sv-sage-soft: #e3e8d6;
+  --sv-clay: #a84e2e;
+  --sv-clay-fill: #a84e2e;
+  --sv-clay-soft: #f6ddd2;
+  --sv-wood: #c9a46a; /* decoration only */
+}
+:root[data-theme="dark"] {
+  --sv-paper: #241d17;
+  --sv-card: #2f261f;
+  --sv-ink: #f1e6d2;
+  --sv-ink-soft: #c9b9a3;
+  --sv-line: #4a3d31;
+  --sv-sage: #a9c49b;
+  --sv-sage-fill: #4e6b45;
+  --sv-sage-soft: #2f3a28;
+  --sv-clay: #e8a486;
+  --sv-clay-fill: #a84e2e;
+  --sv-clay-soft: #4a2c20;
+  --sv-wood: #a88449;
+}
+
+@theme inline {
+  --color-sv-paper: var(--sv-paper);
+  --color-sv-card: var(--sv-card);
+  --color-sv-ink: var(--sv-ink);
+  --color-sv-ink-soft: var(--sv-ink-soft);
+  --color-sv-line: var(--sv-line);
+  --color-sv-sage: var(--sv-sage);
+  --color-sv-sage-fill: var(--sv-sage-fill);
+  --color-sv-sage-soft: var(--sv-sage-soft);
+  --color-sv-clay: var(--sv-clay);
+  --color-sv-clay-fill: var(--sv-clay-fill);
+  --color-sv-clay-soft: var(--sv-clay-soft);
+  --color-sv-wood: var(--sv-wood);
+}
+
+/* A screen in the brand: parchment ground and ink text, edge to edge. */
+.sovev {
+  background: var(--sv-paper);
+  color: var(--sv-ink);
+}
+/* Handwritten display face (Gveret Levin, loaded by components/sovev/font.ts
+   only on the screens that use it). It has a single weight: unlayered, so it
+   wins over any font-bold utility on the same element - a synthesised bold
+   smears handwriting. */
+.sovev-display {
+  font-family: var(--font-sovev), var(--font-heebo), system-ui, sans-serif;
+  font-weight: 400;
+}

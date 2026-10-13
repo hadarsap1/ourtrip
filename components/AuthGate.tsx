@@ -75,6 +75,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname === "/kid-login" ||
     pathname === "/offline" ||
+    // the open blog (00046): readable without an account, by design
+    pathname.startsWith("/s/") ||
     !getSupabase();
 
   const [state, setState] = useState<GateState>(() => decided ?? "loading");

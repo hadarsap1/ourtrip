@@ -1,26 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
-import { getActiveTrip } from "@/lib/data/trip";
+import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
   inviteGuest,
+  inviteMany,
   listAllowlist,
   revokeGuest,
+  setGuestLabel,
+  type BulkInviteResult,
   type GuestAllowlistRow,
 } from "@/lib/data/guests";
+import { LABEL_SUGGESTIONS, normalizeLabel, parseGuestList } from "@/lib/guestBulk";
+import { shareToWhatsApp } from "@/lib/share";
 import { formatDate } from "@/lib/format";
-import { ClipboardIcon, MailIcon } from "@/components/icons";
+import { ClipboardIcon, MailIcon, ShareIcon, UsersIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
-import type { Trip } from "@/lib/types";
+import type { Member, Trip } from "@/lib/types";
+
+type Group = { label: string | null; rows: GuestAllowlistRow[] };
+
+/** Labelled groups first (alphabetical), the unlabelled ones last. */
+function groupByLabel(rows: GuestAllowlistRow[]): Group[] {
+  const map = new Map<string | null, GuestAllowlistRow[]>();
+  for (const row of rows) {
+    const key = row.label ?? null;
+    map.set(key, [...(map.get(key) ?? []), row]);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : a.localeCompare(b, "he")))
+    .map(([label, groupRows]) => ({ label, rows: groupRows }));
+}
 
 export function GuestsAdminScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [allowlist, setAllowlist] = useState<GuestAllowlistRow[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
+  const [labelFor, setLabelFor] = useState<GuestAllowlistRow | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,7 +52,9 @@ export function GuestsAdminScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    setAllowlist(await listAllowlist(tripId));
+    const [rows, tripMembers] = await Promise.all([listAllowlist(tripId), listMembers(tripId)]);
+    setAllowlist(rows);
+    setMembers(tripMembers);
   }, []);
 
   useEffect(() => {
@@ -56,6 +79,19 @@ export function GuestsAdminScreen() {
     };
   }, [refresh, showToast]);
 
+  const groups = useMemo(() => groupByLabel(allowlist), [allowlist]);
+  const knownLabels = useMemo(
+    () => [...new Set(allowlist.map((r) => r.label).filter((l): l is string => !!l))],
+    [allowlist]
+  );
+  const nameOf = (email: string) =>
+    members.find((m) => m.email?.toLowerCase() === email.toLowerCase())?.display_name ?? null;
+
+  const closeAndRefresh = () => {
+    setSheet(null);
+    if (trip) void refresh(trip.id).catch(() => {});
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
@@ -68,69 +104,118 @@ export function GuestsAdminScreen() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.guests.title}</h1>
 
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setSheet("invite")}
+          className="rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow hover:bg-sea-deep"
+        >
+          <MailIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.invite}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSheet("bulk")}
+          className="rounded-2xl border border-sea bg-surface py-3 font-semibold text-sea"
+        >
+          <UsersIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.bulkInvite}
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={() => void shareToWhatsApp(strings.guests.collectText)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-line bg-surface py-2.5 text-sm font-semibold text-ink-soft"
+      >
+        <ShareIcon className="h-4 w-4" /> {strings.guests.collect}
+      </button>
+
       {allowlist.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
           {strings.guests.empty}
         </p>
       ) : (
-        <ul className="space-y-2">
-          {allowlist.map((row) => {
-            const revoked = row.revoked_at !== null;
-            return (
-              <li
-                key={row.email}
-                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium text-ink" dir="ltr">
-                    {row.email}
-                  </span>
-                  <span
-                    className={`text-xs font-semibold ${
-                      revoked ? "text-rose-500" : "text-emerald-600"
-                    }`}
+        groups.map((group) => (
+          <section key={group.label ?? "-"} className="space-y-2">
+            <h2 className="flex items-baseline justify-between px-0.5">
+              <span className="ot-kicker">{group.label ?? strings.guests.noLabel}</span>
+              <span className="text-xs text-ink-soft">
+                {strings.guests.groupCount.replace("{n}", String(group.rows.length))}
+              </span>
+            </h2>
+            <ul className="space-y-2">
+              {group.rows.map((row) => {
+                const revoked = row.revoked_at !== null;
+                const name = nameOf(row.email);
+                return (
+                  <li
+                    key={row.email}
+                    className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
                   >
-                    {revoked ? strings.guests.revoked : strings.guests.active}
-                    <span className="ms-1 font-normal text-ink-soft">
-                      · {formatDate(row.created_at.slice(0, 10))}
+                    <span className="min-w-0">
+                      {name && <span className="block truncate font-semibold text-ink">{name}</span>}
+                      <span className="block truncate text-sm text-ink-soft" dir="ltr">
+                        {row.email}
+                      </span>
+                      <span
+                        className={`text-xs font-semibold ${revoked ? "text-alert" : "text-success"}`}
+                      >
+                        {revoked ? strings.guests.revoked : strings.guests.active}
+                        <span className="ms-1 font-normal text-ink-soft">
+                          · <span dir="ltr">{formatDate(row.created_at.slice(0, 10))}</span>
+                        </span>
+                      </span>
                     </span>
-                  </span>
-                </span>
-                {!revoked && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!(await askConfirm(strings.guests.revokeConfirm))) return;
-                      void revokeGuest(row.trip_id, row.email)
-                        .then(() => trip && refresh(trip.id))
-                        .catch(() => showToast(strings.common.error));
-                    }}
-                    className="shrink-0 rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-600"
-                  >
-                    {strings.guests.revoke}
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setLabelFor(row)}
+                        className="rounded-lg bg-paper-deep px-2.5 py-1 text-xs font-semibold text-ink-soft"
+                      >
+                        {strings.guests.setLabel}
+                      </button>
+                      {!revoked && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!(await askConfirm(strings.guests.revokeConfirm))) return;
+                            void revokeGuest(row.trip_id, row.email)
+                              .then(() => trip && refresh(trip.id))
+                              .catch(() => showToast(strings.common.error));
+                          }}
+                          className="rounded-lg bg-alert-tint px-2.5 py-1 text-xs font-semibold text-alert"
+                        >
+                          {strings.guests.revoke}
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
       )}
 
-      <button
-        type="button"
-        onClick={() => setInviteOpen(true)}
-        className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow hover:bg-sea-deep"
-      >
-        <MailIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.invite}
-      </button>
-
-      {inviteOpen && (
-        <InviteSheet
-          onClose={() => {
-            setInviteOpen(false);
-            if (trip) void refresh(trip.id).catch(() => {});
+      {sheet === "invite" && (
+        <InviteSheet knownLabels={knownLabels} onClose={closeAndRefresh} onToast={showToast} />
+      )}
+      {sheet === "bulk" && (
+        <BulkInviteSheet knownLabels={knownLabels} onClose={closeAndRefresh} onToast={showToast} />
+      )}
+      {labelFor && trip && (
+        <LabelSheet
+          row={labelFor}
+          knownLabels={knownLabels}
+          onClose={() => setLabelFor(null)}
+          onSave={async (label) => {
+            try {
+              await setGuestLabel(trip.id, labelFor.email, label);
+              setLabelFor(null);
+              showToast(strings.guests.labelSaved);
+              await refresh(trip.id);
+            } catch {
+              showToast(strings.common.error);
+            }
           }}
-          onToast={showToast}
         />
       )}
 
@@ -139,15 +224,64 @@ export function GuestsAdminScreen() {
   );
 }
 
+/** Free text with one-tap suggestions: a class has its own name. */
+function LabelField({
+  id,
+  value,
+  onChange,
+  knownLabels,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  knownLabels: string[];
+}) {
+  const suggestions = [...new Set([...knownLabels, ...LABEL_SUGGESTIONS])];
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-ink-soft">
+        {strings.guests.label}
+      </label>
+      <input
+        id={id}
+        type="text"
+        maxLength={40}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={strings.guests.labelHint}
+        className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+      />
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {suggestions.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s)}
+            aria-pressed={value === s}
+            className={`rounded-full border px-3 py-1 text-sm ${
+              value === s ? "border-sea bg-sea-tint text-sea-deep" : "border-line bg-surface text-ink-soft"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function InviteSheet({
+  knownLabels,
   onClose,
   onToast,
 }: {
+  knownLabels: string[];
   onClose: () => void;
   onToast: (message: string) => void;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ link: string; emailed: boolean } | null>(null);
 
@@ -156,7 +290,7 @@ function InviteSheet({
     if (busy) return;
     setBusy(true);
     try {
-      setResult(await inviteGuest(email.trim(), name.trim()));
+      setResult(await inviteGuest(email.trim(), name.trim(), normalizeLabel(label)));
     } catch {
       onToast(strings.common.error);
     } finally {
@@ -225,6 +359,7 @@ function InviteSheet({
               dir="ltr"
             />
           </div>
+          <LabelField id="guest-label" value={label} onChange={setLabel} knownLabels={knownLabels} />
           <button
             type="submit"
             disabled={busy}
@@ -234,6 +369,185 @@ function InviteSheet({
           </button>
         </form>
       )}
+    </Sheet>
+  );
+}
+
+function BulkInviteSheet({
+  knownLabels,
+  onClose,
+  onToast,
+}: {
+  knownLabels: string[];
+  onClose: () => void;
+  onToast: (message: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const [label, setLabel] = useState("");
+  const [progress, setProgress] = useState<number | null>(null);
+  const [results, setResults] = useState<BulkInviteResult[] | null>(null);
+  const parsed = useMemo(() => parseGuestList(text), [text]);
+
+  async function handleSend() {
+    if (parsed.guests.length === 0 || progress !== null) return;
+    setProgress(0);
+    const out = await inviteMany(parsed.guests, normalizeLabel(label), setProgress);
+    setResults(out);
+    setProgress(null);
+  }
+
+  if (results) {
+    const ok = results.filter((r) => r.ok);
+    const failed = results.filter((r) => !r.ok);
+    const unsent = ok.filter((r) => !r.emailed && r.link);
+    return (
+      <Sheet open onClose={onClose} title={strings.guests.bulkInvite}>
+        <div className="space-y-4">
+          <p className="text-center font-semibold text-ink">
+            {strings.guests.bulkDone
+              .replace("{ok}", String(ok.length))
+              .replace("{total}", String(results.length))}
+          </p>
+          {failed.length > 0 && (
+            <div className="rounded-xl bg-alert-tint p-3 text-sm text-alert">
+              <p className="font-semibold">{strings.guests.bulkFailed}</p>
+              <ul className="mt-1" dir="ltr">
+                {failed.map((r) => (
+                  <li key={r.email}>{r.email}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {unsent.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-ink-soft">{strings.guests.bulkLinksTitle}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const lines = unsent.map((r) => `${r.name}: ${r.link}`).join("\n");
+                  void navigator.clipboard
+                    .writeText(lines)
+                    .then(() => onToast(strings.guests.copied))
+                    .catch(() => {});
+                }}
+                className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
+              >
+                <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
+                {strings.guests.copyAllLinks}
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-xl border border-line py-3 font-semibold text-ink-soft"
+          >
+            {strings.common.close}
+          </button>
+        </div>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet open onClose={progress === null ? onClose : () => {}} title={strings.guests.bulkInvite}>
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="bulk-list" className="mb-1 block text-sm font-medium text-ink-soft">
+            {strings.guests.bulkHint}
+          </label>
+          <textarea
+            id="bulk-list"
+            rows={7}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={strings.guests.bulkPlaceholder}
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+          />
+        </div>
+        <LabelField id="bulk-label" value={label} onChange={setLabel} knownLabels={knownLabels} />
+
+        <div className="space-y-1 text-sm" aria-live="polite">
+          {parsed.guests.length > 0 && (
+            <p className="font-semibold text-success">
+              {strings.guests.bulkReady.replace("{n}", String(parsed.guests.length))}
+            </p>
+          )}
+          {parsed.duplicates > 0 && (
+            <p className="text-ink-soft">
+              {strings.guests.bulkDuplicates.replace("{n}", String(parsed.duplicates))}
+            </p>
+          )}
+          {parsed.invalid.length > 0 && (
+            <div className="text-warning">
+              <p>{strings.guests.bulkInvalid.replace("{n}", String(parsed.invalid.length))}</p>
+              <ul className="list-inside list-disc text-ink-soft">
+                {parsed.invalid.slice(0, 5).map((line) => (
+                  <li key={line} className="truncate">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {progress !== null && (
+            <p className="font-semibold text-ink">
+              {strings.guests.bulkProgress
+                .replace("{done}", String(progress))
+                .replace("{total}", String(parsed.guests.length))}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void handleSend()}
+          disabled={parsed.guests.length === 0 || progress !== null}
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
+        >
+          {strings.guests.bulkSend.replace("{n}", String(parsed.guests.length))}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+function LabelSheet({
+  row,
+  knownLabels,
+  onClose,
+  onSave,
+}: {
+  row: GuestAllowlistRow;
+  knownLabels: string[];
+  onClose: () => void;
+  onSave: (label: string | null) => Promise<void>;
+}) {
+  const [label, setLabel] = useState(row.label ?? "");
+  const [busy, setBusy] = useState(false);
+  return (
+    <Sheet open onClose={onClose} title={strings.guests.setLabel}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (busy) return;
+          setBusy(true);
+          void onSave(normalizeLabel(label)).finally(() => setBusy(false));
+        }}
+        className="space-y-4"
+      >
+        <p className="truncate text-sm text-ink-soft" dir="ltr">
+          {row.email}
+        </p>
+        <LabelField id="row-label" value={label} onChange={setLabel} knownLabels={knownLabels} />
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
+        >
+          {strings.guests.save}
+        </button>
+      </form>
     </Sheet>
   );
 }

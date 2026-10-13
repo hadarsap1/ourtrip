@@ -5,8 +5,9 @@
 | Role | Who | Sees | Edits |
 |---|---|---|---|
 | `owner` | Hadar + Sivan, Google OAuth, emails allowlisted in `members` | Everything | Everything |
-| `kid` | Kids' tablet, PIN login on an owner-approved device | Today view (itinerary summary + weather), own journal, photos, messages inbox, own pocket-money tracker, phrasebook, emergency page | Own journal entries, photo uploads (pending approval), messages, own pocket-money expenses |
-| `guest` | Specific invited emails via magic link | Only content flagged `shared_with_guests`: approved+shared photos, shared journal entries, "completed" itinerary map, family wall messages | Can send messages on the family wall |
+| `kid` | Kids' tablet, PIN login on an owner-approved device | Today view (itinerary summary + weather), own journal, photos, messages inbox, own pocket-money tracker, phrasebook, emergency page, published stories, approved podcast episodes, likes (with names) - never comments | Own journal entries, photo uploads (pending approval), messages, own pocket-money expenses, own stories (draft → sent for approval), own podcast recordings (always pending), likes |
+| `guest` | Specific invited emails via magic link, optionally grouped by a label (family / a class / friends) | Only content a parent shared: approved+shared photos, shared journal entries, "completed" itinerary map, the guests wall, stories addressed to guests, approved+shared episodes, likes and comments on those | Messages on the guests wall, likes, own comments |
+| (anyone with a link) | No account | A parent's own story marked public, after its publish time - copied photos only | Nothing |
 
 ### Auth flows
 - **Owners**: Supabase Auth with Google OAuth. On first login, email must exist in `members` with role `owner`, otherwise sign out with an error page. The two owner emails are seeded in the initial migration (placeholder values - Hadar fills real emails in `.env` seed step).
@@ -80,12 +81,22 @@
 - Photo pipeline - approval and sharing are separate:
   - Kid uploads always start `pending` (server-enforced trigger) → owner approval queue → `approved` (visible to family) or `rejected` (visible to owners only)
   - Guests see a photo only when `status='approved'` **and** an owner explicitly set `shared_with_guests=true`. Owner uploads may skip approval but still require the explicit share step - nothing is guest-visible by default (DECISIONS #5)
-- Messages: one shared family wall (guests, kids, owners - see DECISIONS #15); unread badges via `message_reads`
+- Messages: two walls - family (owners + kids) and guests (owners + guests) - bridged one message at a time by a parent (DECISIONS #18, #30); unread badges via `message_reads`
 - Pocket money: each kid has a trip allowance (set by owner); kid logs purchases, sees remaining balance with a fun progress visual; owner sees it in the budget screen as an info section (not counted in family budget totals)
 
 ### 2.10 Guest portal
 - Clean read-only web page (no install): approved+shared photos by day, shared journal entries, "where we've been" map, family wall composer
 - Hebrew UI
+- Branded "סו-בב עולם!" (DECISIONS #25): stories and the podcast lead the tabs
+
+### 2.10a Sharing - stories, podcast, likes, comments (docs/DESIGN-sharing.md, migrations 00043-00046)
+- **Guest list**: invite a whole pasted list (name + email per line) with one label; guests grouped by label; a ready WhatsApp message for collecting emails. Every guest sees the same content (DECISIONS #29)
+- **Stories** (`/stories`): title, body, photos, city/country, audience family / guests / public, optional "publish after". Parents publish; kids save drafts and send them for approval. A journal entry can become a draft story. Guests see a story's photos only if each is approved and shared; the publish sheet offers to do that in the same tap (DECISIONS #26)
+- **Open blog** (`/s/<slug>`): a parent's own story only, copied photos, noindex, no comments, Open Graph for link previews (DECISIONS #27)
+- **Podcast** (`/podcast`): one take with pause/resume, up to 20 minutes, preview before saving, saved on the device and uploaded later when offline. Parents edit an episode: rename, keep or cut a marked part, add a new take or join another episode at the end, undo; saved as a new 16 kHz mono WAV file (00047), approval and sharing unchanged. Kid recordings are pending until a parent approves; sharing with guests is a separate step; never public (DECISIONS #28)
+- **Likes and comments**: four like kinds on stories and episodes for owners, kids and guests; comments from guests and parents only. Kids see likes with names and never comments; a parent can show one comment to the kids
+- **The bridge**: a parent copies one message at a time between the family and guests walls (kid → guests, guest → family), attributed, and can take it back (DECISIONS #30)
+- **WhatsApp**: after publishing, one prepared line with the link through the phone's share sheet (wa.me fallback)
 
 ### 2.11 Checklists
 - Packing lists + ad-hoc checklists (e.g. "leaving the hotel"), reusable templates (instances keep `source_template_id`), shared realtime check-off, assignable to a member

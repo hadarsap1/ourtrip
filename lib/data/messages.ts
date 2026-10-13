@@ -112,3 +112,61 @@ export function subscribeMessages(onChange: () => void): () => void {
     void supabase.removeChannel(channel);
   };
 }
+
+// ---------- the bridge (migration 00045, DESIGN-wall-bridge) ----------
+
+/**
+ * A parent copies ONE message into the other feed, in its author's name:
+ * a kid's message to the guests, or a guest's message to the kids. The copy
+ * is an ordinary row in a feed its readers could already read, so the 00027
+ * channel policies are untouched; the original is stamped so its author
+ * sees it went out. A second tap is a no-op (unique origin index).
+ */
+export async function bridgeMessage(
+  message: WallMessage,
+  to: MessageChannel,
+  ownerId: string
+): Promise<void> {
+  const supabase = requireClient();
+  const { error } = await supabase.from("messages").insert({
+    trip_id: message.trip_id,
+    sender_id: message.sender_id,
+    body: message.body,
+    channel: to,
+    origin_message_id: message.id,
+    bridged_by: ownerId,
+  });
+  if (error && error.code !== "23505") throw new Error(error.message);
+  const { error: stampError } = await supabase
+    .from("messages")
+    .update({ bridged_at: new Date().toISOString() })
+    .eq("id", message.id);
+  if (stampError) throw new Error(stampError.message);
+}
+
+/** Takes a bridged copy back out and clears the stamp on what it came from. */
+export async function unbridgeMessage(copy: WallMessage): Promise<void> {
+  const supabase = requireClient();
+  const { error } = await supabase.from("messages").delete().eq("id", copy.id);
+  if (error) throw new Error(error.message);
+  if (copy.origin_message_id) {
+    await supabase.from("messages").update({ bridged_at: null }).eq("id", copy.origin_message_id);
+  }
+  if (copy.origin_comment_id) {
+    await supabase
+      .from("comments")
+      .update({ shown_to_kids_at: null, shown_by: null })
+      .eq("id", copy.origin_comment_id);
+  }
+}
+
+/** Which feed a message may be bridged into, by its author's role. */
+export function bridgeTarget(
+  message: Pick<WallMessage, "channel" | "origin_message_id" | "origin_comment_id">,
+  senderRole: string | undefined
+): MessageChannel | null {
+  if (message.origin_message_id || message.origin_comment_id) return null; // already a copy
+  if (message.channel === "family" && senderRole === "kid") return "guests";
+  if (message.channel === "guests" && senderRole === "guest") return "family";
+  return null;
+}
