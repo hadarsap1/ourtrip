@@ -249,8 +249,11 @@ body {
   background: var(--sv-paper);
   color: var(--sv-ink);
 }
-/* Handwritten display face (Playpen Sans Hebrew, loaded by
-   components/sovev/font.ts only on the screens that use it). */
+/* Handwritten display face (Gveret Levin, loaded by components/sovev/font.ts
+   only on the screens that use it). It has a single weight: unlayered, so it
+   wins over any font-bold utility on the same element - a synthesised bold
+   smears handwriting. */
 .sovev-display {
   font-family: var(--font-sovev), var(--font-heebo), system-ui, sans-serif;
+  font-weight: 400;
 }

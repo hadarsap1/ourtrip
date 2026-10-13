@@ -14,7 +14,7 @@ import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
 // Screens where a capture button would be in the way or wrong.
-const HIDDEN_ON = ["/login", "/kid-login", "/offline", "/kids", "/guests"];
+const HIDDEN_ON = ["/login", "/kid-login", "/offline", "/kids", "/guests", "/s/"];
 const noop = () => () => {};
 
 /**

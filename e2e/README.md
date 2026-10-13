@@ -11,7 +11,7 @@ and we can verify:
 - root document is `dir="rtl"` / `lang="he"`
 - the five owner nav tabs render and navigate; nav is hidden on login screens
 - the PWA manifest is served
-- all 21 routes mount (HTTP status, no error dialog, no uncaught exceptions)
+- every route mounts (HTTP status, no error dialog, no uncaught exceptions)
 
 No setup needed - it runs anywhere.
 

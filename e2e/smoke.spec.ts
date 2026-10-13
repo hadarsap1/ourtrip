@@ -25,6 +25,8 @@ const ROUTES = [
   "/ready",
   "/facts",
   "/settings",
+  "/stories",
+  "/podcast",
   "/offline",
   "/login",
   "/kid-login",
