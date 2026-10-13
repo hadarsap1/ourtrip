@@ -600,3 +600,38 @@ export const SettingsIcon = (p: IconProps) => (
     <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
   </Glyph>
 );
+
+// Sharing (stories + podcast)
+export const MicIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <rect x="9" y="3.5" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+    <path d="M12 17.5v3" />
+  </Glyph>
+);
+
+export const StoryIcon = (p: IconProps) => (
+  <Glyph {...p} strokeWidth={p.strokeWidth ?? 1.7}>
+    <path d="M6 3.5h9l3.5 3.5v13.5H6z" />
+    <path d="M9 10h6.5M9 13.5h6.5M9 17h4" />
+  </Glyph>
+);
+
+export const PlayIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M8 5.5v13l10-6.5z" fill="currentColor" />
+  </Glyph>
+);
+
+export const PauseIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <rect x="7" y="5.5" width="3.5" height="13" rx="1" fill="currentColor" />
+    <rect x="13.5" y="5.5" width="3.5" height="13" rx="1" fill="currentColor" />
+  </Glyph>
+);
+
+export const StopIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" />
+  </Glyph>
+);

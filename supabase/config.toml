@@ -88,3 +88,8 @@ verify_jwt = true
 
 [functions.guest-gphotos]
 verify_jwt = true
+
+# Stories and podcast media (00043/00044): photos + audio for exactly the ids
+# the caller's own RLS returns.
+[functions.guest-media]
+verify_jwt = true

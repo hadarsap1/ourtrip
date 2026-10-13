@@ -12,6 +12,7 @@ import {
   MapIcon,
   MemoryBookIcon,
   MessagesIcon,
+  MicIcon,
   MoreIcon,
   OptionsIcon,
   PersonIcon,
@@ -20,6 +21,7 @@ import {
   PlaneIcon,
   RouteIcon,
   SparkleIcon,
+  StoryIcon,
   VisaIcon,
   SettingsIcon,
 } from "@/components/icons";
@@ -43,12 +45,13 @@ export const kidTabs: NavItem[] = [
   { href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon },
 ];
 
-// Guest portal: only shared content + the family wall.
+// Guest portal ("סו-בב עולם!"): stories and the podcast lead; the journal and
+// the map stay one tap away on the guest home.
 export const guestTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
+  { href: "/stories", label: strings.guestNav.stories, Icon: StoryIcon },
+  { href: "/podcast", label: strings.guestNav.podcast, Icon: MicIcon },
   { href: "/photos", label: strings.guestNav.photos, Icon: PhotosIcon },
-  { href: "/journal", label: strings.guestNav.journal, Icon: JournalIcon },
-  { href: "/map", label: strings.guestNav.map, Icon: MapIcon },
   { href: "/messages", label: strings.guestNav.messages, Icon: MessagesIcon },
 ];
 
@@ -92,6 +95,8 @@ export const ownerRailGroups: NavGroup[] = [
   {
     label: strings.more.groupMemories,
     items: [
+      { href: "/stories", label: strings.more.menuStories, Icon: StoryIcon },
+      { href: "/podcast", label: strings.more.menuPodcast, Icon: MicIcon },
       { href: "/journal", label: strings.more.menuJournal, Icon: JournalIcon },
       { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
       { href: "/memory-book", label: strings.more.menuMemoryBook, Icon: MemoryBookIcon },

@@ -17,11 +17,13 @@ import {
   MapIcon,
   MemoryBookIcon,
   MessagesIcon,
+  MicIcon,
   OptionsIcon,
   PersonIcon,
   PhotosIcon,
   PhrasebookIcon,
   SparkleIcon,
+  StoryIcon,
   VisaIcon,
 } from "@/components/icons";
 import { countryName } from "@/lib/data/emergency";
@@ -143,6 +145,18 @@ export function MoreScreen() {
   ];
 
   const memories: Tile[] = [
+    {
+      href: "/stories",
+      label: strings.more.menuStories,
+      Icon: StoryIcon,
+      count: n(counts?.stories),
+    },
+    {
+      href: "/podcast",
+      label: strings.more.menuPodcast,
+      Icon: MicIcon,
+      count: n(counts?.episodes),
+    },
     {
       href: "/journal",
       label: strings.more.menuJournal,

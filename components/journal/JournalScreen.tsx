@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Toast } from "@/components/Toast";
 import { CameraIcon, PinIcon, TrashIcon } from "@/components/icons";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
@@ -13,6 +14,7 @@ import {
   type JournalEntry,
 } from "@/lib/data/journal";
 import { uploadPhoto } from "@/lib/data/photos";
+import { storyFromJournal } from "@/lib/data/stories";
 import { formatDate, todayISO } from "@/lib/format";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
@@ -24,6 +26,7 @@ const MOODS = ["🤩", "😀", "🙂", "😐", "🙁", "😴"];
 
 export function JournalScreen() {
   const { member } = useMember();
+  const router = useRouter();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -253,6 +256,24 @@ export function JournalScreen() {
                   </span>
                 ) : (
                   <span />
+                )}
+                {member && member.role !== "guest" && (isOwner || entry.author_id === member.id) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // a draft story with this entry's words and photos; the
+                      // author (or a parent) finishes it on the stories screen
+                      void storyFromJournal(entry, member.id)
+                        .then(() => {
+                          showToast(strings.stories.fromJournalDone);
+                          router.push("/stories");
+                        })
+                        .catch(() => showToast(strings.common.error));
+                    }}
+                    className="ms-auto shrink-0 rounded-lg px-2 text-[12px] font-bold text-sea"
+                  >
+                    {strings.journal.toStory}
+                  </button>
                 )}
                 {(isOwner || entry.author_id === member?.id) && (
                   <button
