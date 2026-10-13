@@ -5,7 +5,16 @@ import { Sheet } from "@/components/Sheet";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { PauseIcon, PlayIcon } from "@/components/icons";
 import { Recorder, type Take } from "@/components/podcast/Recorder";
-import { appendClip, cutRange, durationOf, encodeWav, keepRange, peaks, type Clip } from "@/lib/audioEdit";
+import {
+  appendClip,
+  cutRange,
+  durationOf,
+  encodeWav,
+  keepRange,
+  peaks,
+  undoDepthFor,
+  type Clip,
+} from "@/lib/audioEdit";
 import { decodeToClip, decodeUrl, playClip } from "@/lib/audioDecode";
 import { formatClock, MAX_EPISODE_SECONDS } from "@/lib/audio";
 import { deleteEpisode, replaceEpisodeAudio, updateEpisodeDetails } from "@/lib/data/podcast";
@@ -13,8 +22,6 @@ import { strings } from "@/lib/strings";
 import type { Episode } from "@/lib/types";
 
 const BARS = 72;
-// each undo step holds a whole take in memory; three is plenty on a phone
-const UNDO_DEPTH = 3;
 
 /**
  * Parents edit an episode (13/10): rename it, keep or cut a marked part, add
@@ -84,7 +91,9 @@ export function EpisodeEditor({
   function apply(next: Clip, nextMerged: Episode[] = merged) {
     if (!clip) return;
     stop();
-    setHistory((h) => [...h.slice(-(UNDO_DEPTH - 1)), { clip, merged }]);
+    // each undo step holds a whole take in memory; long episodes keep fewer
+    const depth = undoDepthFor(Math.max(clip.samples.length, next.samples.length));
+    setHistory((h) => [...h, { clip, merged }].slice(-depth));
     setClip(next);
     setMerged(nextMerged);
     setEdits((n) => n + 1);

@@ -83,7 +83,7 @@ export function Recorder({
     const mime = pickRecordingMime((m) => MediaRecorder.isTypeSupported(m));
     const recorder = new MediaRecorder(
       stream,
-      // voice: 64 kbps is plenty and keeps a 7-minute take around 3 MB
+      // voice: 64 kbps is plenty and keeps a 20-minute take around 10 MB
       mime ? { mimeType: mime, audioBitsPerSecond: 64_000 } : { audioBitsPerSecond: 64_000 }
     );
     chunksRef.current = [];

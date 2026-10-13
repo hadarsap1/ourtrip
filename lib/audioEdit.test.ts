@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { appendClip, cutRange, durationOf, encodeWav, keepRange, peaks, toMono, type Clip } from "./audioEdit";
+import {
+  appendClip,
+  cutRange,
+  durationOf,
+  encodeWav,
+  keepRange,
+  peaks,
+  toMono,
+  undoDepthFor,
+  type Clip,
+} from "./audioEdit";
 
 // 10 samples per second makes the arithmetic readable
 const clip = (values: number[]): Clip => ({ samples: Float32Array.from(values), sampleRate: 10 });
@@ -67,5 +77,13 @@ describe("encodeWav", () => {
     expect(view.getUint32(40, true)).toBe(6);
     expect(view.getInt16(46, true)).toBe(0x7fff);
     expect(view.getInt16(48, true)).toBe(-0x8000);
+  });
+});
+
+describe("undoDepthFor", () => {
+  it("keeps three steps for a short episode and one for a 20-minute one", () => {
+    expect(undoDepthFor(16000 * 60 * 3)).toBe(3);
+    expect(undoDepthFor(16000 * 60 * 20)).toBe(1);
+    expect(undoDepthFor(0)).toBe(3);
   });
 });

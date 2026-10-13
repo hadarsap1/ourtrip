@@ -25,7 +25,7 @@ update episodes set file_path = 'g/evil.wav';
 select rls.check('guest: cannot touch the audio', (select file_path from episodes) = 'a/edited.wav');
 reset role;
 
-select rls.check('bucket accepts the edited WAV',
-  (select 'audio/wav' = any(allowed_mime_types) from storage.buckets where id = 'audio'));
+select rls.check('bucket accepts the edited WAV, up to 50 MB',
+  (select 'audio/wav' = any(allowed_mime_types) and file_size_limit = 52428800 from storage.buckets where id = 'audio'));
 
 rollback;

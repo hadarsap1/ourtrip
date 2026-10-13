@@ -5,8 +5,9 @@
 // Why WAV on save: the browser can decode every format it records, but it
 // cannot ENCODE compressed audio to a file without a muxing library
 // (CLAUDE.md rule #7: no dependency without a reason). 16 kHz mono 16-bit is
-// wideband-voice quality at ~1.9 MB a minute - a full 7-minute episode is
-// ~13 MB, inside the bucket's 25 MB limit - and WAV plays on every phone.
+// wideband-voice quality at ~1.9 MB a minute - a full 20-minute episode is
+// ~38 MB, inside the bucket's 50 MB limit (00047) - and WAV plays on every
+// phone.
 
 /** Sample rate an edited episode is decoded to, edited at and saved in. */
 export const EDIT_SAMPLE_RATE = 16_000;
@@ -101,4 +102,15 @@ export function encodeWav(clip: Clip): Blob {
     view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
   }
   return new Blob([buffer], { type: "audio/wav" });
+}
+
+// In memory a minute of edit audio is ~3.8 MB (Float32 at 16 kHz). Undo keeps
+// whole copies, so a long episode gets fewer of them: about 100 MB in total
+// is a safe ceiling on a phone.
+const UNDO_SAMPLE_BUDGET = 24_000_000;
+
+/** How many undo steps fit for a clip this long: 1 to 3. */
+export function undoDepthFor(sampleCount: number): number {
+  if (sampleCount <= 0) return 3;
+  return Math.max(1, Math.min(3, Math.floor(UNDO_SAMPLE_BUDGET / sampleCount)));
 }

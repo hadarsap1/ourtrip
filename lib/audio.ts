@@ -1,8 +1,12 @@
 // Recording helpers for the kids' podcast (migration 00044). Pure, so the
 // format choice can be tested without a microphone.
 
-/** DESIGN-sharing §2: short episodes; also keeps a file to a few MB. */
-export const MAX_EPISODE_SECONDS = 7 * 60;
+/**
+ * Longest episode, recorded or edited. Raised from 7 to 20 minutes (13/10).
+ * Sizes at that length: a recording ~10 MB (64 kbps), an edited episode
+ * ~38 MB (16 kHz WAV) - both under the audio bucket's 50 MB limit (00047).
+ */
+export const MAX_EPISODE_SECONDS = 20 * 60;
 
 // Preference order. AAC in MP4 plays on every phone a grandparent might own,
 // iPhones included; Chrome on Android records it in recent versions. WebM /
