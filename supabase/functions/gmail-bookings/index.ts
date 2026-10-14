@@ -45,6 +45,10 @@ import {
   type MailMessage,
   type RawCandidate,
 } from "../_shared/gmailParse.ts";
+import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
+
+const FN = "gmail-bookings";
+const MODEL = "claude-sonnet-5-5";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -371,11 +375,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   if (blocks.length === 0) return json({ ok: true, candidates: [] });
 
+  // the AI budget (00053): monthly cap + this function's daily cap
+  const gate = await reserveAi(caller, FN);
+  if (!gate.ok) return json({ ok: false, error: gate.error }, gate.status);
+
   const anthropic = new Anthropic(); // ANTHROPIC_API_KEY from function secrets
   let response;
   try {
     response = await anthropic.messages.create({
-      model: "claude-opus-5",
+      // Sonnet 5.5, not Opus (Hadar 14/10/2026): about 2.5x cheaper, and the
+      // owner reviews every candidate before it is saved.
+      model: MODEL,
       max_tokens: MAX_TOKENS,
       // The failure that matters here is a plausible wrong date - "03/04" in an
       // email with no month name, a check-out read as a check-in - because it
@@ -383,9 +393,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // booking. That is careful-reading work, so this does not run at "low".
       // It does not need "high" either: the facts are stated in the email, the
       // owner reviews every candidate, and a whole-mailbox scan at "high" costs
-      // several times more. Swap the model to claude-haiku-4-5-20251001, as the
-      // other functions here use, if a scan ever needs to be cheaper than
-      // accurate.
+      // several times more.
       output_config: { effort: "medium" },
       tools: [
         {
@@ -395,7 +403,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           input_schema: SCHEMA,
         },
       ],
-      tool_choice: { type: "tool", name: "emit_bookings" },
+      // Sonnet 5.5 rejects a forced tool_choice; the prompt ends with "Call
+      // emit_bookings", and a reply without the tool is reported as failed.
+      tool_choice: { type: "auto" },
       messages: [
         {
           role: "user",
@@ -417,6 +427,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
     return json({ ok: false, error: "extract_failed" }, 502);
   }
+
+  await recordAi(gate.memberId, FN, [response]);
 
   if (response.stop_reason === "refusal") {
     console.error("gmail-bookings: refused", response.stop_details?.category);

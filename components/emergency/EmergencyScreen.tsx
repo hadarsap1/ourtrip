@@ -17,6 +17,7 @@ import {
 import { useMember } from "@/lib/useMember";
 import { CheckIcon, EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 import { readEmergencySnapshots } from "@/lib/offline/caches";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { isEnabled } from "@/lib/flags";
@@ -88,8 +89,8 @@ export function EmergencyScreen() {
         await autofillEmergency(code);
         await refresh(trip.id);
         showToast(strings.emergency.autofilled);
-      } catch {
-        showToast(strings.common.error);
+      } catch (e) {
+        showToast(aiLimitMessage(e instanceof Error ? e.message : null) ?? strings.common.error);
       } finally {
         setAutofilling(false);
       }

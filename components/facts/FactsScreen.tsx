@@ -19,6 +19,7 @@ import { todayISO } from "@/lib/format";
 import { getActiveTrip } from "@/lib/data/trip";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 import { useMember } from "@/lib/useMember";
 import type { DestinationFact, Trip } from "@/lib/types";
 
@@ -123,11 +124,12 @@ export function FactsScreen() {
     } catch (err) {
       const code = (err as Error).message;
       showToast(
-        code === "not_configured"
+        aiLimitMessage(code) ??
+        (code === "not_configured"
           ? s.notConfigured
           : code === "no_credit"
             ? s.noCredit
-            : s.generateFailed
+            : s.generateFailed)
       );
     } finally {
       setBusy(false);

@@ -16,6 +16,7 @@ import {
 import { preloadGis } from "@/lib/googleAuth";
 import { formatDate, formatMoney } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 import type { Booking } from "@/lib/types";
 
 const inputClass =
@@ -24,6 +25,8 @@ const inputClass =
 /** The Edge Function's stable codes, and the two the browser raises before the
  *  request is ever made. Anything unrecognised is the generic message. */
 function messageFor(code: string): string {
+  const limit = aiLimitMessage(code);
+  if (limit) return limit;
   const s = strings.mailImport;
   switch (code) {
     case "token_cancelled":

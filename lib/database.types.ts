@@ -1913,6 +1913,35 @@ export type Database = {
           },
         ]
       }
+      trip_ai_settings: {
+        Row: {
+          monthly_budget_usd: number
+          trip_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          monthly_budget_usd?: number
+          trip_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          monthly_budget_usd?: number
+          trip_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_ai_settings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           base_currency: string

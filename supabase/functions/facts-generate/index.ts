@@ -15,6 +15,9 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
+
+const FN = "facts-generate";
 
 type Fact = { emoji: string; fact: string };
 
@@ -103,6 +106,12 @@ Deno.serve(async (req) => {
 
   const anthropic = new Anthropic();
 
+  // the AI budget (00053): monthly cap + this function's daily cap
+  const gate = await reserveAi(callerClient, FN);
+  if (!gate.ok) {
+    return reply({ ok: false, error: gate.error }, gate.status);
+  }
+
   let response;
   try {
     response = await anthropic.messages.create({
@@ -159,6 +168,8 @@ Deno.serve(async (req) => {
     }
     return reply({ ok: false, error: "ai_failed" }, 502);
   }
+
+  await recordAi(gate.memberId, FN, [response]);
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {

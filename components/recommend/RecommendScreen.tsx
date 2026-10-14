@@ -23,6 +23,7 @@ import {
   StarIcon,
 } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 import { useMember } from "@/lib/useMember";
 import type { ItineraryDay, PlaceOption, Trip } from "@/lib/types";
 
@@ -85,7 +86,7 @@ export function RecommendScreen() {
         setResults(recs);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
-        showToast(msg === "not_configured" ? s.notConfigured : s.error);
+        showToast(aiLimitMessage(msg) ?? (msg === "not_configured" ? s.notConfigured : s.error));
       } finally {
         setLoading(false);
       }

@@ -3,6 +3,7 @@
 // batches so the owner sees progress, and works out which candidates are things
 // the trip does not already have.
 
+import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
 import { googleClientId, requestGoogleToken } from "@/lib/googleAuth";
 import type { Booking, BookingType } from "@/lib/types";
@@ -61,7 +62,7 @@ async function invoke(body: Record<string, unknown>): Promise<Record<string, unk
   if (error) {
     // supabase-js gives a generic message on a non-2xx; the function's own code
     // is in the body, which the client can still read.
-    const detail = (data as { error?: string } | null)?.error;
+    const detail = (data as { error?: string } | null)?.error ?? (await functionErrorCode(error));
     throw new Error(detail ?? error.message);
   }
   if (!data?.ok) throw new Error((data as { error?: string })?.error ?? "failed");

@@ -1897,3 +1897,33 @@ Live 14/10/2026 after #112 deployed: the second half of 00051
 (`members_kid_guest_select` -> false) applied. Checked on the live project as a
 kid inside a rolled-back transaction: `members` shows 1 row (his own, no email),
 `trip_member_names()` returns all 4 names.
+
+## AI budget (00053) - 14/10/2026
+
+Hadar asked for a cap on AI spend. What enforces it:
+
+- `ai_reserve(fn, daily_cap)` runs as the calling parent (their JWT, security
+  definer, `search_path` pinned). It resolves the member itself, refuses kids,
+  guests and outsiders (`forbidden`), takes a row lock on the trip so two taps
+  can't both slip under the cap, then refuses on the month's estimated spend
+  (`ai_budget`) or the function's daily cap (`ai_daily_limit`). Executable by
+  `authenticated` only; a parent calling it directly can only count calls
+  against their own trip.
+- `ai_record(...)` adds tokens and cost; executable by `service_role` only,
+  negatives clamp to 0.
+- `trip_ai_settings` holds the budget: owner-only select/insert/update, check
+  0-200, `updated_by` stamped by a trigger (the client can't set it). Kids and
+  guests can't read it (hard rule 2).
+- All 8 AI functions call `reserveAi` before the model and fail closed if the
+  RPC is unavailable; `recordAi` runs right after the response, before any
+  early return on refusal / max_tokens. extract-places reserves once per paste
+  and records every chunk.
+
+Probe `53_ai_budget.sql`: 22 checks (reserve per role, daily cap per function,
+budget refusal and raise, last month not counted, record privileges, negative
+cost, stamping, over-200 rejected, kid/guest read and write denied). The deny
+matrix covers `trip_ai_settings` too. Harness 146/146 PASS.
+
+X The cost is an estimate (token counts x list price); the bill is
+Anthropic's. One call can overshoot the cap by its own cost (known only after
+it returns). A timed-out call is counted but its cost is unknown.
