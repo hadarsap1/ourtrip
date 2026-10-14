@@ -1793,3 +1793,13 @@ instead of the kid home until a reload. The unlock now re-resolves the member
 
 X Live: apply 00049, then deploy `push-send` (it reads `approved_at`, so the
 function must go after the migration).
+
+## Kids read story comments too (migration 00050) - 14/10/2026
+
+`comments_kid_select` loses its `episode_id is not null` condition (ALTER
+POLICY, never dropped): a kid reads any comment on a story or episode they can
+see, still read-only (no kid insert/update/delete policy on `comments`).
+Probes 45 and 49 updated to expect it; a kid still cannot write or delete a
+comment and sees none on an episode they cannot hear. 99/99 PASS.
+
+X Live: apply 00050.

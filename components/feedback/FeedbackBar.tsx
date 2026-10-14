@@ -72,7 +72,7 @@ export function FeedbackBar({
   members: Member[];
   target: FeedbackTarget;
   reactions: Reaction[];
-  /** Kids get comments on episodes only, read-only (RLS, 00049). */
+  /** Kids get them read-only (RLS, 00050). */
   comments: Comment[];
   onChanged: () => void;
   onToast: (message: string) => void;
@@ -86,10 +86,9 @@ export function FeedbackBar({
   const who = namesSummary(memberIds.map(nameOf));
   const mine = comments.filter((c) => matchesTarget(c, target));
   const canComment = member.role === "guest" || member.role === "owner";
-  // kids read listeners' comments on episodes, without replying (00049)
+  // kids read the comments, without replying (00050)
   const showComments = canComment || mine.length > 0;
   const isOwner = member.role === "owner";
-  const isEpisode = "episodeId" in target;
   const inputId = `comment-${"postId" in target ? target.postId : target.episodeId}`;
 
   async function toggle(kind: ReactionKind, mineId: string | null) {
@@ -209,9 +208,7 @@ export function FeedbackBar({
           </form>
           )}
           {member.role === "guest" && (
-            <p className="text-[12px] text-sv-ink-soft">
-              {isEpisode ? strings.feedback.commentsHintEpisode : strings.feedback.commentsHint}
-            </p>
+            <p className="text-[12px] text-sv-ink-soft">{strings.feedback.commentsHint}</p>
           )}
         </div>
       )}

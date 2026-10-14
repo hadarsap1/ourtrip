@@ -1990,8 +1990,7 @@ export const strings = {
     commentLabel: "תגובה",
     commentPlaceholder: "כתבו משהו למשפחה",
     send: "שליחה",
-    commentsHint: "ההורים קוראים כל תגובה",
-    commentsHintEpisode: "גם הילדים קוראים את התגובות על הפרק",
+    commentsHint: "גם הילדים קוראים את התגובות",
     deleteConfirm: "למחוק את התגובה?",
   },
 

@@ -47,13 +47,13 @@ export function StoriesScreen() {
     async (tripId: string) => {
       const [r, c] = await Promise.all([
         listReactions(tripId).catch(() => []),
-        // kids have no access to comments at all (00045) - do not even ask
-        role === "kid" ? Promise.resolve([]) : listComments(tripId).catch(() => []),
+        // kids read comments too, read-only (00050)
+        listComments(tripId).catch(() => []),
       ]);
       setReactions(r);
       setComments(c);
     },
-    [role]
+    []
   );
 
   const refresh = useCallback(
