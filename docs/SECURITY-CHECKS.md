@@ -1654,3 +1654,40 @@ total across 00043-00047). Browser check against PostgREST: decode, cut, undo,
 keep, join another episode, rename, save (new `.wav`, duration 5 s, approval
 and sharing kept, joined episode deleted after confirmation), and no edit
 button for a kid - 8/8 PASS.
+
+### Live rollout - 00043-00047 on the real project - 14/10/2026
+
+Applied in order through the Supabase migration tool (`sharing_stories`,
+`podcast`, `reactions_comments_bridge`, `public_stories`, `podcast_editing`).
+Buckets after apply: `audio` private, 50 MB, audio types incl. `audio/wav`;
+`public-stories` public, 5 MB, jpeg/webp. Edge Functions: `guest-media` v1 and
+`guest-invite` v9, both `verify_jwt = true`.
+
+Advisors: no errors. New warnings only for `post_trip_id` and
+`is_own_open_post` being executable by `anon` / `authenticated`. Accepted: both
+are used inside policies that run as the caller (`post_photos_owner_write` is
+`for all`, so Postgres evaluates it for anon selects too and revoking execute
+breaks anon reads); they return a trip id / a boolean about a post the caller
+names, nothing else.
+
+| Check (live) | How | Result |
+|---|---|---|
+| Owner / kid / guest / revoked guest / outsider / anon on stories, post photos, episodes, reactions, comments, bridge columns, public blog | `scripts/rls/live-readonly-probe.sql` - inserts and reads only, one transaction, always rolled back; the report is the error message | ✅ 25/25 PASS |
+| Nothing left behind | probe trip / users / members and the `rls` schema counted after the run | ✅ 0 rows |
+| Anonymous REST: `posts`, `post_photos`, `episodes`, `reactions`, `comments`, `photos`, `members`, `trips` | anon key over HTTP via `pg_net` from the database (the session sandbox cannot reach supabase.co) | ✅ 200 `[]` on every table (real data exists in `members`) |
+| `guest-media` without a member | anon key | ✅ 200 `{"ok":true,"photos":[],"episodes":[]}` - nothing to sign |
+| `guest-invite` without an owner | anon key | ✅ 403 `forbidden` |
+| CI on `main` after the merge (lint, types, unit tests, build) | GitHub Actions run 216 | ✅ success |
+
+UPDATE/DELETE rules (kid cannot approve, cannot change audience, cannot swap
+audio, owner-only bucket deletes) were not re-run live: the Supabase tool asks
+for a human confirmation on destructive SQL, and this ran unattended. They are
+covered by the 71 local probes on the same migrations.
+
+X Not yet checked live: a real guest session calling `guest-media` (signed URLs
+for a shared photo / episode), the invitation email through Resend, likes
+arriving in realtime on a second device, and recording on a real iPhone and
+Android. The production pages could not be fetched from this session (the
+Vercel connection was refused for the team scope), so `/stories`, `/podcast`
+and `/s/<slug>` on production rest on the build passing in CI and the local
+browser run.
