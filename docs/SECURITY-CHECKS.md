@@ -1791,5 +1791,23 @@ Found on the way: after the PIN unlock the member store still held the
 instead of the kid home until a reload. The unlock now re-resolves the member
 (`refreshMember`), next to `resetAuthGate`.
 
-X Live: apply 00049, then deploy `push-send` (it reads `approved_at`, so the
-function must go after the migration).
+Applied live 14/10/2026 through the dashboard SQL editor (the DROPs need a
+human confirmation the Supabase tool could not get in time; not listed in
+`schema_migrations`, the file is the record). Before the apply the live DB
+held 0 messages, 0 episodes, 0 comments and 0 documents shared with kids.
+Catalog check afterwards:
+
+| Check (live) | Result |
+|---|---|
+| `messages.approved_at` / `approved_by` | ✅ present, 0 pending rows |
+| `messages_guest_select` | ✅ `is_active_guest_of(trip_id) AND channel = 'guests' AND approved_at IS NOT NULL` |
+| New policies `messages_kid_select/insert/delete_pending`, `episodes_kid_select`, `audio_bucket_owner_insert`, `comments_kid_select` | ✅ all 7 present |
+| Old policies `episodes_kid_insert/update/delete`, `documents_kid_select`, `documents_kid_read`, `audio_bucket_family_insert` | ✅ all gone |
+| `documents.shared_with_kids` | ✅ gone |
+| Triggers `messages_approval_guard`, `messages_notify_approved` | ✅ present |
+| `message_reads` → `messages` FK | ✅ on delete cascade |
+| `push-send` v14 deployed after the migration (`verify_jwt = false` as before, cron secret unchanged); a wall-message call for an unknown id via `pg_net` | ✅ 200 `{"ok":true,"sent":0}` |
+
+X Not yet checked live with real sessions: a kid's message staying hidden from
+a guest until approved, and the two pushes (parents on write, everyone else on
+approval). Worth one real round on the tablet and a guest phone.
