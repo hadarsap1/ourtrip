@@ -7,7 +7,7 @@ export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "ourtrip-theme";
 // Light keeps the manifest's teal (status bar since launch); dark uses the dark background.
-export const THEME_COLORS: Record<ResolvedTheme, string> = { light: "#0e7c6b", dark: "#111816" };
+export const THEME_COLORS: Record<ResolvedTheme, string> = { light: "#4e6b45", dark: "#241d17" };
 
 /** Inline, dependency-free; keep in sync with applyTheme below. */
 export const THEME_BOOT_SCRIPT = `(function(){try{var p=localStorage.getItem("${THEME_STORAGE_KEY}");if(p!=="light"&&p!=="dark")p="system";var d=p==="dark"||(p==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p);}catch(e){}})();`;

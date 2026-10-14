@@ -11,6 +11,7 @@ import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
 import { ThemeSync } from "@/components/ThemeSync";
 import { CaptureFab } from "@/components/capture/CaptureFab";
+import { sovevFont } from "@/components/sovev/font";
 import { strings } from "@/lib/strings";
 import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
 import { FLAG_BOOT_SCRIPT } from "@/lib/flags";
@@ -54,7 +55,7 @@ export default function RootLayout({
   return (
     // data-theme is set by the head script before hydration, hence
     // suppressHydrationWarning on <html> only.
-    <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${sovevFont.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         {/* Runs before first paint: picks light/dark from the saved choice or the
             OS, so a dark-mode phone never flashes cream on open (F7). */}

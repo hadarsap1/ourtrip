@@ -756,7 +756,7 @@ export function DocumentsScreen() {
           type="button"
           onClick={() => setForm({ doc: null })}
           className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
-          style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
+          style={{ boxShadow: "0 10px 22px -14px rgba(78,107,69,.7)" }}
         >
           {strings.documents.upload}
         </button>

@@ -162,7 +162,7 @@ export function TripMap({
           // a place, and it should not read as firmly as one that is.
           fillOpacity: point.precision === "country" ? 0.45 : 1,
           // The leg you are in keeps a heavier ring, since colour is spoken for.
-          strokeColor: leg.phase === "current" ? "#22312e" : "#ffffff",
+          strokeColor: leg.phase === "current" ? "#3a2c24" : "#ffffff",
           strokeWeight: leg.phase === "current" ? 3 : 2,
         },
         zIndex: leg.phase === "current" ? 3 : 2,
@@ -196,7 +196,7 @@ export function TripMap({
                 .replace("{total}", String(leg.dayCount))
             )}</span>` +
             `<p style="margin:6px 0 0"><button type="button" data-leg="${escapeHtml(leg.key)}" ` +
-            `style="font:inherit;font-size:12px;font-weight:700;color:#0b5f54;background:none;border:0;padding:0;cursor:pointer">` +
+            `style="font:inherit;font-size:12px;font-weight:700;color:#3b5234;background:none;border:0;padding:0;cursor:pointer">` +
             `${escapeHtml(s.mapPinOpen)}</button></p>` +
             `</div>`
         );

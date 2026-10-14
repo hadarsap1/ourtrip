@@ -80,19 +80,17 @@ export function SideRail() {
   return (
     <nav
       // border-e is the rail's content-facing edge in RTL.
-      className="fixed inset-y-0 start-0 z-40 hidden w-[216px] flex-col gap-[26px] overflow-hidden border-e border-line bg-[#f7f1e6] px-[18px] py-[26px] lg:flex"
+      className="fixed inset-y-0 start-0 z-40 hidden w-[216px] flex-col gap-[26px] overflow-hidden border-e border-line bg-surface-2 px-[18px] py-[26px] lg:flex"
       aria-label={strings.nav.railLabel}
     >
       <div className="flex items-center gap-[9px] ps-1.5">
-        <span
-          className="grid h-[26px] w-[26px] place-items-center rounded-lg bg-sea text-xs font-extrabold text-on-sea"
-          aria-hidden="true"
-        >
-          OT
-        </span>
-        <span className="text-sm font-extrabold tracking-[0.02em] text-sea-deep">
-          {strings.appName}
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
+        <img
+          src="/sovev/badge-192.png"
+          alt=""
+          className="h-8 w-8 shrink-0 rounded-full border-2 border-ink object-cover"
+        />
+        <span className="sovev-display text-lg text-ink">{strings.appName}</span>
       </div>
 
       {/* The full map is taller than a laptop viewport, so THIS scrolls and the

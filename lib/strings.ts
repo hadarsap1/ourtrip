@@ -2,7 +2,7 @@
 // No hardcoded Hebrew inside components.
 
 export const strings = {
-  appName: "OurTrip",
+  appName: "סו-בב עולם!",
   appDescription: "הטיול המשפחתי שלנו מסביב לעולם",
 
   // Browser-tab / history titles, one per route. All 24 routes used to share
@@ -27,7 +27,7 @@ export const strings = {
     kids: "ילדים ומכשירים",
     guests: "אורחים",
     pocket: "דמי כיס",
-    messages: "הקיר המשפחתי",
+    messages: "קיר החברים והמשפחה",
     memoryBook: "ספר זיכרונות",
     notifications: "התראות",
     options: "בנק אפשרויות",
@@ -582,7 +582,7 @@ export const strings = {
     menuPocket: "דמי כיס",
     menuKids: "ילדים ומכשירים",
     menuGuests: "אורחים",
-    menuMessages: "הקיר המשפחתי",
+    menuMessages: "קיר החברים והמשפחה",
     menuRecommend: "מה בסביבה",
     menuNotifications: "התראות",
     menuOptions: "בנק אפשרויות",
@@ -910,7 +910,7 @@ export const strings = {
     iosStep1: "פותחים את האפליקציה ב-Safari",
     iosStep2: "מקישים על כפתור השיתוף ולמטה",
     iosStep3: "בוחרים ״הוספה למסך הבית״",
-    iosStep4: "פותחים את OurTrip מהמסך הבית - ואז מפעילים כאן התראות",
+    iosStep4: "פותחים את סו-בב עולם! מהמסך הבית - ואז מפעילים כאן התראות",
   },
 
   weather: {
@@ -1544,7 +1544,7 @@ export const strings = {
     tilePodcast: "הפודקאסט",
     tilePhotos: "תמונות",
     tileMap: "איפה היינו",
-    tileWall: "הקיר המשפחתי",
+    tileWall: "קיר החברים והמשפחה",
   },
 
   kidLogin: {
@@ -1826,7 +1826,7 @@ export const strings = {
     iosStep1: "פותחים את האפליקציה ב-Safari",
     iosStep2: "מקישים על כפתור השיתוף בסרגל התחתון",
     iosStep3: "בוחרים ״הוספה למסך הבית״",
-    iosStep4: "פותחים את OurTrip מהאייקון החדש",
+    iosStep4: "פותחים את סו-בב עולם! מהאייקון החדש",
   },
 
   // "סו-בב עולם!" - the sharing brand (docs/DESIGN-sharing.md)

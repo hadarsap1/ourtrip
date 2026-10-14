@@ -174,7 +174,7 @@ export function DocPinSheet({
               type="checkbox"
               checked={ack}
               onChange={(e) => setAck(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-teal-600"
+              className="mt-0.5 h-4 w-4 accent-[var(--brand)]"
             />
             <span>{s.pinAck}</span>
           </label>
