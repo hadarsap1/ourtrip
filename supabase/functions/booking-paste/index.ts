@@ -26,7 +26,9 @@ import { MAX_PASTE_CHARS, PASTE_SCHEMA, PASTE_TYPES, sanitizePaste } from "../_s
 import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
 
 const FN = "booking-paste";
-const DEFAULT_MODEL = "claude-opus-5";
+// Sonnet 5.5, not Opus (Hadar 14/10/2026): about 2.5x cheaper, and the owner
+// reviews the fields before saving.
+const DEFAULT_MODEL = "claude-sonnet-5-5";
 const TIMEOUT_MS = 20_000;
 
 const CORS = {
@@ -98,8 +100,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     response = await anthropic.messages.create({
       model: Deno.env.get("BOOKING_PASTE_MODEL") ?? DEFAULT_MODEL,
       max_tokens: 4000,
+      // medium keeps a careful read of the dates inside the 20 s timeout
+      output_config: { effort: "medium" },
       tools: [{ name: "emit_booking", description: "Return the one booking this text confirms, or found=false.", input_schema: PASTE_SCHEMA }],
-      tool_choice: { type: "tool", name: "emit_booking" },
+      // Sonnet 5.5 rejects a forced tool_choice; the prompt ends with "Call
+      // emit_booking", and a reply without the tool is reported as failed.
+      tool_choice: { type: "auto" },
       messages: [{ role: "user", content: prompt(text, today) }],
     });
   } catch (err) {
@@ -115,6 +121,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const toolUse = response.content.find((b) => b.type === "tool_use");
   const booking = toolUse && toolUse.type === "tool_use" ? sanitizePaste(toolUse.input) : null;
   console.log(`${FN}: ${booking ? "found" : "none"} in ${Date.now() - started}ms (${text.length} chars, stop=${response.stop_reason})`);
-  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return json({ ok: false, error: "extract_failed" }, 502);
+  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens" || !toolUse) return json({ ok: false, error: "extract_failed" }, 502);
   return json({ ok: true, booking, remainingToday: gate.callsLeftToday });
 });
