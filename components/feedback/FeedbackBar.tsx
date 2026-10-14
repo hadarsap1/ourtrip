@@ -201,7 +201,7 @@ export function FeedbackBar({
             <button
               type="submit"
               disabled={busy || !draft.trim()}
-              className="shrink-0 rounded-2xl bg-sv-sage-fill px-4 font-bold text-white disabled:opacity-50"
+              className="shrink-0 rounded-2xl bg-sea px-4 font-bold text-on-sea disabled:opacity-50"
             >
               {strings.feedback.send}
             </button>

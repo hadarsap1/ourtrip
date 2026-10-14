@@ -39,7 +39,7 @@ export function SovevBrand({
       />
       <div className="min-w-0">
         <p className={`sovev-display font-extrabold text-sv-ink ${word}`}>{strings.sovev.name}</p>
-        {subtitle && <p className="sovev-display text-[14px] font-medium leading-5 text-sv-ink-soft">{subtitle}</p>}
+        {subtitle && <p className="text-[14px] font-medium leading-5 text-sv-ink-soft">{subtitle}</p>}
       </div>
     </div>
   );

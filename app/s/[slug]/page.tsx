@@ -94,7 +94,7 @@ export default async function PublicStoryPage({ params }: Props) {
             )}
           </>
         )}
-        <footer className="sovev-display border-t-2 border-dashed border-sv-line pt-4 text-center text-sv-ink-soft">
+        <footer className="border-t-2 border-dashed border-sv-line pt-4 text-center text-sv-ink-soft">
           {strings.publicStory.footer}
         </footer>
       </article>
