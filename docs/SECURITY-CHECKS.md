@@ -1691,3 +1691,30 @@ Android. The production pages could not be fetched from this session (the
 Vercel connection was refused for the team scope), so `/stories`, `/podcast`
 and `/s/<slug>` on production rest on the build passing in CI and the local
 browser run.
+
+## Journal becomes family-only (migration 00048) - 14/10/2026
+
+DECISIONS #32. Guests lose their only policy on `journal_entries`
+(`journal_entries_guest_select`), and the `shared_with_guests` column goes with
+the kid guard trigger whose only job was that flag. Owners keep
+`journal_entries_owner_all`, kids keep their own entries
+(`journal_entries_kid_own_all`). A photo attached to an entry is unchanged: it
+reaches guests only when it is itself approved AND shared (#5).
+
+Local harness, `scripts/rls/probes/48_journal_family_only.sql`:
+
+| Check | Result |
+|---|---|
+| Owner writes and reads the journal | ✅ PASS |
+| Kid writes and reads own entry | ✅ PASS |
+| Guest reads no journal entry; the guest policy is gone | ✅ PASS |
+| Anon reads no journal entry | ✅ PASS |
+| No share flag left on the table | ✅ PASS |
+
+77/77 probes pass across 00043-00048. UI: the share toggle is gone from the
+journal, the guest home no longer has a journal tile, and a guest who opens
+`/journal` directly gets a note and a link to the stories.
+
+X Live: apply 00048, then check as anon / guest that `journal_entries` returns
+nothing. Any entry that was shared with guests before stops being visible to
+them; it can be turned into a story.

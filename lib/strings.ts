@@ -1539,7 +1539,6 @@ export const strings = {
     tileStories: "סיפורים מהמסע",
     tilePodcast: "הפודקאסט",
     tilePhotos: "תמונות",
-    tileJournal: "יומן מסע",
     tileMap: "איפה היינו",
     tileWall: "הקיר המשפחתי",
   },
@@ -1595,13 +1594,13 @@ export const strings = {
     saved: "נשמר ביומן!",
     empty: "עוד אין רשומות ביומן",
     deleteConfirm: "למחוק את הרשומה?",
-    sharedWithGuests: "משותף עם האורחים",
-    shareToggle: "שיתוף עם אורחים",
     // redesign 3c
     todayEyebrow: "היומן של היום",
     wroteCount: "{n} מתוך {total} כתבו",
     photoAttached: "תמונה צורפה",
     toStory: "הפיכה לסיפור",
+    familyOnly: "היומן הוא של המשפחה. מה שאנחנו משתפים מחכה לכם בסיפורים מהמסע",
+    toStories: "לסיפורים מהמסע",
   },
 
   photos: {
