@@ -91,7 +91,7 @@ set local role authenticated; select rls.as_kid();
 -- 00049 retired the family feed for kids: they read the guests wall instead
 select rls.check('kid: no longer reads the family feed', (select count(*) from messages where channel = 'family') = 0);
 select rls.check('kid: reads the comment on a story they can see (00050)', (select count(*) from comments) = 1);
-select rls.check('kid: can resolve the guest''s name', exists (select 1 from members where id = '00000000-0000-0000-0000-0000000000b3'));
+select rls.check('kid: can resolve the guest''s name (00051)', exists (select 1 from public.trip_member_names('00000000-0000-0000-0000-0000000000a1') where id = '00000000-0000-0000-0000-0000000000b3'));
 reset role;
 
 set local role authenticated; select rls.as_revoked();

@@ -93,3 +93,21 @@ verify_jwt = true
 # the caller's own RLS returns.
 [functions.guest-media]
 verify_jwt = true
+
+# Pinned in the security pass (14/10): an unlisted function redeploys with the
+# default, which is wrong for steps-ingest (the iPhone Shortcut carries a
+# per-member token, not a JWT - the function checks the token itself).
+[functions.steps-ingest]
+verify_jwt = false
+
+[functions.booking-paste]
+verify_jwt = true
+
+[functions.facts-generate]
+verify_jwt = true
+
+[functions.translate-phrase]
+verify_jwt = true
+
+[functions.recommend-diag]
+verify_jwt = true

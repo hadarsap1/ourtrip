@@ -36,25 +36,26 @@ import {
 } from "../_shared/notifyPolicy.ts";
 import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from "../_shared/travel.ts";
 
-// ---- shared-secret gate (review findings M3/M4) ----
-// This function runs verify_jwt=false because pg_cron carries no JWT, which
-// left it invokable by anyone who knows the URL. Both callers now send
-// x-cron-secret (migration 00025) and we check it here.
-//
-// Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
-// before the secret exists would stop notifications with nothing surfacing the
-// failure, which is the silent breakage supabase/config.toml exists to
-// prevent. Setting CRON_SECRET (both sides - see 00025) switches it on.
-function cronAuthorized(req: Request): boolean {
-  const expected = Deno.env.get("CRON_SECRET");
-  if (!expected) return true;
+// Since 00052 the secret is generated and kept in the database (it never
+// passes through a file or a dashboard): the jobs send it, and this asks the
+// database whether the header matches. A CRON_SECRET function secret, if one
+// is ever set, is checked instead. Fails CLOSED: no header, a wrong one, or a
+// failed lookup is a 401.
+async function cronAuthorized(req: Request): Promise<boolean> {
   const got = req.headers.get("x-cron-secret") ?? "";
-  if (got.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < got.length; i++) {
-    diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (!got) return false;
+  const expected = Deno.env.get("CRON_SECRET");
+  if (expected) {
+    if (got.length !== expected.length) return false;
+    let diff = 0;
+    for (let i = 0; i < got.length; i++) {
+      diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+    }
+    return diff === 0;
   }
-  return diff === 0;
+  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data, error } = await db.rpc("cron_secret_matches", { p_secret: got });
+  return !error && data === true;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -128,11 +129,16 @@ async function handleWallMessage(messageId: string): Promise<number> {
     .maybeSingle();
   if (!msg) return 0;
 
-  const { data: members } = await service
-    .from("members")
-    .select("id, display_name, role")
-    .eq("trip_id", msg.trip_id);
+  const [{ data: members }, { data: allowed }] = await Promise.all([
+    service.from("members").select("id, display_name, role, email").eq("trip_id", msg.trip_id),
+    service.from("guests_allowlist").select("email").eq("trip_id", msg.trip_id).is("revoked_at", null),
+  ]);
   const sender = members?.find((m) => m.id === msg.sender_id);
+  // a revoked guest keeps the members row (and maybe a push subscription), but
+  // must not get wall previews any more (security pass 14/10)
+  const activeGuests = new Set((allowed ?? []).map((a) => a.email.toLowerCase()));
+  const canReceive = (m: { role: string; email: string | null }) =>
+    m.role !== "guest" || (m.email !== null && activeGuests.has(m.email.toLowerCase()));
 
   // Notify only the roles that can actually READ this message, or a push
   // preview would leak what the policies forbid opening. A kid's message
@@ -145,7 +151,7 @@ async function handleWallMessage(messageId: string): Promise<number> {
       ? ["owner", "guest", "kid"]
       : ["owner", "kid"];
   const recipients = (members ?? [])
-    .filter((m) => audience.includes(m.role) && m.id !== msg.sender_id && m.id !== msg.approved_by)
+    .filter((m) => audience.includes(m.role) && canReceive(m) && m.id !== msg.sender_id && m.id !== msg.approved_by)
     .map((m) => m.id);
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;
@@ -432,7 +438,7 @@ async function handleLeaveNow(): Promise<number> {
 }
 
 Deno.serve(async (req) => {
-  if (!cronAuthorized(req)) return json({ ok: false, error: "forbidden" }, 401);
+  if (!(await cronAuthorized(req))) return json({ ok: false, error: "forbidden" }, 401);
 
   const subject = Deno.env.get("VAPID_SUBJECT");
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");

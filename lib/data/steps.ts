@@ -22,9 +22,13 @@ export type Parent = { id: string; name: string };
 
 /** Both parents (owners) of the trip, for the card's columns. */
 export async function listParents(tripId: string): Promise<Parent[]> {
-  const { data, error } = await client().from("members").select("id, display_name").eq("trip_id", tripId).eq("role", "owner").order("created_at");
+  // names only, for any role (00051)
+  const { data, error } = await client().rpc("trip_member_names", { p_trip_id: tripId });
   if (error) throw new Error(error.message);
-  return (data ?? []).map((m) => ({ id: m.id, name: m.display_name }));
+  return (data ?? [])
+    .filter((m) => m.role === "owner")
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map((m) => ({ id: m.id, name: m.display_name }));
 }
 
 export async function listSteps(memberIds: string[], from: string, to: string): Promise<StepRow[]> {

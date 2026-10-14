@@ -73,16 +73,26 @@ export async function getActiveTrip(): Promise<Trip | null> {
   return tripInFlight;
 }
 
-/** All members of the trip (owners see everyone via members_owner_all). */
+/**
+ * Everyone on the trip, by name. Kids and guests get names and roles only
+ * (trip_member_names, 00051) - never another member's email; owners also read
+ * the full rows (members_owner_all) and those win, so the guest admin still
+ * has addresses.
+ */
 export async function listMembers(tripId: string): Promise<Member[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
-  const { data } = await supabase
-    .from("members")
-    .select("*")
-    .eq("trip_id", tripId)
-    .order("display_name");
-  return data ?? [];
+  const [{ data: names }, { data: rows }] = await Promise.all([
+    supabase.rpc("trip_member_names", { p_trip_id: tripId }),
+    supabase.from("members").select("*").eq("trip_id", tripId),
+  ]);
+  const full = new Map((rows ?? []).map((m) => [m.id, m]));
+  const merged: Member[] = (names ?? []).map(
+    (n) => full.get(n.id) ?? { ...n, email: null, auth_user_id: null }
+  );
+  // an owner's own query may hold rows the name list missed (it never should)
+  for (const m of rows ?? []) if (!merged.some((x) => x.id === m.id)) merged.push(m);
+  return merged.sort((a, b) => a.display_name.localeCompare(b.display_name, "he"));
 }
 
 // The member row is kept on the device too, per signed-in user (F9 again):
