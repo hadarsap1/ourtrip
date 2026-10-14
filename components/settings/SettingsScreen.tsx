@@ -6,11 +6,12 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { ThemePicker } from "@/components/settings/ThemePicker";
 import { StepsSettings } from "@/components/settings/StepsSettings";
 import { BackupCard } from "@/components/settings/BackupCard";
+import { AiBudgetCard } from "@/components/settings/AiBudgetCard";
 import { strings } from "@/lib/strings";
 
 /**
  * Settings, reached from the gear on More. Each card decides for itself who
- * sees it (steps and backup: parents only); access is still RLS.
+ * sees it (steps, AI budget and backup: parents only); access is still RLS.
  */
 export function SettingsScreen() {
   return (
@@ -26,6 +27,7 @@ export function SettingsScreen() {
       <InstallPrompt />
       <ThemePicker />
       <StepsSettings />
+      <AiBudgetCard />
       <BackupCard />
     </div>
   );

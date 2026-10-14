@@ -16,6 +16,9 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
+
+const FN = "recommend";
 
 // Browser calls this cross-origin (Vercel → *.supabase.co), so every response
 // - including the CORS preflight - must carry these headers.
@@ -256,6 +259,10 @@ Deno.serve(async (req) => {
     if (candidates.length === 0) candidates = await fetchOsmPlaces(lat, lng);
   }
 
+  // the AI budget (00053): monthly cap + this function's daily cap
+  const gate = await reserveAi(caller, FN);
+  if (!gate.ok) return json({ ok: false, error: gate.error }, gate.status);
+
   const anthropic = new Anthropic(); // ANTHROPIC_API_KEY from function secrets
   const whereText =
     (resolvedArea ? resolvedArea : "") +
@@ -316,6 +323,8 @@ Deno.serve(async (req) => {
     console.error("recommend: anthropic call failed:", (err as Error).message);
     return json({ ok: false, error: "ai_failed" }, 502);
   }
+
+  await recordAi(gate.memberId, FN, [response]);
 
   type Raw = {
     candidate_index?: number | null;

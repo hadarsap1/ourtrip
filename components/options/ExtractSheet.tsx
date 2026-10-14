@@ -10,6 +10,7 @@ import {
   type PlaceOptionInput,
 } from "@/lib/data/placeOptions";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 
 const FIELD =
   "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-sea";
@@ -80,13 +81,14 @@ export function ExtractSheet({
       // lib/functionError.ts) - an exact match, not a substring guess.
       const code = (err as Error).message ?? "";
       setError(
-        code === "not_configured"
+        aiLimitMessage(code) ??
+        (code === "not_configured"
           ? s.importNotConfigured
           : code === "no_credit"
             ? s.importNoCredit
             : code === "truncated"
               ? s.importTruncated
-              : s.importFailed
+              : s.importFailed)
       );
       setPhase("input");
     }

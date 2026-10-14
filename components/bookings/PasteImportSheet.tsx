@@ -6,9 +6,11 @@ import { createBooking } from "@/lib/data/bookings";
 import { extractBookingFromPaste, pasteToInsert, type PasteBooking } from "@/lib/data/bookingPaste";
 import { isLowConfidence, PASTE_TYPES, type PasteField } from "@/supabase/functions/_shared/bookingPaste";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 
 const t = strings.bookingPaste;
-const errorText = (code: string) => (t.errors as Record<string, string>)[code] ?? t.errors.extract_failed;
+const errorText = (code: string) =>
+  aiLimitMessage(code) ?? (t.errors as Record<string, string>)[code] ?? t.errors.extract_failed;
 
 type EditableField = Exclude<PasteField, "type" | "cost">;
 const TEXT_FIELDS: { key: EditableField; input: "text" | "date" | "time" }[] = [

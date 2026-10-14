@@ -1,3 +1,4 @@
+import { functionErrorCode } from "@/lib/functionError";
 import { getSupabase } from "@/lib/supabase";
 import {
   deleteEmergencySnapshot,
@@ -109,7 +110,7 @@ export async function autofillEmergency(countryCode: string): Promise<void> {
     "emergency-autofill",
     { body: { country_code: countryCode } }
   );
-  if (error) throw new Error(error.message);
+  if (error) throw new Error((await functionErrorCode(error)) ?? "autofill failed");
   if (!data?.ok) throw new Error(data?.error ?? "autofill failed");
 }
 

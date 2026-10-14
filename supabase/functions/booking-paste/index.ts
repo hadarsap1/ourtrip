@@ -7,8 +7,8 @@
 //   - owner-only: verify_jwt=true AND role re-checked in-function before the
 //     body is read (same ordering as gmail-bookings);
 //   - kill switch: BOOKING_PASTE=off → 503 "disabled";
-//   - rate limits in public.ai_usage (00041): PER_MEMBER_DAILY per parent and
-//     TRIP_DAILY for the whole trip, counted BEFORE the model call;
+//   - the trip's monthly AI budget and this function's daily cap (00053,
+//     _shared/aiBudget.ts), counted BEFORE the model call;
 //   - model from BOOKING_PASTE_MODEL (default below), 20 s timeout, graceful
 //     error codes the app maps to Hebrew;
 //   - the reply is schema-pinned (tool) AND re-validated by sanitizePaste;
@@ -23,10 +23,9 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { MAX_PASTE_CHARS, PASTE_SCHEMA, PASTE_TYPES, sanitizePaste } from "../_shared/bookingPaste.ts";
+import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
 
 const FN = "booking-paste";
-const PER_MEMBER_DAILY = 30;
-const TRIP_DAILY = 60;
 const DEFAULT_MODEL = "claude-opus-5";
 const TIMEOUT_MS = 20_000;
 
@@ -87,34 +86,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (text.length < 20) return json({ ok: false, error: "too_short" }, 400);
   if (text.length > MAX_PASTE_CHARS) return json({ ok: false, error: "too_long" }, 413);
 
-  // ---- who is calling, and the limits ----
-  const { data: userData } = await caller.auth.getUser();
-  const { data: me } = await caller
-    .from("members")
-    .select("id, trip_id")
-    .eq("auth_user_id", userData.user?.id ?? "")
-    .maybeSingle();
-  if (!me) return json({ ok: false, error: "forbidden" }, 403);
-
-  const service = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  // ---- the AI budget (00053): monthly cap + this function's daily cap ----
+  const gate = await reserveAi(caller, FN);
+  if (!gate.ok) return json({ ok: false, error: gate.error }, gate.status);
   const today = new Date().toISOString().slice(0, 10);
-  const { data: tripMembers } = await service.from("members").select("id").eq("trip_id", me.trip_id);
-  const ids = (tripMembers ?? []).map((m) => m.id);
-  const { data: usage, error: usageError } = await service.from("ai_usage").select("member_id, calls").eq("fn", FN).eq("day", today).in("member_id", ids);
-  // Fail CLOSED: without the usage table (00041) there is no limit to enforce,
-  // and an unlimited paid endpoint is worse than a disabled one.
-  if (usageError) {
-    console.error(`${FN}: ai_usage unavailable`);
-    return json({ ok: false, error: "not_configured" }, 503);
-  }
-  const mine = usage?.find((u) => u.member_id === me.id)?.calls ?? 0;
-  const tripTotal = (usage ?? []).reduce((s, u) => s + u.calls, 0);
-  if (mine >= PER_MEMBER_DAILY || tripTotal >= TRIP_DAILY) return json({ ok: false, error: "rate_limited" }, 429);
-  // Counted before the call: a timed-out call still cost money.
-  const { error: countError } = await service
-    .from("ai_usage")
-    .upsert({ member_id: me.id, fn: FN, day: today, calls: mine + 1, updated_at: new Date().toISOString() });
-  if (countError) return json({ ok: false, error: "not_configured" }, 503);
 
   const started = Date.now();
   const anthropic = new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 0 });
@@ -135,9 +110,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ ok: false, error: "extract_failed" }, 502);
   }
 
+  await recordAi(gate.memberId, FN, [response]);
+
   const toolUse = response.content.find((b) => b.type === "tool_use");
   const booking = toolUse && toolUse.type === "tool_use" ? sanitizePaste(toolUse.input) : null;
   console.log(`${FN}: ${booking ? "found" : "none"} in ${Date.now() - started}ms (${text.length} chars, stop=${response.stop_reason})`);
   if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return json({ ok: false, error: "extract_failed" }, 502);
-  return json({ ok: true, booking, remainingToday: Math.max(0, PER_MEMBER_DAILY - mine - 1) });
+  return json({ ok: true, booking, remainingToday: gate.callsLeftToday });
 });

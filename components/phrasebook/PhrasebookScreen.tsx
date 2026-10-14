@@ -22,6 +22,7 @@ import { TranslateBox } from "./TranslateBox";
 import { useMember } from "@/lib/useMember";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type { PhrasebookEntry, Trip } from "@/lib/types";
 
@@ -130,11 +131,12 @@ export function PhrasebookScreen() {
     showToast(
       ok
         ? strings.phrasebook.generated
-        : code === "not_configured"
-          ? strings.phrasebook.notConfigured
-          : code === "no_credit"
-            ? strings.phrasebook.noCredit
-            : strings.phrasebook.generateFailed
+        : aiLimitMessage(code) ??
+          (code === "not_configured"
+            ? strings.phrasebook.notConfigured
+            : code === "no_credit"
+              ? strings.phrasebook.noCredit
+              : strings.phrasebook.generateFailed)
     );
     setGenerating(false);
   }
@@ -171,11 +173,12 @@ export function PhrasebookScreen() {
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       showToast(
-        code === "not_configured"
-          ? strings.phrasebook.notConfigured
-          : code === "no_credit"
-            ? strings.phrasebook.translateNoCredit
-            : strings.phrasebook.translateFailed
+        aiLimitMessage(code) ??
+          (code === "not_configured"
+            ? strings.phrasebook.notConfigured
+            : code === "no_credit"
+              ? strings.phrasebook.translateNoCredit
+              : strings.phrasebook.translateFailed)
       );
     } finally {
       setTranslating(false);

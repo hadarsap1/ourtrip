@@ -104,6 +104,7 @@ const TABLES = [
   "daily_steps",
   "step_tokens",
   "ai_usage",
+  "trip_ai_settings",
 ] as const;
 
 Deno.serve(async (req) => {
