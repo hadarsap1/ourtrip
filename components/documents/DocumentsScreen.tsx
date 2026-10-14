@@ -10,7 +10,6 @@ import {
   type IconProps,
   LockIcon,
   PassportIcon,
-  PersonIcon,
   SearchIcon,
   ShieldCheckIcon,
   UnlockIcon,
@@ -30,7 +29,6 @@ import {
   openDocument,
   protectDocument,
   removeOfflineDocument,
-  setDocumentSharedWithKids,
   unprotectDocument,
 } from "@/lib/data/documents";
 import {
@@ -315,24 +313,6 @@ export function DocumentsScreen() {
       return;
     }
     showToast(strings.documents.openFailed);
-  }
-
-  async function toggleShareWithKids(doc: Document) {
-    try {
-      await setDocumentSharedWithKids(doc.id, !doc.shared_with_kids);
-      setDocs((prev) =>
-        prev.map((d) =>
-          d.id === doc.id ? { ...d, shared_with_kids: !doc.shared_with_kids } : d
-        )
-      );
-      showToast(
-        doc.shared_with_kids
-          ? strings.documents.unsharedWithKids
-          : strings.documents.sharedWithKids
-      );
-    } catch {
-      showToast(strings.common.error);
-    }
   }
 
   // Binds this device's authenticator to the vault. Only reachable while the
@@ -671,12 +651,6 @@ export function DocumentsScreen() {
                           aria-label={strings.documents.lockedBadge}
                         />
                       )}
-                      {doc.shared_with_kids && (
-                        <PersonIcon
-                          className="h-3 w-3 shrink-0 text-sea"
-                          aria-label={strings.documents.sharedBadge}
-                        />
-                      )}
                       <span className="truncate text-[13.5px] font-semibold text-ink">
                         {doc.title}
                       </span>
@@ -723,21 +697,6 @@ export function DocumentsScreen() {
                       ) : (
                         <UnlockIcon className="h-[15px] w-[15px]" />
                       )}
-                    </button>
-                  )}
-                  {!isKid && !doc.pin_protected && (
-                    <button
-                      type="button"
-                      onClick={() => void toggleShareWithKids(doc)}
-                      aria-label={strings.documents.shareWithKids}
-                      aria-pressed={doc.shared_with_kids}
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
-                        doc.shared_with_kids
-                          ? "bg-sun-tint text-sun-deep"
-                          : "bg-paper-deep text-ink-faint"
-                      }`}
-                    >
-                      <PersonIcon className="h-[15px] w-[15px]" />
                     </button>
                   )}
                   <button

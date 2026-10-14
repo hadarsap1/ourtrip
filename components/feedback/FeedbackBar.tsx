@@ -8,7 +8,6 @@ import {
   addReaction,
   deleteComment,
   removeReaction,
-  showCommentToKids,
 } from "@/lib/data/feedback";
 import { matchesTarget, namesSummary, tallyReactions, type FeedbackTarget } from "@/lib/feedback";
 import { formatShortDate } from "@/lib/format";
@@ -65,7 +64,6 @@ export function FeedbackBar({
   target,
   reactions,
   comments,
-  contextTitle,
   onChanged,
   onToast,
 }: {
@@ -74,10 +72,8 @@ export function FeedbackBar({
   members: Member[];
   target: FeedbackTarget;
   reactions: Reaction[];
-  /** Pass [] for kids - they never read comments (00045). */
+  /** Kids get comments on episodes only, read-only (RLS, 00049). */
   comments: Comment[];
-  /** "על הסיפור: ..." line that travels with a comment shown to the kids. */
-  contextTitle: string;
   onChanged: () => void;
   onToast: (message: string) => void;
 }) {
@@ -90,8 +86,10 @@ export function FeedbackBar({
   const who = namesSummary(memberIds.map(nameOf));
   const mine = comments.filter((c) => matchesTarget(c, target));
   const canComment = member.role === "guest" || member.role === "owner";
+  // kids read listeners' comments on episodes, without replying (00049)
+  const showComments = canComment || mine.length > 0;
   const isOwner = member.role === "owner";
-  const roleOf = (id: string) => members.find((m) => m.id === id)?.role;
+  const isEpisode = "episodeId" in target;
   const inputId = `comment-${"postId" in target ? target.postId : target.episodeId}`;
 
   async function toggle(kind: ReactionKind, mineId: string | null) {
@@ -153,12 +151,11 @@ export function FeedbackBar({
         </p>
       )}
 
-      {canComment && (
+      {showComments && (
         <div className="space-y-2 border-t border-sv-line pt-2.5">
           {mine.length > 0 && (
             <ul className="space-y-2">
               {mine.map((c) => {
-                const fromGuest = roleOf(c.author_id) === "guest";
                 return (
                   <li key={c.id} className="rounded-2xl bg-sv-paper px-3 py-2">
                     <p className="text-[12px] font-bold text-sv-ink">
@@ -170,29 +167,6 @@ export function FeedbackBar({
                     <p className="whitespace-pre-wrap break-words text-[14px] text-sv-ink">{c.body}</p>
                     {(isOwner || c.author_id === member.id) && (
                       <div className="mt-1 flex items-center justify-end gap-2">
-                        {isOwner && fromGuest &&
-                          (c.shown_to_kids_at ? (
-                            <span className="text-[12px] font-semibold text-sv-sage">{strings.feedback.shownKids}</span>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={async () => {
-                                setBusy(true);
-                                try {
-                                  await showCommentToKids(c, member.id, contextTitle);
-                                  onChanged();
-                                } catch {
-                                  onToast(strings.common.error);
-                                } finally {
-                                  setBusy(false);
-                                }
-                              }}
-                              className="rounded-full bg-sv-sage-soft px-3 text-[12px] font-bold text-sv-sage"
-                            >
-                              {strings.feedback.showKids}
-                            </button>
-                          ))}
                         <button
                           type="button"
                           aria-label={strings.common.delete}
@@ -211,6 +185,7 @@ export function FeedbackBar({
               })}
             </ul>
           )}
+          {canComment && (
           <form onSubmit={(e) => void send(e)} className="flex gap-2">
             <label htmlFor={inputId} className="sr-only">
               {strings.feedback.commentLabel}
@@ -232,8 +207,11 @@ export function FeedbackBar({
               {strings.feedback.send}
             </button>
           </form>
+          )}
           {member.role === "guest" && (
-            <p className="text-[12px] text-sv-ink-soft">{strings.feedback.commentsHint}</p>
+            <p className="text-[12px] text-sv-ink-soft">
+              {isEpisode ? strings.feedback.commentsHintEpisode : strings.feedback.commentsHint}
+            </p>
           )}
         </div>
       )}

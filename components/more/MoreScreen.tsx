@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
-import { isEnabled } from "@/lib/flags";
+import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import {
   BellIcon,
   ChecklistIcon,
@@ -197,12 +197,9 @@ export function MoreScreen() {
             .replace("{total}", String(counts.checklistTotal))
         : null,
     },
-    {
-      href: "/pocket",
-      label: strings.more.menuPocket,
-      Icon: CoinIcon,
-      state: strings.more.pocketState,
-    },
+    ...(FLAG_DEFAULTS.pocketMoney
+      ? [{ href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon, state: strings.more.pocketState }]
+      : []),
     {
       href: "/kids",
       label: strings.more.menuKids,

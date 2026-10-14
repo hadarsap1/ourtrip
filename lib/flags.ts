@@ -36,6 +36,9 @@ export const FLAG_DEFAULTS = {
   icsExport: true,
   backupExport: true,
   mapSheet: true,
+  // Hidden 14/10/2026 until the family decides to use it (Hadar). The data
+  // and its policies stay; this only removes the screens' entry points.
+  pocketMoney: false,
   // Phase 3 (off by default)
   cameraTranslate: false,
   receiptScan: false,

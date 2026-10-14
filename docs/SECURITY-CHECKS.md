@@ -1749,3 +1749,47 @@ navigating; the gate then asks the server again (`link_member_to_auth_user` →
 |---|---|
 | Before the fix, mock Supabase + browser: `/` → login → kid login → code → PIN | ✅ reproduced - ends on `/login` |
 | After the fix, same flow | ✅ PASS - ends on `/` with the kid tabs; the role is re-checked once |
+
+## Kids' side reshaped - one wall with approval, parent-recorded podcast, owner-only documents (migration 00049) - 14/10/2026
+
+DECISIONS #33-#35. What changed at the policy level:
+
+| Table / bucket | Before | After |
+|---|---|---|
+| `messages` (kids) | read + write the family feed only | read the guests wall (approved messages + own pending), write to it; own message forced pending (`messages_approval_guard`), can take back only a pending one |
+| `messages` (guests) | the whole guests feed | approved messages only (`approved_at is not null`) |
+| `messages` approval | - | only an owner can set `approved_at`; the trigger stamps who and when, and ignores it from anyone else |
+| `message_reads` | FK without cascade | cascades, so rejecting a read message works |
+| `episodes` (kids) | insert / update / delete own pending | select approved only |
+| `audio` bucket | owners + kids upload | owners only |
+| `comments` (kids) | none | select, on episodes they can hear only (`comments_kid_select`) |
+| `documents` (kids) | select where `shared_with_kids` + bytes | none; column, function and both policies dropped |
+
+Push: a pending kid message notifies owners only; on approval
+`messages_notify_approved` runs push-send again for everyone else on the wall,
+so no preview reaches a guest before a parent approves.
+
+Local harness: `49_kids_experience.sql` (20 checks) plus probes 44, 45 and 47
+updated for owner-only recording and the retired family feed. 99/99 PASS
+across 00043-00049. Highlights: a kid's message lands pending even when it
+sends `approved_at`; a guest cannot see it; a kid cannot approve it; a parent's
+approval is stamped with the parent; a guest's own message goes out at once;
+a kid reads listener comments on an approved episode but not on a pending one
+or on a story, and cannot write or delete one; a kid reads no documents.
+
+Browser check against a mock Supabase (kid session after the PIN, then an
+owner session): kid home shows the route tile and no pocket money or
+documents; kid tabs: today, route, messages, photos, journal, facts; the route
+groups the days ahead by place with "we're here now"; the wall shows the
+guest's message and the kid's own as "waiting for approval" with "cancel",
+and sending says it went to a parent; the podcast has no recorder and shows
+the listener's comment with no reply box; the owner sees approve / don't send
+on the kid's message and approving sends one PATCH of `approved_at`.
+
+Found on the way: after the PIN unlock the member store still held the
+"nobody" it resolved before the login, so the tablet showed a member-less app
+instead of the kid home until a reload. The unlock now re-resolves the member
+(`refreshMember`), next to `resetAuthGate`.
+
+X Live: apply 00049, then deploy `push-send` (it reads `approved_at`, so the
+function must go after the migration).

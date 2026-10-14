@@ -8,6 +8,7 @@ import { isKidDevice, registerDevice, unlockWithPin } from "@/lib/data/kids";
 import { CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useIsKidDevice, useKidDisplayName } from "@/lib/useKidDevice";
+import { refreshMember } from "@/lib/useMember";
 
 export function KidLoginScreen() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export function KidLoginScreen() {
     setPin("");
     if (result.status === "ok") {
       resetAuthGate();
+      refreshMember();
       router.replace("/");
       return;
     }

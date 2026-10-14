@@ -55,12 +55,12 @@ export function PodcastScreen() {
     async (tripId: string) => {
       const [r, c] = await Promise.all([
         listReactions(tripId).catch(() => []),
-        role === "kid" ? Promise.resolve([]) : listComments(tripId).catch(() => []),
+        listComments(tripId).catch(() => []),
       ]);
       setReactions(r);
       setComments(c);
     },
-    [role]
+    []
   );
 
   const refresh = useCallback(
@@ -78,7 +78,7 @@ export function PodcastScreen() {
   // recordings that waited on this device go up as soon as there is a signal
   const flush = useCallback(
     async (tripId: string) => {
-      if (role !== "owner" && role !== "kid") return;
+      if (role !== "owner") return;
       const sent = await flushQueuedEpisodes().catch(() => 0);
       if (sent > 0) {
         showToast(strings.podcast.uploadedQueued.replace("{n}", String(sent)));
@@ -144,7 +144,8 @@ export function PodcastScreen() {
   }
 
   const isOwner = role === "owner";
-  const canRecord = role === "owner" || role === "kid";
+  // parents record (00049); kids listen and read the comments
+  const canRecord = isOwner;
   const numbers = episodeNumbers(episodes);
   const waiting = episodes.filter((e) => e.status !== "approved");
   const live = episodes.filter((e) => e.status === "approved");
@@ -167,7 +168,7 @@ export function PodcastScreen() {
         showToast(strings.podcast.queued);
         setQueued(await countQueuedEpisodes().catch(() => 0));
       } else {
-        showToast(isOwner ? strings.podcast.savedOwner : strings.podcast.saved);
+        showToast(strings.podcast.savedOwner);
         await refresh(trip.id);
       }
       return true;
@@ -215,7 +216,7 @@ export function PodcastScreen() {
           : undefined
       }
       onDelete={
-        isOwner || (episode.recorded_by === member.id && episode.status === "pending")
+        isOwner
           ? () =>
               void (async () => {
                 if (!(await askConfirm(strings.podcast.deleteConfirm))) return;
@@ -264,7 +265,7 @@ export function PodcastScreen() {
           <h2 className="sovev-display text-lg font-bold text-sv-ink">{strings.podcast.episodesTitle}</h2>
           {live.length === 0 ? (
             <p className="rounded-[22px] border-2 border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
-              {role === "guest" ? strings.podcast.emptyGuest : strings.podcast.empty}
+              {role === "guest" ? strings.podcast.emptyGuest : role === "kid" ? strings.podcast.emptyKid : strings.podcast.empty}
             </p>
           ) : (
             live.map(card)

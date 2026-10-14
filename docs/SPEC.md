@@ -5,8 +5,8 @@
 | Role | Who | Sees | Edits |
 |---|---|---|---|
 | `owner` | Hadar + Sivan, Google OAuth, emails allowlisted in `members` | Everything | Everything |
-| `kid` | Kids' tablet, PIN login on an owner-approved device | Today view (itinerary summary + weather), own journal, photos, messages inbox, own pocket-money tracker, phrasebook, emergency page, published stories, approved podcast episodes, likes (with names) - never comments | Own journal entries, photo uploads (pending approval), messages, own pocket-money expenses, own stories (draft → sent for approval), own podcast recordings (always pending), likes |
-| `guest` | Specific invited emails via magic link, optionally grouped by a label (family / a class / friends) | Only content a parent shared: approved+shared photos, "completed" itinerary map, the guests wall, stories addressed to guests, approved+shared episodes, likes and comments on those | Messages on the guests wall, likes, own comments |
+| `kid` | Kids' tablet, PIN login on an owner-approved device | Today view (itinerary summary + weather), the route ahead (read-only: places, dates, plans), own journal, photos, the wall with friends and family (approved messages), phrasebook, emergency page, published stories, approved podcast episodes and the listeners' comments on them (read-only), likes (with names). Never documents, budget or bookings. Pocket money is hidden for now (flag) | Own journal entries, photo uploads (pending approval), wall messages (sent only after a parent approves), own stories (draft → sent for approval), likes. Parents record the podcast (DECISIONS #34) |
+| `guest` | Specific invited emails via magic link, optionally grouped by a label (family / a class / friends) | Only content a parent shared: approved+shared photos, "completed" itinerary map, the wall (kids read it too; a kid's message reaches it after a parent approves), stories addressed to guests, approved+shared episodes, likes and comments on those | Messages on the wall, likes, own comments |
 | (anyone with a link) | No account | A parent's own story marked public, after its publish time - copied photos only | Nothing |
 
 ### Auth flows

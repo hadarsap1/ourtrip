@@ -115,7 +115,6 @@ export function EpisodeCard({
           target={{ episodeId: episode.id }}
           reactions={reactions}
           comments={comments}
-          contextTitle={strings.feedback.contextEpisode.replace("{title}", episode.title)}
           onChanged={onFeedbackChanged}
           onToast={onToast}
         />

@@ -123,7 +123,7 @@ async function familyIds(tripId: string): Promise<string[]> {
 async function handleWallMessage(messageId: string): Promise<number> {
   const { data: msg } = await service
     .from("messages")
-    .select("id, body, sender_id, trip_id, channel")
+    .select("id, body, sender_id, trip_id, channel, approved_at, approved_by")
     .eq("id", messageId)
     .maybeSingle();
   if (!msg) return 0;
@@ -134,25 +134,26 @@ async function handleWallMessage(messageId: string): Promise<number> {
     .eq("trip_id", msg.trip_id);
   const sender = members?.find((m) => m.id === msg.sender_id);
 
-  // Notify only the roles that can actually READ this feed (migration 00027).
-  // Without this the split would leak by notification: a guest would get a
-  // push preview of a message the policies forbid them to open.
-  const audience = msg.channel === "guests"
-    ? ["owner", "guest"]
-    : ["owner", "kid"];
+  // Notify only the roles that can actually READ this message, or a push
+  // preview would leak what the policies forbid opening. A kid's message
+  // waiting for approval (00049) is the parents' alone; once approved this
+  // runs again (messages_notify_approved) for everyone else on the wall.
+  const pending = msg.approved_at === null;
+  const audience = pending
+    ? ["owner"]
+    : msg.channel === "guests"
+      ? ["owner", "guest", "kid"]
+      : ["owner", "kid"];
   const recipients = (members ?? [])
-    .filter((m) => audience.includes(m.role) && m.id !== msg.sender_id)
+    .filter((m) => audience.includes(m.role) && m.id !== msg.sender_id && m.id !== msg.approved_by)
     .map((m) => m.id);
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;
   return pushToMembers(recipients, {
-    title:
-      msg.channel === "guests"
-        ? "הודעה חדשה בקיר האורחים 💬"
-        : "הודעה חדשה בקיר המשפחתי 💬",
+    title: pending ? "הודעה ממתינה לאישור שלכם ✋" : "הודעה חדשה בקיר 💬",
     body: sender ? `${sender.display_name}: ${preview}` : preview,
     url: "/messages",
-    tag: "wall",
+    tag: pending ? `wall-pending-${msg.id}` : "wall",
   });
 }
 
