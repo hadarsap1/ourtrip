@@ -254,3 +254,11 @@ h1:not([data-plain]) {
   font-family: var(--font-sovev), var(--font-heebo), system-ui, sans-serif;
   font-weight: 400;
 }
+
+/* The capture button floats above the bottom bar on phones and tablets; give
+   the scroller room for it so the last card can scroll clear (UX pass 14/10). */
+@media (max-width: 1023.98px) {
+  body[data-fab] main {
+    padding-bottom: 9rem;
+  }
+}

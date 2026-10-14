@@ -81,6 +81,7 @@ Acceptance:
 - [x] Applied to the live project and the live anon + guest checks re-run (14/10/2026, SECURITY-CHECKS "Live rollout")
 - [ ] A real recording played back on an iPhone and an Android phone
 - [x] The whole app in the "סו-בב עולם!" brand and name (14/10, DECISIONS #14/#25): tokens, titles, icons, manifest
+- [x] Full QA + security pass (14/10): 153 pages x 3 sizes x 4 roles clean, deny matrix over every table, 3 security fixes (member emails, photo file swap, cron secret), docs/QA-2026-10-14.md
 - [x] The journal is family-only; stories are the one thing guests read (14/10, DECISIONS #32, 00048, probe 48)
 - [x] Kids' side reshaped (14/10, DECISIONS #33-#35, 00049, probe 49): one wall with parent approval for kids' messages, parents record the podcast and kids read listener comments, kids' read-only route, documents owner-only, pocket money hidden
 

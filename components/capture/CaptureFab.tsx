@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Fab } from "@/components/ui/Fab";
 import { Sheet } from "@/components/Sheet";
@@ -13,8 +13,10 @@ import { createJournalEntryOrQueue, getAutoLocation } from "@/lib/data/journal";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
-// Screens where a capture button would be in the way or wrong.
-const HIDDEN_ON = ["/login", "/kid-login", "/offline", "/kids", "/guests", "/s/"];
+// Screens where a capture button would be in the way or wrong. The wall and
+// the journal have their own composer pinned to the bottom, right where the
+// button floats (UX pass 14/10).
+const HIDDEN_ON = ["/login", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/messages", "/journal"];
 const noop = () => () => {};
 
 /**
@@ -29,7 +31,19 @@ export function CaptureFab() {
   const [sheet, setSheet] = useState<"expense" | "note" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  if (!enabled || member?.role !== "owner" || HIDDEN_ON.some((p) => pathname?.startsWith(p))) return null;
+  const visible = enabled && member?.role === "owner" && !HIDDEN_ON.some((p) => pathname?.startsWith(p));
+
+  // While the button floats over the bottom of the screen, the scroller gets
+  // room for it (globals.css: body[data-fab]) so the last card is never under it.
+  useEffect(() => {
+    if (!visible) return;
+    document.body.dataset.fab = "1";
+    return () => {
+      delete document.body.dataset.fab;
+    };
+  }, [visible]);
+
+  if (!visible || !member) return null;
 
   const flash = (msg: string) => {
     setToast(msg);
