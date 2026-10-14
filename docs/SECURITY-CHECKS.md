@@ -1823,3 +1823,77 @@ comment and sees none on an episode they cannot hear. 99/99 PASS.
 Applied live 14/10/2026 (`apply_migration`, an ALTER needs no confirmation);
 the live policy reads `is_kid_of(trip_id) AND feedback_target_visible(trip_id,
 post_id, episode_id)`.
+
+## Full security pass - 14/10/2026
+
+Hadar: "massive security tests for every part of the app". Five layers.
+
+**1. Database deny matrix** (`scripts/rls/matrix.sql`, `probes/90_matrix.sql`,
+runs with every harness run). One generated row in each of the 40 public
+tables, owned by the probe trip; every role tries select / insert / update /
+delete, each attempt rolled back.
+
+| Role | Result |
+|---|---|
+| anon, signed-in outsider, revoked guest, another trip's parent | read nothing of the trip (fx rates are global), write nothing anywhere ✅ |
+| guest | none of the family's generic rows, no write on a parent's row ✅ |
+| kid | only day-to-day tables (itinerary, photos, phrasebook, emergency, facts, google photos, fx); never documents, bookings, expenses, budget, guests list, devices, AI usage; no write on a parent's row ✅ |
+| every table | RLS on; no policy is a bare `true` ✅ |
+
+Found and fixed:
+- **Member emails (00051).** `members_kid_guest_select` let every kid and
+  guest read every members row, emails included - with the class lists that
+  is ~50 addresses any guest could list. Now `trip_member_names()` returns
+  names and roles only, the broad policy matches nothing; owners keep emails.
+- **Photo file swap (00052).** After a parent approved and shared a kid's
+  photo, the kid could repoint `file_path` at another object (a pending or
+  never-shared photo) and guests would get it signed. The guard now freezes
+  `file_path`, `trip_id`, `uploaded_by` for kids (hard rule #3).
+
+**2. Storage and functions.** Bucket policies: documents, booking files,
+backups, map photos owner-only; photos / audio / gphotos family-only (guests
+only through signed URLs from the guest functions); public-stories write
+owner-only. Security-definer functions: helpers return facts about the
+caller; trigger functions are not executable by API roles.
+
+**3. Edge Functions** (code audit of all 21). No critical or high issue;
+every paid path is owner-gated, guest functions read under the caller's RLS.
+Found and fixed:
+- **Cron secret was off.** push-send / backup-weekly / fx-daily ran with
+  `verify_jwt = false` and an `x-cron-secret` check that failed open, and the
+  secret had never been set - anyone with the URL could push notifications to
+  the family's phones at 3am. 00052 generates the secret inside the database
+  (`private.app_secrets`, no API role can read it); the jobs send it; the
+  functions ask `cron_secret_matches()` and fail closed. The value never
+  passed through a file, a chat or a dashboard.
+- **Backup drift.** 8 tables (stories, podcast, comments, likes, steps, AI
+  usage) were not in the weekly backup; added, and `lib/backupTables.test.ts`
+  fails the build on future drift.
+- Revoked guests no longer get wall push previews; `config.toml` pins
+  `verify_jwt` for 5 functions that relied on defaults.
+- Left as low / accepted: kid-auth lockout counter not atomic (needs the
+  physical tablet), raw error text in some 500s, owner-only `ilike` in
+  guest-invite, no spend cap on owner AI calls.
+
+**4. Live project.** 00051 (function part) and 00052 applied; fx-daily v9,
+backup-weekly v9, push-send v15 deployed. Checked live: without the secret
+all three answer 401, with it fx-daily refreshed 165 rates, backup-weekly
+wrote all 40 tables with no failure, push-send passed auth. Advisors: the
+mutable search_path warning fixed; remaining warnings are the known helper
+functions (callable by design), pg_net in public (pre-existing) and leaked
+password protection (a dashboard toggle; passwords are only used by kid
+accounts).
+
+**5. Code and dependencies.** No secret in the repo, no `.env` tracked;
+headers: CSP (report-only), frame-ancestors none, X-Frame-Options DENY,
+Referrer-Policy, Permissions-Policy. `npm audit`: next 16.3.4 had a critical
+advisory in `next/og` (unused here) - upgraded to 16.4.0, sharp and
+source-map-js fixed; `xlsx` has no upstream fix and only parses the owner's
+own import files.
+
+Harness: 124/124 PASS (probes 43-49, 52, 90).
+
+X After the app with `trip_member_names` is live, the second half of 00051
+(`members_kid_guest_select` -> false) is applied live; until then guests and
+kids can still read member emails on the live project (there are no guests
+yet).

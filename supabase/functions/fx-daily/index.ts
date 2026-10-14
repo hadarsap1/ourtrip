@@ -7,25 +7,26 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// ---- shared-secret gate (review findings M3/M4) ----
-// This function runs verify_jwt=false because pg_cron carries no JWT, which
-// left it invokable by anyone who knows the URL. The cron job now sends
-// x-cron-secret (migration 00025) and we check it here.
-//
-// Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
-// before the secret exists would stop this job with nothing surfacing the
-// failure, which is the silent breakage supabase/config.toml exists to
-// prevent. Setting CRON_SECRET (both sides - see 00025) switches it on.
-function cronAuthorized(req: Request): boolean {
-  const expected = Deno.env.get("CRON_SECRET");
-  if (!expected) return true;
+// Since 00052 the secret is generated and kept in the database (it never
+// passes through a file or a dashboard): the jobs send it, and this asks the
+// database whether the header matches. A CRON_SECRET function secret, if one
+// is ever set, is checked instead. Fails CLOSED: no header, a wrong one, or a
+// failed lookup is a 401.
+async function cronAuthorized(req: Request): Promise<boolean> {
   const got = req.headers.get("x-cron-secret") ?? "";
-  if (got.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < got.length; i++) {
-    diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (!got) return false;
+  const expected = Deno.env.get("CRON_SECRET");
+  if (expected) {
+    if (got.length !== expected.length) return false;
+    let diff = 0;
+    for (let i = 0; i < got.length; i++) {
+      diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+    }
+    return diff === 0;
   }
-  return diff === 0;
+  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data, error } = await db.rpc("cron_secret_matches", { p_secret: got });
+  return !error && data === true;
 }
 
 type Rates = Record<string, number>;
@@ -55,7 +56,7 @@ async function fetchRates(): Promise<{ rates: Rates; source: string } | null> {
 }
 
 Deno.serve(async (req) => {
-  if (!cronAuthorized(req)) {
+  if (!(await cronAuthorized(req))) {
     return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
       status: 401,
       headers: { "content-type": "application/json" },

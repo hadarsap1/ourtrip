@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
+import { RoleGate } from "@/components/RoleGate";
 import { BottomNav } from "@/components/BottomNav";
 import { ConfirmHost } from "@/components/ConfirmSheet";
 import { SideRail } from "@/components/SideRail";
@@ -74,7 +75,9 @@ export default function RootLayout({
         {/* ps at lg leaves room for the fixed rail, which sits at the
             inline-start (right) edge. */}
         <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0 lg:ps-[216px]">
-          <AuthGate>{children}</AuthGate>
+          <AuthGate>
+            <RoleGate>{children}</RoleGate>
+          </AuthGate>
         </main>
         <BottomNav />
         <SideRail />

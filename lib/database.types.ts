@@ -2031,10 +2031,6 @@ export type Database = {
         Returns: boolean
       }
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
-      document_shared_with_current_kid: {
-        Args: { p_path: string }
-        Returns: boolean
-      }
       functions_base_url: { Args: never; Returns: string }
       is_active_guest_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_kid_of: { Args: { p_trip_id: string }; Returns: boolean }
@@ -2042,6 +2038,16 @@ export type Database = {
       link_member_to_auth_user: {
         Args: never
         Returns: Database["public"]["Enums"]["member_role"]
+      }
+      trip_member_names: {
+        Args: { p_trip_id: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          id: string
+          role: Database["public"]["Enums"]["member_role"]
+          trip_id: string
+        }[]
       }
     }
     Enums: {
