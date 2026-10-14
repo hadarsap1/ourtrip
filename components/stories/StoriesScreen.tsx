@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { PlusIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
-import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
+import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
 import { StoryCard } from "@/components/stories/StoryCard";
 import { StoryComposer } from "@/components/stories/StoryComposer";
@@ -173,12 +173,12 @@ export function StoriesScreen() {
     <SovevScreen>
       <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
         <header className="flex items-center justify-between gap-3">
-          <SovevBrand subtitle={strings.stories.title} />
+          <h1 className="text-2xl font-bold">{strings.stories.title}</h1>
           {canWrite && (
             <button
               type="button"
               onClick={() => setComposer({ story: null })}
-              className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-sv-clay-fill px-4 py-2.5 font-bold text-white"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl bg-sea px-4 font-bold text-on-sea"
             >
               <PlusIcon className="h-4 w-4" /> {strings.stories.newStory}
             </button>
@@ -187,20 +187,20 @@ export function StoriesScreen() {
 
         {sections.pending.length > 0 && (
           <section className="space-y-3">
-            <h2 className="sovev-display text-lg font-bold text-sv-clay">{strings.stories.pendingTitle}</h2>
+            <h2 className="text-base font-bold text-sv-clay">{strings.stories.pendingTitle}</h2>
             {sections.pending.map(card)}
           </section>
         )}
 
         {sections.drafts.length > 0 && (
           <section className="space-y-3">
-            <h2 className="sovev-display text-lg font-bold text-sv-ink-soft">{strings.stories.draftsTitle}</h2>
+            <h2 className="text-base font-bold text-ink-soft">{strings.stories.draftsTitle}</h2>
             {sections.drafts.map(card)}
           </section>
         )}
 
         {sections.published.length === 0 ? (
-          <p className="rounded-[22px] border-2 border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
+          <p className="rounded-[20px] border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
             {role === "guest" ? strings.stories.emptyGuest : strings.stories.empty}
           </p>
         ) : (

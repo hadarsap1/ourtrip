@@ -166,7 +166,7 @@ export function Recorder({
                 if (added) reset();
               })
             }
-            className="rounded-2xl bg-sv-sage-fill py-3 font-bold text-white disabled:opacity-60"
+            className="rounded-2xl bg-sea py-3 font-bold text-on-sea disabled:opacity-60"
           >
             {strings.podcastEdit.appendTake}
           </button>
@@ -222,7 +222,7 @@ export function Recorder({
                 if (saved) reset();
               })
             }
-            className="rounded-2xl bg-sv-sage-fill py-3 font-bold text-white disabled:opacity-60"
+            className="rounded-2xl bg-sea py-3 font-bold text-on-sea disabled:opacity-60"
           >
             {busy ? strings.podcast.saving : strings.podcast.save}
           </button>
@@ -233,7 +233,7 @@ export function Recorder({
 
   return (
     <div className="flex flex-col items-center gap-3 text-center">
-      <p className="sovev-display text-[40px] font-extrabold leading-none text-sv-ink" aria-live="off" dir="ltr">
+      <p className="text-[40px] font-extrabold leading-none tabular-nums text-ink" aria-live="off" dir="ltr">
         {formatClock(seconds)}
       </p>
       <div className="h-2 w-full overflow-hidden rounded-full bg-sv-line" aria-hidden="true">
@@ -262,7 +262,7 @@ export function Recorder({
             type="button"
             onClick={phase === "recording" ? pause : resume}
             aria-label={phase === "recording" ? strings.podcast.pause : strings.podcast.resume}
-            className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-sv-line bg-sv-card text-sv-ink"
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-sv-line bg-sv-card text-sv-ink"
           >
             {phase === "recording" ? <PauseIcon className="h-6 w-6" /> : <PlayIcon className="h-6 w-6" />}
           </button>

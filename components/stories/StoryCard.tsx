@@ -54,7 +54,7 @@ export function StoryCard({
   return (
     <article
       id={`story-${story.id}`}
-      className="scroll-mt-4 overflow-hidden rounded-[22px] border-2 border-sv-line bg-sv-card"
+      className="scroll-mt-4 overflow-hidden rounded-[20px] border border-sv-line bg-sv-card"
     >
       {story.photos[0]?.url && (
         // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -91,7 +91,7 @@ export function StoryCard({
           )}
         </div>
 
-        <h2 className="sovev-display text-[24px] font-extrabold leading-[32px] text-sv-ink">{story.title}</h2>
+        <h2 className="text-[19px] font-bold leading-7 text-ink">{story.title}</h2>
 
         {story.body && (
           <div>
@@ -146,7 +146,7 @@ export function StoryCard({
               <button
                 type="button"
                 onClick={onApprove}
-                className="me-auto rounded-xl bg-sv-sage-fill px-4 py-2 text-sm font-bold text-white"
+                className="me-auto rounded-xl bg-sea px-4 py-2 text-sm font-bold text-on-sea"
               >
                 {strings.stories.approve}
               </button>

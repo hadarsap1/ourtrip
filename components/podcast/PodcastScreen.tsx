@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { askConfirm } from "@/components/ConfirmSheet";
-import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
+import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
 import { EpisodeCard } from "@/components/podcast/EpisodeCard";
 import { Recorder, type Take } from "@/components/podcast/Recorder";
@@ -239,12 +239,13 @@ export function PodcastScreen() {
     <SovevScreen>
       <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
         <header>
-          <SovevBrand subtitle={`${strings.podcast.title} · ${strings.podcast.subtitle}`} />
+          <h1 className="text-2xl font-bold">{strings.podcast.title}</h1>
+          <p className="mt-0.5 text-sm text-ink-soft">{strings.podcast.subtitle}</p>
         </header>
 
         {canRecord && (
-          <section className="rounded-[22px] border-2 border-sv-line bg-sv-card p-4">
-            <h2 className="sovev-display mb-3 text-lg font-bold text-sv-ink">{strings.podcast.newEpisode}</h2>
+          <section className="rounded-[20px] border border-sv-line bg-sv-card p-4">
+            <h2 className="mb-3 text-base font-bold text-ink">{strings.podcast.newEpisode}</h2>
             <Recorder busy={saving} onSave={save} />
             {queued > 0 && (
               <p className="mt-3 text-center text-[12px] font-semibold text-sv-clay" role="status">
@@ -256,15 +257,15 @@ export function PodcastScreen() {
 
         {waiting.length > 0 && (
           <section className="space-y-3">
-            <h2 className="sovev-display text-lg font-bold text-sv-clay">{strings.podcast.pendingTitle}</h2>
+            <h2 className="text-base font-bold text-sv-clay">{strings.podcast.pendingTitle}</h2>
             {waiting.map(card)}
           </section>
         )}
 
         <section className="space-y-3">
-          <h2 className="sovev-display text-lg font-bold text-sv-ink">{strings.podcast.episodesTitle}</h2>
+          <h2 className="text-base font-bold text-ink">{strings.podcast.episodesTitle}</h2>
           {live.length === 0 ? (
-            <p className="rounded-[22px] border-2 border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
+            <p className="rounded-[20px] border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
               {role === "guest" ? strings.podcast.emptyGuest : role === "kid" ? strings.podcast.emptyKid : strings.podcast.empty}
             </p>
           ) : (

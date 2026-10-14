@@ -202,30 +202,24 @@ body {
    (both themes hold 4.5:1 or better).
 --------------------------------------------------------------------------- */
 :root {
-  --sv-paper: #f7ebd6;
-  --sv-card: #fff9ee;
-  --sv-ink: #3a2c24;
-  --sv-ink-soft: #6b5a4e; /* 5.6:1 on paper */
-  --sv-line: #d9c6a5;
-  --sv-sage: #4e6b45;
+  /* the same colours as the core tokens, by reference, so the brand screens
+     and the rest of the app can never drift apart again (14/10) */
+  --sv-paper: var(--bg);
+  --sv-card: var(--surface);
+  --sv-ink: var(--text);
+  --sv-ink-soft: var(--text-muted);
+  --sv-line: var(--border);
+  --sv-sage: var(--brand);
+  --sv-sage-soft: var(--brand-soft);
+  /* clay: the accent for "waiting" headings and the record button */
   --sv-sage-fill: #4e6b45;
-  --sv-sage-soft: #e3e8d6;
   --sv-clay: #a84e2e;
   --sv-clay-fill: #a84e2e;
   --sv-clay-soft: #f6ddd2;
   --sv-wood: #c9a46a; /* decoration only */
 }
 :root[data-theme="dark"] {
-  --sv-paper: #241d17;
-  --sv-card: #2f261f;
-  --sv-ink: #f1e6d2;
-  --sv-ink-soft: #c9b9a3;
-  --sv-line: #4a3d31;
-  --sv-sage: #a9c49b;
-  --sv-sage-fill: #4e6b45;
-  --sv-sage-soft: #2f3a28;
   --sv-clay: #e8a486;
-  --sv-clay-fill: #a84e2e;
   --sv-clay-soft: #4a2c20;
   --sv-wood: #a88449;
 }

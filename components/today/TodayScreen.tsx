@@ -288,7 +288,7 @@ export function TodayScreen() {
           <img
             src="/sovev/scene.jpg"
             alt=""
-            className="aspect-[5/3] w-full rounded-[22px] border-2 border-sv-ink object-cover"
+            className="aspect-[5/3] w-full rounded-[20px] border-2 border-sv-ink object-cover"
           />
           <div>
             <h1 className="sovev-display text-2xl font-extrabold text-sv-ink">{strings.guestHome.welcome}</h1>
@@ -299,12 +299,12 @@ export function TodayScreen() {
               <Link
                 key={tile.href}
                 href={tile.href}
-                className="flex flex-col items-center gap-2.5 rounded-[18px] border-2 border-sv-line bg-sv-card p-5 active:bg-sv-sage-soft"
+                className="flex flex-col items-center gap-2.5 rounded-[18px] border border-sv-line bg-sv-card p-5 active:bg-sv-sage-soft"
               >
                 <span className="grid h-11 w-11 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
                   <tile.Icon className="h-6 w-6" />
                 </span>
-                <span className="sovev-display text-center font-bold text-sv-ink">{tile.label}</span>
+                <span className="text-center font-bold text-ink">{tile.label}</span>
               </Link>
             ))}
           </div>

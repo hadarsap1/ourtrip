@@ -50,7 +50,7 @@ export function EpisodeCard({
   return (
     <article
       id={`episode-${episode.id}`}
-      className="scroll-mt-4 space-y-3 rounded-[22px] border-2 border-sv-line bg-sv-card p-4"
+      className="scroll-mt-4 space-y-3 rounded-[20px] border border-sv-line bg-sv-card p-4"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-sv-ink-soft">
         {number !== null && (
@@ -67,7 +67,7 @@ export function EpisodeCard({
           <span className="rounded-full bg-alert-tint px-2 py-0.5 font-bold text-alert">{strings.podcast.rejected}</span>
         )}
       </div>
-      <h2 className="sovev-display text-[22px] font-extrabold leading-[30px] text-sv-ink">{episode.title}</h2>
+      <h2 className="text-[19px] font-bold leading-7 text-ink">{episode.title}</h2>
       {by && <p className="text-[13px] text-sv-ink-soft">{strings.podcast.recordedBy.replace("{name}", by)}</p>}
       {episode.description && (
         <p className="whitespace-pre-wrap text-[15px] leading-[1.6] text-sv-ink">{episode.description}</p>
@@ -82,7 +82,7 @@ export function EpisodeCard({
 
       {onApprove && onReject && (
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={onApprove} className="rounded-xl bg-sv-sage-fill py-2.5 font-bold text-white">
+          <button type="button" onClick={onApprove} className="rounded-xl bg-sea py-2.5 font-bold text-on-sea">
             {strings.podcast.approve}
           </button>
           <button
