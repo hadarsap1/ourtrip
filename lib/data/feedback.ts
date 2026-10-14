@@ -78,32 +78,6 @@ export async function deleteComment(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/**
- * The bridge, comment edition (DESIGN-wall-bridge): a parent copies one
- * guest comment into the family feed, in the guest's name, with a line of
- * context because the kids cannot open the comment itself. Then stamps the
- * comment so it is not shown twice. The unique index on origin_comment_id
- * makes a second tap a no-op rather than a duplicate.
- */
-export async function showCommentToKids(comment: Comment, ownerId: string, context: string): Promise<void> {
-  const supabase = requireClient();
-  const { error } = await supabase.from("messages").insert({
-    trip_id: comment.trip_id,
-    sender_id: comment.author_id,
-    body: comment.body,
-    channel: "family",
-    origin_comment_id: comment.id,
-    bridged_by: ownerId,
-    bridged_context: context.slice(0, 200),
-  });
-  if (error && error.code !== "23505") throw new Error(error.message);
-  const { error: stampError } = await supabase
-    .from("comments")
-    .update({ shown_to_kids_at: new Date().toISOString(), shown_by: ownerId })
-    .eq("id", comment.id);
-  if (stampError) throw new Error(stampError.message);
-}
-
 export function subscribeFeedback(onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};

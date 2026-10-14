@@ -79,18 +79,6 @@ export async function updateDocument(
   if (error) throw new Error(error.message);
 }
 
-/** Owner opts a single document in/out of kid visibility (B1). */
-export async function setDocumentSharedWithKids(
-  id: string,
-  shared: boolean
-): Promise<void> {
-  const { error } = await requireClient()
-    .from("documents")
-    .update({ shared_with_kids: shared })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
 // ---------- end-to-end lock (Documents PIN) ----------
 
 /** Downloads whatever is stored at a document's path (ciphertext for a locked
@@ -129,7 +117,6 @@ export async function protectDocument(doc: Document, key: CryptoKey): Promise<vo
     .update({
       pin_protected: true,
       enc_mime: plain.type || "application/octet-stream",
-      shared_with_kids: false,
     })
     .eq("id", doc.id);
   if (error) throw new Error(error.message);

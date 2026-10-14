@@ -2,13 +2,16 @@
 begin;
 \i scripts/rls/seed.sql
 
-set local role authenticated; select rls.as_kid();
+-- (00049: only parents record; the take is created as the owner)
+set local role authenticated; select rls.as_owner();
 insert into episodes (id, trip_id, recorded_by, title, file_path) values
   ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'take', 'a/original.webm');
-update episodes set file_path = 'a/swapped.wav', mime_type = 'audio/wav' where id = '00000000-0000-0000-0000-0000000000f1';
-select rls.check('kid: cannot swap the audio of own pending take',
-  (select file_path from episodes where id = '00000000-0000-0000-0000-0000000000f1') = 'a/original.webm');
 reset role;
+set local role authenticated; select rls.as_kid();
+update episodes set file_path = 'a/swapped.wav', mime_type = 'audio/wav' where id = '00000000-0000-0000-0000-0000000000f1';
+reset role;
+select rls.check('kid: cannot swap the audio of a take',
+  (select file_path from episodes where id = '00000000-0000-0000-0000-0000000000f1') = 'a/original.webm');
 
 set local role authenticated; select rls.as_owner();
 update episodes set status = 'approved' where id = '00000000-0000-0000-0000-0000000000f1';

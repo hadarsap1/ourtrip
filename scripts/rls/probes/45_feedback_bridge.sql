@@ -88,9 +88,9 @@ end $$;
 reset role;
 
 set local role authenticated; select rls.as_kid();
-select rls.check('kid: sees the bridged comment in the family feed, with context',
-  (select bridged_context from messages where origin_comment_id is not null) = 'על הסיפור: for guests');
-select rls.check('kid: still cannot read the comments table', (select count(*) from comments) = 0);
+-- 00049 retired the family feed for kids: they read the guests wall instead
+select rls.check('kid: no longer reads the family feed', (select count(*) from messages where channel = 'family') = 0);
+select rls.check('kid: still cannot read comments on a story', (select count(*) from comments) = 0);
 select rls.check('kid: can resolve the guest''s name', exists (select 1 from members where id = '00000000-0000-0000-0000-0000000000b3'));
 reset role;
 

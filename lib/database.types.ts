@@ -466,7 +466,6 @@ export type Database = {
           id: string
           notes: string | null
           pin_protected: boolean
-          shared_with_kids: boolean
           tag: string
           title: string
           trip_id: string
@@ -480,7 +479,6 @@ export type Database = {
           id?: string
           notes?: string | null
           pin_protected?: boolean
-          shared_with_kids?: boolean
           tag: string
           title: string
           trip_id: string
@@ -494,7 +492,6 @@ export type Database = {
           id?: string
           notes?: string | null
           pin_protected?: boolean
-          shared_with_kids?: boolean
           tag?: string
           title?: string
           trip_id?: string
@@ -1236,6 +1233,8 @@ export type Database = {
       messages: {
         Row: {
           body: string
+          approved_at: string | null
+          approved_by: string | null
           bridged_at: string | null
           bridged_by: string | null
           bridged_context: string | null
@@ -1249,6 +1248,8 @@ export type Database = {
         }
         Insert: {
           body: string
+          approved_at?: string | null
+          approved_by?: string | null
           bridged_at?: string | null
           bridged_by?: string | null
           bridged_context?: string | null
@@ -1262,6 +1263,8 @@ export type Database = {
         }
         Update: {
           body?: string
+          approved_at?: string | null
+          approved_by?: string | null
           bridged_at?: string | null
           bridged_by?: string | null
           bridged_context?: string | null

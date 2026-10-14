@@ -36,21 +36,33 @@ function publish(next: Snapshot): void {
   for (const notify of listeners) notify();
 }
 
+function resolve(): void {
+  started = true;
+  void getCurrentMember()
+    .then((member) =>
+      publish({ member, memberLoading: false, memberFailed: false })
+    )
+    .catch(() =>
+      publish({ member: null, memberLoading: false, memberFailed: true })
+    );
+}
+
 function subscribe(notify: () => void): () => void {
   listeners.add(notify);
-  if (!started) {
-    started = true;
-    void getCurrentMember()
-      .then((member) =>
-        publish({ member, memberLoading: false, memberFailed: false })
-      )
-      .catch(() =>
-        publish({ member: null, memberLoading: false, memberFailed: true })
-      );
-  }
+  if (!started) resolve();
   return () => {
     listeners.delete(notify);
   };
+}
+
+/**
+ * Ask again after signing in without a page load. The kid PIN unlock mints a
+ * session in place; the store had already resolved "nobody" before it, so the
+ * tablet showed a member-less app (no kid home) until a reload.
+ */
+export function refreshMember(): void {
+  publish(INITIAL);
+  resolve();
 }
 
 export function useMember(): Snapshot {

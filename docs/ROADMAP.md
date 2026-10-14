@@ -81,6 +81,7 @@ Acceptance:
 - [x] Applied to the live project and the live anon + guest checks re-run (14/10/2026, SECURITY-CHECKS "Live rollout")
 - [ ] A real recording played back on an iPhone and an Android phone
 - [x] The journal is family-only; stories are the one thing guests read (14/10, DECISIONS #32, 00048, probe 48)
+- [x] Kids' side reshaped (14/10, DECISIONS #33-#35, 00049, probe 49): one wall with parent approval for kids' messages, parents record the podcast and kids read listener comments, kids' read-only route, documents owner-only, pocket money hidden
 
 ## Backlog (post-launch / during trip)
 - ~~Email-forward booking extraction (Edge Function + Anthropic parsing)~~ **shipped 2026-09-14** as `gmail-bookings`: Gmail read-only via GIS, Anthropic extraction, owner reviews every candidate. See DECISIONS #21/#22

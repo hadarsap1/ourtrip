@@ -25,6 +25,7 @@ import {
   VisaIcon,
   SettingsIcon,
 } from "@/components/icons";
+import { FLAG_DEFAULTS } from "@/lib/flags";
 import { strings } from "@/lib/strings";
 
 export type NavItem = {
@@ -34,15 +35,16 @@ export type NavItem = {
 };
 
 // Kid tablet variant: kid-relevant destinations only (cosmetic - kids are
-// locked out of owner data by RLS regardless). Phrasebook stays reachable from
-// the kid home tile.
+// locked out of owner data by RLS regardless). Phrasebook and the podcast stay
+// reachable from the kid home tiles. Pocket money is behind a flag (off).
 export const kidTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
-  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
-  { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
-  { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
+  { href: "/itinerary", label: strings.kidNav.route, Icon: RouteIcon },
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },
-  { href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon },
+  { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
+  { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
+  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
+  ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon }] : []),
 ];
 
 // Guest portal ("סו-בב עולם!"): stories and the podcast lead; the map stays
@@ -107,7 +109,7 @@ export const ownerRailGroups: NavGroup[] = [
     label: strings.more.groupFamily,
     items: [
       { href: "/checklists", label: strings.more.menuChecklists, Icon: ChecklistIcon },
-      { href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon },
+      ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon }] : []),
       { href: "/kids", label: strings.more.menuKids, Icon: PersonIcon },
       { href: "/guests", label: strings.more.menuGuests, Icon: MailIcon },
       { href: "/notifications", label: strings.more.menuNotifications, Icon: BellIcon },

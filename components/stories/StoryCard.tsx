@@ -135,7 +135,6 @@ export function StoryCard({
             target={{ postId: story.id }}
             reactions={reactions}
             comments={comments}
-            contextTitle={strings.feedback.contextStory.replace("{title}", story.title)}
             onChanged={onFeedbackChanged}
             onToast={onToast}
           />

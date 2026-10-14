@@ -2,17 +2,31 @@
 begin;
 \i scripts/rls/seed.sql
 
--- kid records, claims approval and sharing
+-- parents record (00049: kids no longer do); the kid-rules trigger still
+-- holds for a row that names a kid as recorder
 set local role authenticated; select rls.as_kid();
-insert into episodes (id, trip_id, recorded_by, title, file_path, status, shared_with_guests, approved_by) values
-  ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'ep 1', 'a/1.webm', 'approved', true, '00000000-0000-0000-0000-0000000000b2');
-select rls.check('kid insert: forced pending + unshared',
-  (select status = 'pending' and not shared_with_guests and approved_by is null from episodes where id = '00000000-0000-0000-0000-0000000000f1'));
-update episodes set status = 'approved', shared_with_guests = true, title = 'ep 1 renamed' where id = '00000000-0000-0000-0000-0000000000f1';
-select rls.check('kid update: title only, approval and sharing frozen',
-  (select status = 'pending' and not shared_with_guests and title = 'ep 1 renamed' from episodes where id = '00000000-0000-0000-0000-0000000000f1'));
+do $$ begin
+  insert into episodes (trip_id, recorded_by, title, file_path) values
+    ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'kid take', 'a/k.webm');
+  raise exception 'FAIL  kid recorded an episode';
+exception when insufficient_privilege then raise notice 'PASS  kid: cannot record (00049)';
+end $$;
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('audio', 'a/k.webm');
+  raise exception 'FAIL  kid uploaded audio';
+exception when insufficient_privilege then raise notice 'PASS  kid: cannot upload audio (00049)';
+end $$;
+reset role;
+
+set local role authenticated; select rls.as_owner();
+insert into episodes (id, trip_id, recorded_by, title, file_path, status) values
+  ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1', 'ep 1 renamed', 'a/1.webm', 'pending');
 insert into storage.objects (bucket_id, name) values ('audio', 'a/1.webm');
-select rls.check('kid: can upload to the audio bucket', exists (select 1 from storage.objects where bucket_id = 'audio'));
+select rls.check('owner: records into the audio bucket', exists (select 1 from storage.objects where bucket_id = 'audio'));
+reset role;
+
+set local role authenticated; select rls.as_kid();
+select rls.check('kid: a pending episode is not there yet', (select count(*) from episodes) = 0);
 reset role;
 
 -- guest before approval: nothing
@@ -42,8 +56,9 @@ exception when insufficient_privilege then raise notice 'PASS  guest: cannot upl
 end $$;
 reset role;
 
--- kid can no longer edit or delete an approved recording
+-- kid hears the approved episode and cannot edit or delete it
 set local role authenticated; select rls.as_kid();
+select rls.check('kid: hears the approved episode', (select count(*) from episodes) = 1);
 update episodes set title = 'changed after approval' where id = '00000000-0000-0000-0000-0000000000f1';
 delete from episodes where id = '00000000-0000-0000-0000-0000000000f1';
 select rls.check('kid: approved episode is frozen', (select title from episodes where id = '00000000-0000-0000-0000-0000000000f1') = 'ep 1 renamed');

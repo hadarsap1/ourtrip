@@ -6,13 +6,12 @@ import { CountdownHome } from "./CountdownHome";
 import { InTripNow } from "./InTripNow";
 import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
-import { isEnabled } from "@/lib/flags";
+import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
   BedIcon,
   CameraIcon,
   CoinIcon,
-  DocumentIcon,
   MapIcon,
   MessagesIcon,
   MicIcon,
@@ -317,10 +316,13 @@ export function TodayScreen() {
   // ---------- kid home variant (SPEC 2.1) ----------
   if (member?.role === "kid") {
     const kidTiles = [
+      { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
       { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
       { href: "/stories", Icon: StoryIcon, label: strings.kidHome.tileStories },
       { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos },
-      { href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket },
+      ...(FLAG_DEFAULTS.pocketMoney
+        ? [{ href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket }]
+        : []),
       {
         href: "/phrasebook",
         Icon: PhrasebookIcon,
@@ -334,11 +336,6 @@ export function TodayScreen() {
       ...(isEnabled("statsStamps")
         ? [{ href: "/stats", Icon: StarIcon, label: strings.kidHome.tileStamps }]
         : []),
-      {
-        href: "/documents",
-        Icon: DocumentIcon,
-        label: strings.kidHome.tileDocuments,
-      },
     ];
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8 sm:max-w-2xl">
