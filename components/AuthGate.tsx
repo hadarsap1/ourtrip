@@ -24,6 +24,17 @@ const GATE_TIMEOUT_MS = 2500;
 // supabase-js retries a failed token refresh for up to ~30 s before answering.
 const SESSION_TIMEOUT_MS = 5000;
 
+/**
+ * Forget the cached verdict. Call after signing in without a page load - the
+ * kid PIN unlock mints a session in place and navigates client-side, so the
+ * "redirecting" verdict from before the PIN would otherwise still stand and
+ * bounce the kid straight back to the login screen.
+ */
+export function resetAuthGate(): void {
+  decided = null;
+  inFlight = null;
+}
+
 async function decide(): Promise<Exclude<GateState, "loading">> {
   const supabase = getSupabase();
   if (!supabase) return "allowed";
