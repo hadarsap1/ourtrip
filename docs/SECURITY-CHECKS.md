@@ -1893,7 +1893,7 @@ own import files.
 
 Harness: 124/124 PASS (probes 43-49, 52, 90).
 
-X After the app with `trip_member_names` is live, the second half of 00051
-(`members_kid_guest_select` -> false) is applied live; until then guests and
-kids can still read member emails on the live project (there are no guests
-yet).
+Live 14/10/2026 after #112 deployed: the second half of 00051
+(`members_kid_guest_select` -> false) applied. Checked on the live project as a
+kid inside a rolled-back transaction: `members` shows 1 row (his own, no email),
+`trip_member_names()` returns all 4 names.
