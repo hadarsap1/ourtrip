@@ -195,7 +195,7 @@ export function ChecklistsScreen() {
                         onChange={(e) =>
                           void run(() => setItemChecked(item.id, e.target.checked))
                         }
-                        className="h-5 w-5 shrink-0 accent-teal-600"
+                        className="h-5 w-5 shrink-0 accent-[var(--brand)]"
                       />
                       <span
                         className={`min-w-0 truncate ${

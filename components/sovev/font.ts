@@ -4,8 +4,8 @@ import { Gveret_Levin } from "next/font/google";
 // handwriting font, close to the farewell invitation. It keeps standard
 // letterforms - Playpen Sans Hebrew was tried first and its א / מ read as
 // other letters, which matters for early readers and grandparents alike.
-// Imported only by the "סו-בב עולם!" screens, so the rest of the app never
-// downloads it. Self-hosted by next/font at build time.
+// Loaded once in the root layout since the brand became the whole app's look
+// (14/10/2026): every screen title uses it. Self-hosted by next/font.
 export const sovevFont = Gveret_Levin({
   subsets: ["hebrew", "latin"],
   weight: "400",

@@ -11,7 +11,7 @@
 //   4. Navigations are network-first with a short timeout, so a slow mobile
 //      connection falls back to the cached shell instead of hanging.
 
-const SHELL_CACHE = "ourtrip-shell-v17";
+const SHELL_CACHE = "ourtrip-shell-v18";
 const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
 const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
@@ -212,9 +212,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "OurTrip", body: event.data ? event.data.text() : "" };
+    data = { title: "סו-בב עולם!", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "OurTrip";
+  const title = data.title || "סו-בב עולם!";
   const options = {
     body: data.body || "",
     icon: "/icons/icon-192.png",

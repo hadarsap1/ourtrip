@@ -1,17 +1,24 @@
 {
   "id": "/",
-  "name": "OurTrip",
-  "short_name": "OurTrip",
+  "name": "סו-בב עולם!",
+  "short_name": "סו-בב עולם",
   "description": "מרכז הפיקוד של הטיול המשפחתי",
   "lang": "he",
   "dir": "rtl",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#fbf7ef",
-  "theme_color": "#0e7c6b",
-  "categories": ["travel", "lifestyle", "productivity"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#f7ebd6",
+  "theme_color": "#4e6b45",
+  "categories": [
+    "travel",
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

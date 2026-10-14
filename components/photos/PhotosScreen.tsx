@@ -296,7 +296,7 @@ function FamilyPhotosView() {
                   <button
                     type="button"
                     onClick={() => member && void run(() => approvePhoto(photo.id, member.id))}
-                    className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-bold text-white"
+                    className="flex-1 rounded-lg bg-sea py-2 text-sm font-bold text-on-sea"
                   >
                     <CheckIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
                     {strings.photos.approve}
@@ -362,7 +362,7 @@ function FamilyPhotosView() {
                           showToast(strings.common.error)
                         );
                       }}
-                      className="h-3.5 w-3.5 accent-teal-600"
+                      className="h-3.5 w-3.5 accent-[var(--brand)]"
                     />
                     {strings.photos.shareToggle}
                   </label>

@@ -341,7 +341,7 @@ export function GooglePhotosSection({
                 type="checkbox"
                 checked={actionPhoto.shared_with_guests}
                 onChange={(e) => void toggleShared(actionPhoto, e.target.checked)}
-                className="h-4 w-4 accent-teal-600"
+                className="h-4 w-4 accent-[var(--brand)]"
               />
             </label>
 

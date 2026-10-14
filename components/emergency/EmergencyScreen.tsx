@@ -146,7 +146,7 @@ export function EmergencyScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-rose-700">
+        <h1 data-plain className="text-2xl font-bold text-rose-700">
           <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]">
             {strings.emergency.sos}
           </span>{" "}

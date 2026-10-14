@@ -11,7 +11,7 @@ import type { PlaceOption } from "@/lib/types";
 const CATEGORY_COLOR: Record<string, string> = {
   hotel: "#7c3aed",
   restaurant: "#ea580c",
-  attraction: "#0e7c6b",
+  attraction: "#4e6b45",
   activity: "#0284c7",
   city: "#475569",
   nature: "#16a34a",

@@ -219,7 +219,7 @@ function ItemForm({
             type="checkbox"
             checked={isOutdoor}
             onChange={(e) => setIsOutdoor(e.target.checked)}
-            className="h-4 w-4 accent-teal-600"
+            className="h-4 w-4 accent-[var(--brand)]"
           />
           {strings.itinerary.outdoor}
         </label>

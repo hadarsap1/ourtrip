@@ -9,18 +9,20 @@
 :root {
   color-scheme: light;
   /* surface + text */
-  --bg: #FBF7EF;
-  --surface: #FFFFFF;
-  --surface-2: #F3EDE1;
-  --text: #22312E;
-  --text-muted: #5B6B67;
-  --border: #E4DCCB;
+  /* "סו-בב עולם!" since 14/10/2026: parchment, ink and sage from the
+     farewell-invitation illustration (docs/DESIGN-sharing.md). */
+  --bg: #F7EBD6;
+  --surface: #FFF9EE;
+  --surface-2: #EFE0C4;
+  --text: #3A2C24;
+  --text-muted: #6B5A4E;
+  --border: #D9C6A5;
 
-  /* brand */
-  --brand: #0E7C6B;
+  /* brand: sage */
+  --brand: #4E6B45;
   --brand-contrast: #FFFFFF;
-  --brand-soft: #DCEFEA;
-  --brand-pressed: #0A5E51;
+  --brand-soft: #E3E8D6;
+  --brand-pressed: #3B5234;
   --accent-gold: #8A6114;      /* labels; 5.1:1 on bg */
   --accent-gold-deco: #B8862B; /* decorative strokes only, never text (about 3:1) */
 
@@ -34,7 +36,7 @@
   --danger-contrast: #FFFFFF;
   --info: #1F5FA8;
   --info-soft: #E3EDF9;
-  --scrim: rgba(17, 24, 22, .45);
+  --scrim: rgba(36, 29, 23, .45);
 
   /* country: base / soft / on. Always paired with flag + 2-letter code. */
   --country-vn: #C42B3A; --country-vn-soft: #FBE5E7; --country-vn-on: #FFFFFF;
@@ -74,9 +76,9 @@
   --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
 
   /* elevation */
-  --e1: 0 1px 2px rgba(34, 49, 46, .06), 0 1px 6px rgba(34, 49, 46, .05);
-  --e2: 0 4px 16px rgba(34, 49, 46, .10);
-  --e3: 0 12px 32px rgba(34, 49, 46, .18);
+  --e1: 0 1px 2px rgba(58, 44, 36, .06), 0 1px 6px rgba(58, 44, 36, .05);
+  --e2: 0 4px 16px rgba(58, 44, 36, .10);
+  --e3: 0 12px 32px rgba(58, 44, 36, .18);
 
   /* motion */
   --dur-fast: 150ms;
@@ -98,16 +100,16 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111816;
-  --surface: #1A2321;
-  --surface-2: #232E2B;
-  --text: #EEF2EF;
-  --text-muted: #A6B4AF;
-  --border: #33413D;
-  --brand: #4CC4AD;
-  --brand-contrast: #05231D;
-  --brand-soft: #173A33;
-  --brand-pressed: #7AD6C4;
+  --bg: #241D17;
+  --surface: #2F261F;
+  --surface-2: #3A3027;
+  --text: #F1E6D2;
+  --text-muted: #C9B9A3;
+  --border: #4A3D31;
+  --brand: #A9C49B;
+  --brand-contrast: #1D2618;
+  --brand-soft: #2F3A28;
+  --brand-pressed: #C8DBBD;
   --accent-gold: #E2B65E;
   --success: #6BCB86; --success-soft: #18321F;
   --warning: #F2AE55; --warning-soft: #3A2A12;
@@ -141,16 +143,16 @@
    head script always sets data-theme, so this block only matters without JS. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111816;
-    --surface: #1A2321;
-    --surface-2: #232E2B;
-    --text: #EEF2EF;
-    --text-muted: #A6B4AF;
-    --border: #33413D;
-    --brand: #4CC4AD;
-    --brand-contrast: #05231D;
-    --brand-soft: #173A33;
-    --brand-pressed: #7AD6C4;
+    --bg: #241D17;
+    --surface: #2F261F;
+    --surface-2: #3A3027;
+    --text: #F1E6D2;
+    --text-muted: #C9B9A3;
+    --border: #4A3D31;
+    --brand: #A9C49B;
+    --brand-contrast: #1D2618;
+    --brand-soft: #2F3A28;
+    --brand-pressed: #C8DBBD;
     --accent-gold: #E2B65E;
     --success: #6BCB86; --success-soft: #18321F;
     --warning: #F2AE55; --warning-soft: #3A2A12;

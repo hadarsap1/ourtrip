@@ -6,20 +6,20 @@
 
 /* App-only tokens that tokens.css does not carry. */
 :root {
-  --text-faint: #66706b; /* was #8d968f (3:1); now 4.8:1 on paper */
+  --text-faint: #75624f; /* 4.6:1 on parchment */
   --sun: #d9931e;        /* warm accent fills; never small text */
-  --sun-deep: #9c6a0e;   /* text on sun-tint */
-  --postcard-from: #0e7c6b;
-  --postcard-to: #0b5f54;
-  --shadow-card-value: 0 1px 2px rgba(34, 49, 46, 0.05), 0 10px 26px -14px rgba(34, 49, 46, 0.18);
+  --sun-deep: #875a0a;   /* text on sun-tint, 4.9:1 */
+  --postcard-from: #4e6b45;
+  --postcard-to: #3b5234;
+  --shadow-card-value: 0 1px 2px rgba(58, 44, 36, 0.05), 0 10px 26px -14px rgba(58, 44, 36, 0.18);
 }
 :root[data-theme="dark"] {
-  --text-faint: #8e9c97;
+  --text-faint: #a8977f;
   --sun: #e2b65e;
   --sun-deep: #e2b65e;
-  /* The postcard band keeps a deep teal in dark mode so its white text holds. */
-  --postcard-from: #0f5f53;
-  --postcard-to: #0a3d36;
+  /* The postcard band keeps a deep sage in dark mode so its white text holds. */
+  --postcard-from: #3b5234;
+  --postcard-to: #2a3a25;
   --shadow-card-value: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 26px -14px rgba(0, 0, 0, 0.6);
 }
 
@@ -139,7 +139,7 @@ body {
   color: var(--accent-gold); /* AA on paper; #d9931e was about 2.4:1 */
 }
 
-/* The signature postcard band: a soft sea gradient with a faint horizon line. */
+/* The signature postcard band: a sage gradient with a faint path line. */
 .ot-postcard {
   border-radius: var(--radius-stamp);
   background:
@@ -193,12 +193,13 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   "סו-בב עולם!" - the sharing brand (docs/DESIGN-sharing.md, canvas linked
-   there). Parchment, ink and watercolour from the farewell-party invitation;
-   used on what guests and the public see (stories, podcast, guest home,
-   public story page) and nowhere else, so the planning app keeps its own
-   look. Text colours are the -ink / sage / clay tokens; -fill tokens are for
-   solid buttons carrying white text (both themes hold 4.5:1 or better).
+   "סו-בב עולם!" - the brand (docs/DESIGN-sharing.md, canvas linked there).
+   Parchment, ink and watercolour from the farewell-party invitation. Since
+   14/10/2026 it is the whole app's look: the core tokens (docs/design/
+   tokens.css) carry the same palette, and these -sv tokens stay for the
+   guest-facing screens that use them directly. Text colours are the -ink /
+   sage / clay tokens; -fill tokens are for solid buttons carrying white text
+   (both themes hold 4.5:1 or better).
 --------------------------------------------------------------------------- */
 :root {
   --sv-paper: #f7ebd6;
@@ -249,11 +250,13 @@ body {
   background: var(--sv-paper);
   color: var(--sv-ink);
 }
-/* Handwritten display face (Gveret Levin, loaded by components/sovev/font.ts
-   only on the screens that use it). It has a single weight: unlayered, so it
-   wins over any font-bold utility on the same element - a synthesised bold
-   smears handwriting. */
-.sovev-display {
+/* Handwritten display face (Gveret Levin, components/sovev/font.ts, loaded
+   once in the root layout). It has a single weight: unlayered, so it wins
+   over any font-bold utility on the same element - a synthesised bold smears
+   handwriting. Every screen title wears it; the emergency page opts out
+   (data-plain) because it must read at a glance. */
+.sovev-display,
+h1:not([data-plain]) {
   font-family: var(--font-sovev), var(--font-heebo), system-ui, sans-serif;
   font-weight: 400;
 }
