@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/Toast";
 import { CameraIcon, PinIcon, TrashIcon } from "@/components/icons";
@@ -10,7 +11,6 @@ import {
   deleteJournalEntry,
   getAutoLocation,
   listJournal,
-  setJournalShared,
   type JournalEntry,
 } from "@/lib/data/journal";
 import { uploadPhoto } from "@/lib/data/photos";
@@ -131,8 +131,24 @@ export function JournalScreen() {
     );
   }
 
+  // The journal is the family's own (DECISIONS #32): RLS returns guests
+  // nothing here, so point them to the stories instead of an empty page.
+  if (member?.role === "guest") {
+    return (
+      <div className="mx-auto max-w-lg space-y-3 px-4 pt-8 text-center">
+        <p className="text-ink-soft">{strings.journal.familyOnly}</p>
+        <Link
+          href="/stories"
+          className="inline-flex min-h-11 items-center rounded-full bg-sea px-5 font-bold text-on-sea"
+        >
+          {strings.journal.toStories}
+        </Link>
+      </div>
+    );
+  }
+
   const isOwner = member?.role === "owner";
-  const showAuthor = member?.role !== "kid"; // owners + guests see who wrote
+  const showAuthor = member?.role !== "kid"; // owners see who wrote
   const memberName = (id: string) =>
     members.find((m) => m.id === id)?.display_name ?? "";
 
@@ -228,36 +244,7 @@ export function JournalScreen() {
               </p>
 
               <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[12px] font-bold">
-                {isOwner ? (
-                  <label className="flex items-center gap-1.5 text-ink-soft">
-                    <input
-                      type="checkbox"
-                      checked={entry.shared_with_guests}
-                      onChange={(e) => {
-                        const next = e.target.checked;
-                        setEntries((prev) =>
-                          prev.map((x) =>
-                            x.id === entry.id
-                              ? { ...x, shared_with_guests: next }
-                              : x
-                          )
-                        );
-                        void setJournalShared(entry.id, next).catch(() =>
-                          showToast(strings.common.error)
-                        );
-                      }}
-                      className="h-4 w-4 accent-[var(--color-sea)]"
-                    />
-                    {strings.journal.shareToggle}
-                  </label>
-                ) : entry.shared_with_guests ? (
-                  <span className="text-sea">
-                    {strings.journal.sharedWithGuests}
-                  </span>
-                ) : (
-                  <span />
-                )}
-                {member && member.role !== "guest" && (isOwner || entry.author_id === member.id) && (
+                {member && (isOwner || entry.author_id === member.id) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -298,8 +285,8 @@ export function JournalScreen() {
 
       {/* Writing is the screen's action, not another card in the stack: the
           composer is pinned to the bottom, within thumb reach, and the author,
-          date and location are captured for you. Guests read only. */}
-      {member?.role !== "guest" && (
+          date and location are captured for you. */}
+      {member && (
         <section className="mt-auto rounded-[20px] bg-sun-tint px-4 py-4 pt-3.5">
           <p className="text-[17.5px] font-extrabold leading-tight text-sun-deep">
             {strings.journal.prompt}

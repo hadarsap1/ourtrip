@@ -967,7 +967,6 @@ export type Database = {
           id: string
           location_name: string | null
           mood: string | null
-          shared_with_guests: boolean
           trip_id: string
           updated_at: string
         }
@@ -979,7 +978,6 @@ export type Database = {
           id?: string
           location_name?: string | null
           mood?: string | null
-          shared_with_guests?: boolean
           trip_id: string
           updated_at?: string
         }
@@ -991,7 +989,6 @@ export type Database = {
           id?: string
           location_name?: string | null
           mood?: string | null
-          shared_with_guests?: boolean
           trip_id?: string
           updated_at?: string
         }

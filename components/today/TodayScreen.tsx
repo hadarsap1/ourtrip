@@ -13,7 +13,6 @@ import {
   CameraIcon,
   CoinIcon,
   DocumentIcon,
-  JournalIcon,
   MapIcon,
   MessagesIcon,
   MicIcon,
@@ -279,7 +278,6 @@ export function TodayScreen() {
       { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
       { href: "/map", Icon: MapIcon, label: strings.guestHome.tileMap },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall },
-      { href: "/journal", Icon: JournalIcon, label: strings.guestHome.tileJournal },
     ];
     // The guest portal wears the "סו-בב עולם!" brand: the illustration from
     // the farewell invitation, parchment and ink (docs/DESIGN-sharing.md).

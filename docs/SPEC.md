@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `owner` | Hadar + Sivan, Google OAuth, emails allowlisted in `members` | Everything | Everything |
 | `kid` | Kids' tablet, PIN login on an owner-approved device | Today view (itinerary summary + weather), own journal, photos, messages inbox, own pocket-money tracker, phrasebook, emergency page, published stories, approved podcast episodes, likes (with names) - never comments | Own journal entries, photo uploads (pending approval), messages, own pocket-money expenses, own stories (draft → sent for approval), own podcast recordings (always pending), likes |
-| `guest` | Specific invited emails via magic link, optionally grouped by a label (family / a class / friends) | Only content a parent shared: approved+shared photos, shared journal entries, "completed" itinerary map, the guests wall, stories addressed to guests, approved+shared episodes, likes and comments on those | Messages on the guests wall, likes, own comments |
+| `guest` | Specific invited emails via magic link, optionally grouped by a label (family / a class / friends) | Only content a parent shared: approved+shared photos, "completed" itinerary map, the guests wall, stories addressed to guests, approved+shared episodes, likes and comments on those | Messages on the guests wall, likes, own comments |
 | (anyone with a link) | No account | A parent's own story marked public, after its publish time - copied photos only | Nothing |
 
 ### Auth flows
@@ -85,7 +85,7 @@
 - Pocket money: each kid has a trip allowance (set by owner); kid logs purchases, sees remaining balance with a fun progress visual; owner sees it in the budget screen as an info section (not counted in family budget totals)
 
 ### 2.10 Guest portal
-- Clean read-only web page (no install): approved+shared photos by day, shared journal entries, "where we've been" map, family wall composer
+- Clean read-only web page (no install): approved+shared photos by day, "where we've been" map, family wall composer. The journal is family-only (DECISIONS #32): what guests read is the stories
 - Hebrew UI
 - Branded "סו-בב עולם!" (DECISIONS #25): stories and the podcast lead the tabs
 

@@ -45,8 +45,8 @@ export const kidTabs: NavItem[] = [
   { href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon },
 ];
 
-// Guest portal ("סו-בב עולם!"): stories and the podcast lead; the journal and
-// the map stay one tap away on the guest home.
+// Guest portal ("סו-בב עולם!"): stories and the podcast lead; the map stays
+// one tap away on the guest home. The journal is family-only (DECISIONS #32).
 export const guestTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
   { href: "/stories", label: strings.guestNav.stories, Icon: StoryIcon },

@@ -80,6 +80,7 @@ Acceptance:
 - [x] Publishing offers a prepared WhatsApp line with the right link (UI flow)
 - [ ] Applied to the live project and the live anon + guest checks re-run
 - [ ] A real recording played back on an iPhone and an Android phone
+- [x] The journal is family-only; stories are the one thing guests read (14/10, DECISIONS #32, 00048, probe 48)
 
 ## Backlog (post-launch / during trip)
 - ~~Email-forward booking extraction (Edge Function + Anthropic parsing)~~ **shipped 2026-09-14** as `gmail-bookings`: Gmail read-only via GIS, Anthropic extraction, owner reviews every candidate. See DECISIONS #21/#22

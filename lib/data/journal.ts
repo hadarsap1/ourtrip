@@ -99,12 +99,3 @@ export async function deleteJournalEntry(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
-
-/** Owner-only (RLS + journal guard block kids from flipping this). */
-export async function setJournalShared(id: string, shared: boolean): Promise<void> {
-  const { error } = await requireClient()
-    .from("journal_entries")
-    .update({ shared_with_guests: shared })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-}
