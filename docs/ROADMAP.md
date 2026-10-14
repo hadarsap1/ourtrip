@@ -78,7 +78,7 @@ Acceptance:
 - [x] Kids never read comments; a comment reaches them only when a parent bridges it (probe 45, UI flow)
 - [x] Anonymous visitors read only live public stories and their copied photos (probe 46, REST check)
 - [x] Publishing offers a prepared WhatsApp line with the right link (UI flow)
-- [ ] Applied to the live project and the live anon + guest checks re-run
+- [x] Applied to the live project and the live anon + guest checks re-run (14/10/2026, SECURITY-CHECKS "Live rollout")
 - [ ] A real recording played back on an iPhone and an Android phone
 - [x] The journal is family-only; stories are the one thing guests read (14/10, DECISIONS #32, 00048, probe 48)
 
