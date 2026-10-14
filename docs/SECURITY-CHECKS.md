@@ -1811,3 +1811,15 @@ Catalog check afterwards:
 X Not yet checked live with real sessions: a kid's message staying hidden from
 a guest until approved, and the two pushes (parents on write, everyone else on
 approval). Worth one real round on the tablet and a guest phone.
+
+## Kids read story comments too (migration 00050) - 14/10/2026
+
+`comments_kid_select` loses its `episode_id is not null` condition (ALTER
+POLICY, never dropped): a kid reads any comment on a story or episode they can
+see, still read-only (no kid insert/update/delete policy on `comments`).
+Probes 45 and 49 updated to expect it; a kid still cannot write or delete a
+comment and sees none on an episode they cannot hear. 99/99 PASS.
+
+Applied live 14/10/2026 (`apply_migration`, an ALTER needs no confirmation);
+the live policy reads `is_kid_of(trip_id) AND feedback_target_visible(trip_id,
+post_id, episode_id)`.

@@ -92,7 +92,7 @@ reset role;
 set local role authenticated; select rls.as_kid();
 select rls.check('kid: reads the listener''s comment on an episode', (select count(*) from comments where body = 'איזה פרק!') = 1);
 select rls.check('kid: no comments on an episode they cannot hear', (select count(*) from comments where body = 'on the draft') = 0);
-select rls.check('kid: story comments stay hidden', (select count(*) from comments where post_id is not null) = 0);
+select rls.check('kid: reads story comments too (00050)', (select count(*) from comments where post_id is not null) = 1);
 do $$ begin
   insert into comments (trip_id, author_id, episode_id, body) values
     ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000f1', 'x');

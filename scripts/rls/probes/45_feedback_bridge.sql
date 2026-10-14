@@ -53,7 +53,7 @@ reset role;
 -- kid: sees the like (with who), never the comment
 set local role authenticated; select rls.as_kid();
 select rls.check('kid: sees the guest''s like', (select count(*) from reactions) = 1);
-select rls.check('kid: sees no comments at all', (select count(*) from comments) = 0);
+select rls.check('kid: reads the guest''s comment, read-only (00050)', (select count(*) from comments) = 1);
 insert into reactions (trip_id, member_id, post_id, kind) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000d1', 'star');
 select rls.check('kid: can like a family story', (select count(*) from reactions where kind = 'star') = 1);
@@ -90,7 +90,7 @@ reset role;
 set local role authenticated; select rls.as_kid();
 -- 00049 retired the family feed for kids: they read the guests wall instead
 select rls.check('kid: no longer reads the family feed', (select count(*) from messages where channel = 'family') = 0);
-select rls.check('kid: still cannot read comments on a story', (select count(*) from comments) = 0);
+select rls.check('kid: reads the comment on a story they can see (00050)', (select count(*) from comments) = 1);
 select rls.check('kid: can resolve the guest''s name', exists (select 1 from members where id = '00000000-0000-0000-0000-0000000000b3'));
 reset role;
 
