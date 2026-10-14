@@ -1715,6 +1715,37 @@ Local harness, `scripts/rls/probes/48_journal_family_only.sql`:
 journal, the guest home no longer has a journal tile, and a guest who opens
 `/journal` directly gets a note and a link to the stories.
 
-X Live: apply 00048, then check as anon / guest that `journal_entries` returns
-nothing. Any entry that was shared with guests before stops being visible to
-them; it can be turned into a story.
+Applied live 14/10/2026. Before the apply the live journal held 0 entries (0
+shared with guests), so nothing was hidden from anyone. Catalog check on the
+live DB afterwards:
+
+| Check (live) | Result |
+|---|---|
+| `shared_with_guests` column on `journal_entries` | ✅ gone |
+| `journal_entries_guest_select` policy | ✅ gone |
+| `journal_before_write` trigger / `journal_guard_kid()` | ✅ gone |
+| Policies left on `journal_entries` | ✅ `journal_entries_owner_all`, `journal_entries_kid_own_all` only |
+
+The DROP statements need a human confirmation in the Supabase tool; the final
+apply went through the dashboard, so 00048 is not listed in
+`supabase_migrations.schema_migrations` (the file in the repo is the record).
+
+X Not probed with a real guest session; with no guest policy left, RLS returns
+a guest nothing by construction.
+
+## Kid PIN unlock bounced back to the login screen - 14/10/2026
+
+No policy change. Report (Hadar): a new code for Omer, PIN entered, back to the
+login screen every time. Live data showed the server side worked: the code was
+redeemed at 14:18, the device row exists, and the kid's auth user signed in at
+14:19. The fault was in `AuthGate`: its per-session verdict ("redirecting",
+cached when the tablet first opened with no session) survived the unlock, which
+mints the session in place and navigates client-side, so `/` sent the kid to
+`/login`. The unlock now clears the cached verdict (`resetAuthGate`) before
+navigating; the gate then asks the server again (`link_member_to_auth_user` →
+`kid`). Access is unchanged: the gate is routing only, RLS decides every read.
+
+| Check | Result |
+|---|---|
+| Before the fix, mock Supabase + browser: `/` → login → kid login → code → PIN | ✅ reproduced - ends on `/login` |
+| After the fix, same flow | ✅ PASS - ends on `/` with the kid tabs; the role is re-checked once |

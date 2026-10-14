@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import { resetAuthGate } from "@/components/AuthGate";
 import { isKidDevice, registerDevice, unlockWithPin } from "@/lib/data/kids";
 import { CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
@@ -56,6 +57,7 @@ export function KidLoginScreen() {
     );
     setPin("");
     if (result.status === "ok") {
+      resetAuthGate();
       router.replace("/");
       return;
     }
