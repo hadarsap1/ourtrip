@@ -374,6 +374,19 @@ export async function deleteExpense(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Which bookings already have an expense in the budget, so a booking card
+ *  can say "in the budget" or offer to put it there. Owners only by RLS; for
+ *  anyone else this is simply empty. */
+export async function listBookingExpenseIds(tripId: string): Promise<Set<string>> {
+  const { data, error } = await requireClient()
+    .from("expenses")
+    .select("booking_id")
+    .eq("trip_id", tripId)
+    .not("booking_id", "is", null);
+  if (error) throw new Error(error.message);
+  return new Set(data.map((r) => r.booking_id).filter((id): id is string => id !== null));
+}
+
 /** Creates the budget expense linked to a booking. Throws "fx" when the
  *  currency can't be converted (UI shows a specific Hebrew message). */
 export async function createExpenseForBooking(

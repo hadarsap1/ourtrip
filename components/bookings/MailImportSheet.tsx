@@ -73,7 +73,8 @@ export function MailImportSheet({
   /** Bookings the trip already has, so a re-scan can say what is not new. */
   existing: Booking[];
   onClose: () => void;
-  onDone: (message: string) => void;
+  /** `saved` are the bookings just created, for the budget prompt. */
+  onDone: (message: string, saved: Booking[]) => void;
 }) {
   const s = strings.mailImport;
   const configured = isGmailImportConfigured();
@@ -140,13 +141,15 @@ export function MailImportSheet({
     try {
       // Sequential: a handful of rows, and one failure should not leave the
       // rest in an unknown state.
+      const saved: Booking[] = [];
       for (const { candidate } of chosen) {
-        await createBooking(candidateToInsert(candidate, tripId));
+        saved.push(await createBooking(candidateToInsert(candidate, tripId)));
       }
       onDone(
         chosen.length === 1
           ? s.savedOne
-          : s.saved.replace("{n}", String(chosen.length))
+          : s.saved.replace("{n}", String(chosen.length)),
+        saved
       );
     } catch {
       setPhase({ step: "results", reviewed, scanned: reviewed.length });

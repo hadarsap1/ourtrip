@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { createBooking } from "@/lib/data/bookings";
+import type { Booking } from "@/lib/types";
 import { extractBookingFromPaste, pasteToInsert, type PasteBooking } from "@/lib/data/bookingPaste";
 import { isLowConfidence, PASTE_TYPES, type PasteField } from "@/supabase/functions/_shared/bookingPaste";
 import { strings } from "@/lib/strings";
@@ -41,7 +42,8 @@ export function PasteImportSheet({
   open: boolean;
   tripId: string;
   onClose: () => void;
-  onDone: (message: string) => void;
+  /** `saved` is the booking just created, for the budget prompt. */
+  onDone: (message: string, saved: Booking) => void;
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -74,10 +76,10 @@ export function PasteImportSheet({
     if (!draft || busy || !draft.title.trim()) return;
     setBusy(true);
     try {
-      await createBooking(pasteToInsert(tripId, draft));
+      const saved = await createBooking(pasteToInsert(tripId, draft));
       setText("");
       reset();
-      onDone(t.saved);
+      onDone(t.saved, saved);
     } catch {
       setError(strings.common.error);
     } finally {
