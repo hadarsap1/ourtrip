@@ -1927,3 +1927,50 @@ matrix covers `trip_ai_settings` too. Harness 146/146 PASS.
 X The cost is an estimate (token counts x list price); the bill is
 Anthropic's. One call can overshoot the cap by its own cost (known only after
 it returns). A timed-out call is counted but its cost is unknown.
+
+## Guest join link (00054) - 15/10/2026
+
+DECISIONS #37. One link per trip; anyone holding it can ask to join, and a
+parent approves. What enforces it:
+
+- `guest_join_links` and `guest_join_requests`: RLS on, one policy each,
+  `is_owner_of(trip_id)` for all commands. Kids, guests, outsiders and anon
+  have no policy, so they read and write nothing (also asserted in the deny
+  matrix, `90_matrix.sql`).
+- `guest_join_token(trip, reset)`: security definer, refuses anyone but a
+  parent of that trip (`42501`). Not executable by anon. Token = 122 random
+  bits (`gen_random_uuid`), unique; reset replaces it.
+- `submit_guest_join(token, name, email)` (anon + authenticated): the only
+  write path for a request. With a Google session the address comes from the
+  JWT and the typed one is ignored; `auth_user_id` is stored only then
+  (shown to the parent as "verified via Google"). Name 1-60, address checked,
+  30 sends per trip per hour and 200 open requests, so a leaked link cannot
+  flood the list or the parents' phones. It never inserts into `members` or
+  `guests_allowlist`: asking grants nothing.
+- An anonymous caller submitting an address that is already on the list gets
+  the same `pending` as anyone else, so the link cannot be used to test which
+  addresses are guests. Only a signed-in caller learns that their own address
+  is already in (`member`). A declined request also reads `pending`.
+- `guest_join_info(token)` (anon + authenticated): `valid` plus, for a
+  signed-in caller, their own status. Nothing about the trip or other people.
+- Approval is `guest-invite` (owner-gated, unchanged). The allowlist trigger
+  `guest_join_mark_approved` closes the matching request, also when a parent
+  invites the same address by hand.
+- Push to parents (`guest-request` in `push-send`) sends the typed name only,
+  through the same shared-secret path as the other DB-triggered pushes.
+- Client: `/join/<token>` bypasses the auth gate (like `/s/`). A signed-in
+  non-member who came through the link keeps their session and is sent back to
+  the join page ("waiting for approval") instead of being signed out. This is
+  routing only; with no allowlist row every guest policy still returns nothing.
+
+Probe `54_guest_join_link.sql`: 39 checks (token per role, reset kills the old
+link, anon/Google/revoked-guest submissions, typed address ignored under
+Google, no read for anon/kid/guest/outsider, guest cannot approve, decline
+sticks, approval by allowlist row, rate limit). Full harness 185/185 PASS on a
+local Postgres with all 54 migrations.
+
+X Not yet applied to the live project (the Supabase connector failed in this
+session): migration 00054 and the `push-send` redeploy are still to do.
+X A typed address is not verified until the guest clicks the sign-in email
+that approval sends. Someone holding the link could ask in another person's
+name; the parent sees name, address and "typed" before approving.

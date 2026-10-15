@@ -5,14 +5,20 @@ import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
+  declineJoinRequest,
+  getJoinToken,
   inviteGuest,
   inviteMany,
   listAllowlist,
+  listJoinRequests,
   revokeGuest,
   setGuestLabel,
   type BulkInviteResult,
   type GuestAllowlistRow,
+  type JoinRequestRow,
 } from "@/lib/data/guests";
+import { joinShareText, joinUrl } from "@/lib/guestJoin";
+import { useMember } from "@/lib/useMember";
 import { LABEL_SUGGESTIONS, normalizeLabel, parseGuestList } from "@/lib/guestBulk";
 import { shareToWhatsApp } from "@/lib/share";
 import { formatDate } from "@/lib/format";
@@ -39,6 +45,10 @@ export function GuestsAdminScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [allowlist, setAllowlist] = useState<GuestAllowlistRow[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [requests, setRequests] = useState<JoinRequestRow[]>([]);
+  const [token, setToken] = useState<string | null>(null);
+  const [approving, setApproving] = useState<string | null>(null);
+  const { member } = useMember();
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
   const [labelFor, setLabelFor] = useState<GuestAllowlistRow | null>(null);
@@ -52,9 +62,14 @@ export function GuestsAdminScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [rows, tripMembers] = await Promise.all([listAllowlist(tripId), listMembers(tripId)]);
+    const [rows, tripMembers, pending] = await Promise.all([
+      listAllowlist(tripId),
+      listMembers(tripId),
+      listJoinRequests(tripId),
+    ]);
     setAllowlist(rows);
     setMembers(tripMembers);
+    setRequests(pending);
   }, []);
 
   useEffect(() => {
@@ -67,7 +82,8 @@ export function GuestsAdminScreen() {
       }
       setTrip(activeTrip);
       try {
-        await refresh(activeTrip.id);
+        const [joinToken] = await Promise.all([getJoinToken(activeTrip.id), refresh(activeTrip.id)]);
+        if (!cancelled) setToken(joinToken);
       } catch {
         if (!cancelled) showToast(strings.common.error);
       } finally {
@@ -87,6 +103,66 @@ export function GuestsAdminScreen() {
   const nameOf = (email: string) =>
     members.find((m) => m.email?.toLowerCase() === email.toLowerCase())?.display_name ?? null;
 
+  const link = token ? joinUrl(window.location.origin, token) : null;
+
+  async function approve(request: JoinRequestRow) {
+    if (approving || !trip) return;
+    setApproving(request.id);
+    try {
+      // the same call as a manual invite; the allowlist trigger closes the request
+      await inviteGuest(request.email, request.display_name);
+      showToast(strings.guests.approved.replace("{name}", request.display_name));
+      await refresh(trip.id);
+    } catch {
+      showToast(strings.common.error);
+    } finally {
+      setApproving(null);
+    }
+  }
+
+  async function approveAll() {
+    if (approving || !trip) return;
+    setApproving("all");
+    try {
+      const results = await inviteMany(
+        requests.map((r) => ({ name: r.display_name, email: r.email })),
+        undefined,
+        () => {}
+      );
+      showToast(
+        strings.guests.approvedAll
+          .replace("{ok}", String(results.filter((r) => r.ok).length))
+          .replace("{total}", String(results.length))
+      );
+      await refresh(trip.id);
+    } catch {
+      showToast(strings.common.error);
+    } finally {
+      setApproving(null);
+    }
+  }
+
+  async function decline(request: JoinRequestRow) {
+    if (!trip || !member || !(await askConfirm(strings.guests.declineConfirm))) return;
+    try {
+      await declineJoinRequest(request.id, member.id);
+      showToast(strings.guests.declined);
+      await refresh(trip.id);
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
+  async function resetLink() {
+    if (!trip || !(await askConfirm(strings.guests.joinResetConfirm))) return;
+    try {
+      setToken(await getJoinToken(trip.id, true));
+      showToast(strings.guests.joinResetDone);
+    } catch {
+      showToast(strings.common.error);
+    }
+  }
+
   const closeAndRefresh = () => {
     setSheet(null);
     if (trip) void refresh(trip.id).catch(() => {});
@@ -104,6 +180,105 @@ export function GuestsAdminScreen() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.guests.title}</h1>
 
+      {link && (
+        <section className="space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-sm">
+          <h2 className="flex items-center gap-1.5 font-bold text-ink">
+            <ShareIcon className="h-4 w-4" /> {strings.guests.joinTitle}
+          </h2>
+          <p className="text-sm text-ink-soft">{strings.guests.joinHint}</p>
+          <p className="truncate rounded-xl bg-paper-deep px-3 py-2 text-xs text-ink-soft" dir="ltr">
+            {link}
+          </p>
+          <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+            <button
+              type="button"
+              onClick={() => void shareToWhatsApp(joinShareText(link))}
+              className="rounded-xl bg-sea py-2.5 font-semibold text-on-sea hover:bg-sea-deep"
+            >
+              {strings.guests.joinShare}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(link)
+                  .then(() => showToast(strings.guests.copied))
+                  .catch(() => {});
+              }}
+              className="rounded-xl border border-line px-3 py-2.5 text-sm font-semibold text-ink-soft"
+            >
+              <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.joinCopy}
+            </button>
+            <button
+              type="button"
+              onClick={() => void resetLink()}
+              className="rounded-xl border border-line px-3 py-2.5 text-sm font-semibold text-ink-soft"
+            >
+              {strings.guests.joinReset}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {requests.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="flex items-baseline justify-between px-0.5">
+            <span className="ot-kicker">
+              {strings.guests.requestsTitle.replace("{n}", String(requests.length))}
+            </span>
+            {requests.length > 1 && (
+              <button
+                type="button"
+                disabled={approving !== null}
+                onClick={() => void approveAll()}
+                className="text-sm font-semibold text-sea disabled:opacity-60"
+              >
+                {strings.guests.approveAll.replace("{n}", String(requests.length))}
+              </button>
+            )}
+          </h2>
+          <ul className="space-y-2">
+            {requests.map((request) => (
+              <li
+                key={request.id}
+                className="flex items-center justify-between gap-2 rounded-2xl border border-sea/40 bg-sea-tint px-4 py-3"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-ink">{request.display_name}</span>
+                  <span className="block truncate text-sm text-ink-soft" dir="ltr">
+                    {request.email}
+                  </span>
+                  <span className="text-xs text-ink-soft">
+                    {request.auth_user_id ? strings.guests.viaGoogle : strings.guests.viaEmail}
+                    {" · "}
+                    <span dir="ltr">{formatDate(request.requested_at.slice(0, 10))}</span>
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-stretch gap-1">
+                  <button
+                    type="button"
+                    disabled={approving !== null}
+                    onClick={() => void approve(request)}
+                    className="rounded-lg bg-sea px-3 py-1.5 text-sm font-semibold text-on-sea disabled:opacity-60"
+                  >
+                    {strings.guests.approve}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={approving !== null}
+                    onClick={() => void decline(request)}
+                    className="rounded-lg bg-paper-deep px-3 py-1 text-xs font-semibold text-ink-soft disabled:opacity-60"
+                  >
+                    {strings.guests.decline}
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <h2 className="ot-kicker px-0.5">{strings.guests.manualTitle}</h2>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
@@ -120,13 +295,6 @@ export function GuestsAdminScreen() {
           <UsersIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.bulkInvite}
         </button>
       </div>
-      <button
-        type="button"
-        onClick={() => void shareToWhatsApp(strings.guests.collectText)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-line bg-surface py-2.5 text-sm font-semibold text-ink-soft"
-      >
-        <ShareIcon className="h-4 w-4" /> {strings.guests.collect}
-      </button>
 
       {allowlist.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">

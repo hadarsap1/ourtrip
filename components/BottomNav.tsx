@@ -15,7 +15,7 @@ export function BottomNav() {
   const role = member?.role ?? (isKid ? "kid" : "owner");
   const unread = useUnreadWall();
 
-  if (pathname === "/kid-login" || pathname === "/login" || pathname.startsWith("/s/")) return null;
+  if (pathname === "/kid-login" || pathname === "/login" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
 
   const tabs = tabsForRole(role);
 

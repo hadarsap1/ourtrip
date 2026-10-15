@@ -1,8 +1,10 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
 import type { Tables } from "@/lib/database.types";
+import { parseJoinInfo, parseSubmitResult, type JoinInfo, type SubmitResult } from "@/lib/guestJoin";
 
 export type GuestAllowlistRow = Tables<"guests_allowlist">;
+export type JoinRequestRow = Tables<"guest_join_requests">;
 
 function requireClient() {
   const supabase = getSupabase();
@@ -83,7 +85,8 @@ export type BulkInviteResult = {
  */
 export async function inviteMany(
   guests: { name: string; email: string }[],
-  label: string | null,
+  /** undefined leaves each existing guest's label as it is */
+  label: string | null | undefined,
   onProgress: (done: number) => void
 ): Promise<BulkInviteResult[]> {
   const results: BulkInviteResult[] = [];
@@ -109,6 +112,59 @@ export async function revokeGuest(tripId: string, email: string): Promise<void> 
     .eq("trip_id", tripId)
     .eq("email", email);
   if (error) throw new Error(error.message);
+}
+
+// ---------- join link (00054) ----------
+
+/** The trip's join token (created on first call). reset = a new link; the
+ *  old one stops working. Owner-only (checked in the function). */
+export async function getJoinToken(tripId: string, reset = false): Promise<string> {
+  const { data, error } = await requireClient().rpc("guest_join_token", {
+    p_trip_id: tripId,
+    p_reset: reset,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Open requests, oldest first. Owner-only by RLS. */
+export async function listJoinRequests(tripId: string): Promise<JoinRequestRow[]> {
+  const { data, error } = await requireClient()
+    .from("guest_join_requests")
+    .select("*")
+    .eq("trip_id", tripId)
+    .eq("status", "pending")
+    .order("requested_at");
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Approving is inviteGuest(): the allowlist trigger marks the request
+ *  approved. Declining only closes it; the asker is not told. */
+export async function declineJoinRequest(id: string, memberId: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("guest_join_requests")
+    .update({ status: "declined", decided_at: new Date().toISOString(), decided_by: memberId })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Anyone with the link (signed in or not). */
+export async function getJoinInfo(token: string): Promise<JoinInfo> {
+  const { data, error } = await requireClient().rpc("guest_join_info", { p_token: token });
+  if (error) throw new Error(error.message);
+  return parseJoinInfo(data);
+}
+
+/** Signed in with Google, the address comes from the login and email is ignored. */
+export async function submitJoinRequest(token: string, name: string, email?: string): Promise<SubmitResult> {
+  const { data, error } = await requireClient().rpc("submit_guest_join", {
+    p_token: token,
+    p_name: name,
+    ...(email ? { p_email: email } : {}),
+  });
+  if (error) throw new Error(error.message);
+  return parseSubmitResult(data);
 }
 
 // ---------- guest-side photo access (via Edge Function) ----------
