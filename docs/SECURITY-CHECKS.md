@@ -1969,8 +1969,15 @@ Google, no read for anon/kid/guest/outsider, guest cannot approve, decline
 sticks, approval by allowlist row, rate limit). Full harness 185/185 PASS on a
 local Postgres with all 54 migrations.
 
-X Not yet applied to the live project (the Supabase connector failed in this
-session): migration 00054 and the `push-send` redeploy are still to do.
+Live rollout 15/10/2026: migration `00054_guest_join_link` applied to
+`xeqfcrxrpfjlqhkijrwd`; `push-send` v16 and `backup-weekly` v10 redeployed
+(verify_jwt=false, as before). Checked live: RLS on for both tables, only the
+two owner policies, anon cannot execute `guest_join_token` or
+`guest_join_caller_status`, both triggers present; as anon an unknown token
+reads `{"valid": false}` / `invalid` and both tables return 0 rows. Security
+advisor: the only new findings are `guest_join_info` and `submit_guest_join`
+being anon-executable security definer functions, which is the design (the
+link is used before any account exists).
 X A typed address is not verified until the guest clicks the sign-in email
 that approval sends. Someone holding the link could ask in another person's
 name; the parent sees name, address and "typed" before approving.
