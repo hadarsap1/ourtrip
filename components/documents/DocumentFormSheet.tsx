@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Sheet } from "@/components/Sheet";
 import {
   DOCUMENT_TAGS,
@@ -27,6 +27,7 @@ export function DocumentFormSheet({
   onShare,
   onCopy,
   camera,
+  status,
 }: {
   open: boolean;
   tripId: string;
@@ -41,6 +42,8 @@ export function DocumentFormSheet({
   onCopy?: (doc: Document) => void;
   /** FAB "scan": the file picker opens the camera. */
   camera?: boolean;
+  /** Existing document: its lock / on-device state and actions, shown first. */
+  status?: ReactNode;
 }) {
   if (!open) return null;
   return (
@@ -55,6 +58,7 @@ export function DocumentFormSheet({
       onShare={onShare}
       onCopy={onCopy}
       camera={camera}
+      status={status}
     />
   );
 }
@@ -69,6 +73,7 @@ function DocumentForm({
   onShare,
   onCopy,
   camera,
+  status,
 }: {
   tripId: string;
   doc: Document | null;
@@ -79,6 +84,7 @@ function DocumentForm({
   onShare?: (doc: Document) => void;
   onCopy?: (doc: Document) => void;
   camera?: boolean;
+  status?: ReactNode;
 }) {
   const [title, setTitle] = useState(doc?.title ?? "");
   const [tag, setTag] = useState(doc?.tag ?? initialTag ?? "passport");
@@ -143,19 +149,25 @@ function DocumentForm({
       onClose={onClose}
       title={doc ? strings.documents.edit : strings.documents.upload}
     >
+      {doc && status}
       {doc && (onShare || onCopy) && (
         <div className="mb-4 grid grid-cols-2 gap-2">
           {onShare && (
-            <button type="button" onClick={() => onShare(doc)} className="flex items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
+            <button type="button" onClick={() => onShare(doc)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
               {strings.documents.share}
             </button>
           )}
           {onCopy && (
-            <button type="button" onClick={() => onCopy(doc)} className="flex items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
+            <button type="button" onClick={() => onCopy(doc)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
               {strings.documents.copyDetails}
             </button>
           )}
         </div>
+      )}
+      {doc && (
+        <h3 className="mb-3 border-t border-line pt-4 text-sm font-bold text-ink">
+          {strings.documents.detailsSection}
+        </h3>
       )}
       <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
         {!doc && (
