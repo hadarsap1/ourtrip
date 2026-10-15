@@ -6,6 +6,8 @@ import {
   BedIcon,
   CalendarIcon,
   CarIcon,
+  CheckIcon,
+  CoinIcon,
   FileIcon,
   type IconProps,
   LinkIcon,
@@ -84,6 +86,8 @@ export function BookingsList({
   onError,
   onPaste,
   onExportIcs,
+  expensedIds,
+  onAddExpense,
 }: {
   bookings: Booking[];
   /** The trip's days, which is what turns a booking's dates into a place. */
@@ -103,6 +107,9 @@ export function BookingsList({
   onPaste?: () => void;
   /** ICS export (2.7); absent when icsExport is off. */
   onExportIcs?: () => void;
+  /** Bookings that already have their expense in the budget. */
+  expensedIds: Set<string>;
+  onAddExpense: (booking: Booking) => void;
 }) {
   const v2 = isEnabled("bookingsV2");
   const [typeFilter, setTypeFilter] = useState<BookingType | null>(null);
@@ -143,6 +150,8 @@ export function BookingsList({
           onEdit={onEdit}
           onAddToDay={onAddToDay}
           onError={onError}
+          expensedIds={expensedIds}
+          onAddExpense={onAddExpense}
         />
       ))}
 
@@ -220,12 +229,16 @@ function LegSection({
   onEdit,
   onAddToDay,
   onError,
+  expensedIds,
+  onAddExpense,
 }: {
   group: BookingGroup;
   filesByBooking: Map<string, BookingFile[]>;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
   onError: () => void;
+  expensedIds: Set<string>;
+  onAddExpense: (booking: Booking) => void;
 }) {
   const { stretch } = group;
   const count = group.bookings.length;
@@ -269,6 +282,8 @@ function LegSection({
             onEdit={() => onEdit(placement.booking)}
             onAddToDay={() => onAddToDay(placement.booking)}
             onError={onError}
+            inBudget={expensedIds.has(placement.booking.id)}
+            onAddExpense={() => onAddExpense(placement.booking)}
           />
         ))}
       </div>
@@ -282,12 +297,16 @@ function BookingCard({
   onEdit,
   onAddToDay,
   onError,
+  inBudget,
+  onAddExpense,
 }: {
   placement: BookingPlacement;
   files: BookingFile[];
   onEdit: () => void;
   onAddToDay: () => void;
   onError: () => void;
+  inBudget: boolean;
+  onAddExpense: () => void;
 }) {
   const { booking } = placement;
   // One file opens straight from the row. Several would turn the action row
@@ -310,6 +329,7 @@ function BookingCard({
   // filed under Hanoi, and has to say where it lands.
   const crossing = placement.stretches.length > 1;
   const address = addressOf(booking);
+  const hasCost = booking.cost != null && booking.cost > 0;
   const where = crossing
     ? placement.stretches.map(legLabel).join(" ← ")
     : address;
@@ -416,6 +436,25 @@ function BookingCard({
           <CalendarIcon className="h-3.5 w-3.5" />
           {strings.bookings.addToDay}
         </button>
+        {/* Only a booking with a price can become an expense. Whichever way
+            it arrived (form, mail, paste) or got its price (an edit later),
+            the card is where it can still go into the budget. */}
+        {hasCost && booking.status !== "cancelled" &&
+          (inBudget ? (
+            <span className="flex items-center gap-1 rounded-lg bg-success-soft px-2.5 py-1.5 text-success">
+              <CheckIcon className="h-3.5 w-3.5" />
+              {strings.bookings.inBudget}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onAddExpense}
+              className="flex min-h-[44px] items-center gap-1.5 rounded-lg bg-sea-tint px-2.5 py-1.5 text-sea"
+            >
+              <CoinIcon className="h-3.5 w-3.5" />
+              {strings.bookings.addToBudget}
+            </button>
+          ))}
       </div>
 
       {showFiles && files.length > 1 && (

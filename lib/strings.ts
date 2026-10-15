@@ -1352,6 +1352,11 @@ export const strings = {
     expenseSkip: "לא עכשיו",
     expenseCreated: "ההוצאה נרשמה בתקציב",
     expenseFxError: "לא הצלחנו להמיר את המטבע - ההוצאה לא נרשמה",
+    // A booking with a price and no expense yet offers to put it in the budget
+    // from its card; one that has one says so.
+    addToBudget: "לרשום בתקציב",
+    inBudget: "בתקציב",
+    expenseQueue: "הזמנה {n} מתוך {total}",
     // Bookings projected onto the days they cover, so a booked hotel shows up
     // on the plan without anyone linking it by hand. `checkIn`/`checkOut` above
     // label the time fields, hence the prefix here.

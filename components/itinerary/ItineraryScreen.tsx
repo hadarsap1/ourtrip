@@ -33,7 +33,7 @@ import {
 import type { OptionForAreas } from "@/lib/data/segments";
 import { formatDate, todayISO } from "@/lib/format";
 import { planFromOptions } from "@/lib/data/placeOptions";
-import { listCategories } from "@/lib/data/expenses";
+import { listBookingExpenseIds, listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { isEnabled } from "@/lib/flags";
@@ -112,7 +112,11 @@ export function ItineraryScreen() {
   const [segmenting, setSegmenting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
-  const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
+  // Bookings waiting to be asked "put it in the budget?" - one after an add,
+  // several after a mail import - and which ones already have their expense.
+  const [expenseQueue, setExpenseQueue] = useState<{ items: Booking[]; i: number } | null>(null);
+  const [expensedIds, setExpensedIds] = useState<Set<string>>(new Set());
+  const expenseFor = expenseQueue ? (expenseQueue.items[expenseQueue.i] ?? null) : null;
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
   const [importingMail, setImportingMail] = useState(false);
   // Hotels proposing a place for the plan's days, waiting on a confirm.
@@ -134,6 +138,8 @@ export function ItineraryScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
+    // Never blocks the plan: without it the cards just offer the budget button.
+    void listBookingExpenseIds(tripId).then(setExpensedIds).catch(() => {});
     const b = await fetchItineraryBundle(tripId);
     setDays(b.days);
     setBookings(b.bookings);
@@ -196,6 +202,18 @@ export function ItineraryScreen() {
       unsubBookings();
     };
   }, [refresh, showToast]);
+
+  // Asks about every booking that has a price and is not in the budget yet.
+  // Covers all the ways a booking arrives - the form, travel search, mail and
+  // paste - so none of them quietly skips the budget.
+  function askExpense(saved: Booking[]) {
+    const items = saved.filter((b) => b.cost != null && b.cost > 0 && !expensedIds.has(b.id));
+    if (items.length > 0) setExpenseQueue({ items, i: 0 });
+  }
+
+  function nextExpense() {
+    setExpenseQueue((q) => (q && q.i + 1 < q.items.length ? { ...q, i: q.i + 1 } : null));
+  }
 
   // Runs a mutation, then refetches; errors surface as a Hebrew toast.
   const run = useCallback(
@@ -623,9 +641,7 @@ export function ItineraryScreen() {
               setSearching(false);
               setView("bookings");
               showToast(strings.travelSearch.saved);
-              if (saved.cost != null && saved.cost > 0) {
-                setExpenseFor(saved);
-              }
+              askExpense([saved]);
             }}
             onError={(message) => showToast(message)}
           />
@@ -689,6 +705,8 @@ export function ItineraryScreen() {
                 onError={() => showToast(strings.common.error)}
                 onPaste={isEnabled("bookingsV2") ? () => setPasting(true) : undefined}
                 onExportIcs={isEnabled("icsExport") ? exportIcs : undefined}
+                expensedIds={expensedIds}
+                onAddExpense={(b) => askExpense([b])}
               />
             ) : (
               <>
@@ -852,11 +870,12 @@ export function ItineraryScreen() {
           files={editingBookingFiles}
           onClose={() => setBookingForm(null)}
           onSaved={(saved, isNew) => {
+            // An edit that sets or changes the price asks too: a booking
+            // imported without one gets it here, later.
+            const priceChanged = isNew || saved.cost !== bookingForm?.booking?.cost;
             setBookingForm(null);
             refreshNow();
-            if (isNew && saved.cost != null && saved.cost > 0) {
-              setExpenseFor(saved);
-            }
+            if (priceChanged) askExpense([saved]);
             // The booking leads, the plan follows - see hotelItinerarySync.
             if (saved.type === "hotel") void syncHotels([saved], false).catch(() => {});
           }}
@@ -899,9 +918,14 @@ export function ItineraryScreen() {
         open={expenseFor !== null}
         booking={expenseFor}
         categories={categories}
-        onClose={() => setExpenseFor(null)}
-        onResult={(message) => {
-          setExpenseFor(null);
+        position={expenseQueue ? { n: expenseQueue.i + 1, total: expenseQueue.items.length } : undefined}
+        onClose={nextExpense}
+        onResult={(message, created) => {
+          if (created && expenseFor) {
+            const id = expenseFor.id;
+            setExpensedIds((prev) => new Set(prev).add(id));
+          }
+          nextExpense();
           showToast(message);
         }}
       />
@@ -956,10 +980,11 @@ export function ItineraryScreen() {
           tripId={trip.id}
           existing={bookings}
           onClose={() => setImportingMail(false)}
-          onDone={(message) => {
+          onDone={(message, saved) => {
             setImportingMail(false);
             refreshNow();
             showToast(message);
+            askExpense(saved);
           }}
         />
       )}
@@ -981,10 +1006,11 @@ export function ItineraryScreen() {
           open={pasting}
           tripId={trip.id}
           onClose={() => setPasting(false)}
-          onDone={(message) => {
+          onDone={(message, saved) => {
             setPasting(false);
             refreshNow();
             showToast(message);
+            askExpense([saved]);
           }}
         />
       )}
