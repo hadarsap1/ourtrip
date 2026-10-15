@@ -1981,3 +1981,52 @@ link is used before any account exists).
 X A typed address is not verified until the guest clicks the sign-in email
 that approval sends. Someone holding the link could ask in another person's
 name; the parent sees name, address and "typed" before approving.
+
+### E2E security + QA on production - 15/10/2026
+
+The sandbox cannot reach supabase.co or vercel.app directly, so: role
+emulation on the live DB inside rolled-back transactions, real HTTP from the
+database through `pg_net`, and the UI against a production build with
+Supabase mocked at the network layer. Nothing was left behind (checked: 0
+requests, link untouched, no QA members, empty pg_net queue).
+
+**Live DB, real roles (42/42 PASS).** Anon: valid/fake link, typed request
+stored lowercased and unverified, an owner's address reads `pending` and stores
+nothing, bad address refused, reads 0 rows. Google user: typed address ignored
+for the login's, `link_member_to_auth_user` null, reads nothing (requests,
+members, photos, documents, expenses, names). Kid: no rows, cannot approve,
+`guest_join_token` refused. Parent: same token as the live link, sees and
+declines, decline sticks and reads `pending` to the asker. Approval by
+allowlist row marks only that request; the approved guest links as `guest`,
+sees names but no other address, only approved+shared photos, still no
+documents/expenses/bookings/requests. Revoke cuts access at once and lets them
+ask again. Reset kills the old link. A new request queues exactly one
+`push-send` call carrying the cron secret.
+
+**Real HTTP against production (15/15).** REST as anon: `guest_join_info` /
+`submit_guest_join` on a fake token answer `{"valid":false}` / `"invalid"`;
+`guest_join_token` and `guest_join_caller_status` 401 (42501); select on both
+tables `[]`; direct insert 401 (RLS). `push-send` without the secret 401,
+with it and an unknown id `{"ok":true,"sent":0}`, without an id 400.
+`guest-invite` as anon 403. `https://ourtrip-umber.vercel.app/join/...`: 200,
+`dir=rtl`, Hebrew title, `noindex`, `no-store`, `X-Frame-Options: DENY`,
+`nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (the token never
+reaches another site in a Referer), CSP report-only present.
+
+**UI at 390px (42/42).** Invalid link; form with browser validation; typed,
+`busy` and `bad_input` answers; back from Google = automatic send with no
+`p_email`, then "check again" lands on "you're in" and clears the remembered
+token; signed-in without the Google button = one tap; auth gate sends a
+pending joiner to the join page and keeps the session, still rejects and signs
+out a stranger with no token; guests screen: link card, pending list with
+Google/typed badges, approve (guest-invite, no label key), decline (confirm,
+PATCH by the parent), approve-all, reset (confirm, `p_reset`), HTML in a name
+rendered as text, no overflow, no JS errors.
+
+Found and fixed: the share button's label was clipped at 390px (three buttons
+in one row). Share now has its own row.
+
+X Not covered: the real Google OAuth round trip and the real sign-in email
+(needs a person and a phone). The `*.vercel.app` team aliases are behind
+Vercel Authentication; the link must be shared from `ourtrip-umber.vercel.app`
+(it is: the card uses the page's own origin).

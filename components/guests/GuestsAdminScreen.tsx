@@ -182,19 +182,19 @@ export function GuestsAdminScreen() {
 
       {link && (
         <section className="space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <h2 className="flex items-center gap-1.5 font-bold text-ink">
-            <ShareIcon className="h-4 w-4" /> {strings.guests.joinTitle}
-          </h2>
+          <h2 className="font-bold text-ink">{strings.guests.joinTitle}</h2>
           <p className="text-sm text-ink-soft">{strings.guests.joinHint}</p>
           <p className="truncate rounded-xl bg-paper-deep px-3 py-2 text-xs text-ink-soft" dir="ltr">
             {link}
           </p>
-          <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+          {/* share gets its own row: three buttons in one row clipped its label at 390px */}
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => void shareToWhatsApp(joinShareText(link))}
-              className="rounded-xl bg-sea py-2.5 font-semibold text-on-sea hover:bg-sea-deep"
+              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
             >
+              <ShareIcon className="h-4 w-4" />
               {strings.guests.joinShare}
             </button>
             <button
