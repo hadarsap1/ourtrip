@@ -797,6 +797,96 @@ export type Database = {
           },
         ]
       }
+      guest_join_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          token: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          token?: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          token?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_join_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_join_links_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_join_requests: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          display_name: string
+          email: string
+          id: string
+          requested_at: string
+          status: string
+          trip_id: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          display_name: string
+          email: string
+          id?: string
+          requested_at?: string
+          status?: string
+          trip_id: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          display_name?: string
+          email?: string
+          id?: string
+          requested_at?: string
+          status?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_join_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_join_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests_allowlist: {
         Row: {
           created_at: string
@@ -2061,12 +2151,21 @@ export type Database = {
       }
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
       functions_base_url: { Args: never; Returns: string }
+      guest_join_info: { Args: { p_token: string }; Returns: Json }
+      guest_join_token: {
+        Args: { p_reset?: boolean; p_trip_id: string }
+        Returns: string
+      }
       is_active_guest_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_kid_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_owner_of: { Args: { p_trip_id: string }; Returns: boolean }
       link_member_to_auth_user: {
         Args: never
         Returns: Database["public"]["Enums"]["member_role"]
+      }
+      submit_guest_join: {
+        Args: { p_email?: string; p_name: string; p_token: string }
+        Returns: string
       }
       trip_member_names: {
         Args: { p_trip_id: string }

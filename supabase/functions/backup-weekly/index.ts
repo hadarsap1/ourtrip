@@ -81,6 +81,8 @@ const TABLES = [
   "messages",
   "message_reads",
   "guests_allowlist",
+  "guest_join_links",
+  "guest_join_requests",
   "map_pins",
   "routes",
   "place_options",

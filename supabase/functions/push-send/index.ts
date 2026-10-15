@@ -3,6 +3,7 @@
 // who to notify:
 //   - wall-message  : new family-wall message → everyone on the trip but the sender
 //   - pending-photo : kid/owner upload awaiting approval → owners
+//   - guest-request : someone asked to join through the join link (00054) → owners
 //   - daily (cron)  : rain-on-outdoor-day alert + flight check-in 24h reminder
 //   - backup-stale  : the weekly backup has not landed → owners (migration
 //                     00026; see the incident note in backup-weekly)
@@ -179,6 +180,23 @@ async function handlePendingPhoto(photoId: string): Promise<number> {
     body: "יש תמונה חדשה מהילדים - אפשר לאשר ולשתף",
     url: "/photos",
     tag: "pending-photo",
+  });
+}
+
+/** Someone asked to join through the guests' join link (00054). The name is
+ *  what they typed; the address stays on the guests screen. Owners only. */
+async function handleGuestRequest(requestId: string): Promise<number> {
+  const { data: request } = await service
+    .from("guest_join_requests")
+    .select("id, trip_id, display_name, status")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!request || request.status !== "pending") return 0;
+  return pushToMembers(await ownerIds(request.trip_id), {
+    title: "בקשת הצטרפות חדשה 👋",
+    body: `${request.display_name} רוצה לעקוב אחרי הטיול - אפשר לאשר`,
+    url: "/guests",
+    tag: "guest-request",
   });
 }
 
@@ -452,6 +470,7 @@ Deno.serve(async (req) => {
     type?: string;
     message_id?: string;
     photo_id?: string;
+    request_id?: string;
     age_days?: number;
   };
   try {
@@ -469,6 +488,10 @@ Deno.serve(async (req) => {
       case "pending-photo": {
         if (!body.photo_id) return json({ ok: false, error: "missing photo_id" }, 400);
         return json({ ok: true, sent: await handlePendingPhoto(body.photo_id) });
+      }
+      case "guest-request": {
+        if (!body.request_id) return json({ ok: false, error: "missing request_id" }, 400);
+        return json({ ok: true, sent: await handleGuestRequest(body.request_id) });
       }
       case "daily": {
         return json({ ok: true, ...(await handleDaily()) });

@@ -16,7 +16,7 @@ import { strings } from "@/lib/strings";
 // Screens where a capture button would be in the way or wrong. The wall and
 // the journal have their own composer pinned to the bottom, right where the
 // button floats (UX pass 14/10).
-const HIDDEN_ON = ["/login", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/messages", "/journal"];
+const HIDDEN_ON = ["/login", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/journal"];
 const noop = () => () => {};
 
 /**
