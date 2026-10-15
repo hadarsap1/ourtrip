@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
+import { askConfirm } from "@/components/ConfirmSheet";
 import {
   CheckIcon,
+  ChevronDownIcon,
   DocumentIcon,
   DownloadIcon,
   ExternalIcon,
   type IconProps,
   LockIcon,
+  MoreIcon,
   PassportIcon,
   SearchIcon,
   ShieldCheckIcon,
@@ -56,6 +59,7 @@ import {
   type DocSyncStatus,
 } from "@/lib/offline/docSync";
 import { useMember } from "@/lib/useMember";
+import { vaultStatus, type VaultStatus } from "@/lib/data/vaultStatus";
 import type { ComponentType } from "react";
 import type { Document, Trip } from "@/lib/types";
 import { offlineNow, withTimeout } from "@/lib/offline/network";
@@ -97,7 +101,9 @@ export function DocumentsScreen() {
   // Documents PIN / vault state
   const [pinExists, setPinExists] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
-  const [pinSheet, setPinSheet] = useState<{ mode: "set" | "enter" } | null>(null);
+  const [pinSheet, setPinSheet] = useState<{ mode: "set" | "enter"; reason?: string } | null>(null);
+  const [lockingIds, setLockingIds] = useState<Set<string>>(new Set());
+  const [lockProgress, setLockProgress] = useState<{ done: number; total: number } | null>(null);
   const [viewer, setViewer] = useState<{ url: string; mime: string } | null>(null);
   const pendingRef = useRef<((key: CryptoKey) => void) | null>(null);
 
@@ -268,7 +274,7 @@ export function DocumentsScreen() {
       void runOffline(doc, null);
       return;
     }
-    withKey((key) => void runOffline(doc, key));
+    withKey((key) => void runOffline(doc, key), "download");
   }
 
   async function runOffline(doc: Document, offlineKey: CryptoKey | null) {
@@ -309,7 +315,7 @@ export function DocumentsScreen() {
     const result = await openDocument(doc, key);
     if (result === "opened") return;
     if (result === "needs-key") {
-      withKey((k) => void handleOpen(doc, k));
+      withKey((k) => void handleOpen(doc, k), "open");
       return;
     }
     showToast(strings.documents.openFailed);
@@ -353,7 +359,8 @@ export function DocumentsScreen() {
 
   // Runs an action with the vault key, prompting for the passphrase (or a
   // biometric) first if locked.
-  function withKey(action: (key: CryptoKey) => void) {
+  // `purpose` picks the one line that tells you why the passphrase is asked.
+  function withKey(action: (key: CryptoKey) => void, purpose?: string) {
     if (!trip) return;
     const key = getVaultKey(trip.id);
     if (key) {
@@ -361,7 +368,10 @@ export function DocumentsScreen() {
       return;
     }
     pendingRef.current = action;
-    setPinSheet({ mode: pinExists ? "enter" : "set" });
+    setPinSheet({
+      mode: pinExists ? "enter" : "set",
+      reason: purpose ? strings.documents.pinReason[purpose] : undefined,
+    });
   }
 
   async function runDoc(fn: () => Promise<void>, message: string) {
@@ -380,7 +390,7 @@ export function DocumentsScreen() {
   async function shareDoc(doc: Document, key: CryptoKey | null = null) {
     const result = await getPlainDocument(doc, key ?? (trip ? getVaultKey(trip.id) : null));
     if (result === "needs-key") {
-      withKey((k) => void shareDoc(doc, k));
+      withKey((k) => void shareDoc(doc, k), "share");
       return;
     }
     if (!result) {
@@ -418,16 +428,81 @@ export function DocumentsScreen() {
     }
   }
 
-  function toggleLock(doc: Document) {
-    withKey((key) =>
-      void runDoc(
-        () =>
-          doc.pin_protected
-            ? unprotectDocument(doc, key)
-            : protectDocument(doc, key),
-        doc.pin_protected ? strings.documents.unlocked : strings.documents.locked
-      )
+  // Locking and unlocking both rewrite the stored file and drop the old device
+  // copy. Put a fresh copy straight back, so "on the device" does not quietly
+  // flip off the moment you lock something.
+  async function setLocked(doc: Document, lock: boolean, key: CryptoKey) {
+    setLockingIds((prev) => new Set(prev).add(doc.id));
+    try {
+      if (lock) await protectDocument(doc, key);
+      else await unprotectDocument(doc, key);
+      setOfflineIds((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+      try {
+        await makeAvailableOffline({ ...doc, pin_protected: lock }, key);
+        setOfflineIds((prev) => new Set(prev).add(doc.id));
+      } catch {
+        // The automatic download retries it on the next open.
+      }
+    } finally {
+      setLockingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  }
+
+  async function toggleLock(doc: Document) {
+    if (lockingIds.has(doc.id) || lockProgress) return;
+    const unlocking = doc.pin_protected;
+    if (unlocking && !(await askConfirm(strings.documents.unlockConfirm))) return;
+    withKey(
+      (key) =>
+        void runDoc(
+          () => setLocked(doc, !unlocking, key),
+          unlocking ? strings.documents.unlocked : strings.documents.locked
+        ),
+      unlocking ? "unlock" : "lock"
     );
+  }
+
+  // One at a time, like the downloads: a weak connection should not choke on
+  // several uploads at once, and the card can count them off.
+  function lockAll() {
+    const todo = docs.filter((d) => !d.pin_protected);
+    if (todo.length === 0 || lockProgress) return;
+    withKey(
+      (key) =>
+        void (async () => {
+          let failed = false;
+          setLockProgress({ done: 0, total: todo.length });
+          for (const [i, doc] of todo.entries()) {
+            try {
+              await setLocked(doc, true, key);
+            } catch {
+              failed = true;
+            }
+            setLockProgress({ done: i + 1, total: todo.length });
+          }
+          setLockProgress(null);
+          if (trip) await refresh(trip.id).catch(() => {});
+          showToast(failed ? strings.common.error : strings.documents.lockedAll);
+        })(),
+      "lockAll"
+    );
+  }
+
+  function downloadAll() {
+    if (!trip) return;
+    // Locked files are stored as their own ciphertext and need no passphrase;
+    // only ask when an unlocked one is still missing.
+    const { locked } = planDocSync(docs, offlineIds, false);
+    if (locked.length === 0) void syncAll(getVaultKey(trip.id));
+    else withKey((key) => void syncAll(key), "download");
   }
 
   function openDoc(doc: Document) {
@@ -435,7 +510,6 @@ export function DocumentsScreen() {
       void handleOpen(doc);
       return;
     }
-    showToast(strings.documents.unlocking);
     withKey((key) =>
       void (async () => {
         const blob = await decryptDocument(doc, key);
@@ -444,7 +518,8 @@ export function DocumentsScreen() {
           return;
         }
         setViewer({ url: URL.createObjectURL(blob), mime: blob.type });
-      })()
+      })(),
+      "open"
     );
   }
 
@@ -452,6 +527,7 @@ export function DocumentsScreen() {
     return <ScreenSkeleton variant="list" />;
   }
 
+  const s = strings.documents;
   const query = search.trim().toLowerCase();
   const visible = docs.filter((doc) => {
     if (tagFilter && doc.tag !== tagFilter) return false;
@@ -459,7 +535,7 @@ export function DocumentsScreen() {
     return (
       doc.title.toLowerCase().includes(query) ||
       (doc.notes ?? "").toLowerCase().includes(query) ||
-      (strings.documents.tags[doc.tag] ?? doc.tag).toLowerCase().includes(query)
+      (s.tags[doc.tag] ?? doc.tag).toLowerCase().includes(query)
     );
   });
 
@@ -479,20 +555,22 @@ export function DocumentsScreen() {
         .sort((a, b) => (a.expires_at ?? "").localeCompare(b.expires_at ?? ""))
     : [];
   const soonest = expiring[0] ?? null;
-  const offlineCount = docs.filter((d) => offlineIds.has(d.id)).length;
+  const status = vaultStatus(docs, offlineIds);
+  const syncing = Object.values(syncStatus).some((x) => x.state === "downloading" || x.state === "queued");
+  const waitingCount = Object.values(syncStatus).filter((x) => x.state === "locked").length;
+  // The sheet follows the live row, so a lock done from inside it shows at once.
+  const formDoc = form?.doc ? (docs.find((d) => d.id === form.doc!.id) ?? form.doc) : null;
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
       <header className="flex items-center justify-between gap-2">
         <h1 className="text-[22px] font-extrabold text-ink">
-          {isKid ? strings.documents.kidTitle : strings.nav.documents}
+          {isKid ? s.kidTitle : strings.nav.documents}
         </h1>
-        {/* The PIN is reassurance, not only a challenge - say the vault is
-            protected on the way in, not just when it blocks you. */}
-        {!isKid && pinExists && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-sea-tint px-2.5 py-1 text-[12px] font-bold text-sea-deep">
+        {!isKid && status.locked > 0 && (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[12px] font-bold text-success">
             <LockIcon className="h-3 w-3" />
-            {strings.documents.pinBadge}
+            {s.lockedCountBadge.replace("{n}", String(status.locked))}
           </span>
         )}
       </header>
@@ -503,13 +581,32 @@ export function DocumentsScreen() {
         </p>
       )}
 
+      {!isKid && docs.length > 0 && (
+        <VaultStatusCard
+          status={status}
+          syncing={syncing}
+          waitingCount={waitingCount}
+          persisted={persisted}
+          online={online}
+          lockProgress={lockProgress}
+          vaultOpen={unlocked}
+          autoDownload={isEnabled("documentsAutoDownload")}
+          onLockAll={lockAll}
+          onDownloadAll={downloadAll}
+          onCloseVault={() => {
+            lockVault();
+            setUnlocked(false);
+          }}
+        />
+      )}
+
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute inset-y-0 start-3.5 my-auto h-[17px] w-[17px] text-ink-faint" />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={strings.documents.searchFull}
+          placeholder={s.searchFull}
           className="w-full rounded-[14px] border border-line bg-surface py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
         />
       </div>
@@ -524,7 +621,7 @@ export function DocumentsScreen() {
               : "bg-paper-deep text-ink-soft"
           }`}
         >
-          {strings.documents.allTags} {docs.length}
+          {s.allTags} {docs.length}
         </button>
         {DOCUMENT_TAGS.map((tag) => {
           const count = countByTag.get(tag) ?? 0;
@@ -539,7 +636,7 @@ export function DocumentsScreen() {
                   : "bg-paper-deep text-ink-soft"
               }`}
             >
-              {strings.documents.tags[tag]}
+              {s.tags[tag]}
               {count > 0 && ` ${count}`}
             </button>
           );
@@ -551,20 +648,14 @@ export function DocumentsScreen() {
           <WarningIcon className="mt-px h-[18px] w-[18px] shrink-0 text-sun-deep" />
           <div className="min-w-0">
             <p className="text-[12.5px] font-bold text-sun-deep">
-              {strings.documents.expiryWarnTitle.replace(
-                "{title}",
-                soonest.title
-              )}
+              {s.expiryWarnTitle.replace("{title}", soonest.title)}
             </p>
             <p className="mt-0.5 text-[12px] text-sun-deep/85">
-              {strings.documents.expiryWarnBody
+              {s.expiryWarnBody
                 .replace("{expiry}", formatDate(soonest.expires_at!))
                 .replace("{end}", formatDate(trip.end_date))}
               {expiring.length > 1 &&
-                ` · ${strings.documents.expiryWarnMore.replace(
-                  "{n}",
-                  String(expiring.length - 1)
-                )}`}
+                ` · ${s.expiryWarnMore.replace("{n}", String(expiring.length - 1))}`}
             </p>
           </div>
         </div>
@@ -574,181 +665,81 @@ export function DocumentsScreen() {
         <section aria-labelledby="ins-missing" className="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-alert/40 bg-alert-tint p-4">
           <WarningIcon className="h-6 w-6 shrink-0 text-alert" />
           <span className="flex min-w-0 flex-1 flex-col">
-            <span id="ins-missing" className="text-sm font-bold text-ink">{strings.documents.insuranceMissing}</span>
-            <span className="text-xs text-ink-soft">{strings.documents.insuranceMissingHint}</span>
+            <span id="ins-missing" className="text-sm font-bold text-ink">{s.insuranceMissing}</span>
+            <span className="text-xs text-ink-soft">{s.insuranceMissingHint}</span>
           </span>
-          <button type="button" onClick={() => setForm({ doc: null, tag: "insurance" })} className="shrink-0 rounded-xl border-[1.5px] border-sea bg-surface px-3 text-sm font-bold text-sea">
-            {strings.documents.insuranceUpload}
+          <button type="button" onClick={() => setForm({ doc: null, tag: "insurance" })} className="min-h-[44px] shrink-0 rounded-xl border-[1.5px] border-sea bg-surface px-3 text-sm font-bold text-sea">
+            {s.insuranceUpload}
           </button>
         </section>
       )}
       {visible.length === 0 ? (
         <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
-          {docs.length === 0
-            ? isKid
-              ? strings.documents.kidEmpty
-              : strings.documents.empty
-            : strings.documents.noResults}
+          {docs.length === 0 ? (isKid ? s.kidEmpty : s.empty) : s.noResults}
         </p>
       ) : (
-        <>
-        {!isKid && isEnabled("documentsAutoDownload") && (
-          <OfflineBar
-            ready={offlineCount}
-            total={docs.length}
-            lockedCount={Object.values(syncStatus).filter((x) => x.state === "locked").length}
-            busy={Object.values(syncStatus).some((x) => x.state === "downloading" || x.state === "queued")}
-            persisted={persisted}
-            online={online}
-            onDownloadAll={() => withKey((key) => void syncAll(key))}
-          />
-        )}
-        <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
-          <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
-            <h2 className="text-xs font-bold text-ink">
-              {strings.documents.offlineHeader}
-            </h2>
-            <span className="text-[12px] text-ink-soft">
-              {strings.documents.offlineCount
-                .replace("{n}", String(offlineCount))
-                .replace("{total}", String(docs.length))}
-            </span>
-          </header>
-          <ul>
-            {visible.map((doc) => {
-              const isOffline = offlineIds.has(doc.id);
-              const busy = busyIds.has(doc.id);
-              const expires = Boolean(
-                doc.expires_at && trip?.end_date && doc.expires_at <= trip.end_date
-              );
-              const TagIcon = TAG_ICON[doc.tag] ?? DocumentIcon;
-              return (
-                <li
-                  key={doc.id}
-                  className="flex items-center gap-2.5 border-t border-line px-3.5 py-2.5"
+        <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+          {visible.map((doc, i) => {
+            const expires = Boolean(doc.expires_at && trip?.end_date && doc.expires_at <= trip.end_date);
+            const TagIcon = TAG_ICON[doc.tag] ?? DocumentIcon;
+            return (
+              <li key={doc.id} className={`flex items-center gap-1 ps-3.5 pe-1 ${i > 0 ? "border-t border-line" : ""}`}>
+                {/* The whole row opens the document; everything else about it
+                    lives one tap away, in its sheet. */}
+                <button
+                  type="button"
+                  onClick={() => openDoc(doc)}
+                  aria-label={`${s.open}: ${doc.title}`}
+                  className="flex min-h-[64px] min-w-0 flex-1 items-center gap-2.5 py-2.5 text-start"
                 >
                   <span
                     className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] ${
-                      expires
-                        ? "bg-sun-tint text-sun-deep"
-                        : "bg-sea-tint text-sea-deep"
+                      expires ? "bg-sun-tint text-sun-deep" : "bg-paper-deep text-ink-soft"
                     }`}
                   >
                     <TagIcon className="h-[17px] w-[17px]" strokeWidth={1.7} />
                   </span>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      isKid ? void handleOpen(doc) : setForm({ doc })
-                    }
-                    className="min-w-0 flex-1 text-start"
-                  >
-                    <span className="flex items-center gap-1">
-                      {doc.pin_protected && (
-                        <LockIcon
-                          className="h-3 w-3 shrink-0 text-ink-soft"
-                          aria-label={strings.documents.lockedBadge}
-                        />
-                      )}
-                      <span className="truncate text-[13.5px] font-semibold text-ink">
-                        {doc.title}
-                      </span>
-                    </span>
-                    <span
-                      className={`block truncate text-[12px] ${
-                        expires ? "font-semibold text-sun-deep" : "text-ink-soft"
-                      }`}
-                    >
-                      {strings.documents.tags[doc.tag] ?? doc.tag}
-                      {doc.expires_at ? (
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] font-semibold text-ink">{doc.title}</span>
+                    <span className={`block truncate text-[12px] ${expires ? "font-semibold text-sun-deep" : "text-ink-soft"}`}>
+                      {s.tags[doc.tag] ?? doc.tag}
+                      {doc.expires_at && (
                         <span
                           className={`ms-1.5 inline-flex rounded-full px-1.5 text-[12px] font-bold ${
                             expires ? "bg-warning-soft text-warning" : "bg-paper-deep text-ink-soft"
                           }`}
                         >
-                          {(expires ? strings.documents.expiryChipSoon : strings.documents.expiryChip).replace(
+                          {(expires ? s.expiryChipSoon : s.expiryChip).replace(
                             "{mmyyyy}",
                             `${doc.expires_at.slice(5, 7)}/${doc.expires_at.slice(0, 4)}`
                           )}
                         </span>
-                      ) : doc.notes ? (
-                        ` · ${doc.notes}`
-                      ) : (
-                        ""
                       )}
                     </span>
-                  </button>
-
-                  {!isKid && (
-                    <button
-                      type="button"
-                      onClick={() => toggleLock(doc)}
-                      aria-label={strings.documents.lock}
-                      aria-pressed={doc.pin_protected}
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
-                        doc.pin_protected
-                          ? "bg-alert-tint text-alert"
-                          : "bg-paper-deep text-ink-faint"
-                      }`}
-                    >
-                      {doc.pin_protected ? (
-                        <LockIcon className="h-[15px] w-[15px]" />
-                      ) : (
-                        <UnlockIcon className="h-[15px] w-[15px]" />
-                      )}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void toggleOffline(doc)}
-                    disabled={busy}
-                    aria-label={`${strings.documents.offlineToggle}: ${
-                      isOffline
-                        ? strings.documents.syncReady
-                        : syncStatus[doc.id]?.state === "downloading"
-                          ? strings.documents.syncDownloading.replace("{pct}", String(syncStatus[doc.id]?.pct ?? 0))
-                          : syncStatus[doc.id]?.state === "locked"
-                            ? strings.documents.syncLocked
-                            : syncStatus[doc.id]?.state === "failed"
-                              ? strings.documents.syncFailed
-                              : strings.documents.syncMissing
-                    }`}
-                    aria-pressed={isOffline}
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg disabled:opacity-40 ${
-                      isOffline
-                        ? "bg-sea-tint text-sea"
-                        : "bg-paper-deep text-ink-faint"
-                    }`}
-                  >
-                    {syncStatus[doc.id]?.state === "downloading" ? (
-                      <span className="text-[12px] font-bold tabular-nums text-sea-deep">
-                        <bdi>{syncStatus[doc.id]?.pct ?? 0}%</bdi>
-                      </span>
-                    ) : isOffline ? (
-                      <CheckIcon className="h-[15px] w-[15px]" />
-                    ) : syncStatus[doc.id]?.state === "locked" ? (
-                      <LockIcon className="h-[15px] w-[15px]" />
-                    ) : syncStatus[doc.id]?.state === "failed" ? (
-                      <WarningIcon className="h-[15px] w-[15px] text-alert" />
-                    ) : (
-                      <DownloadIcon className="h-[15px] w-[15px]" />
+                    {!isKid && (
+                      <RowStatus
+                        locked={doc.pin_protected}
+                        locking={lockingIds.has(doc.id)}
+                        onDevice={offlineIds.has(doc.id)}
+                        sync={syncStatus[doc.id]}
+                      />
                     )}
-                  </button>
+                  </span>
+                </button>
+                {!isKid && (
                   <button
                     type="button"
-                    onClick={() => openDoc(doc)}
-                    aria-label={strings.documents.open}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-paper-deep text-ink-faint hover:bg-line"
+                    onClick={() => setForm({ doc })}
+                    aria-label={`${s.details}: ${doc.title}`}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-ink-soft hover:bg-paper-deep"
                   >
-                    <ExternalIcon className="h-[15px] w-[15px]" />
+                    <MoreIcon className="h-5 w-5" />
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-        </>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {!isKid && (
@@ -758,87 +749,58 @@ export function DocumentsScreen() {
           className="w-full rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
           style={{ boxShadow: "0 10px 22px -14px rgba(78,107,69,.7)" }}
         >
-          {strings.documents.upload}
+          {s.upload}
         </button>
       )}
 
-      {!isKid && pinExists && unlocked && (
-        <>
-          {/* Enrolling needs the key in memory, so it lives behind the unlock. */}
-          {bioSupported && !thisDeviceEnrolled && (
-            <div className="rounded-2xl border border-line bg-surface p-4">
-              <h3 className="mb-1 font-semibold text-ink">
-                {strings.documents.bioEnrollTitle}
-              </h3>
-              <p className="mb-3 text-sm text-ink-soft">
-                {strings.documents.bioEnrollBody}
-              </p>
-              <button
-                type="button"
-                disabled={enrolling}
-                onClick={() => void enrollThisDevice()}
-                className="w-full rounded-xl bg-sea py-2.5 font-semibold text-on-sea disabled:opacity-50"
-              >
-                {strings.documents.bioEnroll}
-              </button>
-            </div>
-          )}
-
-          {passkeys.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface p-4">
-              <h3 className="mb-2 font-semibold text-ink">
-                {strings.documents.bioDevicesTitle}
-              </h3>
-              <ul className="space-y-2">
-                {passkeys.map((pk) => (
-                  <li
-                    key={pk.id}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-ink">
-                        {pk.label}
-                      </span>
-                      <span className="block text-xs text-ink-soft">
-                        {pk.lastUsedAt
-                          ? `${strings.documents.bioLastUsed} ${formatDate(
-                              pk.lastUsedAt.slice(0, 10)
-                            )}`
-                          : strings.documents.bioNeverUsed}
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => void removeDevice(pk.id)}
-                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-alert"
-                    >
-                      {strings.documents.bioRemove}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
+      {/* Enrolling needs the key in memory, so it lives behind the unlock. */}
+      {!isKid && pinExists && unlocked && bioSupported && !thisDeviceEnrolled && (
+        <div className="rounded-2xl border border-line bg-surface p-4">
+          <h3 className="mb-1 font-semibold text-ink">{s.bioEnrollTitle}</h3>
+          <p className="mb-3 text-sm text-ink-soft">{s.bioEnrollBody}</p>
           <button
             type="button"
-            onClick={() => {
-              lockVault();
-              setUnlocked(false);
-            }}
-            className="flex w-full items-center justify-center gap-1.5 text-sm font-bold text-ink-soft"
+            disabled={enrolling}
+            onClick={() => void enrollThisDevice()}
+            className="w-full rounded-xl bg-sea py-2.5 font-semibold text-on-sea disabled:opacity-50"
           >
-            <LockIcon className="h-4 w-4" />
-            {strings.documents.lockNow}
+            {s.bioEnroll}
           </button>
-        </>
+        </div>
+      )}
+
+      {!isKid && pinExists && unlocked && passkeys.length > 0 && (
+        <div className="rounded-2xl border border-line bg-surface p-4">
+          <h3 className="mb-2 font-semibold text-ink">{s.bioDevicesTitle}</h3>
+          <ul className="space-y-2">
+            {passkeys.map((pk) => (
+              <li key={pk.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-ink">{pk.label}</span>
+                  <span className="block text-xs text-ink-soft">
+                    {pk.lastUsedAt
+                      ? `${s.bioLastUsed} ${formatDate(pk.lastUsedAt.slice(0, 10))}`
+                      : s.bioNeverUsed}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void removeDevice(pk.id)}
+                  className="min-h-[44px] shrink-0 rounded-lg border border-line px-3 text-xs font-medium text-alert"
+                >
+                  {s.bioRemove}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {trip && !isKid && (
         <DocumentFormSheet
           open={form !== null}
           tripId={trip.id}
-          doc={form?.doc ?? null}
+          doc={formDoc}
           initialTag={form?.tag}
           camera={form?.camera}
           onShare={(d) => void shareDoc(d)}
@@ -849,6 +811,20 @@ export function DocumentsScreen() {
             refreshNow();
           }}
           onError={() => showToast(strings.common.error)}
+          status={
+            formDoc && (
+              <DocStatusPanel
+                locked={formDoc.pin_protected}
+                locking={lockingIds.has(formDoc.id) || lockProgress !== null}
+                onDevice={offlineIds.has(formDoc.id)}
+                deviceBusy={busyIds.has(formDoc.id)}
+                online={online}
+                onOpen={() => openDoc(formDoc)}
+                onToggleLock={() => void toggleLock(formDoc)}
+                onToggleDevice={() => toggleOffline(formDoc)}
+              />
+            )
+          }
         />
       )}
 
@@ -857,6 +833,7 @@ export function DocumentsScreen() {
           mode={pinSheet.mode}
           tripId={trip.id}
           hasPasskeys={passkeys.length > 0}
+          reason={pinSheet.reason}
           onClose={() => {
             pendingRef.current = null;
             setPinSheet(null);
@@ -883,9 +860,9 @@ export function DocumentsScreen() {
                 URL.revokeObjectURL(viewer.url);
                 setViewer(null);
               }}
-              className="rounded-full bg-surface/90 px-4 py-2 text-sm font-semibold text-ink"
+              className="min-h-[44px] rounded-full bg-surface/90 px-4 py-2 text-sm font-semibold text-ink"
             >
-              {strings.documents.viewerClose}
+              {s.viewerClose}
             </button>
           </div>
           <div className="flex-1 overflow-auto p-2">
@@ -908,54 +885,270 @@ export function DocumentsScreen() {
   );
 }
 
-/** F1: sticky "everything on this device" bar. */
-function OfflineBar({
-  ready,
-  total,
-  lockedCount,
-  busy,
+/**
+ * The answer to "can we relax about the documents": ready once every file is
+ * locked and on this device, otherwise the two checks with what is missing
+ * and the button that fixes it.
+ */
+function VaultStatusCard({
+  status,
+  syncing,
+  waitingCount,
   persisted,
   online,
+  lockProgress,
+  vaultOpen,
+  autoDownload,
+  onLockAll,
   onDownloadAll,
+  onCloseVault,
 }: {
-  ready: number;
-  total: number;
-  lockedCount: number;
-  busy: boolean;
+  status: VaultStatus;
+  syncing: boolean;
+  waitingCount: number;
   persisted: boolean | null;
   online: boolean;
+  lockProgress: { done: number; total: number } | null;
+  vaultOpen: boolean;
+  autoDownload: boolean;
+  onLockAll: () => void;
   onDownloadAll: () => void;
+  onCloseVault: () => void;
 }) {
-  const all = ready >= total;
   const s = strings.documents;
+  const lockLine = s.statusLocked.replace("{n}", String(status.locked)).replace("{total}", String(status.total));
+  const deviceLine = s.statusOnDevice.replace("{n}", String(status.onDevice)).replace("{total}", String(status.total));
+  const action = "min-h-[44px] shrink-0 rounded-xl bg-sea px-3.5 text-sm font-bold text-on-sea disabled:bg-paper-deep disabled:text-ink-soft";
+  const deviceHint = syncing
+    ? s.syncingNow
+    : waitingCount > 0
+      ? s.lockedHint.replace("{n}", String(waitingCount))
+      : status.onDevice > 0 && persisted === false
+        ? s.notPersisted
+        : null;
+
   return (
-    <div role="status" aria-live="polite" className="sticky top-0 z-10 flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-2 shadow-card">
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-sm font-bold text-ink">
-          {all ? s.allOnDevice : s.onDevice.replace("{n}", String(ready)).replace("{total}", String(total))}
-        </span>
-        <span className="text-xs text-ink-soft">
-          {busy
-            ? s.syncingNow
-            : lockedCount > 0
-              ? s.lockedHint.replace("{n}", String(lockedCount))
-              : persisted
-                ? s.persisted
-                : persisted === false
-                  ? s.notPersisted
-                  : ""}
-        </span>
-      </span>
-      {!all && (
-        <button
-          type="button"
-          onClick={onDownloadAll}
-          disabled={!online || busy}
-          className="shrink-0 rounded-xl bg-sea px-3.5 text-sm font-bold text-on-sea disabled:bg-paper-deep disabled:text-ink-soft"
+    <section
+      role="status"
+      aria-live="polite"
+      className={`rounded-2xl border p-4 ${status.ready ? "border-success/30 bg-success-soft" : "border-line bg-surface"}`}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${
+            status.ready ? "bg-success text-on-sea" : "bg-sun-tint text-sun-deep"
+          }`}
         >
-          {online ? s.downloadAll : s.downloadAllOffline}
-        </button>
+          {status.ready ? <CheckIcon className="h-5 w-5" /> : <WarningIcon className="h-5 w-5" />}
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-extrabold text-ink">
+            {status.ready ? s.statusReadyTitle : s.statusTodoTitle}
+          </h2>
+          <p className="text-[13px] text-ink-soft">{status.ready ? s.statusReadyBody : s.statusTodoBody}</p>
+        </div>
+      </div>
+
+      {!status.ready && (
+        <ul className="mt-3 space-y-2">
+          <li className="flex items-center gap-2.5">
+            <CheckMark done={status.allLocked} />
+            <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
+              {lockProgress
+                ? s.lockingProgress
+                    .replace("{n}", String(Math.min(lockProgress.done + 1, lockProgress.total)))
+                    .replace("{total}", String(lockProgress.total))
+                : lockLine}
+              {!status.allLocked && !online && (
+                <span className="block text-xs font-normal text-ink-soft">{s.lockAllNeedsNet}</span>
+              )}
+            </span>
+            {!status.allLocked && (
+              <button type="button" onClick={onLockAll} disabled={!online || lockProgress !== null} className={action}>
+                {s.lockAll}
+              </button>
+            )}
+          </li>
+          <li className="flex items-center gap-2.5">
+            <CheckMark done={status.allOnDevice} />
+            <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
+              {deviceLine}
+              {deviceHint && <span className="block text-xs font-normal text-ink-soft">{deviceHint}</span>}
+            </span>
+            {!status.allOnDevice && autoDownload && (
+              <button type="button" onClick={onDownloadAll} disabled={!online || syncing} className={action}>
+                {online ? s.downloadAll : s.downloadAllOffline}
+              </button>
+            )}
+          </li>
+        </ul>
       )}
+
+      {vaultOpen && (
+        <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+          <UnlockIcon className="h-4 w-4 shrink-0 text-ink-soft" />
+          <p className="min-w-0 flex-1 text-xs text-ink-soft">{s.vaultOpen}</p>
+          <button
+            type="button"
+            onClick={onCloseVault}
+            className="min-h-[44px] shrink-0 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-ink"
+          >
+            {s.vaultClose}
+          </button>
+        </div>
+      )}
+
+      <details className="group mt-2">
+        <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-1 text-sm font-bold text-sea-deep [&::-webkit-details-marker]:hidden">
+          {s.explainTitle}
+          <ChevronDownIcon className="h-4 w-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <dl className="space-y-2.5 pb-1 text-[13px]">
+          {(
+            [
+              [ShieldCheckIcon, s.explainPrivateTitle, s.explainPrivate],
+              [LockIcon, s.explainLockedTitle, s.explainLocked],
+              [CheckIcon, s.explainDeviceTitle, s.explainDevice],
+            ] as const
+          ).map(([Icon, title, body]) => (
+            <div key={title} className="flex gap-2.5">
+              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-sea-deep" />
+              <div>
+                <dt className="font-bold text-ink">{title}</dt>
+                <dd className="text-ink-soft">{body}</dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+      </details>
+    </section>
+  );
+}
+
+function CheckMark({ done }: { done: boolean }) {
+  return done ? (
+    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-success text-on-sea">
+      <CheckIcon className="h-3.5 w-3.5" />
+    </span>
+  ) : (
+    <span className="h-6 w-6 shrink-0 rounded-full border-2 border-line" aria-hidden="true" />
+  );
+}
+
+/** The two facts per row, in words: locked or not, on this device or not. */
+function RowStatus({
+  locked,
+  locking,
+  onDevice,
+  sync,
+}: {
+  locked: boolean;
+  locking: boolean;
+  onDevice: boolean;
+  sync: DocSyncStatus | undefined;
+}) {
+  const s = strings.documents;
+  const good = "bg-success-soft text-success";
+  const pending = "bg-paper-deep text-ink-soft";
+  const pill = "inline-flex items-center gap-1 rounded-full px-2 py-px text-[12px] font-bold";
+
+  let device: { text: string; tone: string; Icon: ComponentType<IconProps> };
+  if (onDevice) device = { text: s.syncReady, tone: good, Icon: CheckIcon };
+  else if (sync?.state === "downloading")
+    device = { text: s.syncDownloading.replace("{pct}", String(sync.pct ?? 0)), tone: pending, Icon: DownloadIcon };
+  else if (sync?.state === "failed") device = { text: s.syncFailed, tone: "bg-alert-tint text-alert", Icon: WarningIcon };
+  else if (sync?.state === "locked") device = { text: s.syncLocked, tone: pending, Icon: DownloadIcon };
+  else device = { text: s.syncMissing, tone: pending, Icon: DownloadIcon };
+
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      <span className={`${pill} ${locked ? good : pending}`}>
+        {locked ? <LockIcon className="h-3 w-3" /> : <UnlockIcon className="h-3 w-3" />}
+        {locking ? s.pillLocking : locked ? s.pillLocked : s.pillNotLocked}
+      </span>
+      <span className={`${pill} ${device.tone}`}>
+        <device.Icon className="h-3 w-3" />
+        {device.text}
+      </span>
+    </span>
+  );
+}
+
+/** Top of the document sheet: what state it is in, and the switch for each. */
+function DocStatusPanel({
+  locked,
+  locking,
+  onDevice,
+  deviceBusy,
+  online,
+  onOpen,
+  onToggleLock,
+  onToggleDevice,
+}: {
+  locked: boolean;
+  locking: boolean;
+  onDevice: boolean;
+  deviceBusy: boolean;
+  online: boolean;
+  onOpen: () => void;
+  onToggleLock: () => void;
+  onToggleDevice: () => void;
+}) {
+  const s = strings.documents;
+  const rows = [
+    {
+      key: "lock",
+      done: locked,
+      Icon: locked ? LockIcon : UnlockIcon,
+      title: locked ? s.detailLockedTitle : s.detailNotLockedTitle,
+      body: locked ? s.detailLockedBody : s.detailNotLockedBody,
+      action: locking ? s.pillLocking : locked ? s.unlock : s.lock,
+      onClick: onToggleLock,
+      disabled: locking || !online,
+    },
+    {
+      key: "device",
+      done: onDevice,
+      Icon: onDevice ? CheckIcon : DownloadIcon,
+      title: onDevice ? s.detailOnDeviceTitle : s.detailNotOnDeviceTitle,
+      body: onDevice ? s.detailOnDeviceBody : s.detailNotOnDeviceBody,
+      action: onDevice ? s.removeFromDevice : s.saveToDevice,
+      onClick: onToggleDevice,
+      disabled: deviceBusy || (!onDevice && !online),
+    },
+  ];
+  return (
+    <div className="mb-4 space-y-2">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-sea py-3 text-sm font-bold text-on-sea"
+      >
+        <ExternalIcon className="h-4 w-4" />
+        {s.open}
+      </button>
+      {rows.map((r) => (
+        <div
+          key={r.key}
+          className={`flex items-center gap-3 rounded-xl p-3 ${r.done ? "bg-success-soft" : "bg-paper-deep"}`}
+        >
+          <r.Icon className={`h-5 w-5 shrink-0 ${r.done ? "text-success" : "text-ink-soft"}`} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-ink">{r.title}</span>
+            <span className="block text-xs text-ink-soft">{r.body}</span>
+          </span>
+          <button
+            type="button"
+            onClick={r.onClick}
+            disabled={r.disabled}
+            className={`min-h-[44px] shrink-0 rounded-xl px-3 text-xs font-bold disabled:opacity-50 ${
+              r.done ? "border border-line bg-surface text-ink" : "bg-sea text-on-sea"
+            }`}
+          >
+            {r.action}
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

@@ -23,12 +23,15 @@ export function DocPinSheet({
   mode,
   tripId,
   hasPasskeys,
+  reason,
   onClose,
   onUnlocked,
 }: {
   mode: "set" | "enter";
   tripId: string;
   hasPasskeys: boolean;
+  /** Why the passphrase is needed right now, in one line. */
+  reason?: string;
   onClose: () => void;
   onUnlocked: () => void;
 }) {
@@ -111,6 +114,9 @@ export function DocPinSheet({
       onClose={onClose}
       title={mode === "set" ? s.pinSetTitle : s.pinEnterTitle}
     >
+      {mode === "enter" && reason && (
+        <p className="mb-4 text-sm text-ink-soft">{reason}</p>
+      )}
       {mode === "enter" && bioAvailable && (
         <div className="mb-4 space-y-3">
           <button
@@ -132,7 +138,17 @@ export function DocPinSheet({
       <form className="space-y-3" onSubmit={submit}>
         {mode === "set" && (
           <>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            {/* First lock ever: say what is about to happen before asking
+                for anything, so the passphrase is not a surprise. */}
+            <div className="rounded-xl bg-paper-deep p-3">
+              <p className="mb-1.5 text-sm font-bold text-ink">{s.pinHowTitle}</p>
+              <ol className="list-decimal space-y-1 ps-5 text-sm text-ink-soft">
+                {s.pinHowSteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </div>
+            <div className="rounded-xl bg-sun-tint p-3 text-sm text-sun-deep">
               <WarningIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.pinWarning}
             </div>
             <p className="text-sm text-ink-soft">{s.pinHint}</p>
@@ -163,7 +179,7 @@ export function DocPinSheet({
         <button
           type="button"
           onClick={() => setReveal((v) => !v)}
-          className="text-sm text-ink-soft underline"
+          className="min-h-[44px] text-sm text-ink-soft underline"
         >
           {reveal ? s.pinHide : s.pinShow}
         </button>
@@ -179,7 +195,7 @@ export function DocPinSheet({
             <span>{s.pinAck}</span>
           </label>
         )}
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p className="text-sm text-alert">{error}</p>}
         <button
           type="submit"
           disabled={busy || (mode === "set" && !ack)}
