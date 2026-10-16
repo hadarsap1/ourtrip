@@ -1380,6 +1380,7 @@ export const strings = {
     outsidePlan: "התאריכים לא נופלים על אף יום במסלול",
     whereAria: "היעד במסלול",
     cancelledHidden: "ההזמנה בוטלה ולכן לא מוצגת במסלול",
+    cancelledSection: "‏הזמנות שבוטלו ({n})",
     // A hotel booking correcting the plan (lib/hotelItinerarySync.ts): the
     // hotel's address says where the family sleeps, the plan follows it.
     hotelSyncTitle: "לעדכן את המסלול לפי המלון?",
