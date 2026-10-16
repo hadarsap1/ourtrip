@@ -2030,3 +2030,31 @@ X Not covered: the real Google OAuth round trip and the real sign-in email
 (needs a person and a phone). The `*.vercel.app` team aliases are behind
 Vercel Authentication; the link must be shared from `ourtrip-umber.vercel.app`
 (it is: the card uses the page's own origin).
+
+## Linking by email needs a Google or invited account (migration 00055) - 16/10/2026
+
+Found in the join-link QA. Auth settings (`/auth/v1/settings`): sign-ups open
+(needed for Google sign-up through the join link), Google on, and
+`mailer_autoconfirm: true` ("Confirm email" off - Hadar keeps it off, no extra
+step). With those, anyone holding the public key can register an
+email+password account for someone else's address, and
+`link_member_to_auth_user` linked a members row to any session whose JWT
+carried that address: registering an address a parent was about to approve
+would have handed over that guest's access.
+
+`link_member_to_auth_user` now links by email only when the account is a
+Google login or has no password (the accounts `guest-invite` creates and signs
+in by magic link). Live data checked first: Google users carry
+`encrypted_password = null`, the two password accounts are the kids, linked by
+id in kid-auth and never through this function; every account was already
+linked, so nothing existing changes. Probe `55_link_member_guard.sql` (8
+checks): a password account for another's address is not linked and gets no
+guest access, the invited and Google accounts link as guest, the owner stays
+owner, anon cannot call it. Harness 193/193 PASS.
+
+Also fixed: approving a join request said "will get a sign-in email" even when
+`guest-invite` could not email it (no `RESEND_API_KEY`, or Resend failed). The
+link is now shown for the parent to send on WhatsApp, as manual invite does.
+
+X A magic link is valid for 1 hour (Supabase default). Sent later by WhatsApp,
+it may have expired; the parent invites the same address again ("הזמנת אורח/ת"), which issues a fresh link.

@@ -1608,6 +1608,10 @@ export const strings = {
     approveAll: "אישור כולם ({n})",
     approved: "{name} אושר/ה ויקבל/תקבל מייל כניסה",
     approvedAll: "אושרו {ok} מתוך {total}",
+    // approved, but guest-invite could not email the sign-in link
+    unsentTitle: "אושר - נשאר לשלוח קישור",
+    unsentBody: "המייל עם קישור הכניסה לא נשלח. שלחו את הקישור בוואטסאפ - בלי זה לא ידעו שאושרו. מי שנרשם עם Google יכול גם פשוט להיכנס לאפליקציה.",
+    unsentShareText: "אושרת! נכנסים ל\"סו-בב עולם!\" כאן 🌍\n{url}",
     declined: "הבקשה נדחתה",
     declineConfirm: "לדחות את הבקשה? הפונה לא יקבל הודעה על כך",
     viaGoogle: "מאומת דרך Google",

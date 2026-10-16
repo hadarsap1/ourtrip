@@ -15,7 +15,10 @@ create role service_role nologin noinherit bypassrls;
 create schema auth;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
-  email text unique
+  email text unique,
+  -- as in GoTrue: '' or null when the account has no password (invites, Google)
+  encrypted_password varchar(255),
+  raw_app_meta_data jsonb
 );
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
