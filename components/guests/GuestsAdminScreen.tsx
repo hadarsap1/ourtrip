@@ -48,6 +48,9 @@ export function GuestsAdminScreen() {
   const [requests, setRequests] = useState<JoinRequestRow[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
+  // sign-in links guest-invite could not email (no RESEND_API_KEY, or Resend
+  // failed): the parent sends them, or the approved guest never hears a thing
+  const [unsent, setUnsent] = useState<{ name: string; link: string }[] | null>(null);
   const { member } = useMember();
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
@@ -110,8 +113,9 @@ export function GuestsAdminScreen() {
     setApproving(request.id);
     try {
       // the same call as a manual invite; the allowlist trigger closes the request
-      await inviteGuest(request.email, request.display_name);
-      showToast(strings.guests.approved.replace("{name}", request.display_name));
+      const { link, emailed } = await inviteGuest(request.email, request.display_name);
+      if (emailed) showToast(strings.guests.approved.replace("{name}", request.display_name));
+      else setUnsent([{ name: request.display_name, link }]);
       await refresh(trip.id);
     } catch {
       showToast(strings.common.error);
@@ -134,6 +138,8 @@ export function GuestsAdminScreen() {
           .replace("{ok}", String(results.filter((r) => r.ok).length))
           .replace("{total}", String(results.length))
       );
+      const notEmailed = results.flatMap((r) => (r.ok && !r.emailed && r.link ? [{ name: r.name, link: r.link }] : []));
+      if (notEmailed.length > 0) setUnsent(notEmailed);
       await refresh(trip.id);
     } catch {
       showToast(strings.common.error);
@@ -369,6 +375,7 @@ export function GuestsAdminScreen() {
       {sheet === "bulk" && (
         <BulkInviteSheet knownLabels={knownLabels} onClose={closeAndRefresh} onToast={showToast} />
       )}
+      {unsent && <UnsentLinksSheet links={unsent} onClose={() => setUnsent(null)} onToast={showToast} />}
       {labelFor && trip && (
         <LabelSheet
           row={labelFor}
@@ -674,6 +681,63 @@ function BulkInviteSheet({
           className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
         >
           {strings.guests.bulkSend.replace("{n}", String(parsed.guests.length))}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** Approved, but the sign-in email did not go out: one WhatsApp per person. */
+function UnsentLinksSheet({
+  links,
+  onClose,
+  onToast,
+}: {
+  links: { name: string; link: string }[];
+  onClose: () => void;
+  onToast: (message: string) => void;
+}) {
+  return (
+    <Sheet open onClose={onClose} title={strings.guests.unsentTitle}>
+      <div className="space-y-4">
+        <p className="text-sm text-ink-soft">{strings.guests.unsentBody}</p>
+        <ul className="space-y-2">
+          {links.map(({ name, link }) => (
+            <li
+              key={link}
+              className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3"
+            >
+              <span className="min-w-0 truncate font-semibold text-ink">{name}</span>
+              <button
+                type="button"
+                onClick={() => void shareToWhatsApp(strings.guests.unsentShareText.replace("{url}", link))}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-sea px-3 py-2 text-sm font-semibold text-on-sea"
+              >
+                <ShareIcon className="h-4 w-4" /> {strings.guests.joinShare}
+              </button>
+            </li>
+          ))}
+        </ul>
+        {links.length > 1 && (
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard
+                .writeText(links.map((l) => `${l.name}: ${l.link}`).join("\n"))
+                .then(() => onToast(strings.guests.copied))
+                .catch(() => {});
+            }}
+            className="w-full rounded-xl border border-line py-3 font-semibold text-ink-soft"
+          >
+            <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.copyAllLinks}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-xl border border-line py-3 font-semibold text-ink-soft"
+        >
+          {strings.common.close}
         </button>
       </div>
     </Sheet>
