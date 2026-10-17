@@ -153,16 +153,29 @@ export async function updateCategoryPlanned(
   if (error) throw new Error(error.message);
 }
 
+/** Overall trip budget, or null when none is set. Owner-only (trip_budget,
+ *  00056): a kid or guest gets no row, so null - the same as "not set". */
+export async function getTripTotalBudget(tripId: string): Promise<number | null> {
+  const { data, error } = await requireClient()
+    .from("trip_budget")
+    .select("total_budget")
+    .eq("trip_id", tripId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.total_budget ?? null;
+}
+
 /** Overall trip budget. NULL clears it, which puts the screen back to
  *  deriving the total from the categories. */
 export async function updateTripTotalBudget(
   tripId: string,
   totalBudget: number | null
 ): Promise<void> {
-  const { error } = await requireClient()
-    .from("trips")
-    .update({ total_budget: totalBudget })
-    .eq("id", tripId);
+  const table = requireClient().from("trip_budget");
+  const { error } =
+    totalBudget === null
+      ? await table.delete().eq("trip_id", tripId)
+      : await table.upsert({ trip_id: tripId, total_budget: totalBudget });
   if (error) throw new Error(error.message);
 }
 

@@ -107,7 +107,7 @@ export async function loadHomeSummary(
 
   const [trip, categories, expenses, checklists, destinations, days] =
     await Promise.all([
-      client.from("trips").select("total_budget").eq("id", tripId).maybeSingle(),
+      client.from("trip_budget").select("total_budget").eq("trip_id", tripId).maybeSingle(),
       client.from("budget_categories").select("planned_amount").eq("trip_id", tripId),
       client.from("expenses").select("amount_ils, spent_on").eq("trip_id", tripId),
       // The oldest list is the one the trip was planned around; a list made

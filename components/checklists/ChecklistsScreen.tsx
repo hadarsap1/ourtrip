@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/checklists";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
 import type { Checklist, ChecklistItem, Member, Trip } from "@/lib/types";
 import { ImportChecklistSheet } from "./ImportChecklistSheet";
 import { ItemEditSheet } from "./ItemEditSheet";
@@ -45,6 +46,7 @@ export function ChecklistsScreen() {
     const nextItems = await listChecklistItems(nextLists.map((l) => l.id));
     setLists(nextLists);
     setItems(nextItems);
+    void writeQuery(queryKeys.checklists(tripId), { lists: nextLists, items: nextItems });
   }, []);
 
   useEffect(() => {
@@ -59,6 +61,16 @@ export function ChecklistsScreen() {
         return;
       }
       setTrip(activeTrip);
+      // Cache-first: offline this used to say "no lists yet - start a new one"
+      // under a banner saying the data was on the device (QA 17/10).
+      const cached = await readQuery<{ lists: Checklist[]; items: ChecklistItem[] }>(
+        queryKeys.checklists(activeTrip.id)
+      );
+      if (cached && !cancelled) {
+        setLists(cached.data.lists);
+        setItems(cached.data.items);
+        setLoading(false);
+      }
       try {
         const [, tripMembers] = await Promise.all([
           refresh(activeTrip.id),
@@ -66,7 +78,8 @@ export function ChecklistsScreen() {
         ]);
         if (!cancelled) setMembers(tripMembers);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        // With cached lists on screen the offline banner already says why.
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }

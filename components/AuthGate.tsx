@@ -9,6 +9,7 @@ import { getSupabase, storedAuthUserId } from "@/lib/supabase";
 import { offlineNow, TimeoutError, withTimeout } from "@/lib/offline/network";
 import { SuitcaseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { memberLinked } from "@/lib/useMember";
 
 // "joining": signed in, not a member yet, and this phone came through the
 // join link - back to that page (it shows "waiting for approval").
@@ -83,6 +84,7 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
     return "rejected";
   }
   forgetJoinToken();
+  memberLinked(role);
   return "allowed";
 }
 

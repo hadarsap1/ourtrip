@@ -6,7 +6,7 @@ import { TicketIcon } from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
 import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
-import { listCategories, listExpenses } from "@/lib/data/expenses";
+import { getTripTotalBudget, listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
 import { strings } from "@/lib/strings";
@@ -45,6 +45,8 @@ export function BudgetScreen() {
     category: BudgetCategory | null;
   } | null>(null);
   const [editingTotal, setEditingTotal] = useState(false);
+  // Owner-only (trip_budget, 00056); null = not set, or not a parent.
+  const [totalBudget, setTotalBudget] = useState<number | null>(null);
   const [quickLines, setQuickLines] = useState(false);
   // Today's local currency, so a new expense opens in the money you're holding.
   const [localCurrency, setLocalCurrency] = useState<string | null>(null);
@@ -59,13 +61,16 @@ export function BudgetScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [cats, exps] = await Promise.all([
+    const [cats, exps, total] = await Promise.all([
       listCategories(tripId),
       listExpenses(tripId),
+      // not fatal: with no total the screen derives one from the categories
+      getTripTotalBudget(tripId).catch(() => null),
     ]);
     setCategories(cats);
     setExpenses(exps);
-    void writeQuery(queryKeys.budget(tripId), { cats, exps });
+    setTotalBudget(total);
+    void writeQuery(queryKeys.budget(tripId), { cats, exps, total });
   }, []);
 
   useEffect(() => {
@@ -93,10 +98,13 @@ export function BudgetScreen() {
           .catch(() => {});
       }
       // Cache-first (F9): last good data paints at once, the network refresh follows.
-      const cached = await readQuery<{ cats: typeof categories; exps: typeof expenses }>(queryKeys.budget(activeTrip.id));
+      const cached = await readQuery<{ cats: typeof categories; exps: typeof expenses; total?: number | null }>(
+        queryKeys.budget(activeTrip.id)
+      );
       if (cached && !cancelled) {
         setCategories(cached.data.cats);
         setExpenses(cached.data.exps);
+        setTotalBudget(cached.data.total ?? null);
         setLoading(false);
       }
       try {
@@ -125,7 +133,7 @@ export function BudgetScreen() {
   // ---------- dashboard math ----------
   const spent = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
   const { planned, target, hasTarget, gap, overTarget, budgetForProgress } =
-    resolveBudgetTotals(trip?.total_budget, categories);
+    resolveBudgetTotals(totalBudget, categories);
   const spentByCategory = new Map<string, number>();
   for (const e of expenses) {
     spentByCategory.set(
@@ -553,6 +561,7 @@ export function BudgetScreen() {
       {editingTotal && trip && (
         <TotalBudgetSheet
           trip={trip}
+          totalBudget={totalBudget}
           planned={planned}
           onClose={() => setEditingTotal(false)}
           onDone={() => {
