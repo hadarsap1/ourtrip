@@ -2076,3 +2076,38 @@ older iOS the screen may still lock, and the take then pauses and keeps what
 was recorded instead of continuing.
 X If iOS discards the page entirely while locked for a long time, the parts
 held in memory are lost; only a page that comes back keeps them.
+
+## QA pass: the overall trip budget was readable by kids and guests - 17/10/2026
+
+Found in the end-to-end QA (docs/QA-2026-10-17.md). `trips.total_budget`
+(00022) sat on a table every member can read, because kids and guests need the
+trip's name and dates. The 27/08 check above reasoned "a column inherits its
+table's policies" - true, and those policies let kids and guests read the row.
+Read live: `select total_budget from trips` returned 180,000 to a kid; a
+guest's first open after approval showed "₪180,000 left for the trip" on the
+home screen. Hard rule 2 (kids and guests never read budget).
+
+Migration `00056_trip_budget_owner_only` moves the number to its own table,
+`trip_budget`, with one policy, `trip_budget_owner_all` (`is_owner_of`), no
+anon privileges, and drops the column from `trips`. Same shape as
+`trip_ai_settings` (00053), which says why: RLS is per row, not per column.
+
+| Check | Method | Result |
+|---|---|---|
+| `trips` no longer has the column | probe `56_trip_budget.sql` | ✅ PASS |
+| Owner reads, changes and clears the budget | probe | ✅ PASS |
+| Kid, guest, revoked guest, outsider read nothing | probe | ✅ PASS |
+| Kid and guest updates change nothing; a kid insert is refused | probe | ✅ PASS |
+| anon has no privilege on `trip_budget` | probe | ✅ PASS |
+| Over HTTP (PostgREST, real JWTs): guest and kid get `[]`, owner gets the row | QA stand-in | ✅ PASS |
+| Full harness | `scripts/rls/run.sh` | ✅ 204/204 PASS |
+
+Also in the client: the home screen no longer renders the parents' dashboard
+while the member is still unknown, and AuthGate re-reads the member right
+after `link_member_to_auth_user` links it (the store had asked before the link
+existed and got "nobody"). Cosmetic on top of the policy - the policy is the fix.
+
+`trip_budget` is added to the weekly backup (backup-weekly needs a redeploy)
+and to the parents' export.
+
+X Until 00056 is applied live, the column is still readable on production.

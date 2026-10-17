@@ -166,6 +166,13 @@ async function fetchCurrentMember(): Promise<Member | null> {
   return data;
 }
 
+/** Forget the memoised member (and any lookup in flight), so the next call
+ *  reads the row again - after this login was just linked to it. */
+export function forgetCurrentMember(): void {
+  cachedMember = null;
+  memberInFlight = null;
+}
+
 export async function getCurrentMember(): Promise<Member | null> {
   if (cachedMember) return cachedMember;
   memberInFlight ??= fetchCurrentMember().finally(() => {

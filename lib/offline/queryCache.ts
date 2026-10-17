@@ -34,4 +34,5 @@ export const queryKeys = {
   documents: (tripId: string) => `documents:${tripId}`,
   planCandidates: (tripId: string) => `plan-candidates:${tripId}`,
   steps: (tripId: string) => `steps:${tripId}`,
+  checklists: (tripId: string) => `checklists:${tripId}`,
 };

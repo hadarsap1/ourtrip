@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
+import { getCurrentOrNextCountryCode, getTodayCountryCode } from "@/lib/data/emergency";
 import {
   filterEntries,
   generateLanguage,
   languageName,
   listEntries,
   listLanguages,
+  pickPhrasebookLanguage,
   batchChanged,
   entryIds,
   searchLanguages,
@@ -70,12 +72,19 @@ export function PhrasebookScreen() {
       const activeTrip = await getActiveTrip();
       if (!cancelled) setTrip(activeTrip);
       const tripId = activeTrip?.id ?? "";
-      const { languages: langs } = await listLanguages(tripId);
+      const [{ languages: langs }, country] = await Promise.all([
+        listLanguages(tripId),
+        // today's country; before the trip (or on a day with none) the next one
+        getTodayCountryCode(tripId)
+          .then((today) => today ?? getCurrentOrNextCountryCode(tripId))
+          .catch(() => null),
+      ]);
       if (cancelled) return;
       setLanguages(langs);
-      if (langs.length > 0) {
-        setSelected(langs[0]);
-        await loadEntries(tripId, langs[0]);
+      const first = pickPhrasebookLanguage(langs, country);
+      if (first) {
+        setSelected(first);
+        await loadEntries(tripId, first);
       }
       if (!cancelled) setLoading(false);
     })();
