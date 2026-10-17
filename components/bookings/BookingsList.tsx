@@ -7,6 +7,7 @@ import {
   CalendarIcon,
   CarIcon,
   CheckIcon,
+  ChevronDownIcon,
   CoinIcon,
   FileIcon,
   type IconProps,
@@ -117,8 +118,18 @@ export function BookingsList({
     () => (v2 && typeFilter ? bookings.filter((b) => b.type === typeFilter) : bookings),
     [bookings, typeFilter, v2]
   );
+  // A cancelled booking is history, not plan: it would only crowd the legs it
+  // no longer belongs to. It stays reachable (to read, edit or delete) in a
+  // collapsed section under the list.
   const groups = useMemo(
-    () => groupBookingsByLeg(shown, days),
+    () => groupBookingsByLeg(shown.filter((b) => b.status !== "cancelled"), days),
+    [shown, days]
+  );
+  const cancelled = useMemo(
+    () =>
+      groupBookingsByLeg(shown.filter((b) => b.status === "cancelled"), days).flatMap(
+        (group) => group.bookings
+      ),
     [shown, days]
   );
 
@@ -154,6 +165,29 @@ export function BookingsList({
           onAddExpense={onAddExpense}
         />
       ))}
+
+      {cancelled.length > 0 && (
+        <details className="group rounded-2xl border border-line bg-surface">
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-1 px-4 text-sm font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
+            {strings.bookings.cancelledSection.replace("{n}", String(cancelled.length))}
+            <ChevronDownIcon className="h-4 w-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="space-y-3 px-3 pb-3">
+            {cancelled.map((placement) => (
+              <BookingCard
+                key={placement.booking.id}
+                placement={placement}
+                files={filesByBooking.get(placement.booking.id) ?? EMPTY_FILES}
+                onEdit={() => onEdit(placement.booking)}
+                onAddToDay={() => onAddToDay(placement.booking)}
+                onError={onError}
+                inBudget={expensedIds.has(placement.booking.id)}
+                onAddExpense={() => onAddExpense(placement.booking)}
+              />
+            ))}
+          </div>
+        </details>
+      )}
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         <button
