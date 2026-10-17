@@ -47,6 +47,9 @@ export function extensionFor(mime: string): string {
       return "mp3";
     case "audio/aac":
       return "aac";
+    case "audio/wav":
+    case "audio/x-wav":
+      return "wav";
     default:
       return "webm";
   }

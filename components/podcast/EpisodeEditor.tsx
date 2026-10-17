@@ -12,20 +12,26 @@ import {
   encodeWav,
   keepRange,
   peaks,
+  shortenSilences,
   undoDepthFor,
   type Clip,
 } from "@/lib/audioEdit";
-import { decodeToClip, decodeUrl, playClip } from "@/lib/audioDecode";
+import { decodeToClip, decodeUrl, playClip, type Playback } from "@/lib/audioDecode";
 import { formatClock, MAX_EPISODE_SECONDS } from "@/lib/audio";
 import { deleteEpisode, replaceEpisodeAudio, updateEpisodeDetails } from "@/lib/data/podcast";
 import { strings } from "@/lib/strings";
 import type { Episode } from "@/lib/types";
 
-const BARS = 72;
+const BARS = 120;
+// a pointer that moves less than this across the waveform is a tap, not a drag
+const TAP_FRACTION = 0.015;
+const NUDGE_SECONDS = 0.5;
 
 /**
  * Parents edit an episode (13/10): rename it, keep or cut a marked part, add
- * a new take or another episode at the end, undo, save. The edit is done on
+ * a new take or another episode at the end, undo, save. Marking (17/10): drag
+ * across the waveform, or tap "starts here" / "ends here" while listening,
+ * then nudge by half a second; long pauses shorten in one tap. The edit is done on
  * this device and saved as a new file (00047); approval and sharing stay as
  * they were.
  */
@@ -59,10 +65,13 @@ export function EpisodeEditor({
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // where "play" starts from, and the playhead while playing
+  const [cursor, setCursor] = useState(0);
   const [adding, setAdding] = useState<"none" | "record" | "episode">("none");
   const [merged, setMerged] = useState<Episode[]>([]);
   const [busy, setBusy] = useState(false);
-  const stopRef = useRef<(() => void) | null>(null);
+  const playbackRef = useRef<Playback | null>(null);
+  const dragRef = useRef<{ from: number; x: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,16 +80,28 @@ export function EpisodeEditor({
       .then((c) => {
         if (cancelled) return;
         setClip(c);
-        setEnd(durationOf(c));
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
       });
     return () => {
       cancelled = true;
-      stopRef.current?.();
+      playbackRef.current?.stop();
     };
   }, [url]);
+
+  // move the playhead while playing
+  useEffect(() => {
+    if (!playing) return;
+    let frame = 0;
+    const tick = () => {
+      const p = playbackRef.current;
+      if (p) setCursor(p.position());
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [playing]);
 
   const total = clip ? durationOf(clip) : 0;
   const bars = useMemo(() => (clip ? peaks(clip.samples, BARS) : []), [clip]);
@@ -97,8 +118,13 @@ export function EpisodeEditor({
     setClip(next);
     setMerged(nextMerged);
     setEdits((n) => n + 1);
+    clearMarks();
+  }
+
+  function clearMarks() {
     setStart(0);
-    setEnd(durationOf(next));
+    setEnd(0);
+    setCursor(0);
   }
 
   function undo() {
@@ -109,21 +135,94 @@ export function EpisodeEditor({
     setClip(previous.clip);
     setMerged(previous.merged);
     setEdits((n) => n - 1);
-    setStart(0);
-    setEnd(durationOf(previous.clip));
+    clearMarks();
+  }
+
+  /** The playhead now: live while playing, else where it was left. */
+  function now(): number {
+    return playbackRef.current?.position() ?? cursor;
   }
 
   function stop() {
-    stopRef.current?.();
-    stopRef.current = null;
+    const p = playbackRef.current;
+    if (p) {
+      setCursor(p.position());
+      p.stop();
+    }
+    playbackRef.current = null;
     setPlaying(false);
   }
 
   function play(from: number, to: number) {
     if (!clip) return;
     stop();
+    setCursor(from);
     setPlaying(true);
-    stopRef.current = playClip(clip, from, to, () => setPlaying(false));
+    const playback = playClip(clip, from, to, () => {
+      // a stop() already moved on to the next playback, or cleared it
+      if (playbackRef.current !== playback) return;
+      setCursor(playback.position());
+      playbackRef.current = null;
+      setPlaying(false);
+    });
+    playbackRef.current = playback;
+  }
+
+  function timeAt(e: React.PointerEvent<HTMLDivElement>): number {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    return x * total;
+  }
+
+  function onWavePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { from: timeAt(e), x: e.clientX };
+  }
+
+  function onWavePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const width = e.currentTarget.getBoundingClientRect().width;
+    if (Math.abs(e.clientX - drag.x) < width * TAP_FRACTION) return;
+    setStart(drag.from);
+    setEnd(timeAt(e));
+  }
+
+  function onWavePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (!drag) return;
+    const width = e.currentTarget.getBoundingClientRect().width;
+    if (Math.abs(e.clientX - drag.x) >= width * TAP_FRACTION) return;
+    // a tap: listen from here
+    const t = timeAt(e);
+    if (playing) play(t, total);
+    else setCursor(t);
+  }
+
+  function nudge(which: "start" | "end", delta: number) {
+    const clamp = (v: number) => Math.max(0, Math.min(total, v + delta));
+    // the marks may have been set in either order; nudge the one shown
+    if ((which === "start") === start <= end) setStart(clamp(start));
+    else setEnd(clamp(end));
+  }
+
+  function setMark(which: "start" | "end", t: number) {
+    // keep start before end whichever is set first
+    const [a, b] = which === "start" ? [t, Math.max(t, selB)] : [Math.min(t, selA), t];
+    setStart(a);
+    setEnd(b);
+  }
+
+  function shortenPauses() {
+    if (!clip) return;
+    const { clip: next, removedSeconds } = shortenSilences(clip);
+    if (removedSeconds < 0.1) {
+      onToast(strings.podcastEdit.noSilences);
+      return;
+    }
+    apply(next);
+    onToast(strings.podcastEdit.silencesShortened.replace("{n}", String(Math.round(removedSeconds))));
   }
 
   async function appendTake(take: Take): Promise<boolean> {
@@ -223,67 +322,100 @@ export function EpisodeEditor({
             <div
               dir="ltr"
               aria-hidden="true"
-              className="flex h-20 items-center gap-[2px] rounded-xl bg-paper-deep px-2"
+              onPointerDown={onWavePointerDown}
+              onPointerMove={onWavePointerMove}
+              onPointerUp={onWavePointerUp}
+              onPointerCancel={() => (dragRef.current = null)}
+              className="relative flex h-24 touch-none select-none items-center gap-px rounded-xl bg-paper-deep"
             >
               {bars.map((v, i) => {
                 const t = ((i + 0.5) / BARS) * total;
-                const inside = t >= selA && t <= selB;
+                const inside = hasSelection && t >= selA && t <= selB;
                 return (
                   <span
                     key={i}
-                    className={`flex-1 rounded-full ${inside ? "bg-sv-clay" : "bg-line"}`}
+                    className={`pointer-events-none flex-1 rounded-full ${inside ? "bg-sv-clay" : "bg-line"}`}
                     style={{ height: `${Math.max(6, v * 100)}%` }}
                   />
                 );
               })}
-            </div>
-
-            <div dir="ltr" className="grid gap-2">
-              <label className="grid grid-cols-[1fr_auto] items-center gap-x-3 text-sm text-ink-soft">
-                <span dir="rtl" className="col-span-2">{strings.podcastEdit.startLabel}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={total}
-                  step={0.1}
-                  value={start}
-                  onChange={(e) => setStart(Number(e.target.value))}
-                  className="w-full accent-[var(--sv-clay-fill)]"
+              {total > 0 && (
+                <span
+                  className="pointer-events-none absolute inset-y-1 w-0.5 rounded-full bg-ink"
+                  style={{ left: `${(cursor / total) * 100}%` }}
                 />
-                <span className="w-12 text-end tabular-nums">{formatClock(start)}</span>
-              </label>
-              <label className="grid grid-cols-[1fr_auto] items-center gap-x-3 text-sm text-ink-soft">
-                <span dir="rtl" className="col-span-2">{strings.podcastEdit.endLabel}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={total}
-                  step={0.1}
-                  value={end}
-                  onChange={(e) => setEnd(Number(e.target.value))}
-                  className="w-full accent-[var(--sv-clay-fill)]"
-                />
-                <span className="w-12 text-end tabular-nums">{formatClock(end)}</span>
-              </label>
+              )}
             </div>
+            <p className="text-center text-[12px] text-ink-soft">{strings.podcastEdit.waveHint}</p>
 
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => (playing ? stop() : play(selA, selB))}
-                disabled={!hasSelection}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink disabled:opacity-50"
+                onClick={() => (playing ? stop() : play(cursor < total - 0.1 ? cursor : 0, total))}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink"
               >
                 {playing ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
-                {playing ? strings.podcastEdit.stopPlaying : strings.podcastEdit.playSelection}
+                {playing ? strings.podcastEdit.stopPlaying : strings.podcastEdit.play}
+                <span dir="ltr" className="tabular-nums text-ink-soft">
+                  {formatClock(cursor)}
+                </span>
               </button>
               <button
                 type="button"
-                onClick={() => (playing ? stop() : play(0, total))}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink"
+                onClick={() => play(selA, selB)}
+                disabled={!hasSelection}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink disabled:opacity-50"
               >
-                <PlayIcon className="h-4 w-4" /> {strings.podcastEdit.playAll}
+                <PlayIcon className="h-4 w-4" /> {strings.podcastEdit.playSelection}
               </button>
+              <button
+                type="button"
+                onClick={() => setMark("start", now())}
+                className="rounded-xl bg-paper-deep py-2.5 text-sm font-semibold text-ink"
+              >
+                {strings.podcastEdit.markStart}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMark("end", now())}
+                className="rounded-xl bg-paper-deep py-2.5 text-sm font-semibold text-ink"
+              >
+                {strings.podcastEdit.markEnd}
+              </button>
+            </div>
+
+            {hasSelection && (
+              <div className="grid gap-1.5 rounded-xl border border-line p-2.5 text-sm text-ink-soft">
+                {(["start", "end"] as const).map((which) => (
+                  <div key={which} className="flex items-center justify-between gap-2">
+                    <span>{which === "start" ? strings.podcastEdit.startLabel : strings.podcastEdit.endLabel}</span>
+                    <div dir="ltr" className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => nudge(which, -NUDGE_SECONDS)}
+                        aria-label={strings.podcastEdit.nudgeBack}
+                        className="h-9 w-9 rounded-lg border border-line font-bold text-ink"
+                      >
+                        −
+                      </button>
+                      <span className="w-12 text-center tabular-nums text-ink">
+                        {formatClock(which === "start" ? selA : selB)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => nudge(which, NUDGE_SECONDS)}
+                        aria-label={strings.podcastEdit.nudgeForward}
+                        className="h-9 w-9 rounded-lg border border-line font-bold text-ink"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => apply(keepRange(clip, selA, selB))}
@@ -299,6 +431,13 @@ export function EpisodeEditor({
                 className="rounded-xl bg-alert-tint py-2.5 text-sm font-bold text-alert disabled:opacity-50"
               >
                 {strings.podcastEdit.cut}
+              </button>
+              <button
+                type="button"
+                onClick={shortenPauses}
+                className="col-span-2 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink"
+              >
+                {strings.podcastEdit.shortenSilences}
               </button>
             </div>
 

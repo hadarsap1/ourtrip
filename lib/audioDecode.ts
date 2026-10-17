@@ -24,8 +24,14 @@ export async function decodeUrl(url: string): Promise<Clip> {
   return decodeToClip(await res.arrayBuffer());
 }
 
-/** Plays [start, end) of a clip; returns a stop function. */
-export function playClip(clip: Clip, start: number, end: number, onEnded: () => void): () => void {
+export type Playback = {
+  stop: () => void;
+  /** Where playback is now, in seconds into the clip. */
+  position: () => number;
+};
+
+/** Plays [start, end) of a clip. */
+export function playClip(clip: Clip, start: number, end: number, onEnded: () => void): Playback {
   const context = editContext();
   void context.resume();
   const buffer = context.createBuffer(1, clip.samples.length || 1, clip.sampleRate);
@@ -34,12 +40,17 @@ export function playClip(clip: Clip, start: number, end: number, onEnded: () => 
   source.buffer = buffer;
   source.connect(context.destination);
   source.onended = onEnded;
-  source.start(0, Math.max(0, start), Math.max(0, end - start));
-  return () => {
-    try {
-      source.stop();
-    } catch {
-      // already ended
-    }
+  const from = Math.max(0, start);
+  const startedAt = context.currentTime;
+  source.start(0, from, Math.max(0, end - start));
+  return {
+    stop: () => {
+      try {
+        source.stop();
+      } catch {
+        // already ended
+      }
+    },
+    position: () => Math.min(end, from + (context.currentTime - startedAt)),
   };
 }

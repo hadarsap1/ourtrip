@@ -2058,3 +2058,21 @@ link is now shown for the parent to send on WhatsApp, as manual invite does.
 
 X A magic link is valid for 1 hour (Supabase default). Sent later by WhatsApp,
 it may have expired; the parent invites the same address again ("הזמנת אורח/ת"), which issues a fresh link.
+
+## Podcast: shorten pauses, locked screen keeps the take - 17/10/2026
+
+No schema or policy change. Shortening pauses and joining a take's parts run
+on the parent's device and save through the existing paths: a new episode via
+`uploadEpisode` (episodes insert, kid rules unchanged - kids have no insert
+policy since 00049), an edit via `replaceEpisodeAudio` (owners only,
+`episodes_owner_all`; `episodes_guard` still reverts `file_path` for a kid).
+A joined take is `audio/wav`, already allowed in the `audio` bucket (00047);
+`extensionFor` now names it `.wav` instead of falling back to `.webm`. Status
+and `shared_with_guests` are never touched by either flow, so a guest still
+hears an episode only when approved AND shared.
+
+X Screen Wake Lock in an iPhone home-screen app: only from iOS 18.4 on; on
+older iOS the screen may still lock, and the take then pauses and keeps what
+was recorded instead of continuing.
+X If iOS discards the page entirely while locked for a long time, the parts
+held in memory are lost; only a page that comes back keeps them.
