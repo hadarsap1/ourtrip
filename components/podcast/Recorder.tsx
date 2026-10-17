@@ -3,16 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { MicIcon, PauseIcon, PlayIcon, StopIcon } from "@/components/icons";
 import { formatClock, MAX_EPISODE_SECONDS, pickRecordingMime } from "@/lib/audio";
+import { decodeToClip } from "@/lib/audioDecode";
+import { appendClip, encodeWav } from "@/lib/audioEdit";
 import { strings } from "@/lib/strings";
 
-type Phase = "idle" | "recording" | "paused" | "review";
+type Phase = "idle" | "recording" | "paused" | "joining" | "review";
 
 export type Take = { blob: Blob; mime: string; durationSeconds: number };
 
+type WakeLock = { release: () => Promise<void> };
+
 /**
- * One continuous take with pause/resume (DESIGN-sharing §2), capped at
+ * One take with pause/resume (DESIGN-sharing §2), capped at
  * MAX_EPISODE_SECONDS. The microphone is released the moment recording stops
  * or the screen closes - the tablet's mic light should never stay on.
+ *
+ * Screen off (17/10, iPhone): while recording the screen is kept on (Screen
+ * Wake Lock). If the page is hidden anyway - the side button, a call - the
+ * part recorded so far is closed and kept, and the take waits paused;
+ * "resume" opens a new part on a fresh microphone. Parts of one take are
+ * joined into one WAV on stop (lib/audioEdit.ts explains WAV).
  */
 export function Recorder({
   busy,
@@ -28,34 +38,86 @@ export function Recorder({
   const [phase, setPhase] = useState<Phase>("idle");
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // the last pause came from the screen going off, not from the pause button
+  const [interrupted, setInterrupted] = useState(false);
   const [take, setTake] = useState<(Take & { url: string }) | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  // one Blob per microphone session of this take
+  const partsRef = useRef<Blob[]>([]);
+  const mimeRef = useRef<string>("audio/webm");
+  const finishingRef = useRef(false);
+  const unmountedRef = useRef(false);
   const runStartRef = useRef<number | null>(null);
   const banked = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const wakeLockRef = useRef<WakeLock | null>(null);
 
   const elapsed = () =>
     banked.current + (runStartRef.current === null ? 0 : (performance.now() - runStartRef.current) / 1000);
 
+  function bank() {
+    banked.current = elapsed();
+    runStartRef.current = null;
+  }
+
   function releaseMic() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+  }
+
+  function stopTick() {
     if (tickRef.current) clearInterval(tickRef.current);
     tickRef.current = null;
   }
 
-  useEffect(
-    () => () => {
+  async function keepScreenOn() {
+    const wakeLock = (navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLock> } })
+      .wakeLock;
+    if (!wakeLock || wakeLockRef.current) return;
+    try {
+      wakeLockRef.current = await wakeLock.request("screen");
+    } catch {
+      // low battery mode or an older browser: the hidden-page handling below still keeps the take
+    }
+  }
+
+  function letScreenSleep() {
+    void wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+  }
+
+  function isLive() {
+    const state = recorderRef.current?.state;
+    return state === "recording" || state === "paused";
+  }
+
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
       releaseMic();
+      stopTick();
+      letScreenSleep();
       if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
-    },
-    []
-  );
+    };
+  }, []);
+
+  // iPhone stops the microphone when the screen locks: close the part first
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState === "hidden") {
+        // the system already dropped the wake lock
+        wakeLockRef.current = null;
+        if (isLive() && !finishingRef.current) recorderRef.current?.stop();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
 
   useEffect(
     () => () => {
@@ -64,12 +126,8 @@ export function Recorder({
     [take]
   );
 
-  async function start() {
-    setError(null);
-    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setError(strings.podcast.unsupported);
-      return;
-    }
+  /** Opens the microphone and starts a new part. False if it could not. */
+  async function openPart(): Promise<boolean> {
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -77,7 +135,7 @@ export function Recorder({
       });
     } catch {
       setError(strings.podcast.micDenied);
-      return;
+      return false;
     }
     streamRef.current = stream;
     const mime = pickRecordingMime((m) => MediaRecorder.isTypeSupported(m));
@@ -86,26 +144,54 @@ export function Recorder({
       // voice: 64 kbps is plenty and keeps a 20-minute take around 10 MB
       mime ? { mimeType: mime, audioBitsPerSecond: 64_000 } : { audioBitsPerSecond: 64_000 }
     );
-    chunksRef.current = [];
+    const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
+      if (e.data.size > 0) chunks.push(e.data);
     };
     recorder.onstop = () => {
       const type = recorder.mimeType || mime || "audio/webm";
-      const blob = new Blob(chunksRef.current, { type });
-      const durationSeconds = Math.round(elapsed());
-      runStartRef.current = null;
-      banked.current = 0;
+      mimeRef.current = type;
+      if (chunks.length) partsRef.current.push(new Blob(chunks, { type }));
+      bank();
       releaseMic();
-      setTake({ blob, mime: type, durationSeconds, url: URL.createObjectURL(blob) });
-      setPhase("review");
+      letScreenSleep();
+      if (recorderRef.current === recorder) recorderRef.current = null;
+      if (unmountedRef.current) return;
+      if (finishingRef.current) {
+        void finish();
+      } else {
+        // the screen went off, a call came in, or the mic was taken away
+        setInterrupted(true);
+        setPhase("paused");
+      }
     };
+    // a call or another app can take the microphone without hiding the page
+    stream.getAudioTracks().forEach((t) =>
+      t.addEventListener("ended", () => {
+        if (recorder.state !== "inactive") recorder.stop();
+      })
+    );
     recorderRef.current = recorder;
-    banked.current = 0;
-    runStartRef.current = performance.now();
     recorder.start(1000);
+    runStartRef.current = performance.now();
+    void keepScreenOn();
+    return true;
+  }
+
+  async function start() {
+    setError(null);
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setError(strings.podcast.unsupported);
+      return;
+    }
+    partsRef.current = [];
+    finishingRef.current = false;
+    banked.current = 0;
+    setInterrupted(false);
+    if (!(await openPart())) return;
     setSeconds(0);
     setPhase("recording");
+    stopTick();
     tickRef.current = setInterval(() => {
       const now = elapsed();
       setSeconds(now);
@@ -117,22 +203,63 @@ export function Recorder({
     const recorder = recorderRef.current;
     if (!recorder || recorder.state !== "recording") return;
     recorder.pause();
-    banked.current = elapsed();
-    runStartRef.current = null;
+    bank();
+    letScreenSleep();
     setPhase("paused");
   }
 
-  function resume() {
+  async function resume() {
+    setError(null);
+    setInterrupted(false);
     const recorder = recorderRef.current;
-    if (!recorder || recorder.state !== "paused") return;
-    recorder.resume();
-    runStartRef.current = performance.now();
-    setPhase("recording");
+    if (recorder && recorder.state === "paused") {
+      recorder.resume();
+      runStartRef.current = performance.now();
+      void keepScreenOn();
+      setPhase("recording");
+      return;
+    }
+    // the last part was closed when the screen went off: open a new one
+    if (await openPart()) setPhase("recording");
   }
 
   function stop() {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    stopTick();
     const recorder = recorderRef.current;
     if (recorder && recorder.state !== "inactive") recorder.stop();
+    else void finish();
+  }
+
+  /** Turns the parts into one take for review. */
+  async function finish() {
+    const parts = partsRef.current;
+    const durationSeconds = Math.round(elapsed());
+    finishingRef.current = false;
+    setInterrupted(false);
+    if (parts.length === 0) {
+      reset();
+      return;
+    }
+    let blob = parts[0];
+    let mime = mimeRef.current;
+    if (parts.length > 1) {
+      setPhase("joining");
+      try {
+        let joined = await decodeToClip(await parts[0].arrayBuffer());
+        for (const part of parts.slice(1)) joined = appendClip(joined, await decodeToClip(await part.arrayBuffer()), 0);
+        blob = encodeWav(joined);
+        mime = "audio/wav";
+      } catch {
+        // keep the longest part rather than nothing
+        blob = parts.reduce((a, b) => (b.size > a.size ? b : a));
+        setError(strings.podcast.joinFailed);
+      }
+    }
+    if (unmountedRef.current) return;
+    setTake({ blob, mime, durationSeconds, url: URL.createObjectURL(blob) });
+    setPhase("review");
   }
 
   function reset() {
@@ -243,8 +370,12 @@ export function Recorder({
         {phase === "recording"
           ? strings.podcast.recording
           : phase === "paused"
-            ? strings.podcast.paused
-            : strings.podcast.maxNote.replace("{n}", String(MAX_EPISODE_SECONDS / 60))}
+            ? interrupted
+              ? strings.podcast.interrupted
+              : strings.podcast.paused
+            : phase === "joining"
+              ? strings.podcast.joining
+              : strings.podcast.maxNote.replace("{n}", String(MAX_EPISODE_SECONDS / 60))}
       </p>
 
       {phase === "idle" ? (
@@ -256,11 +387,11 @@ export function Recorder({
         >
           <MicIcon className="h-9 w-9" />
         </button>
-      ) : (
+      ) : phase === "joining" ? null : (
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={phase === "recording" ? pause : resume}
+            onClick={phase === "recording" ? pause : () => void resume()}
             aria-label={phase === "recording" ? strings.podcast.pause : strings.podcast.resume}
             className="flex h-14 w-14 items-center justify-center rounded-full border border-sv-line bg-sv-card text-sv-ink"
           >

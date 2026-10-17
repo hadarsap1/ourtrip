@@ -6,6 +6,7 @@ import {
   encodeWav,
   keepRange,
   peaks,
+  shortenSilences,
   toMono,
   undoDepthFor,
   type Clip,
@@ -85,5 +86,49 @@ describe("undoDepthFor", () => {
     expect(undoDepthFor(16000 * 60 * 3)).toBe(3);
     expect(undoDepthFor(16000 * 60 * 20)).toBe(1);
     expect(undoDepthFor(0)).toBe(3);
+  });
+});
+
+describe("shortenSilences", () => {
+  const rate = 1000; // 20-sample frames
+  const voice = (seconds: number) => Array.from({ length: seconds * rate }, (_, i) => (i % 2 ? 0.5 : -0.5));
+  const quiet = (seconds: number, level = 0) => Array.from({ length: seconds * rate }, (_, i) => (i % 2 ? level : -level));
+  const make = (...parts: number[][]): Clip => ({ samples: Float32Array.from(parts.flat()), sampleRate: rate });
+
+  it("shortens a long pause between words to half a second", () => {
+    const { clip: out, removedSeconds } = shortenSilences(make(voice(1), quiet(2), voice(1)));
+    expect(removedSeconds).toBeCloseTo(1.5);
+    expect(durationOf(out)).toBeCloseTo(2.5);
+  });
+
+  it("leaves short pauses alone", () => {
+    const input = make(voice(1), quiet(0.5), voice(1));
+    const { clip: out, removedSeconds } = shortenSilences(input);
+    expect(removedSeconds).toBe(0);
+    expect(out).toBe(input);
+  });
+
+  it("trims the opening and closing pauses to a quarter second each", () => {
+    const { clip: out } = shortenSilences(make(quiet(1), voice(1), quiet(1), voice(1), quiet(3)));
+    expect(durationOf(out)).toBeCloseTo(0.25 + 1 + 0.5 + 1 + 0.25);
+  });
+
+  it("treats background hum as quiet, judged against this recording", () => {
+    const { removedSeconds } = shortenSilences(make(voice(1), quiet(2, 0.02), voice(1)));
+    expect(removedSeconds).toBeCloseTo(1.5);
+  });
+
+  it("does nothing to an all-quiet take", () => {
+    expect(shortenSilences(make(quiet(3, 0.001))).removedSeconds).toBe(0);
+  });
+
+  it("fades the join instead of clicking", () => {
+    const { clip: out } = shortenSilences(make(voice(1), quiet(2, 0.02), voice(1)));
+    // the cut sits mid-pause at 1.25s: the hum there fades to nothing...
+    expect(out.samples[1250]).toBeCloseTo(0);
+    expect(Math.abs(out.samples[1249])).toBeLessThan(0.02);
+    // ...and the words on either side are untouched
+    expect(Math.abs(out.samples[999])).toBeCloseTo(0.5);
+    expect(Math.abs(out.samples[1500])).toBeCloseTo(0.5);
   });
 });

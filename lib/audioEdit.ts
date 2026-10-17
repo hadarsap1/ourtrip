@@ -51,6 +51,81 @@ export function appendClip(head: Clip, tail: Clip, gapSeconds = 0.4): Clip {
   return { samples: out, sampleRate: head.sampleRate };
 }
 
+/**
+ * Shortens every pause longer than `longerThan` seconds to `keep` seconds -
+ * half of it after the words before, half before the words after - so the
+ * episode keeps its breathing room without the long gaps. Runs on the
+ * device, offline, no AI service needed.
+ *
+ * "Quiet" is relative to this recording: a 20 ms frame is quiet when it is
+ * close to the recording's own background level (10th percentile of frame
+ * loudness) rather than to its speech (95th), so a noisy café and a silent
+ * hotel room both work. Every join gets a 5 ms fade so it does not click.
+ */
+export function shortenSilences(
+  clip: Clip,
+  { keep = 0.5, longerThan = 0.7 }: { keep?: number; longerThan?: number } = {}
+): { clip: Clip; removedSeconds: number } {
+  const { samples, sampleRate } = clip;
+  const frame = Math.max(1, Math.round(sampleRate * 0.02));
+  const frames = Math.floor(samples.length / frame);
+  const unchanged = { clip, removedSeconds: 0 };
+  if (frames < 2) return unchanged;
+
+  const rms = new Float32Array(frames);
+  for (let f = 0; f < frames; f++) {
+    let sum = 0;
+    for (let i = f * frame; i < (f + 1) * frame; i++) sum += samples[i] * samples[i];
+    rms[f] = Math.sqrt(sum / frame);
+  }
+  const sorted = Float32Array.from(rms).sort();
+  const floor = sorted[Math.floor(frames * 0.1)];
+  const loud = sorted[Math.min(frames - 1, Math.floor(frames * 0.95))];
+  // nothing above the background: an all-quiet take, leave it alone
+  if (loud < 0.01 || loud < floor * 2) return unchanged;
+  const threshold = Math.max(0.003, floor + (loud - floor) * 0.1);
+
+  const half = Math.round((keep / 2) * sampleRate);
+  const minRun = Math.round(longerThan * sampleRate);
+  // [from, to) sample ranges to drop
+  const drop: [number, number][] = [];
+  let f = 0;
+  while (f < frames) {
+    if (rms[f] >= threshold) {
+      f++;
+      continue;
+    }
+    const runStart = f;
+    while (f < frames && rms[f] < threshold) f++;
+    const a = runStart * frame;
+    const b = f === frames ? samples.length : f * frame;
+    if (b - a <= minRun) continue;
+    const from = a === 0 ? 0 : a + half;
+    const to = b === samples.length ? b : b - half;
+    // the opening and closing pauses keep only their half next to the words
+    if (a === 0 && to - from > 0) drop.push([0, b - half]);
+    else if (b === samples.length) drop.push([a + half, b]);
+    else if (to > from) drop.push([from, to]);
+  }
+  if (drop.length === 0) return unchanged;
+
+  const removed = drop.reduce((n, [a, b]) => n + (b - a), 0);
+  const out = new Float32Array(samples.length - removed);
+  const fade = Math.round(sampleRate * 0.005);
+  let at = 0;
+  let from = 0;
+  for (const [a, b] of [...drop, [samples.length, samples.length] as [number, number]]) {
+    const part = samples.subarray(from, a);
+    out.set(part, at);
+    // fade out the end of a kept part and fade in the start of the next
+    if (a < samples.length) for (let i = 0; i < Math.min(fade, part.length); i++) out[at + part.length - 1 - i] *= i / fade;
+    if (from > 0) for (let i = 0; i < Math.min(fade, part.length); i++) out[at + i] *= i / fade;
+    at += part.length;
+    from = b;
+  }
+  return { clip: { samples: out, sampleRate }, removedSeconds: removed / sampleRate };
+}
+
 /** Average all channels into one. */
 export function toMono(channels: Float32Array[]): Float32Array {
   if (channels.length === 1) return channels[0];

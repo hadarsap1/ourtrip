@@ -24,6 +24,8 @@ describe("baseMime / extensionFor", () => {
     expect(extensionFor("audio/mp4;codecs=mp4a.40.2")).toBe("m4a");
     expect(extensionFor("audio/webm")).toBe("webm");
     expect(extensionFor("audio/ogg;codecs=opus")).toBe("ogg");
+    // a take the recorder stitched together after an interruption
+    expect(extensionFor("audio/wav")).toBe("wav");
   });
 });
 
