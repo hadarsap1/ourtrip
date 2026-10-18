@@ -2110,4 +2110,14 @@ existed and got "nobody"). Cosmetic on top of the policy - the policy is the fix
 `trip_budget` is added to the weekly backup (backup-weekly needs a redeploy)
 and to the parents' export.
 
-X Until 00056 is applied live, the column is still readable on production.
+Applied live 18/10/2026 in two steps. The Supabase connector holds any
+statement with `drop column` for a confirmation it cannot show here, so
+`apply_migration` timed out without reaching the database (postgres logs show
+no such statement). Step 1, run: `trip_budget` created with its policy, the
+180,000 copied, `trips.total_budget` set to NULL and pinned by
+`trips_total_budget_moved check (total_budget is null)`. Verified live as each
+linked member: kids read NULL from `trips` and 0 rows from `trip_budget`;
+owners read the row. The leak is closed from step 1 on.
+
+X Step 2, still to run by hand in the SQL editor: drop the column (and the
+pin), and record 00056 in the migration history - see docs/QA-2026-10-17.md.
