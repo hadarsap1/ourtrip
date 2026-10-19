@@ -8,8 +8,9 @@ export type JoinStatus = "member" | "pending" | null;
 export type JoinInfo = { valid: boolean; status: JoinStatus };
 export type SubmitResult = "pending" | "member" | "invalid" | "bad_input" | "busy";
 
+/** The link that is shared: the short /j/ path, redirected to /join/ (next.config.ts). */
 export function joinUrl(origin: string, token: string): string {
-  return `${origin.replace(/\/+$/, "")}/join/${encodeURIComponent(token)}`;
+  return `${origin.replace(/\/+$/, "")}/j/${encodeURIComponent(token)}`;
 }
 
 export function joinShareText(url: string): string {

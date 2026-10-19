@@ -8,7 +8,7 @@ begin;
 set local role authenticated; select rls.as_owner();
 create temp table tok as select public.guest_join_token('00000000-0000-0000-0000-0000000000a1') as t;
 grant select on tok to anon, authenticated;
-select rls.check('owner: gets a token', (select length(t) = 32 from tok));
+select rls.check('owner: gets a token', (select length(t) = 8 from tok));
 select rls.check('owner: the same token on the second call',
   (select t from tok) = public.guest_join_token('00000000-0000-0000-0000-0000000000a1'));
 reset role;

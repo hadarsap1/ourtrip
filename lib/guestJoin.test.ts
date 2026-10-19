@@ -3,7 +3,7 @@ import { joinUrl, nameFromGoogle, parseJoinInfo, parseSubmitResult } from "./gue
 
 describe("joinUrl", () => {
   it("joins origin and token without a double slash", () => {
-    expect(joinUrl("https://x.app/", "abc")).toBe("https://x.app/join/abc");
+    expect(joinUrl("https://x.app/", "abc")).toBe("https://x.app/j/abc");
   });
 });
 

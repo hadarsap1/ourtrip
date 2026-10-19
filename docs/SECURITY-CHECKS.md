@@ -2121,3 +2121,19 @@ owners read the row. The leak is closed from step 1 on.
 
 X Step 2, still to run by hand in the SQL editor: drop the column (and the
 pin), and record 00056 in the migration history - see docs/QA-2026-10-17.md.
+
+## Shorter guests' join link - 19/10/2026
+
+Migration 00057. The token is now 8 characters (lowercase, no i/l/o/u, 40
+random bits) instead of 32 hex, and the shared link is `/j/<token>` (a
+redirect to `/join/<token>`). No policy change: `guest_join_links` stays
+owner-only, `guest_join_token` still refuses anyone who is not a parent, and a
+token still only lets someone ASK - every request waits for a parent, and
+access still needs a `guests_allowlist` row. `guest_join_new_token()` is not
+callable by anon. Probe `57_short_join_token.sql`: short token, reset gives a
+new short one, the old one reads invalid, 2000 draws are distinct.
+
+X 40 bits is far less than the old 122. Guessing a live token stays out of
+reach (there is one per trip), and a correct guess only puts a request in
+front of the parents. Links posted before this keep the long token until a
+parent presses "קישור חדש".
