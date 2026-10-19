@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { batchChanged, filterEntries, searchLanguages } from "./phrasebook";
+import { batchChanged, filterEntries, pickPhrasebookLanguage, searchLanguages } from "./phrasebook";
 
 // The phrasebook is offline-critical, so search runs over the rows already in
 // hand. What it has to match is everything you might half-remember.
@@ -136,5 +136,26 @@ describe("batchChanged", () => {
 
   it("counts a partly overlapping batch as new", () => {
     expect(batchChanged(ids("a", "b"), ids("b", "z"))).toBe(true);
+  });
+});
+
+describe("pickPhrasebookLanguage", () => {
+  // the live trip's languages, alphabetical as listLanguages returns them
+  const langs = ["ja", "th", "tl", "vi"];
+
+  it("opens on the language of the country you are in", () => {
+    expect(pickPhrasebookLanguage(langs, "VN")).toBe("vi");
+    expect(pickPhrasebookLanguage(langs, "PH")).toBe("tl");
+    expect(pickPhrasebookLanguage(langs, "th")).toBe("th");
+  });
+
+  it("falls back to the first language when that country has no phrases yet", () => {
+    expect(pickPhrasebookLanguage(langs, "KH")).toBe("ja");
+    expect(pickPhrasebookLanguage(langs, "ZZ")).toBe("ja");
+    expect(pickPhrasebookLanguage(langs, null)).toBe("ja");
+  });
+
+  it("answers null with no languages at all", () => {
+    expect(pickPhrasebookLanguage([], "VN")).toBeNull();
   });
 });

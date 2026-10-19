@@ -122,6 +122,36 @@ export const SEARCHABLE_LANGUAGES = [
   "sw", "am", "af", "sq", "sr", "hr", "bg", "sk", "sl", "lt", "lv", "et",
 ] as const;
 
+// The main language spoken in each country, for the languages above.
+const COUNTRY_LANGUAGE: Record<string, string> = {
+  VN: "vi", TH: "th", KH: "km", PH: "tl", JP: "ja", GE: "ka",
+  CN: "zh", TW: "zh", HK: "zh", MO: "zh", KR: "ko", ID: "id", MY: "ms", BN: "ms",
+  MM: "my", LA: "lo", NP: "ne", LK: "si", IN: "hi", BD: "bn",
+  AE: "ar", SA: "ar", EG: "ar", JO: "ar", MA: "ar", OM: "ar", QA: "ar", IR: "fa",
+  TR: "tr", GR: "el", CY: "el", AM: "hy", AZ: "az", RU: "ru", UA: "uk", PL: "pl",
+  CZ: "cs", RO: "ro", HU: "hu", ES: "es", MX: "es", AR: "es", CL: "es", CO: "es",
+  PE: "es", CR: "es", PT: "pt", BR: "pt", FR: "fr", IT: "it", DE: "de", AT: "de",
+  NL: "nl", SE: "sv", NO: "no", DK: "da", FI: "fi", KE: "sw", TZ: "sw", ET: "am",
+  ZA: "af", AL: "sq", RS: "sr", HR: "hr", BG: "bg", SK: "sk", SI: "sl", LT: "lt",
+  LV: "lv", EE: "et", US: "en", GB: "en", AU: "en", NZ: "en", IE: "en",
+};
+
+/**
+ * Which language the phrasebook opens on: the one spoken in `countryCode`
+ * (today's country, or the next one before the trip starts) when it has
+ * phrases, else the first language. It used to always be the first
+ * alphabetically - in Vietnam the phrasebook opened in Japanese (QA 17/10),
+ * the same bug the emergency page had with Georgia (F5).
+ */
+export function pickPhrasebookLanguage(
+  languages: string[],
+  countryCode: string | null
+): string | null {
+  const spoken = countryCode ? COUNTRY_LANGUAGE[countryCode.toUpperCase()] : undefined;
+  if (spoken && languages.includes(spoken)) return spoken;
+  return languages[0] ?? null;
+}
+
 export type LanguageOption = { code: string; name: string };
 
 /**
