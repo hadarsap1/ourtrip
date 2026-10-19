@@ -1,5 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
-import { listCategories, listExpenses } from "@/lib/data/expenses";
+import { getTripTotalBudget, listCategories, listExpenses } from "@/lib/data/expenses";
 import { getActiveTrip } from "@/lib/data/trip";
 import { resolveBudgetTotals } from "@/lib/budget";
 import { todayISO } from "@/lib/format";
@@ -35,9 +35,10 @@ export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
     if (!supabase || !trip) return null;
 
     const date = todayISO();
-    const [categories, expenses, photos] = await Promise.all([
+    const [categories, expenses, totalBudget, photos] = await Promise.all([
       listCategories(trip.id).catch(() => []),
       listExpenses(trip.id).catch(() => []),
+      getTripTotalBudget(trip.id).catch(() => null),
       listPhotosForDate(trip.id, date).catch(() => []),
     ]);
 
@@ -50,7 +51,7 @@ export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
       position: tripPosition(trip.start_date, trip.end_date, date),
       spentToday,
       spentTotal,
-      budget: resolveBudgetTotals(trip.total_budget, categories)
+      budget: resolveBudgetTotals(totalBudget, categories)
         .budgetForProgress,
       photos,
     };

@@ -1,4 +1,4 @@
--- 00056: the join token is short (8 chars, lowercase, no look-alikes), a
+-- 00057: the join token is short (8 chars, lowercase, no look-alikes), a
 -- reset draws a new short one, and the old token stops working.
 begin;
 \i scripts/rls/seed.sql

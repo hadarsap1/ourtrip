@@ -2032,6 +2032,32 @@ export type Database = {
           },
         ]
       }
+      trip_budget: {
+        Row: {
+          total_budget: number
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          total_budget: number
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          total_budget?: number
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_budget_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           base_currency: string
@@ -2041,7 +2067,6 @@ export type Database = {
           is_active: boolean
           name: string
           start_date: string | null
-          total_budget: number | null
         }
         Insert: {
           base_currency?: string
@@ -2051,7 +2076,6 @@ export type Database = {
           is_active?: boolean
           name: string
           start_date?: string | null
-          total_budget?: number | null
         }
         Update: {
           base_currency?: string
@@ -2061,7 +2085,6 @@ export type Database = {
           is_active?: boolean
           name?: string
           start_date?: string | null
-          total_budget?: number | null
         }
         Relationships: []
       }

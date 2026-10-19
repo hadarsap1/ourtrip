@@ -62,14 +62,28 @@ async function apply(entry: PendingWrite): Promise<"done" | "conflict"> {
   }
 }
 
+// One replay at a time (found in QA, 17/10). OfflineSync fires on "online",
+// "focus" and "visibilitychange", and coming back into signal fires all three
+// at once. Each replay read the same queue before any of them deleted an
+// entry, so an expense entered offline was inserted two or three times.
+let replaying: Promise<ReplayResult> | null = null;
+
 /**
  * Replays due writes in FIFO order. Transient failure (connectivity lost
  * mid-replay) → stays queued with backoff. Permanent failure (deleted
  * category, RLS denial, un-convertible currency) or too many attempts →
  * moved to failed_writes so it cannot block the queue. We never `break`.
  * `force` ignores backoff (the user pulled to refresh / tapped retry).
+ * A call made while a replay runs gets that replay's result, not a second one.
  */
-export async function replayPendingWrites(force = false): Promise<ReplayResult> {
+export function replayPendingWrites(force = false): Promise<ReplayResult> {
+  replaying ??= replayOnce(force).finally(() => {
+    replaying = null;
+  });
+  return replaying;
+}
+
+async function replayOnce(force: boolean): Promise<ReplayResult> {
   const dbp = getOfflineDB();
   if (!dbp) return { replayed: 0, dropped: 0, conflicts: 0 };
   const db = await dbp;

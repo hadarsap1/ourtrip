@@ -14,12 +14,15 @@ const FIELD =
  *  categories, which is what it always did before. */
 export function TotalBudgetSheet({
   trip,
+  totalBudget,
   planned,
   onClose,
   onDone,
   onError,
 }: {
   trip: Trip;
+  /** The current overall budget, null when none is set. */
+  totalBudget: number | null;
   /** Sum of the category planned amounts, so the sheet can say how the target
    *  compares to the plan it is being measured against. */
   planned: number;
@@ -29,7 +32,7 @@ export function TotalBudgetSheet({
 }) {
   const s = strings.budget;
   const [value, setValue] = useState(
-    trip.total_budget != null ? String(trip.total_budget) : ""
+    totalBudget != null ? String(totalBudget) : ""
   );
   const [busy, setBusy] = useState(false);
 
@@ -93,7 +96,7 @@ export function TotalBudgetSheet({
           {s.save}
         </button>
 
-        {trip.total_budget != null && (
+        {totalBudget != null && (
           <button
             type="button"
             disabled={busy}

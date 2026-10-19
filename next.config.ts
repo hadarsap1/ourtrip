@@ -75,7 +75,7 @@ const nextConfig: NextConfig = {
   // needed.
   agentRules: false,
 
-  // The guests' join link (00056): /j/<token> is what goes into WhatsApp,
+  // The guests' join link (00057): /j/<token> is what goes into WhatsApp,
   // short to read and type; the page itself lives at /join/<token>.
   async redirects() {
     return [{ source: "/j/:token", destination: "/join/:token", permanent: false }];

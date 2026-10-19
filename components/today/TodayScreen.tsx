@@ -265,7 +265,7 @@ export function TodayScreen() {
     return () => clearInterval(tick);
   }, []);
 
-  const { member } = useMember();
+  const { member, memberLoading } = useMember();
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
 
@@ -438,7 +438,10 @@ export function TodayScreen() {
      shown for weeks. Between now and then the useful home screen is what still
      has to happen before the flight. Switches over on its own on the day the
      trip starts; no setting to forget. */
-  if (!tripChecked) {
+  // Below is the parents' home. While the member is still being looked up it
+  // is not yet known to be a parent's - a guest's first open after approval
+  // briefly had no member and showed the parents' budget card (QA 17/10).
+  if (!tripChecked || (!member && memberLoading)) {
     return (
       <ScreenSkeleton variant="today" />
     );
