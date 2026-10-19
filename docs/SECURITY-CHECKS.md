@@ -2076,3 +2076,19 @@ older iOS the screen may still lock, and the take then pauses and keeps what
 was recorded instead of continuing.
 X If iOS discards the page entirely while locked for a long time, the parts
 held in memory are lost; only a page that comes back keeps them.
+
+## Shorter guests' join link - 19/10/2026
+
+Migration 00056. The token is now 8 characters (lowercase, no i/l/o/u, 40
+random bits) instead of 32 hex, and the shared link is `/j/<token>` (a
+redirect to `/join/<token>`). No policy change: `guest_join_links` stays
+owner-only, `guest_join_token` still refuses anyone who is not a parent, and a
+token still only lets someone ASK - every request waits for a parent, and
+access still needs a `guests_allowlist` row. `guest_join_new_token()` is not
+callable by anon. Probe `56_short_join_token.sql`: short token, reset gives a
+new short one, the old one reads invalid, 2000 draws are distinct.
+
+X 40 bits is far less than the old 122. Guessing a live token stays out of
+reach (there is one per trip), and a correct guess only puts a request in
+front of the parents. Links posted before this keep the long token until a
+parent presses "קישור חדש".
