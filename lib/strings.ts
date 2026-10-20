@@ -219,6 +219,7 @@ export const strings = {
     viewerClose: "סגירה",
     viewerNoPreview: "הדפדפן לא מציג את הקובץ הזה כאן. שומרים אותו ופותחים מההורדות.",
     viewerSave: "שמירה ופתיחה",
+    viewerShare: "שמירה או שיתוף",
 
     // biometric unlock (WebAuthn)
     bioUnlock: "פתיחה עם זיהוי ביומטרי",

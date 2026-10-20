@@ -103,7 +103,7 @@ export function DocumentsScreen() {
   const [pinSheet, setPinSheet] = useState<{ mode: "set" | "enter"; reason?: string } | null>(null);
   const [lockingIds, setLockingIds] = useState<Set<string>>(new Set());
   const [lockProgress, setLockProgress] = useState<{ done: number; total: number } | null>(null);
-  const [viewer, setViewer] = useState<{ url: string; mime: string; name: string } | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; mime: string; file: File } | null>(null);
   const pendingRef = useRef<((key: CryptoKey) => void) | null>(null);
 
   // Biometric unlock (WebAuthn): which devices are enrolled, and whether this
@@ -323,12 +323,12 @@ export function DocumentsScreen() {
       showToast(strings.documents.openFailed);
       return;
     }
-    setViewer({
-      url: URL.createObjectURL(result),
-      mime: result.type,
-      name: documentFileName(doc.title, result.type),
+    const file = new File([result], documentFileName(doc.title, result.type), {
+      type: result.type,
     });
+    setViewer({ url: URL.createObjectURL(file), mime: file.type, file });
   }
+
 
   // Binds this device's authenticator to the vault. Only reachable while the
   // vault is open - the key has to be in memory to be wrapped.
@@ -406,24 +406,9 @@ export function DocumentsScreen() {
       showToast(strings.documents.openFailed);
       return;
     }
-    const file = new File([result], documentFileName(doc.title, result.type), {
-      type: result.type,
-    });
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: doc.title });
-        return;
-      }
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
-    }
-    // No file sharing on this browser: save it instead.
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    await shareFile(
+      new File([result], documentFileName(doc.title, result.type), { type: result.type })
+    );
   }
 
   async function copyDoc(doc: Document) {
@@ -853,7 +838,14 @@ export function DocumentsScreen() {
 
       {viewer && (
         <div className="fixed inset-0 z-[80] flex flex-col bg-black/90">
-          <div className="flex justify-end p-3">
+          <div className="flex justify-between gap-2 p-3">
+            <button
+              type="button"
+              onClick={() => void shareFile(viewer.file)}
+              className="min-h-[44px] rounded-full bg-sea px-4 py-2 text-sm font-semibold text-on-sea"
+            >
+              {s.viewerShare}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -883,12 +875,12 @@ export function DocumentsScreen() {
                 <p className="text-sm text-ink">{s.viewerNoPreview}</p>
                 <a
                   href={viewer.url}
-                  download={viewer.name}
+                  download={viewer.file.name}
                   className="min-h-[44px] rounded-full bg-sea px-5 py-2.5 text-sm font-semibold text-on-sea"
                 >
                   {s.viewerSave}
                 </a>
-                <p className="break-all text-xs text-ink-muted" dir="auto">{viewer.name}</p>
+                <p className="break-all text-xs text-ink-muted" dir="auto">{viewer.file.name}</p>
               </div>
             )}
           </div>
@@ -1174,4 +1166,26 @@ function canShowPdfInline(): boolean {
   if (typeof navigator === "undefined") return false;
   const nav = navigator as Navigator & { pdfViewerEnabled?: boolean };
   return nav.pdfViewerEnabled !== false;
+}
+
+// The phone's own share sheet, or a plain save where files can't be shared.
+// The viewer's button calls this on a fresh tap, so the sheet is allowed even
+// where the async open lost the original gesture. On iPhone it is the way to a
+// full-screen preview, "Save to Files" or Books, which an inline PDF frame
+// (first page only, no zoom in the home-screen app) does not give.
+async function shareFile(file: File): Promise<void> {
+  try {
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: file.name });
+      return;
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
