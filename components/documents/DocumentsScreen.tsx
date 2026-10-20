@@ -86,6 +86,7 @@ export function DocumentsScreen() {
   const [docs, setDocs] = useState<Document[]>([]);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const [openingId, setOpeningId] = useState<string | null>(null);
   // F1: per-file download status and whether storage is persistent.
   const [syncStatus, setSyncStatus] = useState<Record<string, DocSyncStatus>>({});
   const [persisted, setPersisted] = useState<boolean | null>(null);
@@ -313,20 +314,30 @@ export function DocumentsScreen() {
   // Every document opens in the in-app viewer as a blob labelled with its real
   // type; handing the phone a raw Storage link or an unlabelled blob is what
   // made files arrive as "unknown".
+  // Downloading and decrypting a passport takes a few seconds on a phone, so
+  // the row says so; and a failure says why instead of doing nothing.
   async function handleOpen(doc: Document, key: CryptoKey | null = null) {
-    const result = await getPlainDocument(doc, key ?? (trip ? getVaultKey(trip.id) : null));
-    if (result === "needs-key") {
-      withKey((k) => void handleOpen(doc, k), "open");
-      return;
+    setOpeningId(doc.id);
+    try {
+      const result = await getPlainDocument(doc, key ?? (trip ? getVaultKey(trip.id) : null));
+      if (result === "needs-key") {
+        withKey((k) => void handleOpen(doc, k), "open");
+        return;
+      }
+      if (!result) {
+        showToast(strings.documents.openFailed);
+        return;
+      }
+      const file = new File([result], documentFileName(doc.title, result.type), {
+        type: result.type,
+      });
+      setViewer({ url: URL.createObjectURL(file), mime: file.type, file });
+    } catch (err) {
+      const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      showToast(strings.documents.openError.replace("{reason}", reason));
+    } finally {
+      setOpeningId((id) => (id === doc.id ? null : id));
     }
-    if (!result) {
-      showToast(strings.documents.openFailed);
-      return;
-    }
-    const file = new File([result], documentFileName(doc.title, result.type), {
-      type: result.type,
-    });
-    setViewer({ url: URL.createObjectURL(file), mime: file.type, file });
   }
 
 
@@ -501,6 +512,7 @@ export function DocumentsScreen() {
   }
 
   function openDoc(doc: Document) {
+    if (openingId === doc.id) return;
     if (!doc.pin_protected) {
       void handleOpen(doc);
       return;
@@ -686,6 +698,11 @@ export function DocumentsScreen() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-semibold text-ink">{doc.title}</span>
+                    {openingId === doc.id && (
+                      <span className="block text-[12px] font-semibold text-sea" role="status">
+                        {s.opening}
+                      </span>
+                    )}
                     <span className={`block truncate text-[12px] ${expires ? "font-semibold text-sun-deep" : "text-ink-soft"}`}>
                       {s.tags[doc.tag] ?? doc.tag}
                       {doc.expires_at && (
