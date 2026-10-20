@@ -619,6 +619,15 @@ export const strings = {
     importFailed: "לא הצלחנו לקרוא את הקובץ",
   },
 
+  // what is waiting for a parent, across screens (Hadar 20/10/2026)
+  approvals: {
+    title: "ממתינים לאישורך ({n})",
+    stories: "סיפורים",
+    photos: "תמונות",
+    episodes: "פרקי פודקאסט",
+    guestRequests: "בקשות הצטרפות",
+    waiting: "‏{n} ממתינים",
+  },
   more: {
     menuChecklists: "רשימות",
     menuEmergency: "דף חירום",

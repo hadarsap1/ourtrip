@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
+import { PendingApprovalsCard } from "./PendingApprovalsCard";
 import { ChevronForwardIcon, DocumentIcon, PhrasebookIcon, PinIcon, WarningIcon } from "@/components/icons";
 import { Ring, ProgressBar } from "@/components/ui/Progress";
 import { CountdownChip } from "@/components/ui/Chip";
@@ -58,6 +59,7 @@ export function PreTripHome({
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 pt-4 pb-8 sm:max-w-2xl">
       <IosInstallHint />
+      <PendingApprovalsCard tripId={trip.id} />
       {/* Hero: the first country's flag on a calm tint (a full-bleed country
           colour read as a warning - Hadar, 06/10/2026). */}
       <section aria-label={t.countdownLabel}>

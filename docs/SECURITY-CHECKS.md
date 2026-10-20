@@ -2147,3 +2147,13 @@ still pass `p_reset` through the API, so this is a guard against an accidental
 tap, not a permission. Test `lib/joinLinkStable.test.ts` fails the build if
 `/j/:token` stops redirecting to `/join/:token`. Reset if the link ever leaks:
 `update guest_join_links set token = guest_join_new_token();` in the SQL editor.
+
+## Waiting for approval: one view for parents - 20/10/2026
+
+No schema or policy change. The "ממתינים לאישורך" card on Today and the red
+numbers on the More tiles are `head: true` counts of rows with
+`status = 'pending'` in `posts`, `photos`, `episodes` and
+`guest_join_requests`, run under the caller's own RLS. They are loaded only
+for a member whose role is owner (More) or on the parents' home (Today);
+`guest_join_requests` is owner-only by policy (00054), so a kid or guest
+would read 0 there even if the code asked. No row content is fetched.

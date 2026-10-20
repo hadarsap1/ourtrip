@@ -28,6 +28,8 @@ import {
 } from "@/components/icons";
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
+import { useMember } from "@/lib/useMember";
+import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { strings } from "@/lib/strings";
 
 type Tile = {
@@ -45,6 +47,8 @@ type AdminRow = {
   label: string;
   Icon: ComponentType<IconProps>;
   state: string | null;
+  /** Waiting for a parent: shown in place of the state, in red. */
+  badge?: number;
 };
 
 function TileGrid({ tiles }: { tiles: Tile[] }) {
@@ -92,6 +96,9 @@ const noopSubscribe = () => () => {};
 export function MoreScreen() {
   const statsOn = useSyncExternalStore(noopSubscribe, () => isEnabled("statsStamps"), () => false);
   const [counts, setCounts] = useState<MoreCounts | null>(null);
+  const { member } = useMember();
+  // what waits for approval - a parent's queue only (join requests are owner-only)
+  const pending = usePendingApprovals(member?.role === "owner" ? member.trip_id : null);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,12 +157,14 @@ export function MoreScreen() {
       label: strings.more.menuStories,
       Icon: StoryIcon,
       count: n(counts?.stories),
+      badge: pending?.stories,
     },
     {
       href: "/podcast",
       label: strings.more.menuPodcast,
       Icon: MicIcon,
       count: n(counts?.episodes),
+      badge: pending?.episodes,
     },
     {
       href: "/journal",
@@ -168,6 +177,7 @@ export function MoreScreen() {
       label: strings.more.menuPhotos,
       Icon: PhotosIcon,
       count: n(counts?.photos),
+      badge: pending?.photos,
     },
     {
       href: "/memory-book",
@@ -215,6 +225,7 @@ export function MoreScreen() {
       state: counts
         ? strings.more.guestsState.replace("{n}", String(counts.guests))
         : null,
+      badge: pending?.guestRequests,
     },
     {
       href: "/notifications",
@@ -277,10 +288,16 @@ export function MoreScreen() {
                 <span className="flex-1 text-[13.5px] font-medium text-ink">
                   {row.label}
                 </span>
-                {row.state && (
-                  <span className="shrink-0 text-[12px] text-ink-soft">
-                    {row.state}
+                {row.badge ? (
+                  <span className="shrink-0 rounded-full bg-rose-500 px-2 py-0.5 text-[12px] font-extrabold text-white">
+                    {strings.approvals.waiting.replace("{n}", String(row.badge))}
                   </span>
+                ) : (
+                  row.state && (
+                    <span className="shrink-0 text-[12px] text-ink-soft">
+                      {row.state}
+                    </span>
+                  )
                 )}
                 <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />
               </Link>
