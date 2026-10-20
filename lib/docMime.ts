@@ -17,6 +17,8 @@ const EXT: Record<string, string> = {
   "image/webp": "webp",
   "image/heic": "heic",
   "image/heif": "heif",
+  "image/avif": "avif",
+  "image/tiff": "tiff",
   "application/octet-stream": "bin",
 };
 
@@ -30,16 +32,23 @@ function ascii(bytes: Uint8Array, from: number, to: number): string {
 
 /** The type named by the file's own header, or null when it is not one we know. */
 export async function sniffMime(blob: Blob): Promise<string | null> {
-  const bytes = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
-  if (ascii(bytes, 0, 5) === "%PDF-") return "application/pdf";
+  const head = new Uint8Array(await blob.slice(0, 1024).arrayBuffer());
+  const bytes = head.subarray(0, 16);
+  // Readers accept the PDF header anywhere in the first 1KB (scanner apps
+  // sometimes put a BOM or junk before it).
+  if (ascii(head, 0, head.length).includes("%PDF-")) return "application/pdf";
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "image/jpeg";
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47])) return "image/png";
   if (ascii(bytes, 0, 4) === "GIF8") return "image/gif";
   if (ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "WEBP") return "image/webp";
   if (ascii(bytes, 4, 8) === "ftyp") {
     const brand = ascii(bytes, 8, 12);
-    if (["heic", "heix", "heim", "heis"].includes(brand)) return "image/heic";
+    if (["heic", "heix", "heim", "heis", "hevc", "hevx"].includes(brand)) return "image/heic";
+    if (["avif", "avis"].includes(brand)) return "image/avif";
     if (["mif1", "msf1"].includes(brand)) return "image/heif";
+  }
+  if (startsWith(bytes, [0x49, 0x49, 0x2a, 0x00]) || startsWith(bytes, [0x4d, 0x4d, 0x00, 0x2a])) {
+    return "image/tiff";
   }
   return null;
 }

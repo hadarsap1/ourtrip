@@ -1,6 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import { decryptBlob, encryptBlob } from "@/lib/docCrypto";
-import { resolveMime, withRealMime } from "@/lib/docMime";
+import { resolveMime, sniffMime, withRealMime } from "@/lib/docMime";
 import {
   readOfflineDocument,
   removeOfflineDocument,
@@ -86,6 +86,31 @@ export async function updateDocument(
 
 // ---------- end-to-end lock (Documents PIN) ----------
 
+/**
+ * Strips vault layers that are not the document's own lock. Locking used to
+ * encrypt whatever was stored, so locking an already locked file (two
+ * phones pressing "lock all", a retry after a half-finished lock, or the old
+ * offline fallback) wrapped it twice, and opening it gave random bytes - the
+ * "unknown"/"MacBinary" file. AES-GCM only decrypts its own ciphertext under
+ * this exact key, so a real file is never altered: a layer comes off only
+ * when the bytes are not a known file and the key really opens them.
+ */
+export async function peelVaultLayers(
+  blob: Blob,
+  key: CryptoKey | null,
+  hint?: string | null
+): Promise<Blob> {
+  let current = blob;
+  for (let i = 0; i < 4 && key && !(await sniffMime(current)); i += 1) {
+    try {
+      current = await decryptBlob(key, current, "");
+    } catch {
+      break; // not ours - this is the file
+    }
+  }
+  return withRealMime(current, hint);
+}
+
 /** Downloads whatever is stored at a document's path (ciphertext for a locked
  *  document, plaintext otherwise). Online: signed URL; offline: cached copy.
  *  An unlocked document's device copy carries an extra vault layer; it is
@@ -121,7 +146,9 @@ export async function protectDocument(doc: Document, key: CryptoKey): Promise<vo
   const supabase = requireClient();
   const fetched = await fetchBytes(doc, key);
   if (!fetched) throw new Error("source unavailable");
-  const plain = await withRealMime(fetched);
+  // Down to the real file first, so exactly one layer goes back on - this
+  // also repairs a file that was locked twice.
+  const plain = await peelVaultLayers(fetched, key);
   const container = await encryptBlob(key, plain);
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -144,8 +171,10 @@ export async function unprotectDocument(doc: Document, key: CryptoKey): Promise<
   const supabase = requireClient();
   const container = await fetchBytes(doc);
   if (!container) throw new Error("source unavailable");
-  const plain = await withRealMime(
-    await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream")
+  const plain = await peelVaultLayers(
+    await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream"),
+    key,
+    doc.enc_mime
   );
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -175,7 +204,7 @@ export async function decryptDocument(
   }
   // enc_mime was copied from the stored file's label, which was often empty
   // on phones; the decrypted bytes say what they really are.
-  return withRealMime(plain, doc.enc_mime);
+  return peelVaultLayers(plain, key, doc.enc_mime);
 }
 
 /**
@@ -196,7 +225,14 @@ export async function getPlainDocument(
   if (typeof navigator !== "undefined" && navigator.onLine) {
     try {
       const res = await fetch(await getDocumentUrl(doc.file_path));
-      if (res.ok) return withRealMime(await res.blob());
+      if (res.ok) {
+        const blob = await res.blob();
+        // Not a known file: most likely an unlocked row over a file that is
+        // still vault ciphertext (a lock or unlock that stopped halfway).
+        // Ask for the key and peel it.
+        if (!key && !(await sniffMime(blob))) return "needs-key";
+        return peelVaultLayers(blob, key);
+      }
     } catch {
       // fall through to the device copy
     }
@@ -206,7 +242,11 @@ export async function getPlainDocument(
   if (!offline.offlineEncrypted) return withRealMime(offline.blob, offline.mime);
   if (!key) return "needs-key";
   try {
-    return withRealMime(await decryptBlob(key, offline.blob, offline.mime), offline.mime);
+    return await peelVaultLayers(
+      await decryptBlob(key, offline.blob, offline.mime),
+      key,
+      offline.mime
+    );
   } catch {
     return null;
   }

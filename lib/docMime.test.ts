@@ -44,3 +44,15 @@ describe("documentFileName", () => {
     expect(documentFileName("x", "application/octet-stream")).toBe("x.bin");
   });
 });
+
+describe("sniffMime - phone formats", () => {
+  it("finds a PDF header after leading junk", async () => {
+    const blob = new Blob([new TextEncoder().encode("﻿\r\n%PDF-1.5")]);
+    expect(await sniffMime(blob)).toBe("application/pdf");
+  });
+
+  it("knows AVIF and HEVC-branded HEIC", async () => {
+    expect(await sniffMime(new Blob([text("\0\0\0\x1cftypavif")]))).toBe("image/avif");
+    expect(await sniffMime(new Blob([text("\0\0\0\x1cftyphevc")]))).toBe("image/heic");
+  });
+});
