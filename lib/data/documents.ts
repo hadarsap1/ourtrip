@@ -1,5 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import { decryptBlob, encryptBlob } from "@/lib/docCrypto";
+import { resolveMime, withRealMime } from "@/lib/docMime";
 import {
   readOfflineDocument,
   removeOfflineDocument,
@@ -47,9 +48,13 @@ export async function uploadDocument(input: {
   const supabase = requireClient();
   const safeName = input.file.name.replace(/[^\w.\-]+/g, "_");
   const path = `${input.tripId}/${crypto.randomUUID()}-${safeName}`;
+  // Phones often hand over a picked file with no type at all; store the
+  // real one so the file opens as a PDF/photo and not an "unknown" download.
+  const mime = await resolveMime(input.file);
+  const body = input.file.type === mime ? input.file : new Blob([input.file], { type: mime });
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(path, input.file, { contentType: input.file.type || undefined });
+    .upload(path, body, { contentType: mime });
   if (uploadError) throw new Error(uploadError.message);
 
   const { error } = await supabase.from("documents").insert({
@@ -82,8 +87,11 @@ export async function updateDocument(
 // ---------- end-to-end lock (Documents PIN) ----------
 
 /** Downloads whatever is stored at a document's path (ciphertext for a locked
- *  document, plaintext otherwise). Online: signed URL; offline: cached copy. */
-async function fetchBytes(doc: Document): Promise<Blob | null> {
+ *  document, plaintext otherwise). Online: signed URL; offline: cached copy.
+ *  An unlocked document's device copy carries an extra vault layer; it is
+ *  peeled here with `key`, or skipped without one, so callers never mistake
+ *  that layer for the file itself. */
+async function fetchBytes(doc: Document, key: CryptoKey | null = null): Promise<Blob | null> {
   if (typeof navigator !== "undefined" && navigator.onLine) {
     try {
       const url = await getDocumentUrl(doc.file_path);
@@ -94,7 +102,14 @@ async function fetchBytes(doc: Document): Promise<Blob | null> {
     }
   }
   const offline = await readOfflineDocument(doc.id);
-  return offline ? offline.blob : null;
+  if (!offline) return null;
+  if (!offline.offlineEncrypted) return offline.blob;
+  if (!key) return null;
+  try {
+    return await decryptBlob(key, offline.blob, offline.mime);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -104,8 +119,9 @@ async function fetchBytes(doc: Document): Promise<Blob | null> {
  */
 export async function protectDocument(doc: Document, key: CryptoKey): Promise<void> {
   const supabase = requireClient();
-  const plain = await fetchBytes(doc);
-  if (!plain) throw new Error("source unavailable");
+  const fetched = await fetchBytes(doc, key);
+  if (!fetched) throw new Error("source unavailable");
+  const plain = await withRealMime(fetched);
   const container = await encryptBlob(key, plain);
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -116,7 +132,7 @@ export async function protectDocument(doc: Document, key: CryptoKey): Promise<vo
     .from("documents")
     .update({
       pin_protected: true,
-      enc_mime: plain.type || "application/octet-stream",
+      enc_mime: plain.type,
     })
     .eq("id", doc.id);
   if (error) throw new Error(error.message);
@@ -128,10 +144,12 @@ export async function unprotectDocument(doc: Document, key: CryptoKey): Promise<
   const supabase = requireClient();
   const container = await fetchBytes(doc);
   if (!container) throw new Error("source unavailable");
-  const plain = await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream");
+  const plain = await withRealMime(
+    await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream")
+  );
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(doc.file_path, plain, { upsert: true, contentType: plain.type || undefined });
+    .upload(doc.file_path, plain, { upsert: true, contentType: plain.type });
   if (uploadError) throw new Error(uploadError.message);
 
   const { error } = await supabase
@@ -149,18 +167,23 @@ export async function decryptDocument(
 ): Promise<Blob | null> {
   const container = await fetchBytes(doc);
   if (!container) return null;
+  let plain: Blob;
   try {
-    return await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream");
+    plain = await decryptBlob(key, container, doc.enc_mime ?? "application/octet-stream");
   } catch {
     return null; // wrong key / corrupt
   }
+  // enc_mime was copied from the stored file's label, which was often empty
+  // on phones; the decrypted bytes say what they really are.
+  return withRealMime(plain, doc.enc_mime);
 }
 
 /**
- * The readable file for sharing (1.4): online or from the device copy,
- * decrypted where needed. "needs-key" when only a vault-encrypted copy is
- * reachable and no key was given. Never sent anywhere by this app; the caller
- * hands it to the phone's own share sheet.
+ * The readable file, for viewing and for sharing (1.4): online or from the
+ * device copy, decrypted where needed and labelled with its real type.
+ * "needs-key" when only a vault-encrypted copy is reachable and no key was
+ * given. Never sent anywhere by this app; the caller shows it in the in-app
+ * viewer or hands it to the phone's own share sheet.
  */
 export async function getPlainDocument(
   doc: Document,
@@ -173,17 +196,17 @@ export async function getPlainDocument(
   if (typeof navigator !== "undefined" && navigator.onLine) {
     try {
       const res = await fetch(await getDocumentUrl(doc.file_path));
-      if (res.ok) return await res.blob();
+      if (res.ok) return withRealMime(await res.blob());
     } catch {
       // fall through to the device copy
     }
   }
   const offline = await readOfflineDocument(doc.id);
   if (!offline) return null;
-  if (!offline.offlineEncrypted) return offline.blob;
+  if (!offline.offlineEncrypted) return withRealMime(offline.blob, offline.mime);
   if (!key) return "needs-key";
   try {
-    return await decryptBlob(key, offline.blob, offline.mime);
+    return withRealMime(await decryptBlob(key, offline.blob, offline.mime), offline.mime);
   } catch {
     return null;
   }
@@ -242,7 +265,8 @@ export async function makeAvailableOffline(
   if (!doc.pin_protected && !key) throw new Error("vault key required");
   const url = await getDocumentUrl(doc.file_path);
   const { fetchWithProgress } = await import("@/lib/offline/docSync");
-  const blob = await fetchWithProgress(url, onPct ?? (() => {}));
+  const fetched = await fetchWithProgress(url, onPct ?? (() => {}));
+  const blob = doc.pin_protected ? fetched : await withRealMime(fetched);
 
   const store = doc.pin_protected ? blob : await encryptBlob(key as CryptoKey, blob);
   await saveOfflineDocument({
@@ -257,43 +281,3 @@ export async function makeAvailableOffline(
 }
 
 export { listOfflineDocumentIds, removeOfflineDocument } from "@/lib/offline/caches";
-
-export type OpenResult = "opened" | "needs-key" | "unavailable";
-
-/**
- * Opens a document: online → fresh signed URL; offline (or fetch failure)
- * → the IndexedDB copy, if the document was flagged for offline.
- *
- * Returns "needs-key" when the only available copy is an encrypted offline
- * one and no vault key was supplied - the caller prompts and retries. Going
- * online never needs the key, so the common path is unchanged.
- */
-export async function openDocument(
-  doc: Document,
-  key: CryptoKey | null = null
-): Promise<OpenResult> {
-  if (typeof navigator === "undefined") return "unavailable";
-  if (navigator.onLine) {
-    try {
-      const url = await getDocumentUrl(doc.file_path);
-      window.open(url, "_blank", "noopener");
-      return "opened";
-    } catch {
-      // fall through to the offline copy
-    }
-  }
-  const offline = await readOfflineDocument(doc.id);
-  if (!offline) return "unavailable";
-
-  let blob = offline.blob;
-  if (offline.offlineEncrypted) {
-    if (!key) return "needs-key";
-    try {
-      blob = await decryptBlob(key, blob, offline.mime);
-    } catch {
-      return "unavailable"; // wrong key or corrupt copy
-    }
-  }
-  window.open(URL.createObjectURL(blob), "_blank", "noopener");
-  return "opened";
-}

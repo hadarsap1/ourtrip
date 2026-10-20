@@ -217,6 +217,8 @@ export const strings = {
     pinShow: "הצגת הסיסמה",
     pinHide: "הסתרת הסיסמה",
     viewerClose: "סגירה",
+    viewerNoPreview: "הדפדפן לא מציג את הקובץ הזה כאן. שומרים אותו ופותחים מההורדות.",
+    viewerSave: "שמירה ופתיחה",
 
     // biometric unlock (WebAuthn)
     bioUnlock: "פתיחה עם זיהוי ביומטרי",
