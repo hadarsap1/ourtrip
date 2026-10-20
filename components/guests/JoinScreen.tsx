@@ -160,7 +160,7 @@ export function JoinScreen({ token }: { token: string }) {
       {phase.kind === "signedIn" && (
         <div className="space-y-3 text-center">
           <h2 className="text-xl font-bold">{strings.join.title}</h2>
-          <p className="text-ink-soft">{strings.join.body}</p>
+          <JoinAbout />
           <button
             type="button"
             className={buttonPrimary}
@@ -193,8 +193,8 @@ export function JoinScreen({ token }: { token: string }) {
         <div className="space-y-4">
           <div className="space-y-1 text-center">
             <h2 className="text-xl font-bold">{strings.join.title}</h2>
-            <p className="text-ink-soft">{strings.join.body}</p>
           </div>
+          <JoinAbout />
           <div className="space-y-1">
             <button type="button" className={buttonPrimary} onClick={() => void withGoogle()}>
               {strings.join.google}
@@ -257,6 +257,24 @@ export function JoinScreen({ token }: { token: string }) {
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** What this is, for a parent who scanned a sticker from a classmate. */
+function JoinAbout() {
+  return (
+    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-4 text-start">
+      <p className="text-sm text-ink">{strings.join.aboutIntro}</p>
+      <ul className="space-y-1.5">
+        {strings.join.aboutItems.map((item) => (
+          <li key={item.text} className="flex items-start gap-2 text-sm text-ink">
+            <span aria-hidden="true">{item.icon}</span>
+            <span>{item.text}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-ink-soft">{strings.join.aboutPrivacy}</p>
     </div>
   );
 }

@@ -1640,6 +1640,17 @@ export const strings = {
   join: {
     title: "רוצים לעקוב אחרי הטיול?",
     body: "סיפורים, תמונות והפודקאסט של הילדים מהדרך. נרשמים פעם אחת, ואחרי שנאשר תקבלו גישה.",
+    // for a parent who scanned the sticker and has no idea what this is (Hadar 20/10/2026).
+    // The page is open to anyone with the link: no kids' names, no places or dates.
+    aboutIntro: "אנחנו משפחת סו - הדר, סיון והילדים - יוצאים לטיול של כמה חודשים מסביב לעולם. בנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
+    aboutItems: [
+      { icon: "📖", text: "סיפורים מהדרך - מה ראינו ומה עשינו" },
+      { icon: "📷", text: "תמונות מהטיול" },
+      { icon: "🎙️", text: "הפודקאסט של הילדים - פרקים קצרים מהדרך" },
+      { icon: "🗺️", text: "מפה של איפה היינו" },
+      { icon: "💬", text: "קיר הודעות - אפשר לכתוב לילדים, והם קוראים" },
+    ],
+    aboutPrivacy: "רק מי שאישרנו רואה את התוכן. בלי פרסומות ובלי עלות.",
     google: "הצטרפות עם Google",
     googleHint: "הכי מהיר - לחיצה אחת, בלי להקליד",
     or: "או עם מייל",
