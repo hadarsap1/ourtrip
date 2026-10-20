@@ -159,16 +159,6 @@ export function GuestsAdminScreen() {
     }
   }
 
-  async function resetLink() {
-    if (!trip || !(await askConfirm(strings.guests.joinResetConfirm))) return;
-    try {
-      setToken(await getJoinToken(trip.id, true));
-      showToast(strings.guests.joinResetDone);
-    } catch {
-      showToast(strings.common.error);
-    }
-  }
-
   const closeAndRefresh = () => {
     setSheet(null);
     if (trip) void refresh(trip.id).catch(() => {});
@@ -193,7 +183,10 @@ export function GuestsAdminScreen() {
           <p className="truncate rounded-xl bg-paper-deep px-3 py-2 text-xs text-ink-soft" dir="ltr">
             {link}
           </p>
-          {/* share gets its own row: three buttons in one row clipped its label at 390px */}
+          {/* share gets its own row: three buttons in one row clipped its label at 390px.
+              No "new link" button: the link is printed on stickers (Hadar 20/10/2026)
+              and must not change by a tap. If it ever leaks, reset it in the SQL
+              editor: update guest_join_links set token = guest_join_new_token(). */}
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -211,16 +204,9 @@ export function GuestsAdminScreen() {
                   .then(() => showToast(strings.guests.copied))
                   .catch(() => {});
               }}
-              className="rounded-xl border border-line px-3 py-2.5 text-sm font-semibold text-ink-soft"
+              className="col-span-2 rounded-xl border border-line px-3 py-2.5 text-sm font-semibold text-ink-soft"
             >
               <ClipboardIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.joinCopy}
-            </button>
-            <button
-              type="button"
-              onClick={() => void resetLink()}
-              className="rounded-xl border border-line px-3 py-2.5 text-sm font-semibold text-ink-soft"
-            >
-              {strings.guests.joinReset}
             </button>
           </div>
         </section>

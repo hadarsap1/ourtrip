@@ -116,12 +116,11 @@ export async function revokeGuest(tripId: string, email: string): Promise<void> 
 
 // ---------- join link (00054) ----------
 
-/** The trip's join token (created on first call). reset = a new link; the
- *  old one stops working. Owner-only (checked in the function). */
-export async function getJoinToken(tripId: string, reset = false): Promise<string> {
+/** The trip's join token (created on first call). Never reset from the app:
+ *  the link is printed on stickers. Owner-only (checked in the function). */
+export async function getJoinToken(tripId: string): Promise<string> {
   const { data, error } = await requireClient().rpc("guest_join_token", {
     p_trip_id: tripId,
-    p_reset: reset,
   });
   if (error) throw new Error(error.message);
   return data;
