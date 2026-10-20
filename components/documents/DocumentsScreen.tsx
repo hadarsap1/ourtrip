@@ -23,13 +23,11 @@ import {
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   DOCUMENT_TAGS,
-  decryptDocument,
   listDocuments,
   listOfflineDocumentIds,
   makeAvailableOffline,
   getPlainDocument,
   documentDetailsText,
-  openDocument,
   protectDocument,
   removeOfflineDocument,
   unprotectDocument,
@@ -49,6 +47,7 @@ import {
 import { isPasskeySupported } from "@/lib/webauthn";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { documentFileName } from "@/lib/docMime";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { isEnabled } from "@/lib/flags";
 import { useOfflineStatus } from "@/components/OfflineBanner";
@@ -104,7 +103,7 @@ export function DocumentsScreen() {
   const [pinSheet, setPinSheet] = useState<{ mode: "set" | "enter"; reason?: string } | null>(null);
   const [lockingIds, setLockingIds] = useState<Set<string>>(new Set());
   const [lockProgress, setLockProgress] = useState<{ done: number; total: number } | null>(null);
-  const [viewer, setViewer] = useState<{ url: string; mime: string } | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; mime: string; file: File } | null>(null);
   const pendingRef = useRef<((key: CryptoKey) => void) | null>(null);
 
   // Biometric unlock (WebAuthn): which devices are enrolled, and whether this
@@ -311,15 +310,25 @@ export function DocumentsScreen() {
 
   // Online needs no vault key, so try that first and only prompt when the
   // encrypted offline copy turns out to be the only copy available (M2).
+  // Every document opens in the in-app viewer as a blob labelled with its real
+  // type; handing the phone a raw Storage link or an unlabelled blob is what
+  // made files arrive as "unknown".
   async function handleOpen(doc: Document, key: CryptoKey | null = null) {
-    const result = await openDocument(doc, key);
-    if (result === "opened") return;
+    const result = await getPlainDocument(doc, key ?? (trip ? getVaultKey(trip.id) : null));
     if (result === "needs-key") {
       withKey((k) => void handleOpen(doc, k), "open");
       return;
     }
-    showToast(strings.documents.openFailed);
+    if (!result) {
+      showToast(strings.documents.openFailed);
+      return;
+    }
+    const file = new File([result], documentFileName(doc.title, result.type), {
+      type: result.type,
+    });
+    setViewer({ url: URL.createObjectURL(file), mime: file.type, file });
   }
+
 
   // Binds this device's authenticator to the vault. Only reachable while the
   // vault is open - the key has to be in memory to be wrapped.
@@ -397,23 +406,9 @@ export function DocumentsScreen() {
       showToast(strings.documents.openFailed);
       return;
     }
-    const ext = (result.type.split("/")[1] ?? "bin").replace("jpeg", "jpg");
-    const file = new File([result], `${doc.title}.${ext}`, { type: result.type });
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: doc.title });
-        return;
-      }
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
-    }
-    // No file sharing on this browser: save it instead.
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    await shareFile(
+      new File([result], documentFileName(doc.title, result.type), { type: result.type })
+    );
   }
 
   async function copyDoc(doc: Document) {
@@ -510,17 +505,7 @@ export function DocumentsScreen() {
       void handleOpen(doc);
       return;
     }
-    withKey((key) =>
-      void (async () => {
-        const blob = await decryptDocument(doc, key);
-        if (!blob) {
-          showToast(strings.documents.openFailed);
-          return;
-        }
-        setViewer({ url: URL.createObjectURL(blob), mime: blob.type });
-      })(),
-      "open"
-    );
+    withKey((key) => void handleOpen(doc, key), "open");
   }
 
   if (loading) {
@@ -853,7 +838,14 @@ export function DocumentsScreen() {
 
       {viewer && (
         <div className="fixed inset-0 z-[80] flex flex-col bg-black/90">
-          <div className="flex justify-end p-3">
+          <div className="flex justify-between gap-2 p-3">
+            <button
+              type="button"
+              onClick={() => void shareFile(viewer.file)}
+              className="min-h-[44px] rounded-full bg-sea px-4 py-2 text-sm font-semibold text-on-sea"
+            >
+              {s.viewerShare}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -866,15 +858,30 @@ export function DocumentsScreen() {
             </button>
           </div>
           <div className="flex-1 overflow-auto p-2">
-            {viewer.mime.startsWith("image/") ? (
+            {viewer.mime.startsWith("image/") && viewer.mime !== "image/heic" && viewer.mime !== "image/heif" ? (
               // eslint-disable-next-line @next/next/no-img-element -- decrypted blob URL
               <img
                 src={viewer.url}
                 alt=""
                 className="mx-auto max-h-full max-w-full object-contain"
               />
-            ) : (
+            ) : viewer.mime === "application/pdf" && canShowPdfInline() ? (
               <iframe src={viewer.url} title="document" className="h-full w-full rounded-lg bg-surface" />
+            ) : (
+              // Android Chrome has no built-in PDF viewer: an iframe there
+              // silently downloads the blob with no name or extension. Save it
+              // under its real name instead, so the phone's own viewer opens it.
+              <div className="mx-auto mt-10 flex max-w-sm flex-col items-center gap-4 rounded-2xl bg-surface p-6 text-center">
+                <p className="text-sm text-ink">{s.viewerNoPreview}</p>
+                <a
+                  href={viewer.url}
+                  download={viewer.file.name}
+                  className="min-h-[44px] rounded-full bg-sea px-5 py-2.5 text-sm font-semibold text-on-sea"
+                >
+                  {s.viewerSave}
+                </a>
+                <p className="break-all text-xs text-ink-muted" dir="auto">{viewer.file.name}</p>
+              </div>
             )}
           </div>
         </div>
@@ -1151,4 +1158,34 @@ function DocStatusPanel({
       ))}
     </div>
   );
+}
+
+// Desktop browsers and iOS Safari render a PDF inside an iframe; Android
+// Chrome reports pdfViewerEnabled = false and would download it instead.
+function canShowPdfInline(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { pdfViewerEnabled?: boolean };
+  return nav.pdfViewerEnabled !== false;
+}
+
+// The phone's own share sheet, or a plain save where files can't be shared.
+// The viewer's button calls this on a fresh tap, so the sheet is allowed even
+// where the async open lost the original gesture. On iPhone it is the way to a
+// full-screen preview, "Save to Files" or Books, which an inline PDF frame
+// (first page only, no zoom in the home-screen app) does not give.
+async function shareFile(file: File): Promise<void> {
+  try {
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: file.name });
+      return;
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
