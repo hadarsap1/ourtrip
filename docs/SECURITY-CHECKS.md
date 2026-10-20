@@ -2168,3 +2168,34 @@ rolled-back transaction: as a kid, 0 rows deleted among approved messages
 (`messages_kid_delete_pending` covers only their own pending ones); as a
 guest, 0 rows (no delete policy). As a kid, both approved wall messages,
 the guest's included, are readable (`messages_kid_select`).
+
+## Documents open by their real type; double-locked files recovered - 20/10/2026
+
+PRs #130, #131, #132. No schema, policy, bucket or migration change: the
+`documents` table and bucket stay owner-only (00001, 00005; kid sharing was
+dropped in 00049), `document_pin` stays owner-only (00015). Reviewed the
+client-side vault after the changes:
+
+- Ciphertext at rest unchanged. A locked file is still uploaded only as
+  `encryptBlob` output; locking now strips stray vault layers first, so a file
+  ends with exactly one layer, never zero. `peelVaultLayers` decrypts only
+  with the caller's own vault key, and AES-GCM fails on anything that is not
+  ciphertext under that key, so it can neither alter a real file nor open
+  another key's data. Tests: `lib/peelVaultLayers.test.ts`.
+- Offline copies unchanged: unlocked documents are still stored encrypted
+  under the vault key; the new offline fallback in `fetchBytes` decrypts in
+  memory only, and returns nothing without the key.
+- Fewer exposures: opening no longer hands the phone a signed Storage URL
+  (`window.open`), so no URL lands in browser history or a new tab; the
+  decrypted bytes live in an object URL revoked when the viewer closes.
+- Upload sets `contentType` from the file header; it is metadata on a private
+  bucket and grants nothing.
+- An unlocked row whose bytes are not a known file asks for the passphrase;
+  a wrong one opens nothing.
+- The new error toast shows only an error's name and message (Storage/fetch
+  errors), never file bytes, keys or URLs.
+
+X Residual, not new: "שמירה ופתיחה" (Android) and "שמירה או שיתוף" write the
+decrypted file outside the vault (Downloads, Files, a share target), as the
+existing share action already did. Once saved there, it is protected only by
+the phone's own lock.

@@ -115,6 +115,8 @@ export const strings = {
     deleteConfirm: "למחוק את המסמך? גם העותק במכשיר יימחק",
     open: "פתיחת מסמך",
     openFailed: "אין עותק שמור של המסמך במכשיר",
+    opening: "פותח את המסמך…",
+    openError: "המסמך לא נפתח: {reason}",
     offlineToggle: "זמין ללא אינטרנט",
     offlineSaved: "המסמך נשמר במכשיר",
     // vault status card

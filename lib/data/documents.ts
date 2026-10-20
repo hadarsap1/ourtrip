@@ -84,6 +84,20 @@ export async function updateDocument(
   if (error) throw new Error(error.message);
 }
 
+/** A download that gives up instead of hanging on a weak connection, so the
+ *  caller falls back to the device copy or reports the failure. The timer
+ *  covers the body too - a stalled body hangs as surely as a stalled request. */
+async function fetchBlobTimed(url: string, ms = 30_000): Promise<Blob | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    return res.ok ? await res.blob() : null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---------- end-to-end lock (Documents PIN) ----------
 
 /**
@@ -119,9 +133,8 @@ export async function peelVaultLayers(
 async function fetchBytes(doc: Document, key: CryptoKey | null = null): Promise<Blob | null> {
   if (typeof navigator !== "undefined" && navigator.onLine) {
     try {
-      const url = await getDocumentUrl(doc.file_path);
-      const res = await fetch(url);
-      if (res.ok) return await res.blob();
+      const blob = await fetchBlobTimed(await getDocumentUrl(doc.file_path));
+      if (blob) return blob;
     } catch {
       // fall through to the offline copy
     }
@@ -224,9 +237,8 @@ export async function getPlainDocument(
   }
   if (typeof navigator !== "undefined" && navigator.onLine) {
     try {
-      const res = await fetch(await getDocumentUrl(doc.file_path));
-      if (res.ok) {
-        const blob = await res.blob();
+      const blob = await fetchBlobTimed(await getDocumentUrl(doc.file_path));
+      if (blob) {
         // Not a known file: most likely an unlocked row over a file that is
         // still vault ciphertext (a lock or unlock that stopped halfway).
         // Ask for the key and peel it.
