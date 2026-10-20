@@ -16,7 +16,7 @@ import {
 } from "@/lib/data/messages";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
-import { MessagesIcon } from "@/components/icons";
+import { MessagesIcon, TrashIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
@@ -209,20 +209,39 @@ export function MessagesScreen() {
                     : "me-auto bg-surface text-ink"
                 } ${pending ? "border-2 border-dashed border-sun-deep" : ""}`}
               >
-                <p
-                  className={`text-xs font-semibold ${
-                    mine ? "text-sea-tint" : "text-sea"
-                  }`}
-                >
-                  {senderName(message.sender_id)}
-                  <span
-                    className={`ms-1.5 font-normal ${
-                      mine ? "text-sea-tint" : "text-ink-soft"
+                <div className="flex items-start gap-2">
+                  <p
+                    className={`flex-1 text-xs font-semibold ${
+                      mine ? "text-sea-tint" : "text-sea"
                     }`}
                   >
-                    {formatShortDate(message.created_at.slice(0, 10))}
-                  </span>
-                </p>
+                    {senderName(message.sender_id)}
+                    <span
+                      className={`ms-1.5 font-normal ${
+                        mine ? "text-sea-tint" : "text-ink-soft"
+                      }`}
+                    >
+                      {formatShortDate(message.created_at.slice(0, 10))}
+                    </span>
+                  </p>
+                  {/* a parent deletes any message once it is out (messages_owner_all);
+                      a pending one keeps its own "לא לשלוח" below */}
+                  {isOwner && !pending && (
+                    <button
+                      type="button"
+                      aria-label={strings.wall.remove}
+                      onClick={async () => {
+                        if (!(await askConfirm(strings.wall.removeConfirm))) return;
+                        act(() => deleteMessage(message.id).then(() => showToast(strings.wall.removed)));
+                      }}
+                      className={`-me-1.5 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                        mine ? "text-sea-tint active:bg-on-sea/15" : "text-ink-soft active:bg-paper-deep"
+                      }`}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
                 {pending && (
                   <div className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold ${soft}`}>
