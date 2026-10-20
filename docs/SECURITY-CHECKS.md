@@ -2157,3 +2157,14 @@ numbers on the More tiles are `head: true` counts of rows with
 for a member whose role is owner (More) or on the parents' home (Today);
 `guest_join_requests` is owner-only by policy (00054), so a kid or guest
 would read 0 there even if the code asked. No row content is fetched.
+
+## Wall: kids' tile, parents delete any message - 20/10/2026
+
+No schema or policy change. The kid home gets a wall tile (link + unread
+count). Parents get a delete button on every message already out, using the
+existing `messages_owner_all`; `message_reads` cascade (00049) and
+`comments.origin_message_id` is set null (00045). Checked live, each inside a
+rolled-back transaction: as a kid, 0 rows deleted among approved messages
+(`messages_kid_delete_pending` covers only their own pending ones); as a
+guest, 0 rows (no delete policy). As a kid, both approved wall messages,
+the guest's included, are readable (`messages_kid_select`).

@@ -46,6 +46,7 @@ import { strings } from "@/lib/strings";
 import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
+import { useUnreadWall } from "@/lib/useUnreadWall";
 import type { Booking, ItineraryItem, Trip } from "@/lib/types";
 
 /** Tonight's bed: the lodging booking covering today, if there is one. */
@@ -212,6 +213,8 @@ export function TodayScreen() {
   // and rendering the dashboard before this settles would flash the empty card
   // for a moment before the countdown replaced it.
   const [tripChecked, setTripChecked] = useState(false);
+  // the kids' wall tile shows new messages (0 and no work for owners)
+  const unreadWall = useUnreadWall();
   // Re-derives "next up" and the current agenda row as the day moves on.
   const [now, setNow] = useState(() => minutesNow());
   const [clock, setClock] = useState(() => new Date());
@@ -316,7 +319,10 @@ export function TodayScreen() {
 
   // ---------- kid home variant (SPEC 2.1) ----------
   if (member?.role === "kid") {
-    const kidTiles = [
+    // The wall leads: friends write there, and the kids missed it behind the
+    // bottom tab alone (Hadar 20/10/2026).
+    const kidTiles: { href: string; Icon: typeof RouteIcon; label: string; badge?: number }[] = [
+      { href: "/messages", Icon: MessagesIcon, label: strings.kidHome.tileWall, badge: unreadWall },
       { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
       { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
       { href: "/stories", Icon: StoryIcon, label: strings.kidHome.tileStories },
@@ -422,8 +428,13 @@ export function TodayScreen() {
               href={tile.href}
               className="flex flex-col items-center gap-2 rounded-[18px] border border-line bg-surface p-4 active:bg-sea-tint/50"
             >
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-sea-tint text-sea-deep">
+              <span className="relative grid h-10 w-10 place-items-center rounded-xl bg-sea-tint text-sea-deep">
                 <tile.Icon className="h-[22px] w-[22px]" />
+                {tile.badge ? (
+                  <span className="absolute -end-2 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
+                    {tile.badge > 9 ? "9+" : tile.badge}
+                  </span>
+                ) : null}
               </span>
               <span className="text-sm font-semibold text-ink">{tile.label}</span>
             </Link>

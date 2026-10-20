@@ -1564,6 +1564,10 @@ export const strings = {
     takeBack: "ביטול",
     takeBackConfirm: "לבטל את ההודעה?",
     sentForApproval: "נשלח לאישור של אמא או אבא",
+    // a parent removes any message, already out or not (Hadar 20/10/2026)
+    remove: "מחיקת ההודעה",
+    removeConfirm: "למחוק את ההודעה מהקיר? היא תיעלם אצל כולם",
+    removed: "ההודעה נמחקה",
   },
 
   guests: {
@@ -1697,6 +1701,8 @@ export const strings = {
     tileStories: "סיפורים",
     tilePodcast: "הפודקאסט שלנו",
     tileRoute: "לאן ממשיכים?",
+    // the same wall as the bottom tab, first on the home (Hadar 20/10/2026)
+    tileWall: "הודעות מהחברים",
   },
 
   journal: {
