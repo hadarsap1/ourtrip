@@ -2137,3 +2137,13 @@ X 40 bits is far less than the old 122. Guessing a live token stays out of
 reach (there is one per trip), and a correct guess only puts a request in
 front of the parents. Links posted before this keep the long token until a
 parent presses "קישור חדש".
+
+## Join link locked: no "new link" button - 20/10/2026
+
+The join link is printed on stickers, so the app no longer offers a reset
+(button, strings and the `reset` argument of `getJoinToken` removed). No
+policy change: `guest_join_token` still refuses non-parents, and a parent can
+still pass `p_reset` through the API, so this is a guard against an accidental
+tap, not a permission. Test `lib/joinLinkStable.test.ts` fails the build if
+`/j/:token` stops redirecting to `/join/:token`. Reset if the link ever leaks:
+`update guest_join_links set token = guest_join_new_token();` in the SQL editor.
