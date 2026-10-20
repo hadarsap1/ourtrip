@@ -2215,3 +2215,27 @@ changed:
 - The `trip_id=eq.<id>` filters on messages/reactions/comments narrow what is
   delivered; they grant nothing - RLS still decides per subscriber.
 - `markRead` writes the same rows as before, just once per message per device.
+
+## RLS evaluated once per query, not per row (00059) - 20/10/2026
+
+Same rules, cheaper evaluation, for the policies a crowd of readers hits:
+messages, posts, episodes, reactions, comments (USING of reads, and the
+owners' FOR ALL). `is_owner_of / is_kid_of / is_active_guest_of(trip_id)` per
+row became `trip_id = (select member_trip_as(role))` / `(select
+active_guest_trip())`, run once per query; `feedback_target_visible()` per row
+became an uncorrelated `(target, trip_id) in (select id, trip_id from
+posts|episodes)`, still under the caller's own posts/episodes RLS. INSERT
+checks unchanged. Measured as one guest on a 100-member copy: likes 1628 ms →
+12 ms, wall 300 → 5 ms, comments 314 → 11 ms.
+
+- New probe `scripts/rls/probes/59_rls_once_per_query.sql`: for owner, kid,
+  guest, revoked guest, outsider and anon, the rows visible on all five
+  tables equal the pre-00059 predicates exactly (two trips, family/guests/
+  public/draft stories, shared/unshared/pending episodes, kid pending and
+  family-channel messages, a like and a comment on every target). Kid can
+  take back own pending message, cannot delete an approved one.
+- Full suite: 245 PASS, 0 FAIL.
+- The probe caught one regression before it shipped: the helpers were first
+  revoked from anon, which made an anon read of a public story error (the
+  owners' FOR ALL policies apply to every role). Granted to anon; both return
+  null without a member, like the functions they stand in for.
