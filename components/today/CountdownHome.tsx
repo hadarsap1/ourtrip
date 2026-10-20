@@ -26,6 +26,7 @@ import { todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { isEnabled } from "@/lib/flags";
 import { PreTripHome } from "./PreTripHome";
+import { PendingApprovalsCard } from "./PendingApprovalsCard";
 import type { Trip } from "@/lib/types";
 
 // The home screen between now and departure.
@@ -131,6 +132,8 @@ export function CountdownHome({ trip }: { trip: Trip }) {
           </p>
         )}
       </header>
+
+      <PendingApprovalsCard tripId={trip.id} />
 
       {/* ---- what still has to be booked ---- */}
       {checklist && checklist.total > 0 && (

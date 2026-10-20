@@ -619,6 +619,15 @@ export const strings = {
     importFailed: "לא הצלחנו לקרוא את הקובץ",
   },
 
+  // what is waiting for a parent, across screens (Hadar 20/10/2026)
+  approvals: {
+    title: "ממתינים לאישורך ({n})",
+    stories: "סיפורים",
+    photos: "תמונות",
+    episodes: "פרקי פודקאסט",
+    guestRequests: "בקשות הצטרפות",
+    waiting: "‏{n} ממתינים",
+  },
   more: {
     menuChecklists: "רשימות",
     menuEmergency: "דף חירום",
@@ -1973,13 +1982,14 @@ export const strings = {
     galleryDone: "סיום",
     removePhoto: "הסרת התמונה",
     audienceLabel: "מי יראה את זה",
-    audienceFamily: "משפחה",
-    audienceGuests: "אורחים",
+    // renamed 20/10/2026: "משפחה" read as including grandparents; it is only the four of us
+    audienceFamily: "רק אנחנו",
+    audienceGuests: "משפחה וחברים",
     audiencePublic: "כולם",
-    audienceFamilyHint: "רק אתם והילדים",
-    audienceGuestsHint: "כל מי שהוזמן לפורטל",
+    audienceFamilyHint: "רק ההורים והילדים",
+    audienceGuestsHint: "אנחנו וכל מי שאישרנו: סבים, משפחה, חברים, הכיתה",
     audiencePublicHint: "כל מי שיש לו את הקישור. בלי כתובות, בלי שמות מלאים, בלי בית ספר",
-    publicKidBlocked: "סיפור שילד כתב יכול להגיע לאורחים, לא לכולם",
+    publicKidBlocked: "סיפור שילד כתב יכול להגיע למשפחה וחברים, לא לכולם",
     publishAfter: "לפרסם רק אחרי שעזבנו",
     publishAfterLabel: "מתי לפרסם",
     sharePhotos: "לשתף גם את התמונות שבסיפור עם האורחים",

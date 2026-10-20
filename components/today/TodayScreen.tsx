@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CountdownHome } from "./CountdownHome";
+import { PendingApprovalsCard } from "./PendingApprovalsCard";
 import { InTripNow } from "./InTripNow";
 import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
@@ -512,6 +513,11 @@ export function TodayScreen() {
         {v2 && (
           <div className="mb-2.5 lg:col-span-3">
             <IosInstallHint />
+          </div>
+        )}
+        {trip && (
+          <div className="mb-2.5 empty:hidden lg:col-span-3">
+            <PendingApprovalsCard tripId={trip.id} />
           </div>
         )}
         {result?.fromCache && (
