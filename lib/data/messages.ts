@@ -74,19 +74,26 @@ export async function deleteMessage(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// Ids this device already sent a read row for. The wall re-marks on every
+// change it shows, and with many people writing, upserting the whole wall each
+// time was one write per message per reader per change.
+const markedRead = new Set<string>();
+
 /** Marks the given messages read for this member (upsert = idempotent). */
 export async function markRead(
   memberId: string,
   messageIds: string[]
 ): Promise<void> {
-  if (messageIds.length === 0) return;
+  const fresh = messageIds.filter((id) => !markedRead.has(`${memberId}:${id}`));
+  if (fresh.length === 0) return;
   const { error } = await requireClient()
     .from("message_reads")
     .upsert(
-      messageIds.map((id) => ({ message_id: id, member_id: memberId })),
+      fresh.map((id) => ({ message_id: id, member_id: memberId })),
       { onConflict: "message_id,member_id", ignoreDuplicates: true }
     );
   if (error) throw new Error(error.message);
+  for (const id of fresh) markedRead.add(`${memberId}:${id}`);
 }
 
 /** Unread badge count: wall messages without an own read row (excl. own). */
@@ -113,18 +120,81 @@ export async function countUnread(
   return unreadCount(msgs ?? [], new Set((reads ?? []).map((r) => r.message_id)), memberId);
 }
 
-export function subscribeMessages(onChange: () => void): () => void {
+/** One wall change as realtime delivers it - already filtered by the reader's RLS. */
+export type WallChange = {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: Partial<WallMessage>;
+  old: Partial<WallMessage>;
+};
+
+/** Whether a realtime change carries enough to apply without a refetch. */
+export function canApplyWallChange(change: WallChange): boolean {
+  if (change.eventType === "DELETE") return Boolean(change.old.id);
+  return Boolean(change.new.id && change.new.created_at);
+}
+
+/**
+ * Applies a realtime change to the wall on screen, so a new message costs each
+ * reader nothing but the event. Refetching the whole wall on every change made
+ * N writers cost N x readers queries. Check canApplyWallChange first.
+ */
+export function applyWallChange(list: WallMessage[], change: WallChange): WallMessage[] {
+  if (!canApplyWallChange(change)) return list;
+  if (change.eventType === "DELETE") return list.filter((m) => m.id !== change.old.id);
+  const row = change.new as WallMessage;
+  if (row.channel !== WALL_CHANNEL) return list;
+  const rest = list.filter((m) => m.id !== row.id);
+  rest.push(row);
+  return rest.sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+// Every screen and badge that watches the wall shares one channel: the tab
+// bar, the side rail, the home tile and the wall itself used to open one each,
+// and every message was delivered (and RLS-checked) once per channel.
+type WallListener = (change: WallChange) => void;
+const wallListeners = new Set<WallListener>();
+let wall: { tripId: string; close: () => void } | null = null;
+
+function openWallChannel(tripId: string): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
+  const deliver = (payload: unknown) => {
+    const change = payload as WallChange;
+    for (const listener of [...wallListeners]) listener(change);
+  };
   const channel = supabase
     .channel(realtimeTopic("messages-sync"))
+    // only this trip's rows; DELETE cannot be filtered server-side, and its
+    // payload carries the id alone, so it stays unfiltered
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "messages" },
-      onChange
+      { event: "INSERT", schema: "public", table: "messages", filter: `trip_id=eq.${tripId}` },
+      deliver
     )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "messages", filter: `trip_id=eq.${tripId}` },
+      deliver
+    )
+    .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, deliver)
     .subscribe();
   return () => {
     void supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeMessages(tripId: string, onChange: WallListener): () => void {
+  if (wall && wall.tripId !== tripId) {
+    wall.close();
+    wall = null;
+  }
+  wall ??= { tripId, close: openWallChannel(tripId) };
+  wallListeners.add(onChange);
+  return () => {
+    wallListeners.delete(onChange);
+    if (wallListeners.size === 0 && wall) {
+      wall.close();
+      wall = null;
+    }
   };
 }

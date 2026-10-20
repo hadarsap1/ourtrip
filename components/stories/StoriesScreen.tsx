@@ -88,7 +88,7 @@ export function StoriesScreen() {
         if (!cancelled) setLoading(false);
       }
       if (cancelled) return;
-      unsubscribe = subscribeFeedback(() => void loadFeedback(activeTrip.id));
+      unsubscribe = subscribeFeedback(activeTrip.id, () => void loadFeedback(activeTrip.id));
     })();
     return () => {
       cancelled = true;

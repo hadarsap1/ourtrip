@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
+  applyWallChange,
   approveMessage,
+  canApplyWallChange,
   deleteMessage,
   isPending,
   listMessages,
@@ -18,6 +20,7 @@ import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
 import { MessagesIcon, TrashIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { spreadDelay } from "@/lib/realtimeTopic";
 import { useMember } from "@/lib/useMember";
 import type { Member, Trip } from "@/lib/types";
 
@@ -80,11 +83,22 @@ export function MessagesScreen() {
       // The screen may have closed during the awaits above: subscribing now
       // would leave a channel no cleanup ever removes.
       if (cancelled) return;
-      unsubscribe = subscribeMessages(() => {
+      // A change is applied from its payload; only one that cannot be (no
+      // row in it) costs a refetch, spread out so a crowd of readers does not
+      // ask at the same instant.
+      unsubscribe = subscribeMessages(activeTrip.id, (change) => {
+        if (canApplyWallChange(change)) {
+          setMessages((list) => applyWallChange(list, change));
+          const row = change.new;
+          if (change.eventType !== "DELETE" && row.id && row.sender_id !== member.id) {
+            void markRead(member.id, [row.id]).catch(() => {});
+          }
+          return;
+        }
         if (debounce) clearTimeout(debounce);
         debounce = setTimeout(() => {
           void refresh(activeTrip.id, member.id).catch(() => {});
-        }, 200);
+        }, spreadDelay(200));
       });
     })();
 

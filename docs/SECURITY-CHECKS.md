@@ -2199,3 +2199,19 @@ X Residual, not new: "שמירה ופתיחה" (Android) and "שמירה או ש
 decrypted file outside the vault (Downloads, Files, a share target), as the
 existing share action already did. Once saved there, it is protected only by
 the phone's own lock.
+
+## Wall at scale: shared realtime channel, payload apply, members index (00058) - 20/10/2026
+
+Load-test prep (100 concurrent readers/writers). No policy, grant or function
+changed:
+
+- 00058 adds an index on `members(auth_user_id)` only. `current_member_id()`
+  and every policy that resolves through it are untouched.
+- The wall now applies realtime payloads instead of refetching. Realtime
+  delivers `postgres_changes` only for rows the subscriber's RLS lets them
+  select, so a guest still never receives a kid's pending message: the payload
+  path shows exactly what `listMessages` would. DELETE events carry the id
+  alone (no content), as before.
+- The `trip_id=eq.<id>` filters on messages/reactions/comments narrow what is
+  delivered; they grant nothing - RLS still decides per subscriber.
+- `markRead` writes the same rows as before, just once per message per device.
