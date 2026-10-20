@@ -1621,8 +1621,14 @@ export const strings = {
     approvedAll: "אושרו {ok} מתוך {total}",
     // approved, but guest-invite could not email the sign-in link
     unsentTitle: "אושר - נשאר לשלוח קישור",
-    unsentBody: "המייל עם קישור הכניסה לא נשלח. שלחו את הקישור בוואטסאפ - בלי זה לא ידעו שאושרו. מי שנרשם עם Google יכול גם פשוט להיכנס לאפליקציה.",
-    unsentShareText: "אושרת! נכנסים ל\"סו-בב עולם!\" כאן 🌍\n{url}",
+    unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
+    // after approval, by WhatsApp (Hadar 20/10/2026). Google: the app's address,
+    // nothing expires. Typed email: the personal sign-in link, which expires.
+    approvedGoogleText:
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nנכנסים כאן עם חשבון ה-Google שלך ({email}):\n{url}",
+    approvedLinkText:
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה קישור הכניסה האישי שלך. הוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+    viaGoogleShort: "Google",
     declined: "הבקשה נדחתה",
     declineConfirm: "לדחות את הבקשה? הפונה לא יקבל הודעה על כך",
     viaGoogle: "מאומת דרך Google",

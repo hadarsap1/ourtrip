@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { joinUrl, nameFromGoogle, parseJoinInfo, parseSubmitResult } from "./guestJoin";
+import { approvedShareText, joinUrl, nameFromGoogle, parseJoinInfo, parseSubmitResult } from "./guestJoin";
 
 describe("joinUrl", () => {
   it("joins origin and token without a double slash", () => {
@@ -32,5 +32,23 @@ describe("nameFromGoogle", () => {
   });
   it("falls back to the address", () => {
     expect(nameFromGoogle({}, "savta@x.com")).toBe("savta");
+  });
+});
+
+describe("approvedShareText", () => {
+  const base = { name: " סבתא רחל ", email: "savta@example.com", link: "https://x.supabase.co/auth/v1/verify?token=t" };
+
+  it("a Google sign-up gets the app's address and their account, never the expiring link", () => {
+    const text = approvedShareText({ ...base, viaGoogle: true }, "https://ourtrip-umber.vercel.app/");
+    expect(text).toContain("היי סבתא רחל!");
+    expect(text).toContain("savta@example.com");
+    expect(text).toContain("https://ourtrip-umber.vercel.app/");
+    expect(text).not.toContain(base.link);
+  });
+
+  it("a typed address gets the personal link", () => {
+    const text = approvedShareText({ ...base, viaGoogle: false }, "https://ourtrip-umber.vercel.app");
+    expect(text).toContain("היי סבתא רחל!");
+    expect(text).toContain(base.link);
   });
 });

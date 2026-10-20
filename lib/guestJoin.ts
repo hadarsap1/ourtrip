@@ -17,6 +17,25 @@ export function joinShareText(url: string): string {
   return strings.guests.joinShareText.replace("{url}", url);
 }
 
+/** Someone a parent just approved, whose email did not go out. */
+export type ApprovedGuest = { name: string; email: string; link: string; viaGoogle: boolean };
+
+/**
+ * The WhatsApp message after approval. A Google sign-up gets the app's address
+ * (they sign in with Google - nothing to expire); a typed address gets its
+ * personal sign-in link, which expires, so the message says to tap it now.
+ */
+export function approvedShareText(guest: ApprovedGuest, origin: string): string {
+  const name = guest.name.trim();
+  if (guest.viaGoogle) {
+    return strings.guests.approvedGoogleText
+      .replace("{name}", name)
+      .replace("{email}", guest.email)
+      .replace("{url}", `${origin.replace(/\/+$/, "")}/`);
+  }
+  return strings.guests.approvedLinkText.replace("{name}", name).replace("{url}", guest.link);
+}
+
 /** What guest_join_info returned, narrowed; anything unexpected is invalid. */
 export function parseJoinInfo(raw: unknown): JoinInfo {
   const obj = (raw ?? {}) as { valid?: unknown; status?: unknown };

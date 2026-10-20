@@ -17,7 +17,7 @@ import {
   type GuestAllowlistRow,
   type JoinRequestRow,
 } from "@/lib/data/guests";
-import { joinShareText, joinUrl } from "@/lib/guestJoin";
+import { approvedShareText, joinShareText, joinUrl, type ApprovedGuest } from "@/lib/guestJoin";
 import { useMember } from "@/lib/useMember";
 import { LABEL_SUGGESTIONS, normalizeLabel, parseGuestList } from "@/lib/guestBulk";
 import { shareToWhatsApp } from "@/lib/share";
@@ -50,7 +50,7 @@ export function GuestsAdminScreen() {
   const [approving, setApproving] = useState<string | null>(null);
   // sign-in links guest-invite could not email (no RESEND_API_KEY, or Resend
   // failed): the parent sends them, or the approved guest never hears a thing
-  const [unsent, setUnsent] = useState<{ name: string; link: string }[] | null>(null);
+  const [unsent, setUnsent] = useState<ApprovedGuest[] | null>(null);
   const { member } = useMember();
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
@@ -115,7 +115,7 @@ export function GuestsAdminScreen() {
       // the same call as a manual invite; the allowlist trigger closes the request
       const { link, emailed } = await inviteGuest(request.email, request.display_name);
       if (emailed) showToast(strings.guests.approved.replace("{name}", request.display_name));
-      else setUnsent([{ name: request.display_name, link }]);
+      else setUnsent([{ name: request.display_name, email: request.email, link, viaGoogle: request.auth_user_id !== null }]);
       await refresh(trip.id);
     } catch {
       showToast(strings.common.error);
@@ -138,7 +138,12 @@ export function GuestsAdminScreen() {
           .replace("{ok}", String(results.filter((r) => r.ok).length))
           .replace("{total}", String(results.length))
       );
-      const notEmailed = results.flatMap((r) => (r.ok && !r.emailed && r.link ? [{ name: r.name, link: r.link }] : []));
+      // inviteMany keeps the order it was given, so each result pairs with its request
+      const notEmailed = results.flatMap((r, i) =>
+        r.ok && !r.emailed && r.link
+          ? [{ name: r.name, email: r.email, link: r.link, viaGoogle: requests[i]?.auth_user_id != null }]
+          : []
+      );
       if (notEmailed.length > 0) setUnsent(notEmailed);
       await refresh(trip.id);
     } catch {
@@ -679,7 +684,7 @@ function UnsentLinksSheet({
   onClose,
   onToast,
 }: {
-  links: { name: string; link: string }[];
+  links: ApprovedGuest[];
   onClose: () => void;
   onToast: (message: string) => void;
 }) {
@@ -688,15 +693,18 @@ function UnsentLinksSheet({
       <div className="space-y-4">
         <p className="text-sm text-ink-soft">{strings.guests.unsentBody}</p>
         <ul className="space-y-2">
-          {links.map(({ name, link }) => (
+          {links.map((guest) => (
             <li
-              key={link}
+              key={guest.link}
               className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3"
             >
-              <span className="min-w-0 truncate font-semibold text-ink">{name}</span>
+              <span className="min-w-0">
+                <span className="block truncate font-semibold text-ink">{guest.name}</span>
+                {guest.viaGoogle && <span className="text-xs text-ink-soft">{strings.guests.viaGoogleShort}</span>}
+              </span>
               <button
                 type="button"
-                onClick={() => void shareToWhatsApp(strings.guests.unsentShareText.replace("{url}", link))}
+                onClick={() => void shareToWhatsApp(approvedShareText(guest, window.location.origin))}
                 className="flex shrink-0 items-center gap-1.5 rounded-xl bg-sea px-3 py-2 text-sm font-semibold text-on-sea"
               >
                 <ShareIcon className="h-4 w-4" /> {strings.guests.joinShare}
