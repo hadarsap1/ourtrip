@@ -19,6 +19,7 @@
 // pass criteria fail (any error, p95 > 1000 ms, wall delivery p95 > 2000 ms or
 // under 99% delivered).
 
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const env = (k, d) => process.env[k] ?? d;
@@ -82,6 +83,32 @@ function pct(arr, p) {
   return Math.round(s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))]);
 }
 
+// ---------- signed-in sessions ----------
+// Supabase limits password logins per source address, and every virtual user
+// here shares one. Like a phone keeping its login, a session is kept in
+// SESSION_CACHE (a local file - never commit it) and reused while its access
+// token has 10+ minutes left. PREPARE=1 only signs in whoever is missing,
+// one every LOGIN_GAP_MS, then exits.
+const SESSION_CACHE = env("SESSION_CACHE");
+const PREPARE = env("PREPARE") === "1";
+const LOGIN_GAP_MS = Number(env("LOGIN_GAP_MS", 3000));
+const sessions = SESSION_CACHE && existsSync(SESSION_CACHE) ? JSON.parse(readFileSync(SESSION_CACHE, "utf8")) : {};
+const saveSessions = () => SESSION_CACHE && writeFileSync(SESSION_CACHE, JSON.stringify(sessions), { mode: 0o600 });
+
+async function signIn(sb, email) {
+  const kept = sessions[email];
+  if (kept && kept.expires_at * 1000 - Date.now() > 10 * 60 * 1000) {
+    const { data, error } = await sb.auth.setSession({ access_token: kept.access_token, refresh_token: kept.refresh_token });
+    if (!error && data.session) return data.session;
+  }
+  const res = await timed("auth.signIn", () => sb.auth.signInWithPassword({ email, password: PASSWORD }));
+  if (!res) return null;
+  const { access_token, refresh_token, expires_at } = res.data.session;
+  sessions[email] = { access_token, refresh_token, expires_at };
+  saveSessions();
+  return res.data.session;
+}
+
 // ---------- one virtual user ----------
 async function user(i, loginAt, startAt, endAt) {
   const email = `lt${String(i).padStart(3, "0")}@loadtest.invalid`;
@@ -98,11 +125,12 @@ async function user(i, loginAt, startAt, endAt) {
   // not "100 password logins in the same second" (bcrypt on a Free instance
   // is its own, separate stress; LOGIN_SPREAD_S=0 puts it back in the burst).
   await sleep(Math.max(0, loginAt - Date.now()));
-  const login = await timed("auth.signIn", () => sb.auth.signInWithPassword({ email, password: PASSWORD }));
+  const login = await signIn(sb, email);
   if (!login) return;
+  if (PREPARE) return;
   await sleep(Math.max(0, startAt - Date.now()));
   const me = await timed("members.self", () =>
-    sb.from("members").select("id, trip_id, role").eq("auth_user_id", login.data.user.id).single()
+    sb.from("members").select("id, trip_id, role").eq("auth_user_id", login.user.id).single()
   );
   if (!me) return;
   const { id: memberId, trip_id: tripId, role } = me.data;
@@ -267,6 +295,21 @@ async function user(i, loginAt, startAt, endAt) {
 }
 
 // ---------- run ----------
+if (PREPARE) {
+  let fresh = 0;
+  for (let k = 1; k <= USERS; k++) {
+    const email = `lt${String(k).padStart(3, "0")}@loadtest.invalid`;
+    const kept = sessions[email];
+    if (kept && kept.expires_at * 1000 - Date.now() > 10 * 60 * 1000) continue;
+    const sb = createClient(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
+    if (await signIn(sb, email)) fresh += 1;
+    await sleep(LOGIN_GAP_MS);
+  }
+  const ready = Object.values(sessions).filter((x) => x.expires_at * 1000 - Date.now() > 10 * 60 * 1000).length;
+  console.log(JSON.stringify({ prepared: fresh, ready, errors: Object.fromEntries(errors) }));
+  process.exit(0);
+}
+
 const loginStart = Date.now() + 2000;
 const t0 = loginStart + LOGIN_SPREAD_S * 1000 + (LOGIN_SPREAD_S > 0 ? 5000 : 0);
 const endAt = t0 + RAMP_S * 1000 + DURATION_S * 1000;
