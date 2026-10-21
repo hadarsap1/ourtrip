@@ -177,36 +177,18 @@ async function user(i, startAt, endAt) {
     .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, onWall)
     .subscribe(watchStatus);
 
-  // like subscribeFeedback: apply the payload; reload only when it cannot be
-  let fbTimer = null;
-  const onFeedback = (payload) => {
-    realtimeEvents += 1;
-    const ok = payload.eventType === "DELETE" ? Boolean(payload.old?.id) : Boolean(payload.new?.id && payload.new?.created_at);
-    if (ok) return;
-    if (fbTimer) clearTimeout(fbTimer);
-    fbTimer = setTimeout(() => {
-      fbTimer = null;
-      void loadFeedback();
-    }, spread(300));
-  };
-  let fbCh = sb.channel(`lt-feedback-${i}`);
-  for (const table of ["reactions", "comments"]) {
-    fbCh = fbCh
-      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, onFeedback)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, onFeedback)
-      .on("postgres_changes", { event: "DELETE", schema: "public", table }, onFeedback);
-  }
-  fbCh.subscribe(watchStatus);
+  // likes/comments are not live (pollFeedback): no channel, a reload about
+  // every 30 s while the screen is open, and right after your own action
 
-  // both channels live before this user writes anything: a message sent
+  // the wall channel live before this user writes anything: a message sent
   // before the others have joined was never theirs to receive
   await Promise.race([
     new Promise((resolve) => {
-      onJoined = () => joined >= 2 && resolve();
+      onJoined = () => joined >= 1 && resolve();
       onJoined();
     }),
     sleep(20000).then(() => {
-      if (joined < 2) fail("realtime.join", new Error("channel not SUBSCRIBED within 20 s"));
+      if (joined < 1) fail("realtime.join", new Error("channel not SUBSCRIBED within 20 s"));
     }),
   ]);
   // wait for everyone to be in before the clock starts, then act until the end
@@ -235,6 +217,7 @@ async function user(i, startAt, endAt) {
         // already liked that way: the app treats a duplicate as success
         if (error && error.code !== "23505") fail("reactions.insert", error);
         else record("reactions.insert", performance.now() - t);
+        await loadFeedback(); // the card reloads after your own like
       }
     },
     async () => {
@@ -245,6 +228,15 @@ async function user(i, startAt, endAt) {
         await timed("comments.insert", () =>
           sb.from("comments").insert({ trip_id: tripId, author_id: memberId, post_id, body: `תגובת עומס ${seq++}` })
         );
+        await loadFeedback();
+      }
+    },
+    async () => {
+      // pollFeedback: 10-50 s apart, 30 on average
+      while (Date.now() < endAt) {
+        await sleep(Math.min(spread(10000), Math.max(0, endAt - Date.now())));
+        if (Date.now() >= endAt) break;
+        await loadFeedback();
       }
     },
     async () => {
@@ -261,10 +253,9 @@ async function user(i, startAt, endAt) {
   ];
   await Promise.all(loops.map((l) => l()));
   await sleep(5000); // let the last deliveries land
-  if (fbTimer) clearTimeout(fbTimer);
   if (readFlush) clearTimeout(readFlush);
   closing = true;
-  await Promise.race([Promise.all([sb.removeChannel(wallCh), sb.removeChannel(fbCh)]), sleep(5000)]);
+  await Promise.race([sb.removeChannel(wallCh), sleep(5000)]);
 }
 
 // ---------- run ----------

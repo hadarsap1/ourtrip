@@ -5,7 +5,7 @@
 // called for them, and if it were, RLS would return nothing.
 
 import { getSupabase } from "@/lib/supabase";
-import { realtimeTopic, spreadDelay } from "@/lib/realtimeTopic";
+import { spreadDelay } from "@/lib/realtimeTopic";
 import type { Comment, Reaction, ReactionKind } from "@/lib/types";
 
 import type { FeedbackTarget } from "@/lib/feedback";
@@ -78,75 +78,34 @@ export async function deleteComment(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** One like/comment change as realtime delivers it - already filtered by the reader's RLS. */
-export type FeedbackChange = {
-  table: "reactions" | "comments";
-  eventType: "INSERT" | "UPDATE" | "DELETE";
-  new: { id?: string; created_at?: string };
-  old: { id?: string };
-};
-
-/** Whether a change carries enough to apply without a refetch. */
-export function canApplyFeedbackChange(change: FeedbackChange): boolean {
-  if (change.eventType === "DELETE") return Boolean(change.old.id);
-  return Boolean(change.new.id && change.new.created_at);
-}
+export const FEEDBACK_REFRESH_MS = 30_000;
 
 /**
- * Applies a realtime change to a likes or comments list on screen. With a
- * crowd liking at once, reloading every like and comment of the trip per
- * change was the heaviest read in the load test. Check canApplyFeedbackChange
- * first.
+ * Keeps likes and comments fresh without realtime. In the 100-user load test
+ * the live like/comment stream was ~85% of all realtime traffic: every like
+ * went out to every open screen, which pushed the project past Free tier's
+ * realtime messages-per-second cap and delayed the wall by 8-15 s. The wall
+ * stays live; likes and comments reload when the screen opens (the caller),
+ * when it comes back into view, and about every 30 s while it is visible. Your own
+ * like or comment still shows at once (the card reloads after it).
  */
-export function applyFeedbackChange<T extends { id: string; created_at: string }>(
-  list: T[],
-  change: FeedbackChange
-): T[] {
-  if (!canApplyFeedbackChange(change)) return list;
-  if (change.eventType === "DELETE") return list.filter((x) => x.id !== change.old.id);
-  const row = change.new as T;
-  const rest = list.filter((x) => x.id !== row.id);
-  rest.push(row);
-  return rest.sort((a, b) => a.created_at.localeCompare(b.created_at));
-}
-
-/**
- * Hands each like/comment change on this trip to onChange. A change that
- * cannot be applied from its payload asks for a reload instead, debounced and
- * spread out so a crowd of readers does not reload at the same instant.
- * DELETE cannot be filtered server-side (its payload is the id alone), so it
- * stays unfiltered.
- */
-export function subscribeFeedback(
-  tripId: string,
-  handlers: { apply: (change: FeedbackChange) => void; reload: () => void }
-): () => void {
-  const supabase = getSupabase();
-  if (!supabase) return () => {};
+export function pollFeedback(reload: () => void): () => void {
+  if (typeof document === "undefined") return () => {};
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const deliver = (table: FeedbackChange["table"]) => (payload: unknown) => {
-    const change = { ...(payload as Omit<FeedbackChange, "table">), table };
-    if (canApplyFeedbackChange(change)) {
-      handlers.apply(change);
-      return;
-    }
-    if (timer) clearTimeout(timer);
+  const schedule = () => {
+    // spread, so a crowd that opened the app together does not ask together
     timer = setTimeout(() => {
-      timer = null;
-      handlers.reload();
-    }, spreadDelay(300));
+      if (document.visibilityState === "visible") reload();
+      schedule();
+    }, spreadDelay(FEEDBACK_REFRESH_MS / 3)); // 10-50 s, 30 on average
   };
-  const filter = `trip_id=eq.${tripId}`;
-  let channel = supabase.channel(realtimeTopic("feedback-sync"));
-  for (const table of ["reactions", "comments"] as const) {
-    channel = channel
-      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, deliver(table))
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, deliver(table))
-      .on("postgres_changes", { event: "DELETE", schema: "public", table }, deliver(table));
-  }
-  channel.subscribe();
+  const onVisible = () => {
+    if (document.visibilityState === "visible") reload();
+  };
+  schedule();
+  document.addEventListener("visibilitychange", onVisible);
   return () => {
     if (timer) clearTimeout(timer);
-    void supabase.removeChannel(channel);
+    document.removeEventListener("visibilitychange", onVisible);
   };
 }
