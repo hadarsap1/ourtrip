@@ -19,7 +19,7 @@ import {
   uploadOrQueueEpisode,
 } from "@/lib/data/podcast";
 import { episodeUrls } from "@/lib/data/media";
-import { listComments, listReactions, subscribeFeedback } from "@/lib/data/feedback";
+import { applyFeedbackChange, listComments, listReactions, subscribeFeedback } from "@/lib/data/feedback";
 import { episodeNumbers } from "@/lib/audio";
 import { shareText, shareUrl } from "@/lib/share";
 import { strings } from "@/lib/strings";
@@ -112,7 +112,13 @@ export function PodcastScreen() {
       void flush(activeTrip.id);
       onOnline = () => void flush(activeTrip.id);
       window.addEventListener("online", onOnline);
-      unsubscribe = subscribeFeedback(activeTrip.id, () => void loadFeedback(activeTrip.id));
+      unsubscribe = subscribeFeedback(activeTrip.id, {
+        apply: (change) =>
+          change.table === "reactions"
+            ? setReactions((list) => applyFeedbackChange(list, change))
+            : setComments((list) => applyFeedbackChange(list, change)),
+        reload: () => void loadFeedback(activeTrip.id),
+      });
     })();
     return () => {
       cancelled = true;

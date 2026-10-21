@@ -12,6 +12,7 @@ import {
   isPending,
   listMessages,
   markRead,
+  markReadSoon,
   sendMessage,
   subscribeMessages,
   type WallMessage,
@@ -91,7 +92,7 @@ export function MessagesScreen() {
           setMessages((list) => applyWallChange(list, change));
           const row = change.new;
           if (change.eventType !== "DELETE" && row.id && row.sender_id !== member.id) {
-            void markRead(member.id, [row.id]).catch(() => {});
+            markReadSoon(member.id, row.id);
           }
           return;
         }

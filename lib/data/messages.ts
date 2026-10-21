@@ -1,4 +1,4 @@
-import { realtimeTopic } from "@/lib/realtimeTopic";
+import { realtimeTopic, spreadDelay } from "@/lib/realtimeTopic";
 import { getSupabase } from "@/lib/supabase";
 import type { Tables } from "@/lib/database.types";
 
@@ -94,6 +94,26 @@ export async function markRead(
     );
   if (error) throw new Error(error.message);
   for (const id of fresh) markedRead.add(`${memberId}:${id}`);
+}
+
+// Reads that arrive with realtime are sent in batches: one upsert per reader
+// every few seconds instead of one per message. With 100 people on the wall
+// that was the most frequent request of all in the load test.
+const queuedReads = new Map<string, Set<string>>();
+let readFlush: ReturnType<typeof setTimeout> | null = null;
+
+/** Marks a message read soon, batched with others (see markRead for now). */
+export function markReadSoon(memberId: string, messageId: string): void {
+  if (markedRead.has(`${memberId}:${messageId}`)) return;
+  if (!queuedReads.has(memberId)) queuedReads.set(memberId, new Set());
+  queuedReads.get(memberId)!.add(messageId);
+  readFlush ??= setTimeout(() => {
+    readFlush = null;
+    const batches = [...queuedReads.entries()];
+    queuedReads.clear();
+    // a failed batch is not lost: the next visit to the wall marks it again
+    for (const [member, ids] of batches) void markRead(member, [...ids]).catch(() => {});
+  }, spreadDelay(2000));
 }
 
 /** Unread badge count: wall messages without an own read row (excl. own). */

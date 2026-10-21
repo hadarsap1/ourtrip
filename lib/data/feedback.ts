@@ -78,31 +78,71 @@ export async function deleteComment(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** One like/comment change as realtime delivers it - already filtered by the reader's RLS. */
+export type FeedbackChange = {
+  table: "reactions" | "comments";
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: { id?: string; created_at?: string };
+  old: { id?: string };
+};
+
+/** Whether a change carries enough to apply without a refetch. */
+export function canApplyFeedbackChange(change: FeedbackChange): boolean {
+  if (change.eventType === "DELETE") return Boolean(change.old.id);
+  return Boolean(change.new.id && change.new.created_at);
+}
+
 /**
- * Refires onChange for any like or comment on this trip. The refetch it leads
- * to is debounced and spread out here, once, so a burst of likes from a crowd
- * of readers is one reload per screen, not one per like, and not all at once.
+ * Applies a realtime change to a likes or comments list on screen. With a
+ * crowd liking at once, reloading every like and comment of the trip per
+ * change was the heaviest read in the load test. Check canApplyFeedbackChange
+ * first.
+ */
+export function applyFeedbackChange<T extends { id: string; created_at: string }>(
+  list: T[],
+  change: FeedbackChange
+): T[] {
+  if (!canApplyFeedbackChange(change)) return list;
+  if (change.eventType === "DELETE") return list.filter((x) => x.id !== change.old.id);
+  const row = change.new as T;
+  const rest = list.filter((x) => x.id !== row.id);
+  rest.push(row);
+  return rest.sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+/**
+ * Hands each like/comment change on this trip to onChange. A change that
+ * cannot be applied from its payload asks for a reload instead, debounced and
+ * spread out so a crowd of readers does not reload at the same instant.
  * DELETE cannot be filtered server-side (its payload is the id alone), so it
  * stays unfiltered.
  */
-export function subscribeFeedback(tripId: string, onChange: () => void): () => void {
+export function subscribeFeedback(
+  tripId: string,
+  handlers: { apply: (change: FeedbackChange) => void; reload: () => void }
+): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const schedule = () => {
+  const deliver = (table: FeedbackChange["table"]) => (payload: unknown) => {
+    const change = { ...(payload as Omit<FeedbackChange, "table">), table };
+    if (canApplyFeedbackChange(change)) {
+      handlers.apply(change);
+      return;
+    }
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = null;
-      onChange();
+      handlers.reload();
     }, spreadDelay(300));
   };
   const filter = `trip_id=eq.${tripId}`;
   let channel = supabase.channel(realtimeTopic("feedback-sync"));
   for (const table of ["reactions", "comments"] as const) {
     channel = channel
-      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, schedule)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, schedule)
-      .on("postgres_changes", { event: "DELETE", schema: "public", table }, schedule);
+      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, deliver(table))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, deliver(table))
+      .on("postgres_changes", { event: "DELETE", schema: "public", table }, deliver(table));
   }
   channel.subscribe();
   return () => {

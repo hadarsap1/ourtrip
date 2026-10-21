@@ -12,7 +12,7 @@ import { ApproveStorySheet } from "@/components/stories/ApproveStorySheet";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import { getAutoLocation } from "@/lib/data/journal";
 import { deleteStory, listStories, type Story } from "@/lib/data/stories";
-import { listComments, listReactions, subscribeFeedback } from "@/lib/data/feedback";
+import { applyFeedbackChange, listComments, listReactions, subscribeFeedback } from "@/lib/data/feedback";
 import { shareText, shareUrl } from "@/lib/share";
 import { splitStories } from "@/lib/stories";
 import { strings } from "@/lib/strings";
@@ -88,7 +88,13 @@ export function StoriesScreen() {
         if (!cancelled) setLoading(false);
       }
       if (cancelled) return;
-      unsubscribe = subscribeFeedback(activeTrip.id, () => void loadFeedback(activeTrip.id));
+      unsubscribe = subscribeFeedback(activeTrip.id, {
+        apply: (change) =>
+          change.table === "reactions"
+            ? setReactions((list) => applyFeedbackChange(list, change))
+            : setComments((list) => applyFeedbackChange(list, change)),
+        reload: () => void loadFeedback(activeTrip.id),
+      });
     })();
     return () => {
       cancelled = true;

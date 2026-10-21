@@ -11,6 +11,9 @@
 //   SB_URL=https://<ref>.supabase.co SB_ANON=<anon key> LT_PASSWORD=<pw> \
 //     node scripts/loadtest/wall-load.mjs
 //
+// Behind an HTTPS proxy add NODE_USE_ENV_PROXY=1 (Node >= 22.21): Node's
+// fetch does not read HTTPS_PROXY on its own.
+//
 // Knobs (env): USERS=100 RAMP_S=10 DURATION_S=120 MSG_EVERY_S=30
 // LIKE_EVERY_S=20 COMMENT_EVERY_S=60. Prints a JSON report; exits 1 when the
 // pass criteria fail (any error, p95 > 1000 ms, wall delivery p95 > 2000 ms or
@@ -36,6 +39,7 @@ const DURATION_S = Number(env("DURATION_S", 120));
 const MSG_EVERY_S = Number(env("MSG_EVERY_S", 30));
 const LIKE_EVERY_S = Number(env("LIKE_EVERY_S", 20));
 const COMMENT_EVERY_S = Number(env("COMMENT_EVERY_S", 60));
+const REQUEST_LIMIT_MS = 10_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const spread = (base) => base + Math.floor(Math.random() * base * 4);
@@ -81,6 +85,9 @@ function pct(arr, p) {
 async function user(i, startAt, endAt) {
   const email = `lt${String(i).padStart(3, "0")}@loadtest.invalid`;
   const sb = createClient(URL_, ANON, {
+    // the app gives up on a request after 10 s (lib/supabase.ts); a hung one
+    // here would otherwise hold the whole run open
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(REQUEST_LIMIT_MS) }) },
     auth: { persistSession: false, autoRefreshToken: false },
     realtime: { params: { eventsPerSecond: 50 } },
   });
@@ -113,6 +120,8 @@ async function user(i, startAt, endAt) {
     if (ok) for (const id of fresh) marked.add(id);
   };
   await markRead((wall?.data ?? []).map((m) => m.id));
+  const queuedReads = new Set();
+  let readFlush = null;
 
   const loadFeedback = () =>
     Promise.all([
@@ -137,11 +146,29 @@ async function user(i, startAt, endAt) {
         if (!received.has(row.body)) received.set(row.body, new Set());
         received.get(row.body).add(i);
       }
-      if (row.sender_id !== memberId) void markRead([row.id]);
+      if (row.sender_id !== memberId && !marked.has(row.id)) {
+        // like markReadSoon: one batched upsert every few seconds
+        queuedReads.add(row.id);
+        readFlush ??= setTimeout(() => {
+          readFlush = null;
+          const ids = [...queuedReads];
+          queuedReads.clear();
+          void markRead(ids);
+        }, spread(2000));
+      }
     }
   };
+  // a channel closing because the test removes it at the end is not trouble
+  let closing = false;
+  let joined = 0;
+  let onJoined = () => {};
   const watchStatus = (status) => {
-    if (status !== "SUBSCRIBED") channelTrouble.set(status, (channelTrouble.get(status) ?? 0) + 1);
+    if (status === "SUBSCRIBED") {
+      joined += 1;
+      onJoined();
+    } else if (!closing) {
+      channelTrouble.set(status, (channelTrouble.get(status) ?? 0) + 1);
+    }
   };
   const wallCh = sb
     .channel(`lt-wall-${i}`)
@@ -150,9 +177,12 @@ async function user(i, startAt, endAt) {
     .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, onWall)
     .subscribe(watchStatus);
 
+  // like subscribeFeedback: apply the payload; reload only when it cannot be
   let fbTimer = null;
-  const onFeedback = () => {
+  const onFeedback = (payload) => {
     realtimeEvents += 1;
+    const ok = payload.eventType === "DELETE" ? Boolean(payload.old?.id) : Boolean(payload.new?.id && payload.new?.created_at);
+    if (ok) return;
     if (fbTimer) clearTimeout(fbTimer);
     fbTimer = setTimeout(() => {
       fbTimer = null;
@@ -168,6 +198,17 @@ async function user(i, startAt, endAt) {
   }
   fbCh.subscribe(watchStatus);
 
+  // both channels live before this user writes anything: a message sent
+  // before the others have joined was never theirs to receive
+  await Promise.race([
+    new Promise((resolve) => {
+      onJoined = () => joined >= 2 && resolve();
+      onJoined();
+    }),
+    sleep(20000).then(() => {
+      if (joined < 2) fail("realtime.join", new Error("channel not SUBSCRIBED within 20 s"));
+    }),
+  ]);
   // wait for everyone to be in before the clock starts, then act until the end
   await sleep(Math.max(0, startAt + RAMP_S * 1000 - Date.now()));
   let seq = 0;
@@ -221,8 +262,9 @@ async function user(i, startAt, endAt) {
   await Promise.all(loops.map((l) => l()));
   await sleep(5000); // let the last deliveries land
   if (fbTimer) clearTimeout(fbTimer);
-  await sb.removeChannel(wallCh);
-  await sb.removeChannel(fbCh);
+  if (readFlush) clearTimeout(readFlush);
+  closing = true;
+  await Promise.race([Promise.all([sb.removeChannel(wallCh), sb.removeChannel(fbCh)]), sleep(5000)]);
 }
 
 // ---------- run ----------
@@ -267,4 +309,5 @@ const pass =
   report.realtime.deliveredRatio >= 99;
 report.pass = pass;
 console.log(JSON.stringify(report, null, 2));
+// open sockets would keep the process alive
 process.exit(pass ? 0 : 1);
