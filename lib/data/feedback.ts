@@ -5,7 +5,7 @@
 // called for them, and if it were, RLS would return nothing.
 
 import { getSupabase } from "@/lib/supabase";
-import { realtimeTopic } from "@/lib/realtimeTopic";
+import { realtimeTopic, spreadDelay } from "@/lib/realtimeTopic";
 import type { Comment, Reaction, ReactionKind } from "@/lib/types";
 
 import type { FeedbackTarget } from "@/lib/feedback";
@@ -78,15 +78,35 @@ export async function deleteComment(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export function subscribeFeedback(onChange: () => void): () => void {
+/**
+ * Refires onChange for any like or comment on this trip. The refetch it leads
+ * to is debounced and spread out here, once, so a burst of likes from a crowd
+ * of readers is one reload per screen, not one per like, and not all at once.
+ * DELETE cannot be filtered server-side (its payload is the id alone), so it
+ * stays unfiltered.
+ */
+export function subscribeFeedback(tripId: string, onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
-  const channel = supabase
-    .channel(realtimeTopic("feedback-sync"))
-    .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, onChange)
-    .subscribe();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const schedule = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      onChange();
+    }, spreadDelay(300));
+  };
+  const filter = `trip_id=eq.${tripId}`;
+  let channel = supabase.channel(realtimeTopic("feedback-sync"));
+  for (const table of ["reactions", "comments"] as const) {
+    channel = channel
+      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, schedule)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, schedule)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table }, schedule);
+  }
+  channel.subscribe();
   return () => {
+    if (timer) clearTimeout(timer);
     void supabase.removeChannel(channel);
   };
 }

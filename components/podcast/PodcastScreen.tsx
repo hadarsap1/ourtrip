@@ -112,7 +112,7 @@ export function PodcastScreen() {
       void flush(activeTrip.id);
       onOnline = () => void flush(activeTrip.id);
       window.addEventListener("online", onOnline);
-      unsubscribe = subscribeFeedback(() => void loadFeedback(activeTrip.id));
+      unsubscribe = subscribeFeedback(activeTrip.id, () => void loadFeedback(activeTrip.id));
     })();
     return () => {
       cancelled = true;

@@ -9,3 +9,10 @@ export function realtimeTopic(base: string): string {
   seq += 1;
   return `${base}:${Date.now().toString(36)}-${seq}`;
 }
+
+// A refetch triggered by realtime reaches every open screen at the same
+// moment. Spreading it over a window of a few times the base delay keeps a
+// crowd of readers from hitting the database in one spike.
+export function spreadDelay(baseMs: number): number {
+  return baseMs + Math.floor(Math.random() * baseMs * 4);
+}

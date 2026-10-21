@@ -206,14 +206,14 @@ self.addEventListener("fetch", (event) => {
 });
 
 // ---- Web Push (Sprint 8) ----
-// Payload shape from the push-send Edge Function: { title, body, url, tag }.
-self.addEventListener("push", (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch {
-    data = { title: "סו-בב עולם!", body: event.data ? event.data.text() : "" };
-  }
+// Payload shape from the push-send Edge Function: { title, body, url, tag, many }.
+//
+// Repeats of one kind (wall messages, approvals waiting) fold into a single
+// notification instead of piling up: when a push carries `many` and one with
+// its tag is still showing, that one is replaced by a notification titled
+// with the running count ("{n} הודעות חדשות בקיר") and the latest preview,
+// and the update is silent - only the first one rings. The app lists them all.
+async function showPush(data) {
   const title = data.title || "סו-בב עולם!";
   const options = {
     body: data.body || "",
@@ -222,9 +222,30 @@ self.addEventListener("push", (event) => {
     dir: "rtl",
     lang: "he",
     tag: data.tag || undefined,
-    data: { url: data.url || "/" },
+    data: { url: data.url || "/", count: 1 },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  if (data.tag && data.many) {
+    const showing = await self.registration.getNotifications({ tag: data.tag }).catch(() => []);
+    const before = showing.reduce((n, shown) => n + ((shown.data && shown.data.count) || 1), 0);
+    if (before > 0) {
+      // closed first: not every platform replaces by tag on its own
+      for (const shown of showing) shown.close();
+      options.data.count = before + 1;
+      options.silent = true;
+      return self.registration.showNotification(data.many.replace("{n}", String(before + 1)), options);
+    }
+  }
+  return self.registration.showNotification(title, options);
+}
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "סו-בב עולם!", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(showPush(data));
 });
 
 self.addEventListener("notificationclick", (event) => {
