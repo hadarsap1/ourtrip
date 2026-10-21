@@ -215,7 +215,7 @@ async function user(i, startAt, endAt) {
   const loops = [
     async () => {
       while (Date.now() < endAt) {
-        await sleep(gap(MSG_EVERY_S));
+        await sleep(Math.min(gap(MSG_EVERY_S), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         const tag = `lt:${i}:${Date.now()}:${seq++}`;
         sent.set(tag, { at: Date.now(), sender: i, kid: role === "kid" });
@@ -226,7 +226,7 @@ async function user(i, startAt, endAt) {
     },
     async () => {
       while (Date.now() < endAt && role !== "owner" && postIds.length > 0) {
-        await sleep(gap(LIKE_EVERY_S));
+        await sleep(Math.min(gap(LIKE_EVERY_S), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         const post_id = postIds[Math.floor(Math.random() * postIds.length)];
         const kind = ["heart", "smile", "wow", "star"][Math.floor(Math.random() * 4)];
@@ -239,7 +239,7 @@ async function user(i, startAt, endAt) {
     },
     async () => {
       while (Date.now() < endAt && role === "guest" && postIds.length > 0) {
-        await sleep(gap(COMMENT_EVERY_S));
+        await sleep(Math.min(gap(COMMENT_EVERY_S), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         const post_id = postIds[Math.floor(Math.random() * postIds.length)];
         await timed("comments.insert", () =>
@@ -250,7 +250,7 @@ async function user(i, startAt, endAt) {
     async () => {
       // navigation: the badge recounts on every page change
       while (Date.now() < endAt && role !== "owner") {
-        await sleep(gap(45));
+        await sleep(Math.min(gap(45), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         await Promise.all([
           timed("unread.messages", () => sb.from("messages").select("id, sender_id").eq("trip_id", tripId).eq("channel", "guests")),
