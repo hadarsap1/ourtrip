@@ -14,7 +14,7 @@
 // Behind an HTTPS proxy add NODE_USE_ENV_PROXY=1 (Node >= 22.21): Node's
 // fetch does not read HTTPS_PROXY on its own.
 //
-// Knobs (env): USERS=100 RAMP_S=10 DURATION_S=120 MSG_EVERY_S=30
+// Knobs (env): USERS=100 RAMP_S=10 LOGIN_SPREAD_S=60 DURATION_S=120 MSG_EVERY_S=30
 // LIKE_EVERY_S=20 COMMENT_EVERY_S=60. Prints a JSON report; exits 1 when the
 // pass criteria fail (any error, p95 > 1000 ms, wall delivery p95 > 2000 ms or
 // under 99% delivered).
@@ -35,6 +35,7 @@ if (URL_.includes("xeqfcrxrpfjlqhkijrwd")) {
 }
 const USERS = Number(env("USERS", 100));
 const RAMP_S = Number(env("RAMP_S", 10));
+const LOGIN_SPREAD_S = Number(env("LOGIN_SPREAD_S", 60));
 const DURATION_S = Number(env("DURATION_S", 120));
 const MSG_EVERY_S = Number(env("MSG_EVERY_S", 30));
 const LIKE_EVERY_S = Number(env("LIKE_EVERY_S", 20));
@@ -82,7 +83,7 @@ function pct(arr, p) {
 }
 
 // ---------- one virtual user ----------
-async function user(i, startAt, endAt) {
+async function user(i, loginAt, startAt, endAt) {
   const email = `lt${String(i).padStart(3, "0")}@loadtest.invalid`;
   const sb = createClient(URL_, ANON, {
     // the app gives up on a request after 10 s (lib/supabase.ts); a hung one
@@ -91,10 +92,15 @@ async function user(i, startAt, endAt) {
     auth: { persistSession: false, autoRefreshToken: false },
     realtime: { params: { eventsPerSecond: 50 } },
   });
-  await sleep(Math.max(0, startAt - Date.now()));
-
+  // Family and guests are already signed in on their phones: opening the app
+  // does not run a password login. Logins are spread over LOGIN_SPREAD_S
+  // before the burst, so the burst measures "100 people open the app now",
+  // not "100 password logins in the same second" (bcrypt on a Free instance
+  // is its own, separate stress; LOGIN_SPREAD_S=0 puts it back in the burst).
+  await sleep(Math.max(0, loginAt - Date.now()));
   const login = await timed("auth.signIn", () => sb.auth.signInWithPassword({ email, password: PASSWORD }));
   if (!login) return;
+  await sleep(Math.max(0, startAt - Date.now()));
   const me = await timed("members.self", () =>
     sb.from("members").select("id, trip_id, role").eq("auth_user_id", login.data.user.id).single()
   );
@@ -261,11 +267,17 @@ async function user(i, startAt, endAt) {
 }
 
 // ---------- run ----------
-const t0 = Date.now() + 2000;
+const loginStart = Date.now() + 2000;
+const t0 = loginStart + LOGIN_SPREAD_S * 1000 + (LOGIN_SPREAD_S > 0 ? 5000 : 0);
 const endAt = t0 + RAMP_S * 1000 + DURATION_S * 1000;
 console.error(`load test: ${USERS} users, ramp ${RAMP_S}s, steady ${DURATION_S}s`);
 await Promise.all(
-  Array.from({ length: USERS }, (_, k) => user(k + 1, t0 + Math.floor((k / USERS) * RAMP_S * 1000), endAt))
+  Array.from({ length: USERS }, (_, k) => user(
+    k + 1,
+    LOGIN_SPREAD_S > 0 ? loginStart + Math.floor((k / USERS) * LOGIN_SPREAD_S * 1000) : t0 + Math.floor((k / USERS) * RAMP_S * 1000),
+    t0 + Math.floor((k / USERS) * RAMP_S * 1000),
+    endAt
+  ))
 );
 
 // a kid's message waits for a parent, so only the others count as "should reach everyone"
