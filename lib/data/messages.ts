@@ -96,6 +96,22 @@ export async function markRead(
   for (const id of fresh) markedRead.add(`${memberId}:${id}`);
 }
 
+/**
+ * Opening the wall: marks every message on it read that is not yet, in one
+ * call (00060), instead of upserting the whole id list. With 100 people
+ * opening at once that upsert was the slowest request of all. The ids on
+ * screen are remembered so realtime batches skip them.
+ */
+export async function markWallRead(
+  tripId: string,
+  memberId: string,
+  messageIds: string[]
+): Promise<void> {
+  const { error } = await requireClient().rpc("mark_wall_read", { p_trip_id: tripId });
+  if (error) throw new Error(error.message);
+  for (const id of messageIds) markedRead.add(`${memberId}:${id}`);
+}
+
 // Reads that arrive with realtime are sent in batches: one upsert per reader
 // every few seconds instead of one per message. With 100 people on the wall
 // that was the most frequent request of all in the load test.

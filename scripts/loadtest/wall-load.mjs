@@ -119,7 +119,9 @@ async function user(i, startAt, endAt) {
     );
     if (ok) for (const id of fresh) marked.add(id);
   };
-  await markRead((wall?.data ?? []).map((m) => m.id));
+  // like markWallRead (00060): one call marks whatever is not read yet
+  await timed("rpc.mark_wall_read", () => sb.rpc("mark_wall_read", { p_trip_id: tripId }));
+  for (const m of wall?.data ?? []) marked.add(m.id);
   const queuedReads = new Set();
   let readFlush = null;
 
