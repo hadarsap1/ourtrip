@@ -2239,3 +2239,19 @@ checks unchanged. Measured as one guest on a 100-member copy: likes 1628 ms →
   revoked from anon, which made an anon read of a public story error (the
   owners' FOR ALL policies apply to every role). Granted to anon; both return
   null without a member, like the functions they stand in for.
+
+## Load test round 2: likes/comments polled, wall read marks in one call (00060) - 21/10/2026
+
+- Likes and comments are no longer streamed over realtime; screens reload
+  them (same RLS-filtered `listReactions` / `listComments`) on open, on
+  return to view and about every 30 s. Nothing new is readable; realtime
+  simply carries less.
+- `mark_wall_read(trip)` (00060) is SECURITY INVOKER: it selects messages
+  under the caller's own policies and inserts under `message_reads`' own
+  WITH CHECK (`member_id = current_member_id()`), so it can only do what
+  `markRead` could. Not executable by anon.
+- Probe `scripts/rls/probes/60_mark_wall_read.sql`: a guest marks only the
+  owner's approved message (not own, not a kid's pending one, not another
+  trip's), only for themself, and a second call marks nothing; a kid marks
+  the two others' messages; revoked guest and outsider mark nothing; anon
+  cannot call it. Full suite 253 PASS, 0 FAIL.
