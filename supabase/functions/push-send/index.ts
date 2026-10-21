@@ -71,7 +71,10 @@ const service = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-type Payload = { title: string; body: string; url: string; tag?: string };
+// `many` folds repeats into one notification on the device (public/sw.js): a
+// push whose tag is already showing replaces it, titled with the count
+// ("{n}" is filled in there). The app itself still lists every item.
+type Payload = { title: string; body: string; url: string; tag?: string; many?: string };
 
 /** Sends one payload to every push subscription owned by the given members.
  *  Prunes subscriptions the push service reports as gone (404/410). */
@@ -160,7 +163,8 @@ async function handleWallMessage(messageId: string): Promise<number> {
     title: pending ? "הודעה ממתינה לאישור שלכם ✋" : "הודעה חדשה בקיר 💬",
     body: sender ? `${sender.display_name}: ${preview}` : preview,
     url: "/messages",
-    tag: pending ? `wall-pending-${msg.id}` : "wall",
+    tag: pending ? "wall-pending" : "wall",
+    many: pending ? "{n} הודעות ממתינות לאישור שלכם ✋" : "{n} הודעות חדשות בקיר 💬",
   });
 }
 
@@ -180,6 +184,7 @@ async function handlePendingPhoto(photoId: string): Promise<number> {
     body: "יש תמונה חדשה מהילדים - אפשר לאשר ולשתף",
     url: "/photos",
     tag: "pending-photo",
+    many: "{n} תמונות ממתינות לאישור 📷",
   });
 }
 
@@ -197,6 +202,7 @@ async function handleGuestRequest(requestId: string): Promise<number> {
     body: `${request.display_name} רוצה לעקוב אחרי הטיול - אפשר לאשר`,
     url: "/guests",
     tag: "guest-request",
+    many: "{n} בקשות הצטרפות חדשות 👋",
   });
 }
 
