@@ -112,12 +112,15 @@ export async function loadHomeSummary(
       client.from("expenses").select("amount_ils, spent_on").eq("trip_id", tripId),
       // The oldest list is the one the trip was planned around; a list made
       // later is usually a side list (packing, shopping) and not the deadline
-      // one the home screen should lead with.
+      // one the home screen should lead with. checklists has no created_at
+      // (ordering by it was a 400 on every home load, so the preview never
+      // showed); updated_at moves only when the list itself is renamed, not
+      // when an item is checked, so it keeps that order.
       client
         .from("checklists")
         .select("id, title")
         .eq("trip_id", tripId)
-        .order("created_at")
+        .order("updated_at")
         .limit(1),
       listDestinations(tripId).catch(() => [] as Destination[]),
       client
