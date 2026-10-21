@@ -2186,6 +2186,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["member_role"]
       }
+      mark_wall_read: { Args: { p_trip_id: string }; Returns: number }
       submit_guest_join: {
         Args: { p_email?: string; p_name: string; p_token: string }
         Returns: string

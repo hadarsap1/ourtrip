@@ -11,7 +11,8 @@ import {
   deleteMessage,
   isPending,
   listMessages,
-  markRead,
+  markReadSoon,
+  markWallRead,
   sendMessage,
   subscribeMessages,
   type WallMessage,
@@ -48,7 +49,7 @@ export function MessagesScreen() {
       setMessages(next);
       // reading a feed marks its messages read → unread badges clear
       if (memberId) {
-        void markRead(memberId, next.map((m) => m.id)).catch(() => {});
+        void markWallRead(tripId, memberId, next.map((m) => m.id)).catch(() => {});
       }
     },
     []
@@ -91,7 +92,7 @@ export function MessagesScreen() {
           setMessages((list) => applyWallChange(list, change));
           const row = change.new;
           if (change.eventType !== "DELETE" && row.id && row.sender_id !== member.id) {
-            void markRead(member.id, [row.id]).catch(() => {});
+            markReadSoon(member.id, row.id);
           }
           return;
         }

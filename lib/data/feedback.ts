@@ -5,7 +5,7 @@
 // called for them, and if it were, RLS would return nothing.
 
 import { getSupabase } from "@/lib/supabase";
-import { realtimeTopic, spreadDelay } from "@/lib/realtimeTopic";
+import { spreadDelay } from "@/lib/realtimeTopic";
 import type { Comment, Reaction, ReactionKind } from "@/lib/types";
 
 import type { FeedbackTarget } from "@/lib/feedback";
@@ -78,35 +78,34 @@ export async function deleteComment(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export const FEEDBACK_REFRESH_MS = 30_000;
+
 /**
- * Refires onChange for any like or comment on this trip. The refetch it leads
- * to is debounced and spread out here, once, so a burst of likes from a crowd
- * of readers is one reload per screen, not one per like, and not all at once.
- * DELETE cannot be filtered server-side (its payload is the id alone), so it
- * stays unfiltered.
+ * Keeps likes and comments fresh without realtime. In the 100-user load test
+ * the live like/comment stream was ~85% of all realtime traffic: every like
+ * went out to every open screen, which pushed the project past Free tier's
+ * realtime messages-per-second cap and delayed the wall by 8-15 s. The wall
+ * stays live; likes and comments reload when the screen opens (the caller),
+ * when it comes back into view, and about every 30 s while it is visible. Your own
+ * like or comment still shows at once (the card reloads after it).
  */
-export function subscribeFeedback(tripId: string, onChange: () => void): () => void {
-  const supabase = getSupabase();
-  if (!supabase) return () => {};
+export function pollFeedback(reload: () => void): () => void {
+  if (typeof document === "undefined") return () => {};
   let timer: ReturnType<typeof setTimeout> | null = null;
   const schedule = () => {
-    if (timer) clearTimeout(timer);
+    // spread, so a crowd that opened the app together does not ask together
     timer = setTimeout(() => {
-      timer = null;
-      onChange();
-    }, spreadDelay(300));
+      if (document.visibilityState === "visible") reload();
+      schedule();
+    }, spreadDelay(FEEDBACK_REFRESH_MS / 3)); // 10-50 s, 30 on average
   };
-  const filter = `trip_id=eq.${tripId}`;
-  let channel = supabase.channel(realtimeTopic("feedback-sync"));
-  for (const table of ["reactions", "comments"] as const) {
-    channel = channel
-      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, schedule)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, schedule)
-      .on("postgres_changes", { event: "DELETE", schema: "public", table }, schedule);
-  }
-  channel.subscribe();
+  const onVisible = () => {
+    if (document.visibilityState === "visible") reload();
+  };
+  schedule();
+  document.addEventListener("visibilitychange", onVisible);
   return () => {
     if (timer) clearTimeout(timer);
-    void supabase.removeChannel(channel);
+    document.removeEventListener("visibilitychange", onVisible);
   };
 }

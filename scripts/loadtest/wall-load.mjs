@@ -11,11 +11,15 @@
 //   SB_URL=https://<ref>.supabase.co SB_ANON=<anon key> LT_PASSWORD=<pw> \
 //     node scripts/loadtest/wall-load.mjs
 //
-// Knobs (env): USERS=100 RAMP_S=10 DURATION_S=120 MSG_EVERY_S=30
+// Behind an HTTPS proxy add NODE_USE_ENV_PROXY=1 (Node >= 22.21): Node's
+// fetch does not read HTTPS_PROXY on its own.
+//
+// Knobs (env): USERS=100 RAMP_S=10 LOGIN_SPREAD_S=60 DURATION_S=120 MSG_EVERY_S=30
 // LIKE_EVERY_S=20 COMMENT_EVERY_S=60. Prints a JSON report; exits 1 when the
 // pass criteria fail (any error, p95 > 1000 ms, wall delivery p95 > 2000 ms or
 // under 99% delivered).
 
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const env = (k, d) => process.env[k] ?? d;
@@ -32,10 +36,12 @@ if (URL_.includes("xeqfcrxrpfjlqhkijrwd")) {
 }
 const USERS = Number(env("USERS", 100));
 const RAMP_S = Number(env("RAMP_S", 10));
+const LOGIN_SPREAD_S = Number(env("LOGIN_SPREAD_S", 60));
 const DURATION_S = Number(env("DURATION_S", 120));
 const MSG_EVERY_S = Number(env("MSG_EVERY_S", 30));
 const LIKE_EVERY_S = Number(env("LIKE_EVERY_S", 20));
 const COMMENT_EVERY_S = Number(env("COMMENT_EVERY_S", 60));
+const REQUEST_LIMIT_MS = 10_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const spread = (base) => base + Math.floor(Math.random() * base * 4);
@@ -77,19 +83,54 @@ function pct(arr, p) {
   return Math.round(s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))]);
 }
 
+// ---------- signed-in sessions ----------
+// Supabase limits password logins per source address, and every virtual user
+// here shares one. Like a phone keeping its login, a session is kept in
+// SESSION_CACHE (a local file - never commit it) and reused while its access
+// token has 10+ minutes left. PREPARE=1 only signs in whoever is missing,
+// one every LOGIN_GAP_MS, then exits.
+const SESSION_CACHE = env("SESSION_CACHE");
+const PREPARE = env("PREPARE") === "1";
+const LOGIN_GAP_MS = Number(env("LOGIN_GAP_MS", 3000));
+const sessions = SESSION_CACHE && existsSync(SESSION_CACHE) ? JSON.parse(readFileSync(SESSION_CACHE, "utf8")) : {};
+const saveSessions = () => SESSION_CACHE && writeFileSync(SESSION_CACHE, JSON.stringify(sessions), { mode: 0o600 });
+
+async function signIn(sb, email) {
+  const kept = sessions[email];
+  if (kept && kept.expires_at * 1000 - Date.now() > 10 * 60 * 1000) {
+    const { data, error } = await sb.auth.setSession({ access_token: kept.access_token, refresh_token: kept.refresh_token });
+    if (!error && data.session) return data.session;
+  }
+  const res = await timed("auth.signIn", () => sb.auth.signInWithPassword({ email, password: PASSWORD }));
+  if (!res) return null;
+  const { access_token, refresh_token, expires_at } = res.data.session;
+  sessions[email] = { access_token, refresh_token, expires_at };
+  saveSessions();
+  return res.data.session;
+}
+
 // ---------- one virtual user ----------
-async function user(i, startAt, endAt) {
+async function user(i, loginAt, startAt, endAt) {
   const email = `lt${String(i).padStart(3, "0")}@loadtest.invalid`;
   const sb = createClient(URL_, ANON, {
+    // the app gives up on a request after 10 s (lib/supabase.ts); a hung one
+    // here would otherwise hold the whole run open
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(REQUEST_LIMIT_MS) }) },
     auth: { persistSession: false, autoRefreshToken: false },
     realtime: { params: { eventsPerSecond: 50 } },
   });
-  await sleep(Math.max(0, startAt - Date.now()));
-
-  const login = await timed("auth.signIn", () => sb.auth.signInWithPassword({ email, password: PASSWORD }));
+  // Family and guests are already signed in on their phones: opening the app
+  // does not run a password login. Logins are spread over LOGIN_SPREAD_S
+  // before the burst, so the burst measures "100 people open the app now",
+  // not "100 password logins in the same second" (bcrypt on a Free instance
+  // is its own, separate stress; LOGIN_SPREAD_S=0 puts it back in the burst).
+  await sleep(Math.max(0, loginAt - Date.now()));
+  const login = await signIn(sb, email);
   if (!login) return;
+  if (PREPARE) return;
+  await sleep(Math.max(0, startAt - Date.now()));
   const me = await timed("members.self", () =>
-    sb.from("members").select("id, trip_id, role").eq("auth_user_id", login.data.user.id).single()
+    sb.from("members").select("id, trip_id, role").eq("auth_user_id", login.user.id).single()
   );
   if (!me) return;
   const { id: memberId, trip_id: tripId, role } = me.data;
@@ -112,7 +153,11 @@ async function user(i, startAt, endAt) {
     );
     if (ok) for (const id of fresh) marked.add(id);
   };
-  await markRead((wall?.data ?? []).map((m) => m.id));
+  // like markWallRead (00060): one call marks whatever is not read yet
+  await timed("rpc.mark_wall_read", () => sb.rpc("mark_wall_read", { p_trip_id: tripId }));
+  for (const m of wall?.data ?? []) marked.add(m.id);
+  const queuedReads = new Set();
+  let readFlush = null;
 
   const loadFeedback = () =>
     Promise.all([
@@ -137,11 +182,29 @@ async function user(i, startAt, endAt) {
         if (!received.has(row.body)) received.set(row.body, new Set());
         received.get(row.body).add(i);
       }
-      if (row.sender_id !== memberId) void markRead([row.id]);
+      if (row.sender_id !== memberId && !marked.has(row.id)) {
+        // like markReadSoon: one batched upsert every few seconds
+        queuedReads.add(row.id);
+        readFlush ??= setTimeout(() => {
+          readFlush = null;
+          const ids = [...queuedReads];
+          queuedReads.clear();
+          void markRead(ids);
+        }, spread(2000));
+      }
     }
   };
+  // a channel closing because the test removes it at the end is not trouble
+  let closing = false;
+  let joined = 0;
+  let onJoined = () => {};
   const watchStatus = (status) => {
-    if (status !== "SUBSCRIBED") channelTrouble.set(status, (channelTrouble.get(status) ?? 0) + 1);
+    if (status === "SUBSCRIBED") {
+      joined += 1;
+      onJoined();
+    } else if (!closing) {
+      channelTrouble.set(status, (channelTrouble.get(status) ?? 0) + 1);
+    }
   };
   const wallCh = sb
     .channel(`lt-wall-${i}`)
@@ -150,31 +213,27 @@ async function user(i, startAt, endAt) {
     .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, onWall)
     .subscribe(watchStatus);
 
-  let fbTimer = null;
-  const onFeedback = () => {
-    realtimeEvents += 1;
-    if (fbTimer) clearTimeout(fbTimer);
-    fbTimer = setTimeout(() => {
-      fbTimer = null;
-      void loadFeedback();
-    }, spread(300));
-  };
-  let fbCh = sb.channel(`lt-feedback-${i}`);
-  for (const table of ["reactions", "comments"]) {
-    fbCh = fbCh
-      .on("postgres_changes", { event: "INSERT", schema: "public", table, filter }, onFeedback)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table, filter }, onFeedback)
-      .on("postgres_changes", { event: "DELETE", schema: "public", table }, onFeedback);
-  }
-  fbCh.subscribe(watchStatus);
+  // likes/comments are not live (pollFeedback): no channel, a reload about
+  // every 30 s while the screen is open, and right after your own action
 
+  // the wall channel live before this user writes anything: a message sent
+  // before the others have joined was never theirs to receive
+  await Promise.race([
+    new Promise((resolve) => {
+      onJoined = () => joined >= 1 && resolve();
+      onJoined();
+    }),
+    sleep(20000).then(() => {
+      if (joined < 1) fail("realtime.join", new Error("channel not SUBSCRIBED within 20 s"));
+    }),
+  ]);
   // wait for everyone to be in before the clock starts, then act until the end
   await sleep(Math.max(0, startAt + RAMP_S * 1000 - Date.now()));
   let seq = 0;
   const loops = [
     async () => {
       while (Date.now() < endAt) {
-        await sleep(gap(MSG_EVERY_S));
+        await sleep(Math.min(gap(MSG_EVERY_S), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         const tag = `lt:${i}:${Date.now()}:${seq++}`;
         sent.set(tag, { at: Date.now(), sender: i, kid: role === "kid" });
@@ -185,7 +244,7 @@ async function user(i, startAt, endAt) {
     },
     async () => {
       while (Date.now() < endAt && role !== "owner" && postIds.length > 0) {
-        await sleep(gap(LIKE_EVERY_S));
+        await sleep(Math.min(gap(LIKE_EVERY_S), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         const post_id = postIds[Math.floor(Math.random() * postIds.length)];
         const kind = ["heart", "smile", "wow", "star"][Math.floor(Math.random() * 4)];
@@ -194,22 +253,32 @@ async function user(i, startAt, endAt) {
         // already liked that way: the app treats a duplicate as success
         if (error && error.code !== "23505") fail("reactions.insert", error);
         else record("reactions.insert", performance.now() - t);
+        await loadFeedback(); // the card reloads after your own like
       }
     },
     async () => {
       while (Date.now() < endAt && role === "guest" && postIds.length > 0) {
-        await sleep(gap(COMMENT_EVERY_S));
+        await sleep(Math.min(gap(COMMENT_EVERY_S), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         const post_id = postIds[Math.floor(Math.random() * postIds.length)];
         await timed("comments.insert", () =>
           sb.from("comments").insert({ trip_id: tripId, author_id: memberId, post_id, body: `תגובת עומס ${seq++}` })
         );
+        await loadFeedback();
+      }
+    },
+    async () => {
+      // pollFeedback: 10-50 s apart, 30 on average
+      while (Date.now() < endAt) {
+        await sleep(Math.min(spread(10000), Math.max(0, endAt - Date.now())));
+        if (Date.now() >= endAt) break;
+        await loadFeedback();
       }
     },
     async () => {
       // navigation: the badge recounts on every page change
       while (Date.now() < endAt && role !== "owner") {
-        await sleep(gap(45));
+        await sleep(Math.min(gap(45), Math.max(0, endAt - Date.now())));
         if (Date.now() >= endAt) break;
         await Promise.all([
           timed("unread.messages", () => sb.from("messages").select("id, sender_id").eq("trip_id", tripId).eq("channel", "guests")),
@@ -220,17 +289,38 @@ async function user(i, startAt, endAt) {
   ];
   await Promise.all(loops.map((l) => l()));
   await sleep(5000); // let the last deliveries land
-  if (fbTimer) clearTimeout(fbTimer);
-  await sb.removeChannel(wallCh);
-  await sb.removeChannel(fbCh);
+  if (readFlush) clearTimeout(readFlush);
+  closing = true;
+  await Promise.race([sb.removeChannel(wallCh), sleep(5000)]);
 }
 
 // ---------- run ----------
-const t0 = Date.now() + 2000;
+if (PREPARE) {
+  let fresh = 0;
+  for (let k = 1; k <= USERS; k++) {
+    const email = `lt${String(k).padStart(3, "0")}@loadtest.invalid`;
+    const kept = sessions[email];
+    if (kept && kept.expires_at * 1000 - Date.now() > 10 * 60 * 1000) continue;
+    const sb = createClient(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
+    if (await signIn(sb, email)) fresh += 1;
+    await sleep(LOGIN_GAP_MS);
+  }
+  const ready = Object.values(sessions).filter((x) => x.expires_at * 1000 - Date.now() > 10 * 60 * 1000).length;
+  console.log(JSON.stringify({ prepared: fresh, ready, errors: Object.fromEntries(errors) }));
+  process.exit(0);
+}
+
+const loginStart = Date.now() + 2000;
+const t0 = loginStart + LOGIN_SPREAD_S * 1000 + (LOGIN_SPREAD_S > 0 ? 5000 : 0);
 const endAt = t0 + RAMP_S * 1000 + DURATION_S * 1000;
 console.error(`load test: ${USERS} users, ramp ${RAMP_S}s, steady ${DURATION_S}s`);
 await Promise.all(
-  Array.from({ length: USERS }, (_, k) => user(k + 1, t0 + Math.floor((k / USERS) * RAMP_S * 1000), endAt))
+  Array.from({ length: USERS }, (_, k) => user(
+    k + 1,
+    LOGIN_SPREAD_S > 0 ? loginStart + Math.floor((k / USERS) * LOGIN_SPREAD_S * 1000) : t0 + Math.floor((k / USERS) * RAMP_S * 1000),
+    t0 + Math.floor((k / USERS) * RAMP_S * 1000),
+    endAt
+  ))
 );
 
 // a kid's message waits for a parent, so only the others count as "should reach everyone"
@@ -267,4 +357,5 @@ const pass =
   report.realtime.deliveredRatio >= 99;
 report.pass = pass;
 console.log(JSON.stringify(report, null, 2));
+// open sockets would keep the process alive
 process.exit(pass ? 0 : 1);
