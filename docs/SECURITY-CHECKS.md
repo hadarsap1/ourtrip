@@ -2269,3 +2269,10 @@ checks unchanged. Measured as one guest on a 100-member copy: likes 1628 ms →
 - Probe `scripts/rls/probes/61_guest_labels_multi.sql`: owner sets two groups;
   guest and kid see no groups and their updates change nothing; empty, 41-char,
   11 groups and null are rejected. Full suite 262 PASS, 0 FAIL.
+
+## Guest groups: old `label` column dropped (00062) - 22/10/2026
+
+- `guests_allowlist.label` dropped; `labels` (00061) is the only group field.
+  No policy, function or app code read it. guest-invite v10 maps an old
+  client's `label` into `labels` and never writes the column.
+- Probe 43 now writes `labels`. Full suite 262 PASS, 0 FAIL.

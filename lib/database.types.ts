@@ -892,7 +892,6 @@ export type Database = {
           created_at: string
           email: string
           invited_by: string
-          label: string | null
           labels: string[]
           revoked_at: string | null
           trip_id: string
@@ -901,7 +900,6 @@ export type Database = {
           created_at?: string
           email: string
           invited_by: string
-          label?: string | null
           labels?: string[]
           revoked_at?: string | null
           trip_id: string
@@ -910,7 +908,6 @@ export type Database = {
           created_at?: string
           email?: string
           invited_by?: string
-          label?: string | null
           labels?: string[]
           revoked_at?: string | null
           trip_id?: string
