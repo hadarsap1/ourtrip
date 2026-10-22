@@ -46,6 +46,7 @@ export const EXCLUDED_TABLES = [
   "kid_devices",
   "kid_device_registrations",
   "guests_allowlist",
+  "guest_group_kids",
   // the join link and who asked through it (00054): access control, not trip content
   "guest_join_links",
   "guest_join_requests",

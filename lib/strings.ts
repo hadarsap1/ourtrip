@@ -1573,6 +1573,27 @@ export const strings = {
     remove: "מחיקת ההודעה",
     removeConfirm: "למחוק את ההודעה מהקיר? היא תיעלם אצל כולם",
     removed: "ההודעה נמחקה",
+    // group tabs (00063): a message written in a tab goes to that group only
+    tabs: "קבוצות בקיר",
+    everyoneTab: "כולם",
+    sendingTo: "נשלח ל: {to}",
+    sendingToEveryone: "נשלח לכולם",
+    changeAudience: "שינוי",
+    audienceOf: "ל: {to}",
+    pendingInTab: "יש כאן הודעות שממתינות לאישור",
+    groupHint: "מה שנכתב כאן נשאר בתוך {group}. שאר האורחים לא רואים",
+  },
+
+  // who something goes to (00063) - wall messages, stories, photos
+  audience: {
+    title: "למי זה הולך?",
+    hint: "כולם, או קבוצה אחת או יותר. רק מי שבקבוצה יראה",
+    everyone: "כולם",
+    save: "שמירה",
+    saved: "הקהל עודכן",
+    onlyTo: "רק ל: {to}",
+    allGuests: "לכל האורחים",
+    change: "שינוי קהל",
   },
 
   guests: {
@@ -1614,6 +1635,10 @@ export const strings = {
     labelSaved: "הקבוצות עודכנו",
     save: "שמירה",
     groupCount: "{n} בקבוצה",
+    // a group belongs to a kid (00063): that kid sees the group's tab on the wall
+    groupKid: "הקבוצה של:",
+    groupKidNone: "אף אחד (רק ההורים)",
+    groupKidSaved: "עודכן. הילד/ה יראו את הקבוצה בקיר",
     // the join link (00054, DECISIONS #37)
     joinTitle: "קישור הצטרפות",
     joinHint: "שולחים את הקישור לקבוצה בוואטסאפ. מי שרוצה לעקוב נרשם בעצמו, ואתם מאשרים כאן",

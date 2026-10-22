@@ -2276,3 +2276,44 @@ checks unchanged. Measured as one guest on a 100-member copy: likes 1628 ms →
   No policy, function or app code read it. guest-invite v10 maps an old
   client's `label` into `labels` and never writes the column.
 - Probe 43 now writes `labels`. Full suite 262 PASS, 0 FAIL.
+
+## Group audiences: wall, stories, photos (00063) - 22/10/2026
+
+Policies changed (all `alter policy`, read paths keep the 00059 once-per-query
+shape via `(select public.my_guest_labels())` / `my_kid_labels()`):
+
+- `messages_guest_select`, `messages_kid_select`: `audience = '{}'` or it
+  overlaps the caller's groups (kid: also own messages).
+- `messages_guest_insert`, `messages_kid_insert`: `audience <@` the caller's
+  groups - a guest writes only into their own groups, a kid only into the
+  groups linked to them. `messages_approval_guard` keeps `audience` for any
+  non-owner update.
+- `posts_guest_select`, `posts_kid_select`: same audience rule. `posts_guard`
+  forces a kid's story to `audience '{}'` and keeps it on update;
+  `posts_audience_guests_only` forbids an audience on family/public stories.
+- `photos_guest_select`: approved AND shared AND audience match - #5 narrowed,
+  never widened. Kids' photo access unchanged. Kid uploads forced to `{}`,
+  kid updates keep it.
+- New table `guest_group_kids`: owner all; kid reads own links only; guests
+  nothing. Trigger refuses a link to anyone but a kid of the same trip.
+- Indirect readers checked, no change needed: `post_photos_select`,
+  `comments_*_select`, `reactions_member_select`, `feedback_target_visible`
+  (invoker) and the `guest-photos` / `guest-media` functions (read through the
+  caller's JWT) all inherit the narrowed `posts` / `photos`. `push-send`
+  (service role) filters wall pushes with `_shared/wallAudience.ts`, unit
+  tested against the same cases.
+
+Probe `scripts/rls/probes/63_group_audience.sql` (43 checks): two classes, two
+kids. Each guest sees everyone + own groups; each kid sees own class, not the
+other's, not unlinked groups; revoked guest / outsider / anon see nothing; a
+guest cannot write into another group, a kid into another kid's or an
+unlinked group; a kid's pending class message is hidden from guests and from
+the other kid; a kid cannot widen an audience; a parent approves and changes
+it in one step; comments and reactions on a class story are invisible and
+refused for the other class; a class photo does not leak through an
+every-guest story's `post_photos`; #5 still holds inside a group. Matrix
+(probe 90) seeds the new table; a kid reading their own link is the one
+allowed read. Full suite 305 PASS, 0 FAIL.
+
+Known, accepted: a guest who sees a message sent to two groups can read the
+other group's name in its `audience` (names only, no content).

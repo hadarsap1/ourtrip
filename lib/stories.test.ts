@@ -23,6 +23,7 @@ function post(over: Partial<Post>): Post {
     journal_entry_id: null,
     status: "draft",
     visibility: "family",
+    audience: [],
     publish_after: null,
     public_slug: null,
     approved_by: null,

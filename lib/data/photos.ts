@@ -103,6 +103,13 @@ export async function setPhotoShared(id: string, shared: boolean): Promise<void>
   if (error) throw new Error(error.message);
 }
 
+/** Which guests a shared photo reaches (00063): [] = every guest. Narrows
+ *  DECISIONS #5, never widens it - an unshared photo stays hidden. */
+export async function setPhotoAudience(id: string, audience: string[]): Promise<void> {
+  const { error } = await requireClient().from("photos").update({ audience }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deletePhoto(photo: Photo): Promise<void> {
   const supabase = requireClient();
   const { error } = await supabase.from("photos").delete().eq("id", photo.id);

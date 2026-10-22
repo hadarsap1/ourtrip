@@ -14,6 +14,7 @@ import {
   deletePhoto,
   listPhotos,
   rejectPhoto,
+  setPhotoAudience,
   setPhotoShared,
   uploadPhoto,
   type PhotoWithUrl,
@@ -25,6 +26,8 @@ import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
+import { AudienceSheet } from "@/components/AudienceSheet";
+import { listMyGroups } from "@/lib/data/groups";
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -164,6 +167,9 @@ function FamilyPhotosView() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // guest groups (00063): a parent can limit a shared photo to some of them
+  const [groups, setGroups] = useState<string[]>([]);
+  const [audienceFor, setAudienceFor] = useState<PhotoWithUrl | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -198,6 +204,18 @@ function FamilyPhotosView() {
       cancelled = true;
     };
   }, [refresh, showToast]);
+
+  const isOwnerRole = member?.role === "owner";
+  useEffect(() => {
+    if (!trip || !isOwnerRole) return;
+    let cancelled = false;
+    void listMyGroups(trip.id, "owner")
+      .then((g) => !cancelled && setGroups(g))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [trip, isOwnerRole]);
 
   async function handleUpload(file: File | null) {
     if (!file || !trip || !member || uploading) return;
@@ -367,6 +385,17 @@ function FamilyPhotosView() {
                     {strings.photos.shareToggle}
                   </label>
                 )}
+                {isOwner && photo.status === "approved" && photo.shared_with_guests && groups.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAudienceFor(photo)}
+                    className="block text-start font-semibold text-sea underline"
+                  >
+                    {photo.audience.length > 0
+                      ? strings.audience.onlyTo.replace("{to}", photo.audience.join(", "))
+                      : strings.audience.allGuests}
+                  </button>
+                )}
                 {!isOwner && photo.shared_with_guests && (
                   <span className="font-semibold text-sea">
                     {strings.photos.shared}
@@ -390,6 +419,24 @@ function FamilyPhotosView() {
         </ul>
       )}
 
+      {audienceFor && (
+        <AudienceSheet
+          groups={groups}
+          value={audienceFor.audience}
+          onClose={() => setAudienceFor(null)}
+          onSave={async (audience) => {
+            const id = audienceFor.id;
+            setAudienceFor(null);
+            try {
+              await setPhotoAudience(id, audience);
+              setPhotos((prev) => prev.map((x) => (x.id === id ? { ...x, audience } : x)));
+              showToast(strings.audience.saved);
+            } catch {
+              showToast(strings.common.error);
+            }
+          }}
+        />
+      )}
       <Toast message={toast} />
     </div>
   );

@@ -13,6 +13,7 @@ import {
   updateStory,
   type Story,
 } from "@/lib/data/stories";
+import { AudienceRow } from "@/components/AudienceSheet";
 import { audienceOptions, fromLocalInput, toLocalInput } from "@/lib/stories";
 import { strings } from "@/lib/strings";
 import type { Member, Post, PostVisibility, Trip } from "@/lib/types";
@@ -63,6 +64,8 @@ export function StoryComposer({
     existing?.photos.map((p) => ({ id: p.photoId, url: p.url })) ?? []
   );
   const [audience, setAudience] = useState<PostVisibility>(existing?.visibility ?? "guests");
+  // which guest groups, when the audience is guests (00063): [] = every guest
+  const [groups, setGroups] = useState<string[]>(existing?.audience ?? []);
   const [later, setLater] = useState(Boolean(existing?.publish_after));
   const [publishAfter, setPublishAfter] = useState(toLocalInput(existing?.publish_after ?? null));
   const [sharePhotos, setSharePhotos] = useState(true);
@@ -110,6 +113,7 @@ export function StoryComposer({
         ...(isOwner
           ? {
               visibility: options.includes(audience) ? audience : ("family" as const),
+              audience: groups,
               publishAfter: later ? fromLocalInput(publishAfter) : null,
             }
           : {}),
@@ -123,7 +127,7 @@ export function StoryComposer({
           });
       await setStoryPhotos(post.id, photos.map((p) => p.id));
       if (isOwner && status === "approved" && sharePhotos && post.visibility !== "family") {
-        await shareStoryPhotos(photos.map((p) => p.id), member.id);
+        await shareStoryPhotos(photos.map((p) => p.id), member.id, post.audience);
       }
       if (isOwner) {
         const fresh = await reloadStory(post.id, member.role);
@@ -249,6 +253,7 @@ export function StoryComposer({
               ))}
             </div>
             <p className="text-xs text-ink-soft">{AUDIENCE_HINT[audience]}</p>
+            {audience === "guests" && <AudienceRow tripId={trip.id} value={groups} onChange={setGroups} />}
             {authorRole !== "owner" && <p className="text-xs text-ink-soft">{strings.stories.publicKidBlocked}</p>}
 
             {audience !== "family" && (

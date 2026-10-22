@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
+import { AudienceRow } from "@/components/AudienceSheet";
 import { approveStory, returnStoryToDraft, type Story } from "@/lib/data/stories";
 import { strings } from "@/lib/strings";
 import type { PostVisibility } from "@/lib/types";
@@ -25,6 +26,7 @@ export function ApproveStorySheet({
   onToast: (message: string) => void;
 }) {
   const [audience, setAudience] = useState<Exclude<PostVisibility, "public">>("guests");
+  const [groups, setGroups] = useState<string[]>([]);
   const [sharePhotos, setSharePhotos] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -64,6 +66,11 @@ export function ApproveStorySheet({
             ))}
           </div>
           <p className="mt-1 text-xs text-ink-soft">{strings.stories.publicKidBlocked}</p>
+          {audience === "guests" && (
+            <div className="mt-2">
+              <AudienceRow tripId={story.trip_id} value={groups} onChange={setGroups} />
+            </div>
+          )}
         </fieldset>
         {audience === "guests" && story.photos.length > 0 && (
           <label className="flex items-center gap-2 text-sm text-ink">
@@ -80,7 +87,7 @@ export function ApproveStorySheet({
           type="button"
           disabled={busy}
           onClick={() =>
-            void run(() => approveStory(story, audience, sharePhotos, ownerId), strings.stories.published, true)
+            void run(() => approveStory(story, audience, sharePhotos, ownerId, groups), strings.stories.published, true)
           }
           className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
         >

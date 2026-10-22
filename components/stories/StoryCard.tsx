@@ -81,7 +81,9 @@ export function StoryCard({
           )}
           {showAudience && published && (
             <span className="rounded-full border border-sv-line px-2 py-0.5 font-semibold">
-              {AUDIENCE_BADGE[story.visibility]}
+              {story.audience.length > 0
+                ? strings.audience.onlyTo.replace("{to}", story.audience.join(", "))
+                : AUDIENCE_BADGE[story.visibility]}
             </span>
           )}
           {published && isScheduled(story) && story.publish_after && (

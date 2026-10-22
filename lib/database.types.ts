@@ -797,6 +797,42 @@ export type Database = {
           },
         ]
       }
+      guest_group_kids: {
+        Row: {
+          created_at: string
+          label: string
+          member_id: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          label: string
+          member_id: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          label?: string
+          member_id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_group_kids_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_group_kids_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_join_links: {
         Row: {
           created_at: string
@@ -1322,6 +1358,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          audience: string[]
           body: string
           approved_at: string | null
           approved_by: string | null
@@ -1337,6 +1374,7 @@ export type Database = {
           trip_id: string
         }
         Insert: {
+          audience?: string[]
           body: string
           approved_at?: string | null
           approved_by?: string | null
@@ -1352,6 +1390,7 @@ export type Database = {
           trip_id: string
         }
         Update: {
+          audience?: string[]
           body?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -1406,6 +1445,7 @@ export type Database = {
       }
       photos: {
         Row: {
+          audience: string[]
           approved_by: string | null
           caption: string | null
           created_at: string
@@ -1420,6 +1460,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          audience?: string[]
           approved_by?: string | null
           caption?: string | null
           created_at?: string
@@ -1434,6 +1475,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          audience?: string[]
           approved_by?: string | null
           caption?: string | null
           created_at?: string
@@ -1757,6 +1799,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          audience: string[]
           approved_by: string | null
           author_id: string
           body: string
@@ -1776,6 +1819,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["post_visibility"]
         }
         Insert: {
+          audience?: string[]
           approved_by?: string | null
           author_id: string
           body?: string
@@ -1795,6 +1839,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Update: {
+          audience?: string[]
           approved_by?: string | null
           author_id?: string
           body?: string
@@ -2187,6 +2232,8 @@ export type Database = {
         Returns: Database["public"]["Enums"]["member_role"]
       }
       mark_wall_read: { Args: { p_trip_id: string }; Returns: number }
+      my_guest_labels: { Args: never; Returns: string[] }
+      my_kid_labels: { Args: never; Returns: string[] }
       submit_guest_join: {
         Args: { p_email?: string; p_name: string; p_token: string }
         Returns: string

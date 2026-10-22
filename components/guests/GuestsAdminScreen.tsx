@@ -17,6 +17,7 @@ import {
   type GuestAllowlistRow,
   type JoinRequestRow,
 } from "@/lib/data/guests";
+import { listGroupKids, setGroupKid, type GroupKid } from "@/lib/data/groups";
 import { approvedShareText, joinShareText, joinUrl, type ApprovedGuest } from "@/lib/guestJoin";
 import { useMember } from "@/lib/useMember";
 import { normalizeLabels, parseGuestList } from "@/lib/guestBulk";
@@ -48,6 +49,8 @@ export function GuestsAdminScreen() {
   const [allowlist, setAllowlist] = useState<GuestAllowlistRow[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [requests, setRequests] = useState<JoinRequestRow[]>([]);
+  // which kid each group belongs to (00063): that kid sees the group's wall
+  const [groupKids, setGroupKids] = useState<GroupKid[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
   // sign-in links guest-invite could not email (no RESEND_API_KEY, or Resend
@@ -67,11 +70,13 @@ export function GuestsAdminScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [rows, tripMembers, pending] = await Promise.all([
+    const [rows, tripMembers, pending, kids] = await Promise.all([
       listAllowlist(tripId),
       listMembers(tripId),
       listJoinRequests(tripId),
+      listGroupKids(tripId),
     ]);
+    setGroupKids(kids);
     setAllowlist(rows);
     setMembers(tripMembers);
     setRequests(pending);
@@ -105,6 +110,7 @@ export function GuestsAdminScreen() {
     () => [...new Set(allowlist.flatMap((r) => r.labels))],
     [allowlist]
   );
+  const kids = members.filter((m) => m.role === "kid");
   const nameOf = (email: string) =>
     members.find((m) => m.email?.toLowerCase() === email.toLowerCase())?.display_name ?? null;
 
@@ -308,6 +314,31 @@ export function GuestsAdminScreen() {
                 {strings.guests.groupCount.replace("{n}", String(group.rows.length))}
               </span>
             </h2>
+            {group.label !== null && kids.length > 0 && (
+              <label className="flex items-center gap-2 px-0.5 text-xs text-ink-soft">
+                {strings.guests.groupKid}
+                <select
+                  value={groupKids.find((k) => k.label === group.label)?.member_id ?? ""}
+                  onChange={(e) => {
+                    if (!trip || group.label === null) return;
+                    void setGroupKid(trip.id, group.label, e.target.value || null)
+                      .then(() => {
+                        showToast(strings.guests.groupKidSaved);
+                        return refresh(trip.id);
+                      })
+                      .catch(() => showToast(strings.common.error));
+                  }}
+                  className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink"
+                >
+                  <option value="">{strings.guests.groupKidNone}</option>
+                  {kids.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.display_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <ul className="space-y-2">
               {group.rows.map((row) => {
                 const revoked = row.revoked_at !== null;
