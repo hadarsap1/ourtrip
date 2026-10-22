@@ -16,10 +16,11 @@ import {
   sendMessage,
   setMessageAudience,
   subscribeMessages,
+  threadWall,
   type WallMessage,
 } from "@/lib/data/messages";
 import { listMyGroups } from "@/lib/data/groups";
-import { audienceForTab, audienceText, EVERYONE, inTab, tabKey, wallTabs, type WallTab } from "@/lib/audience";
+import { audienceText } from "@/lib/audience";
 import { AudienceSheet } from "@/components/AudienceSheet";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
@@ -38,14 +39,15 @@ export function MessagesScreen() {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  // group tabs (00063): the groups this member may read and write in
+  // the groups the family can send a new message to (00063/00064)
   const [groups, setGroups] = useState<string[]>([]);
-  const [tab, setTab] = useState<WallTab>(EVERYONE);
-  // anyone may send to more than the open tab (a guest: of their own groups);
-  // null = the tab's group
-  const [sendTo, setSendTo] = useState<string[] | null>(null);
+  // who a new message goes to - everyone unless the family picks groups
+  const [sendTo, setSendTo] = useState<string[]>([]);
+  // answering a message (00066): the reply goes to that message's audience
+  const [replyTo, setReplyTo] = useState<WallMessage | null>(null);
   // the audience sheet: for the composer, or for one (pending) message
   const [audienceFor, setAudienceFor] = useState<"compose" | WallMessage | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,18 +131,11 @@ export function MessagesScreen() {
     };
   }, [member, memberLoading, refresh, showToast]);
 
-  // The family (parents and kids, 00064) also gets a tab for a group that only
-  // shows up on a message; a guest's tabs are exactly their own groups, so a
-  // tab is always one they may write in.
-  const tabs = useMemo(
-    () => wallTabs(groups, member && member.role !== "guest" ? messages : []),
-    [groups, messages, member]
-  );
-  const shown = tabs.length > 0 ? inTab(messages, tab) : messages;
+  const threads = useMemo(() => threadWall(messages), [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [shown.length, tab]);
+  }, [messages.length]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -149,9 +144,10 @@ export function MessagesScreen() {
     const text = body;
     setBody("");
     try {
-      await sendMessage(trip.id, member.id, text, sendTo ?? audienceForTab(tab));
-      // a wider audience is for one message, never the next one by accident
-      setSendTo(null);
+      await sendMessage(trip.id, member.id, text, sendTo, replyTo?.id ?? null);
+      // groups and a reply are for one message, never the next one by accident
+      setSendTo([]);
+      setReplyTo(null);
       await refresh(trip.id, member.id);
       if (member.role === "kid") showToast(strings.wall.sentForApproval);
     } catch {
@@ -226,6 +222,129 @@ export function MessagesScreen() {
       .catch(() => showToast(strings.common.error));
   };
 
+  /** One message on the wall. A reply sits under its message and has no
+   *  audience of its own to show or change (00066). */
+  const bubble = (message: WallMessage, isReply: boolean) => {
+    const mine = message.sender_id === member.id;
+    const pending = isPending(message);
+    const soft = mine ? "text-sea-tint" : "text-ink-soft";
+    return (
+      <div
+        key={message.id}
+        className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
+          mine
+            ? "ms-auto bg-sea text-on-sea"
+            : "me-auto bg-surface text-ink"
+        } ${pending ? "border-2 border-dashed border-sun-deep" : ""}`}
+      >
+        <div className="flex items-start gap-2">
+          <p
+            className={`flex-1 text-xs font-semibold ${
+              mine ? "text-sea-tint" : "text-sea"
+            }`}
+          >
+            {senderName(message.sender_id)}
+            <span
+              className={`ms-1.5 font-normal ${
+                mine ? "text-sea-tint" : "text-ink-soft"
+              }`}
+            >
+              {formatShortDate(message.created_at.slice(0, 10))}
+            </span>
+          </p>
+          {/* a parent deletes any message once it is out (messages_owner_all);
+              a pending one keeps its own "לא לשלוח" below */}
+          {isOwner && !pending && (
+            <button
+              type="button"
+              aria-label={strings.wall.remove}
+              onClick={async () => {
+                if (!(await askConfirm(strings.wall.removeConfirm))) return;
+                act(() => deleteMessage(message.id).then(() => showToast(strings.wall.removed)));
+              }}
+              className={`-me-1.5 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                mine ? "text-sea-tint active:bg-on-sea/15" : "text-ink-soft active:bg-paper-deep"
+              }`}
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        {/* who a message went to, when not everyone - a reply goes with its
+            message. Parents also see a waiting one's and change it: the kid's
+            choice is a suggestion. */}
+        {!isReply && (message.audience.length > 0 || (isOwner && pending)) && (
+          <p className={`mt-1 text-xs ${soft}`}>
+            {message.audience.length > 0
+              ? strings.audience.onlyTo.replace("{to}", audienceText(message.audience)!)
+              : strings.wall.toEveryone}
+            {isOwner && pending && (
+              <button
+                type="button"
+                onClick={() => setAudienceFor(message)}
+                className="ms-1.5 font-semibold underline"
+              >
+                {strings.wall.changeAudience}
+              </button>
+            )}
+          </p>
+        )}
+        {!pending && (
+          <button
+            type="button"
+            onClick={() => {
+              // a reply to a reply answers the message itself (00066)
+              setReplyTo(isReply ? (messages.find((m) => m.id === message.reply_to) ?? null) : message);
+              inputRef.current?.focus();
+            }}
+            className={`mt-1 min-h-8 text-xs font-semibold underline ${soft}`}
+          >
+            {strings.wall.reply}
+          </button>
+        )}
+        {pending && (
+          <div className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold ${soft}`}>
+            <span>{strings.wall.pending}</span>
+            {isOwner && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => act(() => approveMessage(message.id))}
+                  className="min-h-9 rounded-full bg-sea px-3 font-bold text-on-sea"
+                >
+                  {strings.wall.approve}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!(await askConfirm(strings.wall.rejectConfirm))) return;
+                    act(() => deleteMessage(message.id));
+                  }}
+                  className="min-h-9 rounded-full border border-line bg-surface px-3 font-bold text-ink-soft"
+                >
+                  {strings.wall.reject}
+                </button>
+              </>
+            )}
+            {mine && !isOwner && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!(await askConfirm(strings.wall.takeBackConfirm))) return;
+                  act(() => deleteMessage(message.id));
+                }}
+                className="min-h-9 font-bold underline"
+              >
+                {strings.wall.takeBack}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pt-4">
       <h1 className="mb-3 text-2xl font-bold">
@@ -235,163 +354,57 @@ export function MessagesScreen() {
 
       <p className="mb-2 text-xs text-ink-soft">{hint}</p>
 
-      {tabs.length > 0 && (
-        <nav aria-label={strings.wall.tabs} className="-mx-4 mb-2 flex gap-1.5 overflow-x-auto px-4 pb-1">
-          {tabs.map((t) => {
-            const on = tabKey(t) === tabKey(tab);
-            const waiting = isOwner && inTab(messages, t).some(isPending);
-            return (
-              <button
-                key={tabKey(t)}
-                type="button"
-                aria-pressed={on}
-                onClick={() => {
-                  setTab(t);
-                  setSendTo(null);
-                }}
-                className={`relative shrink-0 rounded-full border px-3 py-1.5 text-sm ${
-                  on ? "border-sea bg-sea font-semibold text-on-sea" : "border-line bg-surface text-ink-soft"
-                }`}
-              >
-                {t.kind === "everyone" ? strings.wall.everyoneTab : t.label}
-                {waiting && (
-                  <span
-                    aria-label={strings.wall.pendingInTab}
-                    className="absolute -top-0.5 -end-0.5 h-2.5 w-2.5 rounded-full bg-sun-deep"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      )}
-      {tab.kind === "group" && (
-        <p className="mb-2 text-xs text-ink-soft">{strings.wall.groupHint.replace("{group}", tab.label)}</p>
-      )}
-
       <div className="flex-1 space-y-2 overflow-y-auto pb-3">
-        {shown.length === 0 ? (
+        {threads.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
             {strings.wall.empty}
           </p>
         ) : (
-          shown.map((message) => {
-            const mine = message.sender_id === member.id;
-            const pending = isPending(message);
-            const soft = mine ? "text-sea-tint" : "text-ink-soft";
-            return (
-              <div
-                key={message.id}
-                className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
-                  mine
-                    ? "ms-auto bg-sea text-on-sea"
-                    : "me-auto bg-surface text-ink"
-                } ${pending ? "border-2 border-dashed border-sun-deep" : ""}`}
-              >
-                <div className="flex items-start gap-2">
-                  <p
-                    className={`flex-1 text-xs font-semibold ${
-                      mine ? "text-sea-tint" : "text-sea"
-                    }`}
-                  >
-                    {senderName(message.sender_id)}
-                    <span
-                      className={`ms-1.5 font-normal ${
-                        mine ? "text-sea-tint" : "text-ink-soft"
-                      }`}
-                    >
-                      {formatShortDate(message.created_at.slice(0, 10))}
-                    </span>
-                  </p>
-                  {/* a parent deletes any message once it is out (messages_owner_all);
-                      a pending one keeps its own "לא לשלוח" below */}
-                  {isOwner && !pending && (
-                    <button
-                      type="button"
-                      aria-label={strings.wall.remove}
-                      onClick={async () => {
-                        if (!(await askConfirm(strings.wall.removeConfirm))) return;
-                        act(() => deleteMessage(message.id).then(() => showToast(strings.wall.removed)));
-                      }}
-                      className={`-me-1.5 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                        mine ? "text-sea-tint active:bg-on-sea/15" : "text-ink-soft active:bg-paper-deep"
-                      }`}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  )}
+          threads.map(({ message, replies }) => (
+            <div key={message.id} className="space-y-1.5">
+              {bubble(message, false)}
+              {replies.length > 0 && (
+                <div className="space-y-1.5 border-s-2 border-line ps-3 ms-3">
+                  {replies.map((reply) => bubble(reply, true))}
                 </div>
-                <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                {/* who a message to several groups went to; parents also see
-                    a waiting one's and change it - the kid's choice is a suggestion */}
-                {((isOwner && pending) || message.audience.length > 1) && (
-                  <p className={`mt-1 text-xs ${soft}`}>
-                    {strings.wall.audienceOf.replace(
-                      "{to}",
-                      audienceText(message.audience) ?? strings.audience.everyone
-                    )}
-                    {pending && (
-                      <button
-                        type="button"
-                        onClick={() => setAudienceFor(message)}
-                        className="ms-1.5 font-semibold underline"
-                      >
-                        {strings.wall.changeAudience}
-                      </button>
-                    )}
-                  </p>
-                )}
-                {pending && (
-                  <div className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold ${soft}`}>
-                    <span>{strings.wall.pending}</span>
-                    {isOwner && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => act(() => approveMessage(message.id))}
-                          className="min-h-9 rounded-full bg-sea px-3 font-bold text-on-sea"
-                        >
-                          {strings.wall.approve}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!(await askConfirm(strings.wall.rejectConfirm))) return;
-                            act(() => deleteMessage(message.id));
-                          }}
-                          className="min-h-9 rounded-full border border-line bg-surface px-3 font-bold text-ink-soft"
-                        >
-                          {strings.wall.reject}
-                        </button>
-                      </>
-                    )}
-                    {mine && !isOwner && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!(await askConfirm(strings.wall.takeBackConfirm))) return;
-                          act(() => deleteMessage(message.id));
-                        }}
-                        className="min-h-9 font-bold underline"
-                      >
-                        {strings.wall.takeBack}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
+              )}
+            </div>
+          ))
         )}
         <div ref={bottomRef} />
       </div>
 
-      {tabs.length > 0 && (
-        <p className="flex items-center gap-1.5 text-xs text-ink-soft">
-          {(sendTo ?? audienceForTab(tab)).length === 0
-            ? strings.wall.sendingToEveryone
-            : strings.wall.sendingTo.replace("{to}", audienceText(sendTo ?? audienceForTab(tab))!)}
-          {groups.length > 1 && (
+      {/* Answering: the reply goes where the message went - nothing to
+          choose (00066). A new message: everyone, unless the family picks
+          groups; a guest's new message always goes to everyone. */}
+      {replyTo ? (
+        <div className="flex items-start gap-2 rounded-xl bg-surface px-3 py-2 text-xs text-ink-soft">
+          <p className="min-w-0 flex-1">
+            <span className="font-semibold text-ink">
+              {strings.wall.replyingTo.replace("{name}", senderName(replyTo.sender_id))}
+            </span>{" "}
+            <span className="line-clamp-1">{replyTo.body}</span>
+            <span className="block">
+              {replyTo.audience.length > 0
+                ? strings.wall.replyGoesTo.replace("{to}", audienceText(replyTo.audience)!)
+                : strings.wall.replyGoesToEveryone}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setReplyTo(null)}
+            className="min-h-8 shrink-0 font-semibold text-sea underline"
+          >
+            {strings.wall.cancelReply}
+          </button>
+        </div>
+      ) : (
+        member.role !== "guest" &&
+        groups.length > 0 && (
+          <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+            {sendTo.length === 0
+              ? strings.wall.sendingToEveryone
+              : strings.wall.sendingTo.replace("{to}", audienceText(sendTo)!)}
             <button
               type="button"
               onClick={() => setAudienceFor("compose")}
@@ -399,14 +412,15 @@ export function MessagesScreen() {
             >
               {strings.wall.changeAudience}
             </button>
-          )}
-        </p>
+          </p>
+        )
       )}
       <form
         onSubmit={(e) => void handleSend(e)}
         className="sticky bottom-0 flex gap-2 bg-paper-deep py-2"
       >
         <input
+          ref={inputRef}
           type="text"
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -425,7 +439,7 @@ export function MessagesScreen() {
       {audienceFor && (
         <AudienceSheet
           groups={groups}
-          value={audienceFor === "compose" ? (sendTo ?? audienceForTab(tab)) : audienceFor.audience}
+          value={audienceFor === "compose" ? sendTo : audienceFor.audience}
           onClose={() => setAudienceFor(null)}
           onSave={async (audience) => {
             if (audienceFor === "compose") {

@@ -1334,6 +1334,7 @@ export type Database = {
           id: string
           origin_comment_id: string | null
           origin_message_id: string | null
+          reply_to: string | null
           sender_id: string
           trip_id: string
         }
@@ -1350,6 +1351,7 @@ export type Database = {
           id?: string
           origin_comment_id?: string | null
           origin_message_id?: string | null
+          reply_to?: string | null
           sender_id: string
           trip_id: string
         }
@@ -1366,6 +1368,7 @@ export type Database = {
           id?: string
           origin_comment_id?: string | null
           origin_message_id?: string | null
+          reply_to?: string | null
           sender_id?: string
           trip_id?: string
         }

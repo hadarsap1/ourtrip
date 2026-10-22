@@ -1573,15 +1573,16 @@ export const strings = {
     remove: "מחיקת ההודעה",
     removeConfirm: "למחוק את ההודעה מהקיר? היא תיעלם אצל כולם",
     removed: "ההודעה נמחקה",
-    // group tabs (00063): a message written in a tab goes to that group only
-    tabs: "קבוצות בקיר",
-    everyoneTab: "כולם",
-    sendingTo: "נשלח ל: {to}",
+    // who a message goes to (00063/00064) and answering one (00066)
+    sendingTo: "נשלח רק ל: {to}",
     sendingToEveryone: "נשלח לכולם",
     changeAudience: "שינוי",
-    audienceOf: "ל: {to}",
-    pendingInTab: "יש כאן הודעות שממתינות לאישור",
-    groupHint: "מה שנכתב כאן נשאר בתוך {group}. שאר האורחים לא רואים",
+    toEveryone: "לכולם",
+    reply: "תשובה",
+    replyingTo: "תשובה ל{name}:",
+    replyGoesTo: "התשובה תגיע רק ל: {to}",
+    replyGoesToEveryone: "התשובה תגיע לכולם",
+    cancelReply: "ביטול",
   },
 
   // who something goes to (00063) - wall messages, stories, photos
