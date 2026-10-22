@@ -12,14 +12,14 @@ import {
   listAllowlist,
   listJoinRequests,
   revokeGuest,
-  setGuestLabel,
+  setGuestLabels,
   type BulkInviteResult,
   type GuestAllowlistRow,
   type JoinRequestRow,
 } from "@/lib/data/guests";
 import { approvedShareText, joinShareText, joinUrl, type ApprovedGuest } from "@/lib/guestJoin";
 import { useMember } from "@/lib/useMember";
-import { LABEL_SUGGESTIONS, normalizeLabel, parseGuestList } from "@/lib/guestBulk";
+import { normalizeLabels, parseGuestList } from "@/lib/guestBulk";
 import { shareToWhatsApp } from "@/lib/share";
 import { formatDate } from "@/lib/format";
 import { ClipboardIcon, MailIcon, ShareIcon, UsersIcon } from "@/components/icons";
@@ -29,12 +29,14 @@ import type { Member, Trip } from "@/lib/types";
 
 type Group = { label: string | null; rows: GuestAllowlistRow[] };
 
-/** Labelled groups first (alphabetical), the unlabelled ones last. */
+/** Labelled groups first (alphabetical), the unlabelled ones last. A guest
+ *  in several groups is listed under each of them. */
 function groupByLabel(rows: GuestAllowlistRow[]): Group[] {
   const map = new Map<string | null, GuestAllowlistRow[]>();
   for (const row of rows) {
-    const key = row.label ?? null;
-    map.set(key, [...(map.get(key) ?? []), row]);
+    for (const key of row.labels.length > 0 ? row.labels : [null]) {
+      map.set(key, [...(map.get(key) ?? []), row]);
+    }
   }
   return [...map.entries()]
     .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : a.localeCompare(b, "he")))
@@ -100,7 +102,7 @@ export function GuestsAdminScreen() {
 
   const groups = useMemo(() => groupByLabel(allowlist), [allowlist]);
   const knownLabels = useMemo(
-    () => [...new Set(allowlist.map((r) => r.label).filter((l): l is string => !!l))],
+    () => [...new Set(allowlist.flatMap((r) => r.labels))],
     [allowlist]
   );
   const nameOf = (email: string) =>
@@ -130,7 +132,7 @@ export function GuestsAdminScreen() {
     try {
       const results = await inviteMany(
         requests.map((r) => ({ name: r.display_name, email: r.email })),
-        undefined,
+        [],
         () => {}
       );
       showToast(
@@ -372,9 +374,9 @@ export function GuestsAdminScreen() {
           row={labelFor}
           knownLabels={knownLabels}
           onClose={() => setLabelFor(null)}
-          onSave={async (label) => {
+          onSave={async (labels) => {
             try {
-              await setGuestLabel(trip.id, labelFor.email, label);
+              await setGuestLabels(trip.id, labelFor.email, labels);
               setLabelFor(null);
               showToast(strings.guests.labelSaved);
               await refresh(trip.id);
@@ -390,7 +392,8 @@ export function GuestsAdminScreen() {
   );
 }
 
-/** Free text with one-tap suggestions: a class has its own name. */
+/** Any number of groups: one tap on a suggestion or a known group, or type a
+ *  new one (a class has its own name). */
 function LabelField({
   id,
   value,
@@ -398,39 +401,66 @@ function LabelField({
   knownLabels,
 }: {
   id: string;
-  value: string;
-  onChange: (value: string) => void;
+  value: string[];
+  onChange: (value: string[]) => void;
   knownLabels: string[];
 }) {
-  const suggestions = [...new Set([...knownLabels, ...LABEL_SUGGESTIONS])];
+  const [draft, setDraft] = useState("");
+  const suggestions = [...new Set([...strings.guests.labelSuggestions, ...knownLabels, ...value])];
+  const toggle = (label: string) =>
+    onChange(value.includes(label) ? value.filter((l) => l !== label) : [...value, label]);
+  const addDraft = () => {
+    const [label] = normalizeLabels([draft]);
+    if (label && !value.includes(label)) onChange([...value, label]);
+    setDraft("");
+  };
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-ink-soft">
-        {strings.guests.label}
-      </label>
-      <input
-        id={id}
-        type="text"
-        maxLength={40}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={strings.guests.labelHint}
-        className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-      />
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <p className="mb-1 text-sm font-medium text-ink-soft">{strings.guests.label}</p>
+      <p className="mb-2 text-xs text-ink-soft">{strings.guests.labelHint}</p>
+      <div className="flex flex-wrap gap-1.5">
         {suggestions.map((s) => (
           <button
             key={s}
             type="button"
-            onClick={() => onChange(s)}
-            aria-pressed={value === s}
+            onClick={() => toggle(s)}
+            aria-pressed={value.includes(s)}
             className={`rounded-full border px-3 py-1 text-sm ${
-              value === s ? "border-sea bg-sea-tint text-sea-deep" : "border-line bg-surface text-ink-soft"
+              value.includes(s) ? "border-sea bg-sea-tint text-sea-deep" : "border-line bg-surface text-ink-soft"
             }`}
           >
+            {value.includes(s) && "✓ "}
             {s}
           </button>
         ))}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input
+          id={id}
+          type="text"
+          maxLength={40}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addDraft();
+            }
+          }}
+          // a typed group counts even if the parent goes straight to send
+          onBlur={addDraft}
+          aria-label={strings.guests.newLabel}
+          placeholder={strings.guests.newLabel}
+          className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={addDraft}
+          disabled={!draft.trim()}
+          className="shrink-0 rounded-xl border border-sea px-4 text-sm font-semibold text-sea disabled:opacity-50"
+        >
+          {strings.guests.addLabel}
+        </button>
       </div>
     </div>
   );
@@ -447,7 +477,7 @@ function InviteSheet({
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [label, setLabel] = useState("");
+  const [labels, setLabels] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ link: string; emailed: boolean } | null>(null);
 
@@ -456,7 +486,7 @@ function InviteSheet({
     if (busy) return;
     setBusy(true);
     try {
-      setResult(await inviteGuest(email.trim(), name.trim(), normalizeLabel(label)));
+      setResult(await inviteGuest(email.trim(), name.trim(), normalizeLabels(labels)));
     } catch {
       onToast(strings.common.error);
     } finally {
@@ -525,7 +555,7 @@ function InviteSheet({
               dir="ltr"
             />
           </div>
-          <LabelField id="guest-label" value={label} onChange={setLabel} knownLabels={knownLabels} />
+          <LabelField id="guest-label" value={labels} onChange={setLabels} knownLabels={knownLabels} />
           <button
             type="submit"
             disabled={busy}
@@ -549,7 +579,7 @@ function BulkInviteSheet({
   onToast: (message: string) => void;
 }) {
   const [text, setText] = useState("");
-  const [label, setLabel] = useState("");
+  const [labels, setLabels] = useState<string[]>([]);
   const [progress, setProgress] = useState<number | null>(null);
   const [results, setResults] = useState<BulkInviteResult[] | null>(null);
   const parsed = useMemo(() => parseGuestList(text), [text]);
@@ -557,7 +587,7 @@ function BulkInviteSheet({
   async function handleSend() {
     if (parsed.guests.length === 0 || progress !== null) return;
     setProgress(0);
-    const out = await inviteMany(parsed.guests, normalizeLabel(label), setProgress);
+    const out = await inviteMany(parsed.guests, normalizeLabels(labels), setProgress);
     setResults(out);
     setProgress(null);
   }
@@ -631,7 +661,7 @@ function BulkInviteSheet({
             className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           />
         </div>
-        <LabelField id="bulk-label" value={label} onChange={setLabel} knownLabels={knownLabels} />
+        <LabelField id="bulk-label" value={labels} onChange={setLabels} knownLabels={knownLabels} />
 
         <div className="space-y-1 text-sm" aria-live="polite">
           {parsed.guests.length > 0 && (
@@ -747,9 +777,9 @@ function LabelSheet({
   row: GuestAllowlistRow;
   knownLabels: string[];
   onClose: () => void;
-  onSave: (label: string | null) => Promise<void>;
+  onSave: (labels: string[]) => Promise<void>;
 }) {
-  const [label, setLabel] = useState(row.label ?? "");
+  const [labels, setLabels] = useState<string[]>(row.labels);
   const [busy, setBusy] = useState(false);
   return (
     <Sheet open onClose={onClose} title={strings.guests.setLabel}>
@@ -758,14 +788,14 @@ function LabelSheet({
           e.preventDefault();
           if (busy) return;
           setBusy(true);
-          void onSave(normalizeLabel(label)).finally(() => setBusy(false));
+          void onSave(normalizeLabels(labels)).finally(() => setBusy(false));
         }}
         className="space-y-4"
       >
         <p className="truncate text-sm text-ink-soft" dir="ltr">
           {row.email}
         </p>
-        <LabelField id="row-label" value={label} onChange={setLabel} knownLabels={knownLabels} />
+        <LabelField id="row-label" value={labels} onChange={setLabels} knownLabels={knownLabels} />
         <button
           type="submit"
           disabled={busy}

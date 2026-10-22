@@ -17,8 +17,8 @@ function requireClient() {
 export async function inviteGuest(
   email: string,
   displayName: string,
-  /** Group label; undefined leaves an existing guest's label as it is. */
-  label?: string | null
+  /** Groups to add; the guest's existing groups are kept. */
+  labels: string[] = []
 ): Promise<{ link: string; emailed: boolean }> {
   const { data, error } = await requireClient().functions.invoke(
     "guest-invite",
@@ -27,7 +27,7 @@ export async function inviteGuest(
         email,
         display_name: displayName,
         redirect_to: window.location.origin,
-        ...(label === undefined ? {} : { label }),
+        ...(labels.length === 0 ? {} : { labels }),
       },
     }
   );
@@ -56,15 +56,15 @@ export async function listAllowlist(
   return data;
 }
 
-/** Group label for managing the list (migration 00043). Owner-only by RLS. */
-export async function setGuestLabel(
+/** A guest's groups, replaced as a whole (migration 00061). Owner-only by RLS. */
+export async function setGuestLabels(
   tripId: string,
   email: string,
-  label: string | null
+  labels: string[]
 ): Promise<void> {
   const { error } = await requireClient()
     .from("guests_allowlist")
-    .update({ label })
+    .update({ labels })
     .eq("trip_id", tripId)
     .eq("email", email);
   if (error) throw new Error(error.message);
@@ -85,14 +85,14 @@ export type BulkInviteResult = {
  */
 export async function inviteMany(
   guests: { name: string; email: string }[],
-  /** undefined leaves each existing guest's label as it is */
-  label: string | null | undefined,
+  /** groups to add to each guest; their existing groups are kept */
+  labels: string[],
   onProgress: (done: number) => void
 ): Promise<BulkInviteResult[]> {
   const results: BulkInviteResult[] = [];
   for (const [i, guest] of guests.entries()) {
     try {
-      const { link, emailed } = await inviteGuest(guest.email, guest.name, label);
+      const { link, emailed } = await inviteGuest(guest.email, guest.name, labels);
       results.push({ ...guest, ok: true, link, emailed });
     } catch {
       results.push({ ...guest, ok: false });

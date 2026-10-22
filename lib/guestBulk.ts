@@ -42,10 +42,13 @@ export function parseGuestList(text: string): BulkParse {
   return { guests, invalid, duplicates };
 }
 
-/** Suggested labels; the field stays free text (a class has a name). */
-export const LABEL_SUGGESTIONS = ["משפחה", "חברים", "כיתה"] as const;
-
-export function normalizeLabel(label: string | null | undefined): string | null {
-  const trimmed = (label ?? "").trim().slice(0, 40);
-  return trimmed || null;
+/** A guest's groups as the database takes them (00061): trimmed, at most 40
+ *  characters each, no empties or repeats, at most 10. */
+export function normalizeLabels(labels: readonly (string | null | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const label of labels) {
+    const trimmed = (label ?? "").trim().slice(0, 40);
+    if (trimmed) out.add(trimmed);
+  }
+  return [...out].slice(0, 10);
 }

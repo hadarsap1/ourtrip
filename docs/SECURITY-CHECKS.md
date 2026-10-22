@@ -2255,3 +2255,17 @@ checks unchanged. Measured as one guest on a 100-member copy: likes 1628 ms →
   trip's), only for themself, and a second call marks nothing; a kid marks
   the two others' messages; revoked guest and outsider mark nothing; anon
   cannot call it. Full suite 253 PASS, 0 FAIL.
+
+## Guest groups: several per guest (00061) - 22/10/2026
+
+- `guests_allowlist.labels text[]` replaces the single `label` (backfilled from
+  it; `label` stays, unread, until guest-invite is redeployed). Still
+  addressing only: no policy reads it, every active guest sees the same
+  content. Existing owner-only policies on `guests_allowlist` cover it.
+- Shape enforced in the database (`guest_labels_valid`): at most 10 groups,
+  each 1-40 characters, no nulls.
+- guest-invite adds the requested groups to the guest's existing ones (owner
+  gate unchanged), so a re-invite never takes a guest out of a group.
+- Probe `scripts/rls/probes/61_guest_labels_multi.sql`: owner sets two groups;
+  guest and kid see no groups and their updates change nothing; empty, 41-char,
+  11 groups and null are rejected. Full suite 262 PASS, 0 FAIL.
