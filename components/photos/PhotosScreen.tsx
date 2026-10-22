@@ -211,7 +211,7 @@ function FamilyPhotosView() {
   useEffect(() => {
     if (!trip || !isOwnerRole) return;
     let cancelled = false;
-    void listMyGroups()
+    void listMyGroups("owner")
       .then((g) => !cancelled && setGroups(g))
       .catch(() => {});
     return () => {

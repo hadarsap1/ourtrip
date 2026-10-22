@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { audienceForTab, audienceText, EVERYONE, inTab, photoAudienceAfterShare, tabKey, wallTabs } from "./audience";
+import {
+  audienceForTab,
+  audienceText,
+  EVERYONE,
+  inTab,
+  photoAudienceAfterShare,
+  tabKey,
+  wallTabs,
+  withDefaultGroups,
+} from "./audience";
 
 const msgs = [
   { id: "1", audience: [] },
@@ -68,5 +77,16 @@ describe("photoAudienceAfterShare", () => {
       "כיתה אלה",
       "כיתה עומר",
     ]);
+  });
+});
+
+describe("withDefaultGroups", () => {
+  const defaults = ["משפחה", "חברים", "כיתה עומר", "כיתה אלה"];
+  it("the family always gets the basic groups, plus any other", () => {
+    expect(withDefaultGroups(["חברים", "שכנים"], "owner", defaults)).toEqual([...defaults, "שכנים"]);
+    expect(withDefaultGroups([], "kid", defaults)).toEqual(defaults);
+  });
+  it("a guest gets only their own groups", () => {
+    expect(withDefaultGroups(["חברים"], "guest", defaults)).toEqual(["חברים"]);
   });
 });

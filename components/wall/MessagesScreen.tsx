@@ -88,7 +88,7 @@ export function MessagesScreen() {
         const [tripMembers, myGroups] = await Promise.all([
           listMembers(activeTrip.id),
           // no groups (or a failed lookup) = the wall as it always was
-          listMyGroups().catch(() => []),
+          listMyGroups(member.role).catch(() => []),
         ]);
         if (!cancelled) {
           setMembers(tripMembers);
