@@ -150,7 +150,8 @@ async function handleWallMessage(messageId: string): Promise<number> {
   // would leak what the policies forbid opening: a kid's message waiting for
   // approval (00049) is the parents' alone - once approved this runs again
   // (messages_notify_approved) - and a group message (00063/00064) goes to
-  // the family and its groups' guests only. The retired family channel never reached guests.
+  // the family and its groups' guests only. The retired family channel never
+  // reached guests.
   const pending = msg.approved_at === null;
   const audience = (msg.audience ?? []) as string[];
   const recipients = (members ?? [])
