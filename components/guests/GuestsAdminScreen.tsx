@@ -17,7 +17,6 @@ import {
   type GuestAllowlistRow,
   type JoinRequestRow,
 } from "@/lib/data/guests";
-import { listGroupKids, setGroupKid, type GroupKid } from "@/lib/data/groups";
 import { approvedShareText, joinShareText, joinUrl, type ApprovedGuest } from "@/lib/guestJoin";
 import { useMember } from "@/lib/useMember";
 import { normalizeLabels, parseGuestList } from "@/lib/guestBulk";
@@ -49,8 +48,8 @@ export function GuestsAdminScreen() {
   const [allowlist, setAllowlist] = useState<GuestAllowlistRow[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [requests, setRequests] = useState<JoinRequestRow[]>([]);
-  // which kid each group belongs to (00063): that kid sees the group's wall
-  const [groupKids, setGroupKids] = useState<GroupKid[]>([]);
+  // approving join requests: which groups they go into (one request, or all)
+  const [approveFor, setApproveFor] = useState<JoinRequestRow | "all" | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
   // sign-in links guest-invite could not email (no RESEND_API_KEY, or Resend
@@ -70,13 +69,11 @@ export function GuestsAdminScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [rows, tripMembers, pending, kids] = await Promise.all([
+    const [rows, tripMembers, pending] = await Promise.all([
       listAllowlist(tripId),
       listMembers(tripId),
       listJoinRequests(tripId),
-      listGroupKids(tripId),
     ]);
-    setGroupKids(kids);
     setAllowlist(rows);
     setMembers(tripMembers);
     setRequests(pending);
@@ -110,18 +107,17 @@ export function GuestsAdminScreen() {
     () => [...new Set(allowlist.flatMap((r) => r.labels))],
     [allowlist]
   );
-  const kids = members.filter((m) => m.role === "kid");
   const nameOf = (email: string) =>
     members.find((m) => m.email?.toLowerCase() === email.toLowerCase())?.display_name ?? null;
 
   const link = token ? joinUrl(window.location.origin, token) : null;
 
-  async function approve(request: JoinRequestRow) {
+  async function approve(request: JoinRequestRow, labels: string[]) {
     if (approving || !trip) return;
     setApproving(request.id);
     try {
       // the same call as a manual invite; the allowlist trigger closes the request
-      const { link, emailed } = await inviteGuest(request.email, request.display_name);
+      const { link, emailed } = await inviteGuest(request.email, request.display_name, labels);
       if (emailed) showToast(strings.guests.approved.replace("{name}", request.display_name));
       else setUnsent([{ name: request.display_name, email: request.email, link, viaGoogle: request.auth_user_id !== null }]);
       await refresh(trip.id);
@@ -132,13 +128,13 @@ export function GuestsAdminScreen() {
     }
   }
 
-  async function approveAll() {
+  async function approveAll(labels: string[]) {
     if (approving || !trip) return;
     setApproving("all");
     try {
       const results = await inviteMany(
         requests.map((r) => ({ name: r.display_name, email: r.email })),
-        [],
+        labels,
         () => {}
       );
       showToast(
@@ -235,7 +231,7 @@ export function GuestsAdminScreen() {
               <button
                 type="button"
                 disabled={approving !== null}
-                onClick={() => void approveAll()}
+                onClick={() => setApproveFor("all")}
                 className="text-sm font-semibold text-sea disabled:opacity-60"
               >
                 {strings.guests.approveAll.replace("{n}", String(requests.length))}
@@ -263,7 +259,7 @@ export function GuestsAdminScreen() {
                   <button
                     type="button"
                     disabled={approving !== null}
-                    onClick={() => void approve(request)}
+                    onClick={() => setApproveFor(request)}
                     className="rounded-lg bg-sea px-3 py-1.5 text-sm font-semibold text-on-sea disabled:opacity-60"
                   >
                     {strings.guests.approve}
@@ -314,31 +310,6 @@ export function GuestsAdminScreen() {
                 {strings.guests.groupCount.replace("{n}", String(group.rows.length))}
               </span>
             </h2>
-            {group.label !== null && kids.length > 0 && (
-              <label className="flex items-center gap-2 px-0.5 text-xs text-ink-soft">
-                {strings.guests.groupKid}
-                <select
-                  value={groupKids.find((k) => k.label === group.label)?.member_id ?? ""}
-                  onChange={(e) => {
-                    if (!trip || group.label === null) return;
-                    void setGroupKid(trip.id, group.label, e.target.value || null)
-                      .then(() => {
-                        showToast(strings.guests.groupKidSaved);
-                        return refresh(trip.id);
-                      })
-                      .catch(() => showToast(strings.common.error));
-                  }}
-                  className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink"
-                >
-                  <option value="">{strings.guests.groupKidNone}</option>
-                  {kids.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {k.display_name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <ul className="space-y-2">
               {group.rows.map((row) => {
                 const revoked = row.revoked_at !== null;
@@ -398,6 +369,22 @@ export function GuestsAdminScreen() {
       )}
       {sheet === "bulk" && (
         <BulkInviteSheet knownLabels={knownLabels} onClose={closeAndRefresh} onToast={showToast} />
+      )}
+      {approveFor && (
+        <ApproveSheet
+          title={
+            approveFor === "all"
+              ? strings.guests.approveAll.replace("{n}", String(requests.length))
+              : approveFor.display_name
+          }
+          knownLabels={knownLabels}
+          onClose={() => setApproveFor(null)}
+          onApprove={(labels) => {
+            const target = approveFor;
+            setApproveFor(null);
+            void (target === "all" ? approveAll(labels) : approve(target, labels));
+          }}
+        />
       )}
       {unsent && <UnsentLinksSheet links={unsent} onClose={() => setUnsent(null)} onToast={showToast} />}
       {labelFor && trip && (
@@ -835,6 +822,36 @@ function LabelSheet({
           {strings.guests.save}
         </button>
       </form>
+    </Sheet>
+  );
+}
+
+/** Approving a join request: which groups the guest goes into (00064), then
+ *  the same invite as always. No group = everyone-only content. */
+function ApproveSheet({
+  title,
+  knownLabels,
+  onClose,
+  onApprove,
+}: {
+  title: string;
+  knownLabels: string[];
+  onClose: () => void;
+  onApprove: (labels: string[]) => void;
+}) {
+  const [labels, setLabels] = useState<string[]>([]);
+  return (
+    <Sheet open onClose={onClose} title={title}>
+      <div className="space-y-4">
+        <LabelField id="approve-label" value={labels} onChange={setLabels} knownLabels={knownLabels} />
+        <button
+          type="button"
+          onClick={() => onApprove(normalizeLabels(labels))}
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
+        >
+          {strings.guests.approve}
+        </button>
+      </div>
     </Sheet>
   );
 }

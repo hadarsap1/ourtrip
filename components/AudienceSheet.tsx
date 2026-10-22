@@ -71,14 +71,15 @@ export function AudienceSheet({
 
 /**
  * "לכל האורחים" / "רק ל: כיתה עומר" with a button that opens the sheet. Loads
- * the trip's groups itself (a parent's view); shows nothing if there are none.
+ * the groups this member may address itself; shows nothing if there are none.
  */
 export function AudienceRow({
-  tripId,
+  label,
   value,
   onChange,
 }: {
-  tripId: string;
+  /** a heading above the row, shown only when the row is */
+  label?: string;
   value: string[];
   onChange: (audience: string[]) => void;
 }) {
@@ -87,21 +88,24 @@ export function AudienceRow({
 
   useEffect(() => {
     let cancelled = false;
-    void listMyGroups(tripId, "owner")
+    void listMyGroups()
       .then((g) => !cancelled && setGroups(g))
       .catch(() => !cancelled && setGroups([]));
     return () => {
       cancelled = true;
     };
-  }, [tripId]);
+  }, []);
 
   if (!groups || (groups.length === 0 && value.length === 0)) return null;
   return (
-    <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
-      {value.length === 0 ? strings.audience.allGuests : strings.audience.onlyTo.replace("{to}", value.join(", "))}
-      <button type="button" onClick={() => setOpen(true)} className="min-h-8 font-semibold text-sea underline">
-        {strings.audience.change}
-      </button>
+    <div>
+      {label && <p className="mb-1 text-sm font-medium text-ink-soft">{label}</p>}
+      <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
+        {value.length === 0 ? strings.audience.allGuests : strings.audience.onlyTo.replace("{to}", value.join(", "))}
+        <button type="button" onClick={() => setOpen(true)} className="min-h-8 font-semibold text-sea underline">
+          {strings.audience.change}
+        </button>
+      </p>
       {open && (
         <AudienceSheet
           groups={groups}
@@ -113,6 +117,6 @@ export function AudienceRow({
           }}
         />
       )}
-    </p>
+    </div>
   );
 }

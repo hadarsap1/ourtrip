@@ -1,6 +1,6 @@
--- 00063: group audiences on the wall, stories and photos.
--- Two classes: guest (Omer's class) and guest2 (Ella's class); kid = Omer,
--- kid2 = Ella. Each class is linked to its kid.
+-- 00063 + 00064: group audiences on the wall, stories and photos.
+-- guest is in Omer's class (and friends), guest2 in Ella's class. The whole
+-- family - parents and both kids - sees everything; only guests are limited.
 begin;
 \i scripts/rls/seed.sql
 
@@ -23,37 +23,26 @@ create or replace function rls.as_guest2() returns void language sql as $$
   select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000aa06","email":"guest2@probe.test","role":"authenticated"}', true) $$;
 grant execute on all functions in schema rls to anon, authenticated;
 
--- ============ linking a group to a kid ============
+-- ============ the groups each member may address ============
 
 set local role authenticated;
 select rls.as_owner();
-insert into guest_group_kids (trip_id, label, member_id) values
-  ('00000000-0000-0000-0000-0000000000a1', 'כיתה עומר', '00000000-0000-0000-0000-0000000000b2'),
-  ('00000000-0000-0000-0000-0000000000a1', 'כיתה אלה', '00000000-0000-0000-0000-0000000000b5');
-select rls.check('owner: links each class to its kid', (select count(*) from guest_group_kids) = 2);
-do $$ begin
-  insert into guest_group_kids (trip_id, label, member_id) values
-    ('00000000-0000-0000-0000-0000000000a1', 'חברים', '00000000-0000-0000-0000-0000000000b3');
-  raise exception 'FAIL  a group was linked to a guest';
-exception when check_violation then raise notice 'PASS  owner: cannot link a group to a guest';
-end $$;
-
+select rls.check('owner: every group on the list', public.my_groups() = array['חברים', 'כיתה אלה', 'כיתה עומר']);
 select rls.as_kid();
-select rls.check('kid: sees only the group linked to them',
-  (select array_agg(label) from guest_group_kids) = array['כיתה עומר']);
-do $$ begin
-  insert into guest_group_kids (trip_id, label, member_id) values
-    ('00000000-0000-0000-0000-0000000000a1', 'חברים', '00000000-0000-0000-0000-0000000000b2');
-  raise exception 'FAIL  kid linked a group to themself';
-exception when insufficient_privilege then raise notice 'PASS  kid: cannot link a group';
-end $$;
+select rls.check('kid: every group too (the family sees everything)', public.my_groups() = array['חברים', 'כיתה אלה', 'כיתה עומר']);
 select rls.as_guest();
-select rls.check('guest: sees no group links', (select count(*) from guest_group_kids) = 0);
+select rls.check('guest: only own groups', public.my_groups() = array['כיתה עומר', 'חברים']);
+select rls.as_revoked();
+select rls.check('revoked guest: no groups', public.my_groups() = '{}');
+select rls.as_outsider();
+select rls.check('outsider: no groups', coalesce(public.my_groups(), '{}') = '{}');
+reset role;
+set local role anon; select rls.as_anon();
+select rls.check('anon: no groups', coalesce(public.my_groups(), '{}') = '{}');
 reset role;
 
 -- ============ the wall ============
 
--- written by a parent (approved at insert)
 set local role authenticated; select rls.as_owner();
 insert into messages (id, trip_id, sender_id, body, channel, audience) values
   ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1', 'everyone', 'guests', '{}'),
@@ -70,11 +59,9 @@ select rls.as_guest2();
 select rls.check('guest2 (Ella''s class): everyone + own group only',
   (select array_agg(body order by body) from messages) = array['both classes', 'ella class', 'everyone']);
 select rls.as_kid();
-select rls.check('kid (Omer): everyone + Omer''s class, not Ella''s, not unlinked friends',
-  (select array_agg(body order by body) from messages) = array['both classes', 'everyone', 'omer class']);
+select rls.check('kid: sees every audience', (select count(*) from messages) = 5);
 select rls.as_kid2();
-select rls.check('kid2 (Ella): everyone + Ella''s class, not Omer''s',
-  (select array_agg(body order by body) from messages) = array['both classes', 'ella class', 'everyone']);
+select rls.check('kid2: sees every audience', (select count(*) from messages) = 5);
 select rls.as_revoked();
 select rls.check('revoked guest: nothing, groups or not', (select count(*) from messages) = 0);
 select rls.as_outsider();
@@ -88,63 +75,53 @@ reset role;
 set local role authenticated; select rls.as_guest();
 insert into messages (trip_id, sender_id, body, channel, audience) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b3', 'reply in omer class', 'guests', array['כיתה עומר']);
+insert into messages (trip_id, sender_id, body, channel, audience) values
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b3', 'to both my groups', 'guests', array['כיתה עומר', 'חברים']);
 do $$ begin
   insert into messages (trip_id, sender_id, body, channel, audience) values
     ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b3', 'into ella class', 'guests', array['כיתה אלה']);
   raise exception 'FAIL  guest wrote into a group they are not in';
 exception when insufficient_privilege then raise notice 'PASS  guest: cannot write into another group';
 end $$;
+do $$ begin
+  insert into messages (trip_id, sender_id, body, channel, audience) values
+    ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b3', 'mine + ella', 'guests', array['כיתה עומר', 'כיתה אלה']);
+  raise exception 'FAIL  guest widened a message into a group they are not in';
+exception when insufficient_privilege then raise notice 'PASS  guest: cannot add a group they are not in';
+end $$;
 select rls.as_guest2();
-select rls.check('guest2: does not see the reply in Omer''s class',
-  not exists (select 1 from messages where body = 'reply in omer class'));
-select rls.as_kid();
-select rls.check('kid (Omer): sees his class''s reply',
-  exists (select 1 from messages where body = 'reply in omer class'));
+select rls.check('guest2: does not see the replies in Omer''s class',
+  not exists (select 1 from messages where body in ('reply in omer class', 'to both my groups')));
 select rls.as_kid2();
-select rls.check('kid2 (Ella): does not see Omer''s class''s reply',
-  not exists (select 1 from messages where body = 'reply in omer class'));
+select rls.check('kid2 (Ella): sees Omer''s class''s reply - the family sees all',
+  exists (select 1 from messages where body = 'reply in omer class'));
 
--- a kid writes to everyone or their own group; it waits for a parent
+-- a kid chooses any groups; it waits for a parent
 select rls.as_kid();
 insert into messages (id, trip_id, sender_id, body, channel, audience) values
-  ('00000000-0000-0000-0000-000000000706', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'omer to his class', 'guests', array['כיתה עומר']);
-do $$ begin
-  insert into messages (trip_id, sender_id, body, channel, audience) values
-    ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'omer to ella class', 'guests', array['כיתה אלה']);
-  raise exception 'FAIL  kid wrote into a group not linked to them';
-exception when insufficient_privilege then raise notice 'PASS  kid: cannot write into another kid''s group';
-end $$;
-do $$ begin
-  insert into messages (trip_id, sender_id, body, channel, audience) values
-    ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'omer to friends', 'guests', array['חברים']);
-  raise exception 'FAIL  kid wrote into an unlinked group';
-exception when insufficient_privilege then raise notice 'PASS  kid: cannot write into an unlinked group';
-end $$;
+  ('00000000-0000-0000-0000-000000000706', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'omer to two classes', 'guests', array['כיתה עומר', 'כיתה אלה']);
 select rls.check('kid: own pending message visible to him',
   exists (select 1 from messages where id = '00000000-0000-0000-0000-000000000706' and approved_at is null));
 select rls.as_guest();
-select rls.check('guest: kid''s pending class message hidden until approved',
-  not exists (select 1 from messages where id = '00000000-0000-0000-0000-000000000706'));
-select rls.as_kid2();
-select rls.check('kid2: never sees Omer''s pending class message',
+select rls.check('guest: kid''s pending message hidden until approved',
   not exists (select 1 from messages where id = '00000000-0000-0000-0000-000000000706'));
 
--- a kid cannot widen the audience afterwards
+-- a kid cannot change the audience afterwards
 select rls.as_kid();
 update messages set audience = '{}' where id = '00000000-0000-0000-0000-000000000706';
 reset role;
 select rls.check('kid: audience unchanged after an update attempt',
-  (select audience from messages where id = '00000000-0000-0000-0000-000000000706') = array['כיתה עומר']);
+  (select audience from messages where id = '00000000-0000-0000-0000-000000000706') = array['כיתה עומר', 'כיתה אלה']);
 
--- the parent approves and narrows/changes the audience in the same step
+-- the parent approves and changes the audience in the same step
 set local role authenticated; select rls.as_owner();
-update messages set approved_at = now(), audience = array['כיתה עומר', 'חברים']
+update messages set approved_at = now(), audience = array['כיתה עומר']
  where id = '00000000-0000-0000-0000-000000000706';
 select rls.as_guest();
 select rls.check('guest: sees the approved class message',
   exists (select 1 from messages where id = '00000000-0000-0000-0000-000000000706'));
 select rls.as_guest2();
-select rls.check('guest2: still does not see it',
+select rls.check('guest2: the parent took Ella''s class off - not visible',
   not exists (select 1 from messages where id = '00000000-0000-0000-0000-000000000706'));
 reset role;
 
@@ -167,12 +144,9 @@ select rls.check('guest (Omer''s class): sees both stories',
 select rls.as_guest2();
 select rls.check('guest2: sees only the story for every guest',
   (select array_agg(title) from posts) = array['for every guest']);
-select rls.as_kid();
-select rls.check('kid (Omer): sees his class''s story',
-  exists (select 1 from posts where id = '00000000-0000-0000-0000-000000000802'));
 select rls.as_kid2();
-select rls.check('kid2 (Ella): does not see Omer''s class''s story',
-  not exists (select 1 from posts where id = '00000000-0000-0000-0000-000000000802'));
+select rls.check('kid2: sees Omer''s class''s story - the family sees all',
+  exists (select 1 from posts where id = '00000000-0000-0000-0000-000000000802'));
 
 -- comments and reactions follow the story
 select rls.as_guest();
@@ -194,16 +168,29 @@ do $$ begin
 exception when insufficient_privilege then raise notice 'PASS  guest2: cannot react to another group''s story';
 end $$;
 
--- a kid never sets a story's audience
+-- a kid's story carries the kid's choice, but stays family until a parent publishes
 select rls.as_kid();
 insert into posts (id, trip_id, author_id, title, status, visibility, audience) values
-  ('00000000-0000-0000-0000-000000000803', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'kid story', 'pending', 'guests', array['כיתה עומר']);
-select rls.check('kid insert: audience forced to everyone, visibility to family',
-  (select audience = '{}' and visibility = 'family' from posts where id = '00000000-0000-0000-0000-000000000803'));
-update posts set audience = array['כיתה עומר'] where id = '00000000-0000-0000-0000-000000000803';
-select rls.check('kid update: audience unchanged',
-  (select audience = '{}' from posts where id = '00000000-0000-0000-0000-000000000803'));
+  ('00000000-0000-0000-0000-000000000803', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'kid story', 'approved', 'guests', array['כיתה עומר']);
+select rls.check('kid insert: pending, family, the kid''s groups kept as a suggestion',
+  (select status = 'pending' and visibility = 'family' and audience = array['כיתה עומר']
+     from posts where id = '00000000-0000-0000-0000-000000000803'));
+select rls.as_guest();
+select rls.check('guest: the kid''s story is not out before a parent publishes it',
+  not exists (select 1 from posts where id = '00000000-0000-0000-0000-000000000803'));
+select rls.as_owner();
+update posts set status = 'approved', visibility = 'guests' where id = '00000000-0000-0000-0000-000000000803';
+select rls.as_guest();
+select rls.check('guest: sees the kid''s story once published to his class',
+  exists (select 1 from posts where id = '00000000-0000-0000-0000-000000000803'));
+select rls.as_guest2();
+select rls.check('guest2: not in that class - does not see it',
+  not exists (select 1 from posts where id = '00000000-0000-0000-0000-000000000803'));
+select rls.as_kid();
+update posts set audience = '{}' where id = '00000000-0000-0000-0000-000000000803';
 reset role;
+select rls.check('kid: cannot widen a published story',
+  (select audience from posts where id = '00000000-0000-0000-0000-000000000803') = array['כיתה עומר']);
 
 -- ============ photos ============
 
@@ -230,14 +217,15 @@ select rls.as_kid2();
 select rls.check('kid2: family photos stay visible to every kid',
   exists (select 1 from photos where id = '00000000-0000-0000-0000-000000000901'));
 
--- a kid's upload gets no audience, and a kid cannot set one later
+-- a kid's upload keeps the kid's groups but stays pending and unshared (#5)
 select rls.as_kid();
-insert into photos (id, trip_id, uploaded_by, file_path, audience) values
-  ('00000000-0000-0000-0000-000000000904', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'p/kid.jpg', array['כיתה עומר']);
-update photos set audience = array['כיתה אלה'] where id = '00000000-0000-0000-0000-000000000904';
+insert into photos (id, trip_id, uploaded_by, file_path, status, shared_with_guests, audience) values
+  ('00000000-0000-0000-0000-000000000904', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'p/kid.jpg', 'approved', true, array['כיתה עומר']);
+update photos set audience = '{}', shared_with_guests = true where id = '00000000-0000-0000-0000-000000000904';
 reset role;
-select rls.check('kid: photo audience forced to everyone and not changeable',
-  (select audience = '{}' and status = 'pending' and not shared_with_guests from photos where id = '00000000-0000-0000-0000-000000000904'));
+select rls.check('kid photo: pending, unshared, the kid''s groups kept and not changeable after',
+  (select audience = array['כיתה עומר'] and status = 'pending' and not shared_with_guests
+     from photos where id = '00000000-0000-0000-0000-000000000904'));
 
 -- ============ the shape ============
 

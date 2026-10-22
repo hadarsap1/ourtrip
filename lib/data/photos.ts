@@ -47,6 +47,9 @@ export async function uploadPhoto(input: {
   file: File;
   caption?: string | null;
   journalEntryId?: string | null;
+  /** [] = every guest once shared; else only these groups (00063/00064).
+   *  Sharing stays a parent's separate step (#5). */
+  audience?: string[];
 }): Promise<Photo> {
   const supabase = requireClient();
   const blob = await compressImage(input.file);
@@ -66,6 +69,7 @@ export async function uploadPhoto(input: {
       caption: input.caption?.trim() || null,
       taken_on: todayISO(),
       journal_entry_id: input.journalEntryId ?? null,
+      audience: input.audience ?? [],
       ...(input.isOwner
         ? { status: "approved" as const, approved_by: input.memberId }
         : {}),

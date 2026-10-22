@@ -26,7 +26,7 @@ import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
-import { AudienceSheet } from "@/components/AudienceSheet";
+import { AudienceRow, AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 
 export function PhotosScreen() {
@@ -170,6 +170,8 @@ function FamilyPhotosView() {
   // guest groups (00063): a parent can limit a shared photo to some of them
   const [groups, setGroups] = useState<string[]>([]);
   const [audienceFor, setAudienceFor] = useState<PhotoWithUrl | null>(null);
+  // who the next upload is for - everyone by default (00064)
+  const [uploadAudience, setUploadAudience] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -209,7 +211,7 @@ function FamilyPhotosView() {
   useEffect(() => {
     if (!trip || !isOwnerRole) return;
     let cancelled = false;
-    void listMyGroups(trip.id, "owner")
+    void listMyGroups()
       .then((g) => !cancelled && setGroups(g))
       .catch(() => {});
     return () => {
@@ -226,6 +228,7 @@ function FamilyPhotosView() {
         memberId: member.id,
         isOwner: member.role === "owner",
         file,
+        audience: uploadAudience,
       });
       await refresh(trip.id);
       showToast(
@@ -281,6 +284,7 @@ function FamilyPhotosView() {
         <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
         {uploading ? strings.photos.uploading : strings.photos.upload}
       </button>
+      <AudienceRow label={strings.audience.who} value={uploadAudience} onChange={setUploadAudience} />
       <input
         ref={fileRef}
         type="file"

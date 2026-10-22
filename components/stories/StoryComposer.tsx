@@ -108,12 +108,13 @@ export function StoryComposer({
         body,
         placeLabel: place || null,
         status,
-        // kids never choose an audience; parents do, and only from what the
-        // author's role allows
+        // which groups: anyone writing suggests them (00064), a parent's
+        // publish decides. Family / guests / public stays the parents' choice,
+        // and only from what the author's role allows.
+        audience: groups,
         ...(isOwner
           ? {
               visibility: options.includes(audience) ? audience : ("family" as const),
-              audience: groups,
               publishAfter: later ? fromLocalInput(publishAfter) : null,
             }
           : {}),
@@ -253,7 +254,7 @@ export function StoryComposer({
               ))}
             </div>
             <p className="text-xs text-ink-soft">{AUDIENCE_HINT[audience]}</p>
-            {audience === "guests" && <AudienceRow tripId={trip.id} value={groups} onChange={setGroups} />}
+            {audience === "guests" && <AudienceRow value={groups} onChange={setGroups} />}
             {authorRole !== "owner" && <p className="text-xs text-ink-soft">{strings.stories.publicKidBlocked}</p>}
 
             {audience !== "family" && (
@@ -295,6 +296,8 @@ export function StoryComposer({
             )}
           </fieldset>
         )}
+        {/* a kid suggests which groups; a parent decides when publishing (00064) */}
+        {!isOwner && <AudienceRow label={strings.stories.audienceLabel} value={groups} onChange={setGroups} />}
 
         <div className="grid grid-cols-2 gap-2">
           <button

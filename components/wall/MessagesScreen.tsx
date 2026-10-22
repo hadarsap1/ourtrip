@@ -41,7 +41,8 @@ export function MessagesScreen() {
   // group tabs (00063): the groups this member may read and write in
   const [groups, setGroups] = useState<string[]>([]);
   const [tab, setTab] = useState<WallTab>(EVERYONE);
-  // a parent may send to more than the open tab; null = the tab's group
+  // anyone may send to more than the open tab (a guest: of their own groups);
+  // null = the tab's group
   const [sendTo, setSendTo] = useState<string[] | null>(null);
   // the audience sheet: for the composer, or for one (pending) message
   const [audienceFor, setAudienceFor] = useState<"compose" | WallMessage | null>(null);
@@ -87,7 +88,7 @@ export function MessagesScreen() {
         const [tripMembers, myGroups] = await Promise.all([
           listMembers(activeTrip.id),
           // no groups (or a failed lookup) = the wall as it always was
-          listMyGroups(activeTrip.id, member.role).catch(() => []),
+          listMyGroups().catch(() => []),
         ]);
         if (!cancelled) {
           setMembers(tripMembers);
@@ -128,12 +129,12 @@ export function MessagesScreen() {
     };
   }, [member, memberLoading, refresh, showToast]);
 
-  // A parent also gets a tab for a group that only shows up on a message; for
-  // anyone else the tabs are exactly their own groups, so a tab is always one
-  // they may write in.
+  // The family (parents and kids, 00064) also gets a tab for a group that only
+  // shows up on a message; a guest's tabs are exactly their own groups, so a
+  // tab is always one they may write in.
   const tabs = useMemo(
-    () => wallTabs(groups, member?.role === "owner" ? messages : []),
-    [groups, messages, member?.role]
+    () => wallTabs(groups, member && member.role !== "guest" ? messages : []),
+    [groups, messages, member]
   );
   const shown = tabs.length > 0 ? inTab(messages, tab) : messages;
 
@@ -321,9 +322,9 @@ export function MessagesScreen() {
                   )}
                 </div>
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                {/* parents see who a group message went to - and change it
-                    while it waits, the kid's choice being only a suggestion */}
-                {isOwner && (pending || message.audience.length > 1) && (
+                {/* who a message to several groups went to; parents also see
+                    a waiting one's and change it - the kid's choice is a suggestion */}
+                {((isOwner && pending) || message.audience.length > 1) && (
                   <p className={`mt-1 text-xs ${soft}`}>
                     {strings.wall.audienceOf.replace(
                       "{to}",
@@ -390,7 +391,7 @@ export function MessagesScreen() {
           {(sendTo ?? audienceForTab(tab)).length === 0
             ? strings.wall.sendingToEveryone
             : strings.wall.sendingTo.replace("{to}", audienceText(sendTo ?? audienceForTab(tab))!)}
-          {isOwner && (
+          {groups.length > 1 && (
             <button
               type="button"
               onClick={() => setAudienceFor("compose")}
