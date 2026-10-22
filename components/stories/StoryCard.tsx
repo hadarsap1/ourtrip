@@ -50,6 +50,9 @@ export function StoryCard({
   const isOwner = member.role === "owner";
   // a guest sees who wrote it; everyone in the family sees it too
   const showAudience = isOwner;
+  // a story for some groups says so to everyone who sees it, like the wall
+  // (00063); a family story's groups are only a kid's suggestion - not shown
+  const groupsOnly = published && story.visibility === "guests" && story.audience.length > 0;
 
   return (
     <article
@@ -79,9 +82,9 @@ export function StoryCard({
               {story.status === "pending" ? strings.stories.pending : strings.stories.draft}
             </span>
           )}
-          {showAudience && published && (
+          {(groupsOnly || (showAudience && published)) && (
             <span className="rounded-full border border-sv-line px-2 py-0.5 font-semibold">
-              {story.audience.length > 0
+              {groupsOnly
                 ? strings.audience.onlyTo.replace("{to}", story.audience.join(", "))
                 : AUDIENCE_BADGE[story.visibility]}
             </span>
