@@ -1,7 +1,8 @@
 // Sprint 8 - Web Push fan-out (SPEC 2.14). Single entry point for all four
 // notification kinds; the DB decides who exists, this function only decides
 // who to notify:
-//   - wall-message  : new family-wall message → everyone on the trip but the sender
+//   - wall-message  : new wall message → everyone who may read it (its group
+//                     audience, 00063) but the sender
 //   - pending-photo : kid/owner upload awaiting approval → owners
 //   - guest-request : someone asked to join through the join link (00054) → owners
 //   - daily (cron)  : rain-on-outdoor-day alert + flight check-in 24h reminder
@@ -36,6 +37,7 @@ import {
   type LocalNow,
 } from "../_shared/notifyPolicy.ts";
 import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from "../_shared/travel.ts";
+import { canReadWallMessage, type WallReader } from "../_shared/wallAudience.ts";
 
 // Since 00052 the secret is generated and kept in the database (it never
 // passes through a file or a dashboard): the jobs send it, and this asks the
@@ -128,34 +130,45 @@ async function familyIds(tripId: string): Promise<string[]> {
 async function handleWallMessage(messageId: string): Promise<number> {
   const { data: msg } = await service
     .from("messages")
-    .select("id, body, sender_id, trip_id, channel, approved_at, approved_by")
+    .select("id, body, sender_id, trip_id, channel, approved_at, approved_by, audience")
     .eq("id", messageId)
     .maybeSingle();
   if (!msg) return 0;
 
-  const [{ data: members }, { data: allowed }] = await Promise.all([
+  const [{ data: members }, { data: allowed }, { data: groupKids }] = await Promise.all([
     service.from("members").select("id, display_name, role, email").eq("trip_id", msg.trip_id),
-    service.from("guests_allowlist").select("email").eq("trip_id", msg.trip_id).is("revoked_at", null),
+    service.from("guests_allowlist").select("email, labels").eq("trip_id", msg.trip_id).is("revoked_at", null),
+    service.from("guest_group_kids").select("label, member_id").eq("trip_id", msg.trip_id),
   ]);
   const sender = members?.find((m) => m.id === msg.sender_id);
   // a revoked guest keeps the members row (and maybe a push subscription), but
   // must not get wall previews any more (security pass 14/10)
-  const activeGuests = new Set((allowed ?? []).map((a) => a.email.toLowerCase()));
-  const canReceive = (m: { role: string; email: string | null }) =>
-    m.role !== "guest" || (m.email !== null && activeGuests.has(m.email.toLowerCase()));
+  const activeGuests = new Map(
+    (allowed ?? []).map((a) => [a.email.toLowerCase(), (a.labels ?? []) as string[]])
+  );
 
-  // Notify only the roles that can actually READ this message, or a push
-  // preview would leak what the policies forbid opening. A kid's message
-  // waiting for approval (00049) is the parents' alone; once approved this
-  // runs again (messages_notify_approved) for everyone else on the wall.
+  // Notify only those who can actually READ this message, or a push preview
+  // would leak what the policies forbid opening: a kid's message waiting for
+  // approval (00049) is the parents' alone - once approved this runs again
+  // (messages_notify_approved) - and a group message (00063) goes to its
+  // groups only. The retired family channel never reached guests.
   const pending = msg.approved_at === null;
-  const audience = pending
-    ? ["owner"]
-    : msg.channel === "guests"
-      ? ["owner", "guest", "kid"]
-      : ["owner", "kid"];
+  const audience = (msg.audience ?? []) as string[];
   const recipients = (members ?? [])
-    .filter((m) => audience.includes(m.role) && canReceive(m) && m.id !== msg.sender_id && m.id !== msg.approved_by)
+    .filter((m) => {
+      if (m.id === msg.sender_id || m.id === msg.approved_by) return false;
+      if (m.role === "guest" && msg.channel !== "guests") return false;
+      const guestLabels = m.role === "guest" && m.email ? activeGuests.get(m.email.toLowerCase()) : undefined;
+      return canReadWallMessage(
+        {
+          role: m.role as WallReader["role"],
+          guestLabels: guestLabels ?? [],
+          kidLabels: (groupKids ?? []).filter((k) => k.member_id === m.id).map((k) => k.label),
+          active: m.role !== "guest" || guestLabels !== undefined,
+        },
+        { pending, audience }
+      );
+    })
     .map((m) => m.id);
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;

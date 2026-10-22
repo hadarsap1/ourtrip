@@ -48,13 +48,17 @@ export async function listMessages(tripId: string): Promise<WallMessage[]> {
 export async function sendMessage(
   tripId: string,
   senderId: string,
-  body: string
+  body: string,
+  /** [] = everyone; otherwise only these groups (00063). RLS refuses a group
+   *  the sender may not write to. */
+  audience: string[] = []
 ): Promise<void> {
   const { error } = await requireClient().from("messages").insert({
     trip_id: tripId,
     sender_id: senderId,
     body: body.trim(),
     channel: WALL_CHANNEL,
+    audience,
   });
   if (error) throw new Error(error.message);
 }
@@ -65,6 +69,13 @@ export async function approveMessage(id: string): Promise<void> {
     .from("messages")
     .update({ approved_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Owner: change who a message goes to (before approving a kid's, usually).
+ *  Only a parent can - the approval trigger keeps it for anyone else. */
+export async function setMessageAudience(id: string, audience: string[]): Promise<void> {
+  const { error } = await requireClient().from("messages").update({ audience }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 

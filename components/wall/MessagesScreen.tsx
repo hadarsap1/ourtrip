@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
@@ -14,9 +14,13 @@ import {
   markReadSoon,
   markWallRead,
   sendMessage,
+  setMessageAudience,
   subscribeMessages,
   type WallMessage,
 } from "@/lib/data/messages";
+import { listMyGroups } from "@/lib/data/groups";
+import { audienceForTab, audienceText, EVERYONE, inTab, tabKey, wallTabs, type WallTab } from "@/lib/audience";
+import { AudienceSheet } from "@/components/AudienceSheet";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
 import { MessagesIcon, TrashIcon } from "@/components/icons";
@@ -34,6 +38,13 @@ export function MessagesScreen() {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // group tabs (00063): the groups this member may read and write in
+  const [groups, setGroups] = useState<string[]>([]);
+  const [tab, setTab] = useState<WallTab>(EVERYONE);
+  // a parent may send to more than the open tab; null = the tab's group
+  const [sendTo, setSendTo] = useState<string[] | null>(null);
+  // the audience sheet: for the composer, or for one (pending) message
+  const [audienceFor, setAudienceFor] = useState<"compose" | WallMessage | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,8 +84,15 @@ export function MessagesScreen() {
       setTrip(activeTrip);
       try {
         await refresh(activeTrip.id, member.id);
-        const tripMembers = await listMembers(activeTrip.id);
-        if (!cancelled) setMembers(tripMembers);
+        const [tripMembers, myGroups] = await Promise.all([
+          listMembers(activeTrip.id),
+          // no groups (or a failed lookup) = the wall as it always was
+          listMyGroups(activeTrip.id, member.role).catch(() => []),
+        ]);
+        if (!cancelled) {
+          setMembers(tripMembers);
+          setGroups(myGroups);
+        }
       } catch {
         if (!cancelled) showToast(strings.common.error);
       } finally {
@@ -110,9 +128,18 @@ export function MessagesScreen() {
     };
   }, [member, memberLoading, refresh, showToast]);
 
+  // A parent also gets a tab for a group that only shows up on a message; for
+  // anyone else the tabs are exactly their own groups, so a tab is always one
+  // they may write in.
+  const tabs = useMemo(
+    () => wallTabs(groups, member?.role === "owner" ? messages : []),
+    [groups, messages, member?.role]
+  );
+  const shown = tabs.length > 0 ? inTab(messages, tab) : messages;
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
+  }, [shown.length, tab]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -121,7 +148,9 @@ export function MessagesScreen() {
     const text = body;
     setBody("");
     try {
-      await sendMessage(trip.id, member.id, text);
+      await sendMessage(trip.id, member.id, text, sendTo ?? audienceForTab(tab));
+      // a wider audience is for one message, never the next one by accident
+      setSendTo(null);
       await refresh(trip.id, member.id);
       if (member.role === "kid") showToast(strings.wall.sentForApproval);
     } catch {
@@ -205,13 +234,47 @@ export function MessagesScreen() {
 
       <p className="mb-2 text-xs text-ink-soft">{hint}</p>
 
+      {tabs.length > 0 && (
+        <nav aria-label={strings.wall.tabs} className="-mx-4 mb-2 flex gap-1.5 overflow-x-auto px-4 pb-1">
+          {tabs.map((t) => {
+            const on = tabKey(t) === tabKey(tab);
+            const waiting = isOwner && inTab(messages, t).some(isPending);
+            return (
+              <button
+                key={tabKey(t)}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setTab(t);
+                  setSendTo(null);
+                }}
+                className={`relative shrink-0 rounded-full border px-3 py-1.5 text-sm ${
+                  on ? "border-sea bg-sea font-semibold text-on-sea" : "border-line bg-surface text-ink-soft"
+                }`}
+              >
+                {t.kind === "everyone" ? strings.wall.everyoneTab : t.label}
+                {waiting && (
+                  <span
+                    aria-label={strings.wall.pendingInTab}
+                    className="absolute -top-0.5 -end-0.5 h-2.5 w-2.5 rounded-full bg-sun-deep"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      )}
+      {tab.kind === "group" && (
+        <p className="mb-2 text-xs text-ink-soft">{strings.wall.groupHint.replace("{group}", tab.label)}</p>
+      )}
+
       <div className="flex-1 space-y-2 overflow-y-auto pb-3">
-        {messages.length === 0 ? (
+        {shown.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
             {strings.wall.empty}
           </p>
         ) : (
-          messages.map((message) => {
+          shown.map((message) => {
             const mine = message.sender_id === member.id;
             const pending = isPending(message);
             const soft = mine ? "text-sea-tint" : "text-ink-soft";
@@ -258,6 +321,25 @@ export function MessagesScreen() {
                   )}
                 </div>
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                {/* parents see who a group message went to - and change it
+                    while it waits, the kid's choice being only a suggestion */}
+                {isOwner && (pending || message.audience.length > 1) && (
+                  <p className={`mt-1 text-xs ${soft}`}>
+                    {strings.wall.audienceOf.replace(
+                      "{to}",
+                      audienceText(message.audience) ?? strings.audience.everyone
+                    )}
+                    {pending && (
+                      <button
+                        type="button"
+                        onClick={() => setAudienceFor(message)}
+                        className="ms-1.5 font-semibold underline"
+                      >
+                        {strings.wall.changeAudience}
+                      </button>
+                    )}
+                  </p>
+                )}
                 {pending && (
                   <div className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold ${soft}`}>
                     <span>{strings.wall.pending}</span>
@@ -303,6 +385,22 @@ export function MessagesScreen() {
         <div ref={bottomRef} />
       </div>
 
+      {tabs.length > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+          {(sendTo ?? audienceForTab(tab)).length === 0
+            ? strings.wall.sendingToEveryone
+            : strings.wall.sendingTo.replace("{to}", audienceText(sendTo ?? audienceForTab(tab))!)}
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => setAudienceFor("compose")}
+              className="min-h-8 font-semibold text-sea underline"
+            >
+              {strings.wall.changeAudience}
+            </button>
+          )}
+        </p>
+      )}
       <form
         onSubmit={(e) => void handleSend(e)}
         className="sticky bottom-0 flex gap-2 bg-paper-deep py-2"
@@ -322,6 +420,24 @@ export function MessagesScreen() {
           {strings.wall.send}
         </button>
       </form>
+
+      {audienceFor && (
+        <AudienceSheet
+          groups={groups}
+          value={audienceFor === "compose" ? (sendTo ?? audienceForTab(tab)) : audienceFor.audience}
+          onClose={() => setAudienceFor(null)}
+          onSave={async (audience) => {
+            if (audienceFor === "compose") {
+              setSendTo(audience);
+              setAudienceFor(null);
+              return;
+            }
+            const id = audienceFor.id;
+            setAudienceFor(null);
+            act(() => setMessageAudience(id, audience).then(() => showToast(strings.audience.saved)));
+          }}
+        />
+      )}
 
       <Toast message={toast} />
     </div>
