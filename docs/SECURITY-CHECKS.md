@@ -2343,3 +2343,21 @@ other group's name in its `audience` (names only, no content).
   and reactions refused outside the group; #5 holds inside a group; a kid's
   photo keeps its groups but stays pending and unshared. Matrix probe back
   to its pre-00063 form. Full suite 305 PASS, 0 FAIL.
+
+## Wall replies (00066) - 22/10/2026
+
+- `messages.reply_to`: `messages_reply_guard` (before insert/update, definer)
+  forces a reply's `audience` and `channel` to its top-level message's,
+  flattens a reply to a reply onto the top-level message, refuses replying
+  to a waiting (unapproved) message or one on another trip, and refuses
+  moving a reply. `messages_replies_follow` (after update of audience) carries
+  a parent's audience change to the replies. No policy changed: the forced
+  audience then meets `messages_guest_insert` as any message does, so a
+  guest cannot answer a message outside their groups.
+- Probe `scripts/rls/probes/66_wall_replies.sql` (13 checks): a guest reply
+  sent as "everyone" lands in the message's class; the other class neither
+  sees it nor can answer; reply-to-reply flattens; an everyone reply reaches
+  every guest; a kid's reply waits and is hidden from guests; a waiting
+  message cannot be answered, even by a parent; a parent moving a message
+  takes the replies along; a single reply cannot be given its own audience;
+  deleting a message deletes its replies. Full suite 318 PASS, 0 FAIL.

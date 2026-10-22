@@ -18,6 +18,29 @@ export function isPending(message: Pick<WallMessage, "approved_at">): boolean {
   return message.approved_at === null;
 }
 
+/** A message and the replies under it (00066). */
+export type WallThread<T> = { message: T; replies: T[] };
+
+/**
+ * The wall as conversations: each top-level message with its replies under
+ * it, oldest first, and conversations ordered by their latest activity - a new
+ * reply brings its conversation down to the bottom, where the wall opens. A
+ * reply whose message is not visible here has nothing to hang on and is left
+ * out (the database never shows one without the other, but realtime can
+ * deliver them out of order).
+ */
+export function threadWall<T extends Pick<WallMessage, "id" | "reply_to" | "created_at">>(
+  messages: T[]
+): WallThread<T>[] {
+  const threads = new Map<string, WallThread<T>>();
+  for (const m of messages) if (!m.reply_to) threads.set(m.id, { message: m, replies: [] });
+  for (const m of messages) if (m.reply_to) threads.get(m.reply_to)?.replies.push(m);
+  const last = (t: WallThread<T>) =>
+    t.replies.reduce((at, r) => (r.created_at > at ? r.created_at : at), t.message.created_at);
+  for (const t of threads.values()) t.replies.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  return [...threads.values()].sort((a, b) => last(a).localeCompare(last(b)));
+}
+
 /** Unread = someone else's message with no read row of mine. */
 export function unreadCount(
   messages: Pick<WallMessage, "id" | "sender_id">[],
@@ -50,15 +73,19 @@ export async function sendMessage(
   senderId: string,
   body: string,
   /** [] = everyone; otherwise only these groups (00063). RLS refuses a group
-   *  the sender may not write to. */
-  audience: string[] = []
+   *  the sender may not write to. Ignored for a reply. */
+  audience: string[] = [],
+  /** the message this answers (00066): the database gives the reply that
+   *  message's audience, whatever is sent */
+  replyTo: string | null = null
 ): Promise<void> {
   const { error } = await requireClient().from("messages").insert({
     trip_id: tripId,
     sender_id: senderId,
     body: body.trim(),
     channel: WALL_CHANNEL,
-    audience,
+    audience: replyTo ? [] : audience,
+    reply_to: replyTo,
   });
   if (error) throw new Error(error.message);
 }

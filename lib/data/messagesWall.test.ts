@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyWallChange, canApplyWallChange, isPending, unreadCount, type WallMessage } from "./messages";
+import { applyWallChange, canApplyWallChange, isPending, threadWall, unreadCount, type WallMessage } from "./messages";
 
 describe("the wall (00049)", () => {
   it("a message with no approval stamp is waiting for a parent", () => {
@@ -49,5 +49,32 @@ describe("the wall (00049)", () => {
       expect(canApplyWallChange({ eventType: "INSERT", new: {}, old: {} })).toBe(false);
       expect(canApplyWallChange({ eventType: "DELETE", new: {}, old: {} })).toBe(false);
     });
+  });
+});
+
+describe("threadWall", () => {
+  const m = (id: string, at: string, reply_to: string | null = null) => ({ id, created_at: at, reply_to });
+
+  it("puts replies under their message, oldest first", () => {
+    const threads = threadWall([
+      m("a", "2026-10-22T10:00:00Z"),
+      m("r2", "2026-10-22T10:20:00Z", "a"),
+      m("r1", "2026-10-22T10:10:00Z", "a"),
+    ]);
+    expect(threads).toHaveLength(1);
+    expect(threads[0].replies.map((r) => r.id)).toEqual(["r1", "r2"]);
+  });
+
+  it("a new reply brings its conversation to the bottom", () => {
+    const threads = threadWall([
+      m("old", "2026-10-22T09:00:00Z"),
+      m("new", "2026-10-22T11:00:00Z"),
+      m("reply", "2026-10-22T12:00:00Z", "old"),
+    ]);
+    expect(threads.map((t) => t.message.id)).toEqual(["new", "old"]);
+  });
+
+  it("drops a reply whose message is not here", () => {
+    expect(threadWall([m("r", "2026-10-22T10:00:00Z", "missing")])).toEqual([]);
   });
 });
