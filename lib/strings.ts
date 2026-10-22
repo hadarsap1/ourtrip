@@ -1580,6 +1580,7 @@ export const strings = {
     toEveryone: "לכולם",
     reply: "תשובה",
     replyingTo: "תשובה ל{name}:",
+    replyingToMine: "תשובה להודעה שלי:",
     replyGoesTo: "התשובה תגיע רק ל: {to}",
     replyGoesToEveryone: "התשובה תגיע לכולם",
     cancelReply: "ביטול",
@@ -2172,6 +2173,7 @@ export const strings = {
     commentPlaceholder: "כתבו משהו למשפחה",
     send: "שליחה",
     commentsHint: "גם הילדים קוראים את התגובות",
+    commentsGoTo: "התגובה תגיע רק ל: {to}",
     deleteConfirm: "למחוק את התגובה?",
   },
 

@@ -138,6 +138,7 @@ export function StoryCard({
             member={member}
             members={members}
             target={{ postId: story.id }}
+            audience={story.visibility === "guests" ? story.audience : []}
             reactions={reactions}
             comments={comments}
             onChanged={onFeedbackChanged}

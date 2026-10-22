@@ -240,10 +240,12 @@ export async function syncPublicCopies(story: Story): Promise<void> {
   if (missing.length === 0) return;
   const { data: rows, error } = await supabase
     .from("photos")
-    .select("id, file_path")
+    .select("id, file_path, audience")
     .in("id", missing.map((p) => p.photoId));
   if (error) throw new Error(error.message);
-  for (const row of rows ?? []) {
+  // A photo uploaded or shared for some groups stays with them (00064): a
+  // public story shows it in the app to those groups, never on the open page.
+  for (const row of (rows ?? []).filter((r) => r.audience.length === 0)) {
     const { data: blob, error: downloadError } = await supabase.storage.from("photos").download(row.file_path);
     if (downloadError || !blob) throw new Error(downloadError?.message ?? "download failed");
     const path = publicPathFor(story, row.id);

@@ -374,67 +374,70 @@ export function MessagesScreen() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Answering: the reply goes where the message went - nothing to
-          choose (00066). A new message: everyone, unless the family picks
-          groups; a guest's new message always goes to everyone. */}
-      {replyTo ? (
-        <div className="flex items-start gap-2 rounded-xl bg-surface px-3 py-2 text-xs text-ink-soft">
-          <p className="min-w-0 flex-1">
-            <span className="font-semibold text-ink">
-              {strings.wall.replyingTo.replace("{name}", senderName(replyTo.sender_id))}
-            </span>{" "}
-            <span className="line-clamp-1">{replyTo.body}</span>
-            <span className="block">
-              {replyTo.audience.length > 0
-                ? strings.wall.replyGoesTo.replace("{to}", audienceText(replyTo.audience)!)
-                : strings.wall.replyGoesToEveryone}
-            </span>
-          </p>
-          <button
-            type="button"
-            onClick={() => setReplyTo(null)}
-            className="min-h-8 shrink-0 font-semibold text-sea underline"
-          >
-            {strings.wall.cancelReply}
-          </button>
-        </div>
-      ) : (
-        member.role !== "guest" &&
-        groups.length > 0 && (
-          <p className="flex items-center gap-1.5 text-xs text-ink-soft">
-            {sendTo.length === 0
-              ? strings.wall.sendingToEveryone
-              : strings.wall.sendingTo.replace("{to}", audienceText(sendTo)!)}
+      {/* the reply / audience line rides with the composer, so it is in
+          view whenever the composer is - also after "תשובה" on an old message */}
+      <div className="sticky bottom-0 space-y-1.5 bg-paper-deep py-2">
+        {/* Answering: the reply goes where the message went - nothing to
+            choose (00066). A new message: everyone, unless the family picks
+            groups; a guest's new message always goes to everyone. */}
+        {replyTo ? (
+          <div className="flex items-start gap-2 rounded-xl bg-surface px-3 py-2 text-xs text-ink-soft">
+            <p className="min-w-0 flex-1">
+              <span className="font-semibold text-ink">
+                {replyTo.sender_id === member.id
+                  ? strings.wall.replyingToMine
+                  : strings.wall.replyingTo.replace("{name}", senderName(replyTo.sender_id))}
+              </span>{" "}
+              <span className="line-clamp-1">{replyTo.body}</span>
+              <span className="block">
+                {replyTo.audience.length > 0
+                  ? strings.wall.replyGoesTo.replace("{to}", audienceText(replyTo.audience)!)
+                  : strings.wall.replyGoesToEveryone}
+              </span>
+            </p>
             <button
               type="button"
-              onClick={() => setAudienceFor("compose")}
-              className="min-h-8 font-semibold text-sea underline"
+              onClick={() => setReplyTo(null)}
+              className="min-h-8 shrink-0 font-semibold text-sea underline"
             >
-              {strings.wall.changeAudience}
+              {strings.wall.cancelReply}
             </button>
-          </p>
-        )
-      )}
-      <form
-        onSubmit={(e) => void handleSend(e)}
-        className="sticky bottom-0 flex gap-2 bg-paper-deep py-2"
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={strings.wall.placeholder}
-          className="min-w-0 flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-base focus:border-sea focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={sending || !body.trim()}
-          className="shrink-0 rounded-2xl bg-sea px-4 py-3 font-bold text-on-sea disabled:opacity-50"
-        >
-          {strings.wall.send}
-        </button>
-      </form>
+          </div>
+        ) : (
+          member.role !== "guest" &&
+          groups.length > 0 && (
+            <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+              {sendTo.length === 0
+                ? strings.wall.sendingToEveryone
+                : strings.wall.sendingTo.replace("{to}", audienceText(sendTo)!)}
+              <button
+                type="button"
+                onClick={() => setAudienceFor("compose")}
+                className="min-h-8 font-semibold text-sea underline"
+              >
+                {strings.wall.changeAudience}
+              </button>
+            </p>
+          )
+        )}
+        <form onSubmit={(e) => void handleSend(e)} className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={strings.wall.placeholder}
+            className="min-w-0 flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-base focus:border-sea focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={sending || !body.trim()}
+            className="shrink-0 rounded-2xl bg-sea px-4 py-3 font-bold text-on-sea disabled:opacity-50"
+          >
+            {strings.wall.send}
+          </button>
+        </form>
+      </div>
 
       {audienceFor && (
         <AudienceSheet

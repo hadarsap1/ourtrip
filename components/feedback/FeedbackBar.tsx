@@ -66,6 +66,7 @@ export function FeedbackBar({
   comments,
   onChanged,
   onToast,
+  audience = [],
 }: {
   tripId: string;
   member: Member;
@@ -76,6 +77,8 @@ export function FeedbackBar({
   comments: Comment[];
   onChanged: () => void;
   onToast: (message: string) => void;
+  /** the story's groups (00063): comments reach only them, like wall replies */
+  audience?: string[];
 }) {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
@@ -206,6 +209,11 @@ export function FeedbackBar({
               {strings.feedback.send}
             </button>
           </form>
+          )}
+          {audience.length > 0 && member.role !== "kid" && (
+            <p className="text-[12px] text-sv-ink-soft">
+              {strings.feedback.commentsGoTo.replace("{to}", audience.join(", "))}
+            </p>
           )}
           {member.role === "guest" && (
             <p className="text-[12px] text-sv-ink-soft">{strings.feedback.commentsHint}</p>
