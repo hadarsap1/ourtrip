@@ -8,15 +8,11 @@
 --   * group content is seen, and answered, only by guests in those groups
 --   * the whole family (parents AND kids) sees everything, as before 00063
 --
--- So: guest_group_kids and my_kid_labels() go; the kids' read and write
--- policies go back to what they were before 00063; a kid may choose any
+-- So: the kids' read and write policies go back to what they were before
+-- 00063 (guest_group_kids and my_kid_labels() stop being read; 00065 drops
+-- them); a kid may choose any
 -- group for a message or story (it still waits for a parent, who can change
 -- it); guests stay limited to their own groups. Guest policies are unchanged.
-
--- ============ the kid link goes ============
-
-drop table guest_group_kids;
-drop function public.guest_group_kids_guard();
 
 -- ============ kids: the family sees everything ============
 
@@ -39,8 +35,6 @@ alter policy posts_kid_select on posts
     trip_id = (select public.member_trip_as('kid'))
     and (status = 'approved' or author_id = (select public.current_member_id()))
   );
-
-drop function public.my_kid_labels();
 
 -- ============ the groups a member can address ============
 
