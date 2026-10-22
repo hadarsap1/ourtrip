@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { listMyGroups } from "@/lib/data/groups";
+import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
 /**
@@ -85,16 +86,18 @@ export function AudienceRow({
 }) {
   const [groups, setGroups] = useState<string[] | null>(null);
   const [open, setOpen] = useState(false);
+  const role = useMember().member?.role;
 
   useEffect(() => {
+    if (!role) return;
     let cancelled = false;
-    void listMyGroups()
+    void listMyGroups(role)
       .then((g) => !cancelled && setGroups(g))
       .catch(() => !cancelled && setGroups([]));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [role]);
 
   if (!groups || (groups.length === 0 && value.length === 0)) return null;
   return (
