@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeLabel, parseGuestList } from "./guestBulk";
+import { normalizeLabels, parseGuestList } from "./guestBulk";
 
 describe("parseGuestList", () => {
   it("reads name and email in either order and with common separators", () => {
@@ -43,11 +43,17 @@ describe("parseGuestList", () => {
   });
 });
 
-describe("normalizeLabel", () => {
-  it("trims, caps at 40 and turns empty into null", () => {
-    expect(normalizeLabel("  כיתה ב׳ ")).toBe("כיתה ב׳");
-    expect(normalizeLabel("   ")).toBeNull();
-    expect(normalizeLabel(undefined)).toBeNull();
-    expect(normalizeLabel("x".repeat(50))).toHaveLength(40);
+describe("normalizeLabels", () => {
+  it("trims, caps each at 40, drops empties and repeats", () => {
+    expect(normalizeLabels(["  כיתה עומר ", "כיתה אלה", "כיתה עומר", "   ", undefined, null])).toEqual([
+      "כיתה עומר",
+      "כיתה אלה",
+    ]);
+    expect(normalizeLabels(["x".repeat(50)])[0]).toHaveLength(40);
+    expect(normalizeLabels([])).toEqual([]);
+  });
+
+  it("keeps at most 10, like the database check", () => {
+    expect(normalizeLabels(Array.from({ length: 12 }, (_, i) => `g${i}`))).toHaveLength(10);
   });
 });

@@ -35,7 +35,14 @@ function escapeHtml(text: string): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  let body: { email?: string; display_name?: string; redirect_to?: string; label?: string | null };
+  let body: {
+    email?: string;
+    display_name?: string;
+    redirect_to?: string;
+    labels?: unknown;
+    /** pre-00061 clients: one group */
+    label?: string | null;
+  };
   try {
     body = await req.json();
   } catch {
@@ -44,11 +51,18 @@ Deno.serve(async (req) => {
 
   const email = (body.email ?? "").trim().toLowerCase();
   const displayName = (body.display_name ?? "").trim();
-  // Optional group (family / a class / friends) - addressing only, no policy
-  // reads it (migration 00043). Absent = leave whatever the row already has,
-  // so a re-invite never wipes a label.
-  const label =
-    body.label === undefined ? undefined : (body.label ?? "").trim().slice(0, 40) || null;
+  // Optional groups (family / a class / friends) - addressing only, no policy
+  // reads them (migrations 00043, 00061). They are added to the groups the
+  // guest already has, so a re-invite never takes a guest out of a group.
+  const rawLabels = Array.isArray(body.labels) ? body.labels : body.label ? [body.label] : [];
+  const addLabels = [
+    ...new Set(
+      rawLabels
+        .filter((l): l is string => typeof l === "string")
+        .map((l) => l.trim().slice(0, 40))
+        .filter(Boolean)
+    ),
+  ];
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !displayName) {
     return json({ ok: false, error: "bad input" }, 400);
   }
@@ -90,6 +104,17 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "email belongs to a family member" }, 400);
   }
 
+  let labels: string[] | undefined;
+  if (addLabels.length > 0) {
+    const { data: existing } = await service
+      .from("guests_allowlist")
+      .select("labels")
+      .eq("trip_id", trip.id)
+      .eq("email", email)
+      .maybeSingle();
+    labels = [...new Set([...((existing?.labels as string[] | undefined) ?? []), ...addLabels])].slice(0, 10);
+  }
+
   // allowlist upsert: re-inviting clears a previous revocation
   const { error: allowlistError } = await service.from("guests_allowlist").upsert(
     {
@@ -97,7 +122,7 @@ Deno.serve(async (req) => {
       email,
       invited_by: callerId,
       revoked_at: null,
-      ...(label === undefined ? {} : { label }),
+      ...(labels === undefined ? {} : { labels }),
     },
     { onConflict: "trip_id,email" }
   );
