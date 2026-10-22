@@ -102,8 +102,8 @@ reset role;
 
 -- owner: guest labels are writable
 set local role authenticated; select rls.as_owner();
-update guests_allowlist set label = 'כיתה ב׳' where email = 'guest@probe.test';
-select rls.check('owner: can label a guest', (select label from guests_allowlist where email = 'guest@probe.test') = 'כיתה ב׳');
+update guests_allowlist set labels = array['כיתה ב׳'] where email = 'guest@probe.test';
+select rls.check('owner: can label a guest', (select labels from guests_allowlist where email = 'guest@probe.test') = array['כיתה ב׳']);
 reset role;
 
 rollback;
