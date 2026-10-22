@@ -36,9 +36,7 @@ select rls.check('guest: cannot write, change or delete a parent''s row anywhere
 select rls.check('kid: reads only family day-to-day tables',
   not exists (select 1 from rls_matrix where who = 'kid' and op = 'select' and result = 'VISIBLE'
                and tbl not in ('destination_facts', 'emergency_info', 'fx_rates', 'google_photos',
-                               'itinerary_days', 'itinerary_items', 'photos', 'phrasebook_entries',
-                               -- the seeded row links a group to this kid: their own link only (probe 63)
-                               'guest_group_kids')));
+                               'itinerary_days', 'itinerary_items', 'photos', 'phrasebook_entries')));
 select rls.check('kid: cannot write, change or delete a parent''s row anywhere',
   not exists (select 1 from rls_matrix where who = 'kid' and op <> 'select' and result = 'ALLOWED'));
 select rls.check('kid: never documents, bookings, expenses, budget, guests list, devices, AI usage',

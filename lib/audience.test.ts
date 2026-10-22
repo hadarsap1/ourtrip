@@ -47,11 +47,18 @@ describe("audienceForTab / audienceText", () => {
 
 describe("photoAudienceAfterShare", () => {
   const omer = ["כיתה עומר"];
-  it("a story to every guest shares with everyone", () => {
+  it("a story to every guest shares an everyone photo with everyone", () => {
     expect(photoAudienceAfterShare({ shared_with_guests: false, audience: [] }, [])).toEqual([]);
   });
-  it("a group story shares an unshared photo with that group only", () => {
-    expect(photoAudienceAfterShare({ shared_with_guests: false, audience: ["כיתה אלה"] }, omer)).toEqual(omer);
+  it("a group story shares an everyone photo with that group only", () => {
+    expect(photoAudienceAfterShare({ shared_with_guests: false, audience: [] }, omer)).toEqual(omer);
+  });
+  it("a photo uploaded for a group stays in that group, whatever the story", () => {
+    expect(photoAudienceAfterShare({ shared_with_guests: false, audience: ["כיתה אלה"] }, [])).toEqual(["כיתה אלה"]);
+    expect(photoAudienceAfterShare({ shared_with_guests: false, audience: ["כיתה אלה"] }, omer)).toEqual(["כיתה אלה"]);
+  });
+  it("a story to everyone does not widen a photo shared with a group", () => {
+    expect(photoAudienceAfterShare({ shared_with_guests: true, audience: omer }, [])).toEqual(omer);
   });
   it("never narrows a photo already shared with everyone", () => {
     expect(photoAudienceAfterShare({ shared_with_guests: true, audience: [] }, omer)).toEqual([]);

@@ -34,10 +34,6 @@ begin
     join information_schema.constraint_column_usage ccu on ccu.constraint_name = rc.unique_constraint_name and ccu.constraint_schema = rc.unique_constraint_schema
    where kcu.table_schema = 'public' and kcu.table_name = p_tbl and kcu.column_name = p_col
    limit 1;
-  -- a group can only be linked to a kid (00063 guard)
-  if p_tbl = 'guest_group_kids' and p_col = 'member_id' then
-    return quote_literal('00000000-0000-0000-0000-0000000000b2');
-  end if;
   if ref_tbl = 'trips' then return quote_literal('00000000-0000-0000-0000-0000000000a1');
   elsif ref_tbl = 'members' then return quote_literal('00000000-0000-0000-0000-0000000000b1');
   elsif ref_tbl = 'users' then return quote_literal('00000000-0000-0000-0000-00000000aa01');

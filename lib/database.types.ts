@@ -797,42 +797,6 @@ export type Database = {
           },
         ]
       }
-      guest_group_kids: {
-        Row: {
-          created_at: string
-          label: string
-          member_id: string
-          trip_id: string
-        }
-        Insert: {
-          created_at?: string
-          label: string
-          member_id: string
-          trip_id: string
-        }
-        Update: {
-          created_at?: string
-          label?: string
-          member_id?: string
-          trip_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guest_group_kids_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guest_group_kids_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       guest_join_links: {
         Row: {
           created_at: string
@@ -2232,8 +2196,8 @@ export type Database = {
         Returns: Database["public"]["Enums"]["member_role"]
       }
       mark_wall_read: { Args: { p_trip_id: string }; Returns: number }
+      my_groups: { Args: never; Returns: string[] }
       my_guest_labels: { Args: never; Returns: string[] }
-      my_kid_labels: { Args: never; Returns: string[] }
       submit_guest_join: {
         Args: { p_email?: string; p_name: string; p_token: string }
         Returns: string

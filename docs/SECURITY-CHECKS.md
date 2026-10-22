@@ -2317,3 +2317,29 @@ allowed read. Full suite 305 PASS, 0 FAIL.
 
 Known, accepted: a guest who sees a message sent to two groups can read the
 other group's name in its `audience` (names only, no content).
+
+## Group audiences simplified (00064) - 22/10/2026
+
+- Dropped `guest_group_kids` and `my_kid_labels()`. `messages_kid_select`,
+  `messages_kid_insert` and `posts_kid_select` are back to their pre-00063
+  form: the whole family reads every message and story; a kid may address
+  any group (the message still waits for a parent, who can change it).
+- Guest policies unchanged from 00063: read only `{}` or own groups; write
+  only into own groups (`audience <@ my_guest_labels()`).
+- New `my_groups()` (definer): parents and kids get the trip's group names,
+  a guest their own, anyone else none. Names only; who is in a group stays
+  owner-only (`guests_allowlist`).
+- `posts_guard` lets a kid set `audience` on a draft/pending story (it stays
+  `family` until a parent publishes); `posts_audience_not_public` replaces
+  the guests-only check. `photos_enforce_kid_rules` keeps a kid's chosen
+  audience but still forces pending + unshared (#5); `photos_guard_update`
+  still stops a kid changing it afterwards.
+- Probe 63 rewritten for the model (43 checks): every member's `my_groups`;
+  guests see everyone + own groups, kids see all; a guest cannot write into
+  or add a group they are not in; a kid's pending message hidden from guests
+  and its audience frozen for the kid; the parent changes it at approval;
+  a kid's story keeps its groups but is not out before a parent publishes,
+  then reaches only that class and cannot be widened by the kid; comments
+  and reactions refused outside the group; #5 holds inside a group; a kid's
+  photo keeps its groups but stays pending and unshared. Matrix probe back
+  to its pre-00063 form. Full suite 305 PASS, 0 FAIL.

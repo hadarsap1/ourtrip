@@ -26,7 +26,8 @@ export function ApproveStorySheet({
   onToast: (message: string) => void;
 }) {
   const [audience, setAudience] = useState<Exclude<PostVisibility, "public">>("guests");
-  const [groups, setGroups] = useState<string[]>([]);
+  // the kid's choice (00064) is where the parent starts
+  const [groups, setGroups] = useState<string[]>(story.audience);
   const [sharePhotos, setSharePhotos] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -68,7 +69,7 @@ export function ApproveStorySheet({
           <p className="mt-1 text-xs text-ink-soft">{strings.stories.publicKidBlocked}</p>
           {audience === "guests" && (
             <div className="mt-2">
-              <AudienceRow tripId={story.trip_id} value={groups} onChange={setGroups} />
+              <AudienceRow value={groups} onChange={setGroups} />
             </div>
           )}
         </fieldset>

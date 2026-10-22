@@ -135,10 +135,9 @@ async function handleWallMessage(messageId: string): Promise<number> {
     .maybeSingle();
   if (!msg) return 0;
 
-  const [{ data: members }, { data: allowed }, { data: groupKids }] = await Promise.all([
+  const [{ data: members }, { data: allowed }] = await Promise.all([
     service.from("members").select("id, display_name, role, email").eq("trip_id", msg.trip_id),
     service.from("guests_allowlist").select("email, labels").eq("trip_id", msg.trip_id).is("revoked_at", null),
-    service.from("guest_group_kids").select("label, member_id").eq("trip_id", msg.trip_id),
   ]);
   const sender = members?.find((m) => m.id === msg.sender_id);
   // a revoked guest keeps the members row (and maybe a push subscription), but
@@ -150,8 +149,8 @@ async function handleWallMessage(messageId: string): Promise<number> {
   // Notify only those who can actually READ this message, or a push preview
   // would leak what the policies forbid opening: a kid's message waiting for
   // approval (00049) is the parents' alone - once approved this runs again
-  // (messages_notify_approved) - and a group message (00063) goes to its
-  // groups only. The retired family channel never reached guests.
+  // (messages_notify_approved) - and a group message (00063/00064) goes to
+  // the family and its groups' guests only. The retired family channel never reached guests.
   const pending = msg.approved_at === null;
   const audience = (msg.audience ?? []) as string[];
   const recipients = (members ?? [])
@@ -163,7 +162,6 @@ async function handleWallMessage(messageId: string): Promise<number> {
         {
           role: m.role as WallReader["role"],
           guestLabels: guestLabels ?? [],
-          kidLabels: (groupKids ?? []).filter((k) => k.member_id === m.id).map((k) => k.label),
           active: m.role !== "guest" || guestLabels !== undefined,
         },
         { pending, audience }

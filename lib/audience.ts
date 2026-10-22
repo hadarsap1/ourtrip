@@ -47,17 +47,18 @@ export function audienceText(audience: string[]): string | null {
 }
 
 /**
- * A photo's audience once a group story shares it (DECISIONS #5 still: the
- * parent shares on purpose). Already shared with everyone → stays everyone;
- * already shared with some groups → those plus the story's; not shared → the
- * story's groups only.
+ * A photo's audience once a story shares it (DECISIONS #5 still: the parent
+ * shares on purpose). Whoever uploaded a photo for some groups keeps it there
+ * (00064) - a story never opens it wider by itself:
+ *   not shared yet      - its own groups if it has any, else the story's
+ *   shared with everyone - stays everyone
+ *   shared with groups  - those, plus a group story's groups
  */
 export function photoAudienceAfterShare(
   photo: { shared_with_guests: boolean; audience: string[] },
   storyAudience: string[]
 ): string[] {
-  if (storyAudience.length === 0) return [];
-  if (photo.shared_with_guests && photo.audience.length === 0) return [];
-  const base = photo.shared_with_guests ? photo.audience : [];
-  return [...new Set([...base, ...storyAudience])];
+  if (!photo.shared_with_guests) return photo.audience.length > 0 ? photo.audience : storyAudience;
+  if (photo.audience.length === 0) return [];
+  return [...new Set([...photo.audience, ...storyAudience])];
 }

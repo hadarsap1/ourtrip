@@ -1593,6 +1593,7 @@ export const strings = {
     saved: "הקהל עודכן",
     onlyTo: "רק ל: {to}",
     allGuests: "לכל האורחים",
+    who: "מי יראה",
     change: "שינוי קהל",
   },
 
@@ -1635,10 +1636,6 @@ export const strings = {
     labelSaved: "הקבוצות עודכנו",
     save: "שמירה",
     groupCount: "{n} בקבוצה",
-    // a group belongs to a kid (00063): that kid sees the group's tab on the wall
-    groupKid: "הקבוצה של:",
-    groupKidNone: "אף אחד (רק ההורים)",
-    groupKidSaved: "עודכן. הילד/ה יראו את הקבוצה בקיר",
     // the join link (00054, DECISIONS #37)
     joinTitle: "קישור הצטרפות",
     joinHint: "שולחים את הקישור לקבוצה בוואטסאפ. מי שרוצה לעקוב נרשם בעצמו, ואתם מאשרים כאן",

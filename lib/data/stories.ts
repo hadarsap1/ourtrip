@@ -91,7 +91,9 @@ export async function createStory(tripId: string, authorId: string, input: Story
       journal_entry_id: input.journalEntryId ?? null,
       status: input.status,
       visibility: input.visibility,
-      audience: input.visibility === "guests" ? (input.audience ?? []) : [],
+      // a public story has no group audience; a kid's family draft carries
+      // the kid's choice until a parent publishes (00064)
+      audience: input.visibility === "public" ? [] : (input.audience ?? []),
       publish_after: input.publishAfter,
     })
     .select()
@@ -106,11 +108,10 @@ export async function updateStory(id: string, input: Partial<StoryInput>): Promi
   if (input.body !== undefined) patch.body = input.body.trim();
   if (input.placeLabel !== undefined) patch.place_label = input.placeLabel?.trim() || null;
   if (input.status !== undefined) patch.status = input.status;
-  if (input.visibility !== undefined) {
-    patch.visibility = input.visibility;
-    // a group audience only exists for guests (posts_audience_guests_only)
-    patch.audience = input.visibility === "guests" ? (input.audience ?? []) : [];
-  }
+  if (input.visibility !== undefined) patch.visibility = input.visibility;
+  if (input.audience !== undefined) patch.audience = input.audience;
+  // a public story has no group audience (posts_audience_not_public)
+  if (input.visibility === "public") patch.audience = [];
   if (input.publishAfter !== undefined) patch.publish_after = input.publishAfter;
   const { data, error } = await requireClient()
     .from("posts")
@@ -185,16 +186,8 @@ export async function shareStoryPhotos(
 ): Promise<void> {
   if (photoIds.length === 0) return;
   const supabase = requireClient();
-  if (audience.length === 0) {
-    const { error } = await supabase
-      .from("photos")
-      .update({ status: "approved", approved_by: ownerId, shared_with_guests: true, audience: [] })
-      .in("id", photoIds);
-    if (error) throw new Error(error.message);
-    return;
-  }
-  // A group story shares its photos with that group only - never wider, and
-  // never narrower than a photo already shared (photoAudienceAfterShare).
+  // Each photo keeps the groups it was uploaded or shared for, and a group
+  // story shares an everyone photo with that group only (photoAudienceAfterShare).
   const { data, error } = await supabase
     .from("photos")
     .select("id, shared_with_guests, audience")
