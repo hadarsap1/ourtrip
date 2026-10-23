@@ -1259,6 +1259,7 @@ export type Database = {
           display_name: string
           email: string | null
           id: string
+          is_preview: boolean
           kid_names: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
@@ -1269,6 +1270,7 @@ export type Database = {
           display_name: string
           email?: string | null
           id?: string
+          is_preview?: boolean
           kid_names?: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
@@ -1279,6 +1281,7 @@ export type Database = {
           display_name?: string
           email?: string | null
           id?: string
+          is_preview?: boolean
           kid_names?: string[]
           role?: Database["public"]["Enums"]["member_role"]
           trip_id?: string

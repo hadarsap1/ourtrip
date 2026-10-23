@@ -207,7 +207,8 @@ async function countKidDevices(
       .from("members")
       .select("id")
       .eq("trip_id", tripId)
-      .eq("role", "kid");
+      .eq("role", "kid")
+      .eq("is_preview", false);
     const ids = (kids ?? []).map((k) => k.id);
     if (ids.length === 0) return 0;
     const { count } = await supabase

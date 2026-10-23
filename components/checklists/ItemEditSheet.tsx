@@ -98,7 +98,7 @@ function ItemEdit({
             className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           >
             <option value="">{strings.common.none}</option>
-            {members.map((m) => (
+            {members.filter((m) => !m.is_preview).map((m) => (
               <option key={m.id} value={m.id}>
                 {m.display_name}
               </option>

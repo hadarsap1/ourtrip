@@ -2210,6 +2210,27 @@ export const strings = {
     action: "רענון",
     dismiss: "אחר כך",
   },
+  // "view as" (00068): a real guest / kid session for checking a flow
+  preview: {
+    title: "צפייה כאורח או כילד",
+    hint: "האפליקציה עוברת לחשבון בדיקה אמיתי, ורואים בדיוק מה שאורח או ילד רואים. מה שכותבים שם אמיתי ומופיע בשם \"🧪 בדיקה\". חוזרים בכפתור למעלה, בלי להתחבר מחדש.",
+    asGuest: "צפייה כאורח",
+    asKid: "צפייה כילד",
+    groupsTitle: "באילו קבוצות האורח לבדיקה?",
+    groupsHint: "בלי קבוצה = רואה רק מה שנשלח לכולם.",
+    noGroups: "אין עדיין קבוצות",
+    start: "כניסה",
+    starting: "עובר...",
+    cancel: "ביטול",
+    error: "המעבר לא הצליח - נסו שוב",
+    notDeployed: "צריך לפרוס קודם את הפונקציה preview-session",
+    bannerGuest: "🧪 אתם רואים כאורח",
+    bannerGuestGroups: "🧪 אתם רואים כאורח · {groups}",
+    bannerKid: "🧪 אתם רואים כילד",
+    back: "חזרה להורה",
+    backing: "חוזר...",
+  },
+
   settings: {
     title: "הגדרות",
     back: "חזרה לעוד",

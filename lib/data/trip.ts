@@ -88,7 +88,8 @@ export async function listMembers(tripId: string): Promise<Member[]> {
   ]);
   const full = new Map((rows ?? []).map((m) => [m.id, m]));
   const merged: Member[] = (names ?? []).map(
-    (n) => full.get(n.id) ?? { ...n, email: null, auth_user_id: null }
+    // is_preview matters only to the parents' own lists, which read the full rows
+    (n) => full.get(n.id) ?? { ...n, email: null, auth_user_id: null, is_preview: false }
   );
   // an owner's own query may hold rows the name list missed (it never should)
   for (const m of rows ?? []) if (!merged.some((x) => x.id === m.id)) merged.push(m);

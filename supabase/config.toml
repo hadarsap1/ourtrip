@@ -111,3 +111,8 @@ verify_jwt = true
 
 [functions.recommend-diag]
 verify_jwt = true
+
+# "View as a guest / a kid" (00068): parents only, checked in-function on top
+# of the JWT. Mints a session for the trip's test member.
+[functions.preview-session]
+verify_jwt = true

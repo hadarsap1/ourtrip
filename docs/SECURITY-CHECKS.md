@@ -2386,3 +2386,31 @@ other group's name in its `audience` (names only, no content).
   41-character name and an empty name are rejected; the join form stores the
   names and approval carries them to the members row. Full suite 334 PASS,
   0 FAIL.
+
+## View as a guest / a kid (00068) - 23/10/2026
+
+- `members.is_preview`: no policy reads it. One test member per role per trip
+  (`members_one_preview_per_role`). Guests have no UPDATE on `members`, so
+  they cannot mark themselves.
+- `preview-session` Edge Function (verify_jwt=true): refuses anyone whose
+  `current_member_role()` is not owner, and works only on the caller's own
+  trip. It creates/links the test member, gives the test guest an allowlist
+  row with the groups the parent picked, gives the test kid a `kid_devices`
+  binding whose token is never kept (so no tablet can unlock it, and 00024 is
+  satisfied), then rotates the auth password to a random value and signs in
+  with it server-side. The password is never returned or stored: there is no
+  standing credential, as with kid-auth's unlock.
+- Test addresses are on `preview.ourtrip.app`, which no mailbox receives, so
+  no magic link or Google login can reach them. `link_member_to_auth_user`
+  never links them by email (password accounts, 00055); they are linked by id.
+- Client: the parent's session is kept aside in localStorage (where
+  supabase-js already keeps it). Going back signs the test session out with
+  `scope: global` before restoring the parent's, so no test refresh token
+  survives. The banner is cosmetic; access is the test member's RLS.
+- Probe `scripts/rls/probes/68_preview_members.sql` (12 checks): the test
+  guest resolves as a guest, sees only its picked group's message, switches
+  class when its groups change, sees no unshared photo, no documents, no
+  budget, no other member's email; the test kid resolves as nobody without a
+  device and as a kid with one, and reads no budget or guest list; a second
+  test guest per trip is refused; a guest cannot set `is_preview`. Full suite
+  346 PASS, 0 FAIL.
