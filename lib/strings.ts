@@ -1705,6 +1705,27 @@ export const strings = {
     error: "משהו השתבש - נסו שוב",
   },
 
+  // "whose parent is this" (00067): up to three kids' names next to a guest's name
+  kidTag: {
+    of: "של {names}",
+    // joins the last name, written onto it: "יואב ונועה"
+    and: "ו",
+    field: "של מי אתם ההורים?",
+    fieldHint: "לא חובה. יופיע ליד השם שלכם, כדי שכולם יידעו מי אתם. אפשר עד 3 ילדים.",
+    placeholder: "שם הילד/ה",
+    add: "+ עוד ילד/ה",
+    remove: "הסרת {name}",
+    settingsTitle: "הילדים שלי",
+    settingsHint: "יופיע כתגית ליד השם שלכם בקיר ובתגובות.",
+    save: "שמירה",
+    saved: "נשמר",
+    edit: "שם הילד/ה",
+    sheetTitle: "של מי ההורה?",
+    // the guest home: settings has no tab for guests, so the way there is here
+    homeAdd: "של מי אתם ההורים? הוספת שם הילד/ה",
+    homeEdit: "עריכה",
+  },
+
   guestHome: {
     welcome: "ברוכים הבאים!",
     subtitle: "הסיפורים, התמונות והפודקאסט של משפחת סו מהדרך",
@@ -2192,6 +2213,7 @@ export const strings = {
   settings: {
     title: "הגדרות",
     back: "חזרה לעוד",
+    backHome: "חזרה לדף הבית",
   },
   aiBudget: {
     title: "תקציב AI חודשי",

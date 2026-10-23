@@ -81,6 +81,13 @@ export function memberLinked(role: string): void {
   refreshMember();
 }
 
+/** The member's own row was just changed (a guest's kids' names, 00067):
+ *  read it again quietly, without the loading state refreshMember shows. */
+export function memberChanged(): void {
+  forgetCurrentMember();
+  resolve();
+}
+
 export function useMember(): Snapshot {
   return useSyncExternalStore(
     subscribe,

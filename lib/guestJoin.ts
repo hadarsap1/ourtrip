@@ -82,7 +82,29 @@ export function rememberedJoinToken(): string | null {
 export function forgetJoinToken(): void {
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(KIDS_KEY);
   } catch {
     // nothing to forget
+  }
+}
+
+// The kids' names typed before the Google button (00067) ride the same trip
+// out and back, so the request sent on return still carries them.
+const KIDS_KEY = "ot-join-kids";
+
+export function rememberJoinKids(names: string[]): void {
+  try {
+    localStorage.setItem(KIDS_KEY, JSON.stringify(names));
+  } catch {
+    // private mode: the request goes without them; the guest can add them later
+  }
+}
+
+export function rememberedJoinKids(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(KIDS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((n): n is string => typeof n === "string") : [];
+  } catch {
+    return [];
   }
 }

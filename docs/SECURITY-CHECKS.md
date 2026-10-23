@@ -2361,3 +2361,28 @@ other group's name in its `audience` (names only, no content).
   message cannot be answered, even by a parent; a parent moving a message
   takes the replies along; a single reply cannot be given its own audience;
   deleting a message deletes its replies. Full suite 318 PASS, 0 FAIL.
+
+## Guests' kids' names (00067) - 23/10/2026
+
+- `members.kid_names` / `guest_join_requests.kid_names`: display only, no
+  policy reads them. Shape enforced by a check (at most 3 names, 1-40
+  characters each) whatever the client sends.
+- Guests still have no UPDATE policy on `members`. Their own tag goes through
+  `set_my_kid_names(trip, names)` (security definer): refuses anyone who is
+  not an active guest of the trip (kids, revoked guests), writes only
+  `kid_names`, only on the caller's own guest row. Not executable by anon.
+- Parents edit any guest's tag through the existing `members_owner_all`.
+- `trip_member_names` returns `kid_names` with the name, under the same
+  membership rule as 00051 (still no email for kids and guests).
+- `submit_guest_join` takes optional `p_kid_names`, normalized in the
+  function; the old three-argument call still works. A before-insert trigger
+  on `members` copies the request's names when guest-invite creates the
+  guest's row; a row that already has a tag is not touched.
+- Probe `scripts/rls/probes/67_member_kid_names.sql` (16 checks): the guest
+  sets and reads back their own tag (trimmed, no repeats, three at most); a
+  direct UPDATE by the guest changes neither their name, their tag, nor the
+  parent's row; kids read the tag with the names; kid and revoked guest are
+  refused; anon cannot call it; a parent edits a guest's tag; 4 names, a
+  41-character name and an empty name are rejected; the join form stores the
+  names and approval carries them to the members row. Full suite 334 PASS,
+  0 FAIL.

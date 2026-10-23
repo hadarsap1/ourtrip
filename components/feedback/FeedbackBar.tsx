@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TrashIcon } from "@/components/icons";
+import { KidTag } from "@/components/KidTag";
 import { askConfirm } from "@/components/ConfirmSheet";
 import {
   addComment,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/data/feedback";
 import { matchesTarget, namesSummary, tallyReactions, type FeedbackTarget } from "@/lib/feedback";
 import { formatShortDate } from "@/lib/format";
+import { nameWithKidTag } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
 import type { Comment, Member, Reaction, ReactionKind } from "@/lib/types";
 
@@ -82,11 +84,13 @@ export function FeedbackBar({
 }) {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
-  const nameOf = (id: string) =>
-    id === member.id ? strings.wall.me : (members.find((m) => m.id === id)?.display_name ?? "");
+  const memberOf = (id: string) => members.find((m) => m.id === id);
+  const nameOf = (id: string) => (id === member.id ? strings.wall.me : (memberOf(id)?.display_name ?? ""));
 
   const { tallies, memberIds } = tallyReactions(reactions, target, member.id);
-  const who = namesSummary(memberIds.map(nameOf));
+  const who = namesSummary(
+    memberIds.map((id) => (id === member.id ? nameOf(id) : nameWithKidTag(nameOf(id), memberOf(id)?.kid_names)))
+  );
   const mine = comments.filter((c) => matchesTarget(c, target));
   const canComment = member.role === "guest" || member.role === "owner";
   // kids read the comments, without replying (00050)
@@ -162,6 +166,7 @@ export function FeedbackBar({
                   <li key={c.id} className="rounded-2xl bg-sv-paper px-3 py-2">
                     <p className="text-[12px] font-bold text-sv-ink">
                       {nameOf(c.author_id)}
+                      {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
                       <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
                         {formatShortDate(c.created_at.slice(0, 10))}
                       </span>
