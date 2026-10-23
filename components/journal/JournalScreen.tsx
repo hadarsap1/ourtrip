@@ -159,7 +159,7 @@ export function JournalScreen() {
   const writersToday = new Set(
     entries.filter((e) => e.entry_date === today).map((e) => e.author_id)
   ).size;
-  const family = members.filter((m) => m.role !== "guest").length;
+  const family = members.filter((m) => m.role !== "guest" && !m.is_preview).length;
   const initial = (id: string) => (memberName(id) || "•").slice(0, 1);
 
   return (

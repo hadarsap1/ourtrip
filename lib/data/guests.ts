@@ -51,6 +51,8 @@ export async function listAllowlist(
     .from("guests_allowlist")
     .select("*")
     .eq("trip_id", tripId)
+    // the test guest of "view as" (00068) is not on the list to manage
+    .not("email", "like", "%@preview.ourtrip.app")
     .order("created_at");
   if (error) throw new Error(error.message);
   return data;

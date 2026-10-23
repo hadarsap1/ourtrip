@@ -4,6 +4,7 @@
 // device. Document FILES never go here - only list metadata.
 
 import { getOfflineDB } from "./db";
+import { previewCachePrefix } from "@/lib/preview";
 
 export type Cached<T> = { data: T; savedAt: string };
 
@@ -11,7 +12,9 @@ export async function readQuery<T>(key: string): Promise<Cached<T> | null> {
   const dbp = getOfflineDB();
   if (!dbp) return null;
   try {
-    const row = await (await dbp).get("query_cache", key);
+    // a parent viewing as a guest or kid (00068) gets their own shelf: the
+    // parent's copies would show what the role cannot see
+    const row = await (await dbp).get("query_cache", previewCachePrefix() + key);
     return row ? { data: row.data as T, savedAt: row.savedAt } : null;
   } catch {
     return null;
@@ -22,7 +25,7 @@ export async function writeQuery<T>(key: string, data: T): Promise<void> {
   const dbp = getOfflineDB();
   if (!dbp) return;
   try {
-    await (await dbp).put("query_cache", { key, data, savedAt: new Date().toISOString() });
+    await (await dbp).put("query_cache", { key: previewCachePrefix() + key, data, savedAt: new Date().toISOString() });
   } catch {
     // quota or private mode: the screen still works online
   }
