@@ -842,6 +842,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          kid_names: string[]
           requested_at: string
           status: string
           trip_id: string
@@ -854,6 +855,7 @@ export type Database = {
           display_name: string
           email: string
           id?: string
+          kid_names?: string[]
           requested_at?: string
           status?: string
           trip_id: string
@@ -866,6 +868,7 @@ export type Database = {
           display_name?: string
           email?: string
           id?: string
+          kid_names?: string[]
           requested_at?: string
           status?: string
           trip_id?: string
@@ -1256,6 +1259,7 @@ export type Database = {
           display_name: string
           email: string | null
           id: string
+          kid_names: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
         }
@@ -1265,6 +1269,7 @@ export type Database = {
           display_name: string
           email?: string | null
           id?: string
+          kid_names?: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
         }
@@ -1274,6 +1279,7 @@ export type Database = {
           display_name?: string
           email?: string | null
           id?: string
+          kid_names?: string[]
           role?: Database["public"]["Enums"]["member_role"]
           trip_id?: string
         }
@@ -2201,8 +2207,17 @@ export type Database = {
       mark_wall_read: { Args: { p_trip_id: string }; Returns: number }
       my_groups: { Args: never; Returns: string[] }
       my_guest_labels: { Args: never; Returns: string[] }
+      set_my_kid_names: {
+        Args: { p_kid_names: string[]; p_trip_id: string }
+        Returns: string[]
+      }
       submit_guest_join: {
-        Args: { p_email?: string; p_name: string; p_token: string }
+        Args: {
+          p_email?: string
+          p_kid_names?: string[]
+          p_name: string
+          p_token: string
+        }
         Returns: string
       }
       trip_member_names: {
@@ -2211,6 +2226,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          kid_names: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
         }[]

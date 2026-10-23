@@ -114,6 +114,24 @@ export async function revokeGuest(tripId: string, email: string): Promise<void> 
   if (error) throw new Error(error.message);
 }
 
+// ---------- kids' names next to a guest's name (00067) ----------
+
+/** A guest's own tag. Only that column, only their own row (checked in the function). */
+export async function setMyKidNames(tripId: string, kidNames: string[]): Promise<string[]> {
+  const { data, error } = await requireClient().rpc("set_my_kid_names", {
+    p_trip_id: tripId,
+    p_kid_names: kidNames,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** A parent sets any guest's tag. Owner-only by RLS (members_owner_all). */
+export async function setMemberKidNames(memberId: string, kidNames: string[]): Promise<void> {
+  const { error } = await requireClient().from("members").update({ kid_names: kidNames }).eq("id", memberId);
+  if (error) throw new Error(error.message);
+}
+
 // ---------- join link (00054) ----------
 
 /** The trip's join token (created on first call). Never reset from the app:
@@ -156,11 +174,18 @@ export async function getJoinInfo(token: string): Promise<JoinInfo> {
 }
 
 /** Signed in with Google, the address comes from the login and email is ignored. */
-export async function submitJoinRequest(token: string, name: string, email?: string): Promise<SubmitResult> {
+export async function submitJoinRequest(
+  token: string,
+  name: string,
+  email?: string,
+  /** the kids this person is a parent of (00067), copied to their tag on approval */
+  kidNames: string[] = []
+): Promise<SubmitResult> {
   const { data, error } = await requireClient().rpc("submit_guest_join", {
     p_token: token,
     p_name: name,
     ...(email ? { p_email: email } : {}),
+    ...(kidNames.length === 0 ? {} : { p_kid_names: kidNames }),
   });
   if (error) throw new Error(error.message);
   return parseSubmitResult(data);

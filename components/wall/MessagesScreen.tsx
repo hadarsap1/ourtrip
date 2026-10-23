@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
+import { KidTag } from "@/components/KidTag";
 import {
   applyWallChange,
   approveMessage,
@@ -244,6 +245,7 @@ export function MessagesScreen() {
             }`}
           >
             {senderName(message.sender_id)}
+            {!mine && <KidTag names={members.find((m) => m.id === message.sender_id)?.kid_names} />}
             <span
               className={`ms-1.5 font-normal ${
                 mine ? "text-sea-tint" : "text-ink-soft"

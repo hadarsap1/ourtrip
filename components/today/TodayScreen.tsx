@@ -43,6 +43,7 @@ import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/
 import { daysUntil } from "@/lib/data/readiness";
 import { getActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
+import { kidTagText } from "@/lib/kidTag";
 import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
@@ -312,6 +313,19 @@ export function TodayScreen() {
               </Link>
             ))}
           </div>
+          <Link
+            href="/settings"
+            className="flex min-h-[44px] items-center justify-between gap-2 rounded-[18px] border border-sv-line bg-sv-card px-4 py-2.5 text-sm"
+          >
+            {(member.kid_names ?? []).length > 0 ? (
+              <>
+                <span className="min-w-0 truncate font-semibold text-sv-ink">{kidTagText(member.kid_names)}</span>
+                <span className="shrink-0 font-semibold text-sv-sage">{strings.kidTag.homeEdit}</span>
+              </>
+            ) : (
+              <span className="font-semibold text-sv-sage">{strings.kidTag.homeAdd}</span>
+            )}
+          </Link>
         </div>
       </SovevScreen>
     );

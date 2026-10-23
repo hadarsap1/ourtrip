@@ -13,6 +13,7 @@ import {
   listJoinRequests,
   revokeGuest,
   setGuestLabels,
+  setMemberKidNames,
   type BulkInviteResult,
   type GuestAllowlistRow,
   type JoinRequestRow,
@@ -24,6 +25,9 @@ import { shareToWhatsApp } from "@/lib/share";
 import { formatDate } from "@/lib/format";
 import { ClipboardIcon, MailIcon, ShareIcon, UsersIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
+import { KidTag } from "@/components/KidTag";
+import { KidNamesField } from "@/components/guests/KidNamesField";
+import { normalizeKidNames } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
 import type { Member, Trip } from "@/lib/types";
 
@@ -59,6 +63,7 @@ export function GuestsAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
   const [labelFor, setLabelFor] = useState<GuestAllowlistRow | null>(null);
+  const [kidsFor, setKidsFor] = useState<Member | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,8 +112,7 @@ export function GuestsAdminScreen() {
     () => [...new Set(allowlist.flatMap((r) => r.labels))],
     [allowlist]
   );
-  const nameOf = (email: string) =>
-    members.find((m) => m.email?.toLowerCase() === email.toLowerCase())?.display_name ?? null;
+  const memberOf = (email: string) => members.find((m) => m.email?.toLowerCase() === email.toLowerCase()) ?? null;
 
   const link = token ? joinUrl(window.location.origin, token) : null;
 
@@ -245,7 +249,10 @@ export function GuestsAdminScreen() {
                 className="flex items-center justify-between gap-2 rounded-2xl border border-sea/40 bg-sea-tint px-4 py-3"
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold text-ink">{request.display_name}</span>
+                  <span className="block truncate font-semibold text-ink">
+                    {request.display_name}
+                    <KidTag names={request.kid_names} />
+                  </span>
                   <span className="block truncate text-sm text-ink-soft" dir="ltr">
                     {request.email}
                   </span>
@@ -313,14 +320,19 @@ export function GuestsAdminScreen() {
             <ul className="space-y-2">
               {group.rows.map((row) => {
                 const revoked = row.revoked_at !== null;
-                const name = nameOf(row.email);
+                const guest = memberOf(row.email);
                 return (
                   <li
                     key={row.email}
                     className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
                   >
                     <span className="min-w-0">
-                      {name && <span className="block truncate font-semibold text-ink">{name}</span>}
+                      {guest && (
+                        <span className="block truncate font-semibold text-ink">
+                          {guest.display_name}
+                          <KidTag names={guest.kid_names} />
+                        </span>
+                      )}
                       <span className="block truncate text-sm text-ink-soft" dir="ltr">
                         {row.email}
                       </span>
@@ -341,6 +353,15 @@ export function GuestsAdminScreen() {
                       >
                         {strings.guests.setLabel}
                       </button>
+                      {guest && (
+                        <button
+                          type="button"
+                          onClick={() => setKidsFor(guest)}
+                          className="rounded-lg bg-paper-deep px-2.5 py-1 text-xs font-semibold text-ink-soft"
+                        >
+                          {strings.kidTag.edit}
+                        </button>
+                      )}
                       {!revoked && (
                         <button
                           type="button"
@@ -405,8 +426,62 @@ export function GuestsAdminScreen() {
         />
       )}
 
+      {kidsFor && trip && (
+        <KidNamesSheet
+          guest={kidsFor}
+          onClose={() => setKidsFor(null)}
+          onSave={async (kidNames) => {
+            try {
+              await setMemberKidNames(kidsFor.id, kidNames);
+              setKidsFor(null);
+              showToast(strings.kidTag.saved);
+              await refresh(trip.id);
+            } catch {
+              showToast(strings.common.error);
+            }
+          }}
+        />
+      )}
+
       <Toast message={toast} />
     </div>
+  );
+}
+
+/** A parent sets the kids a guest is the parent of (00067). */
+function KidNamesSheet({
+  guest,
+  onClose,
+  onSave,
+}: {
+  guest: Member;
+  onClose: () => void;
+  onSave: (kidNames: string[]) => Promise<void>;
+}) {
+  const [names, setNames] = useState<string[]>(guest.kid_names ?? []);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Sheet open onClose={onClose} title={strings.kidTag.sheetTitle}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (busy) return;
+          setBusy(true);
+          void onSave(normalizeKidNames(names)).finally(() => setBusy(false));
+        }}
+        className="space-y-4"
+      >
+        <p className="truncate text-sm font-semibold text-ink">{guest.display_name}</p>
+        <KidNamesField id="guest-kids" value={names} onChange={setNames} showHint={false} />
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
+        >
+          {strings.guests.save}
+        </button>
+      </form>
+    </Sheet>
   );
 }
 

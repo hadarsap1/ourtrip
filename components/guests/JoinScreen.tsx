@@ -6,10 +6,14 @@ import { getJoinInfo, submitJoinRequest } from "@/lib/data/guests";
 import {
   forgetJoinToken,
   nameFromGoogle,
+  rememberJoinKids,
   rememberJoinToken,
+  rememberedJoinKids,
   rememberedJoinToken,
   type SubmitResult,
 } from "@/lib/guestJoin";
+import { normalizeKidNames } from "@/lib/kidTag";
+import { KidNamesField } from "@/components/guests/KidNamesField";
 import { strings } from "@/lib/strings";
 
 type Phase =
@@ -26,6 +30,7 @@ export function JoinScreen({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [kidNames, setKidNames] = useState<string[]>([]);
 
   const afterSubmit = useCallback((result: SubmitResult, via: "google" | "email") => {
     if (result === "pending") setPhase({ kind: "pending", via });
@@ -53,7 +58,7 @@ export function JoinScreen({ token }: { token: string }) {
         const googleName = nameFromGoogle(user.user_metadata, user.email);
         // back from the Google button on this page: send without another tap
         if (rememberedJoinToken() === token) {
-          afterSubmit(await submitJoinRequest(token, googleName), "google");
+          afterSubmit(await submitJoinRequest(token, googleName, undefined, rememberedJoinKids()), "google");
         } else {
           setPhase({ kind: "signedIn", email: user.email, name: googleName });
         }
@@ -77,6 +82,7 @@ export function JoinScreen({ token }: { token: string }) {
     if (!supabase) return;
     setError(null);
     rememberJoinToken(token);
+    rememberJoinKids(normalizeKidNames(kidNames));
     // Back to the root (the redirect the auth settings allow); the auth gate
     // sees the remembered token and returns here.
     const { error: err } = await supabase.auth.signInWithOAuth({
@@ -161,6 +167,9 @@ export function JoinScreen({ token }: { token: string }) {
         <div className="space-y-3 text-center">
           <h2 className="text-xl font-bold">{strings.join.title}</h2>
           <JoinAbout />
+          <div className="text-start">
+            <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
+          </div>
           <button
             type="button"
             className={buttonPrimary}
@@ -168,7 +177,10 @@ export function JoinScreen({ token }: { token: string }) {
             onClick={() =>
               void run(async () => {
                 rememberJoinToken(token);
-                afterSubmit(await submitJoinRequest(token, phase.name), "google");
+                afterSubmit(
+                  await submitJoinRequest(token, phase.name, undefined, normalizeKidNames(kidNames)),
+                  "google"
+                );
               })
             }
           >
@@ -195,6 +207,8 @@ export function JoinScreen({ token }: { token: string }) {
             <h2 className="text-xl font-bold">{strings.join.title}</h2>
           </div>
           <JoinAbout />
+          {/* above both ways in, so it counts for Google and for the typed form */}
+          <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
           <div className="space-y-1">
             <button type="button" className={buttonPrimary} onClick={() => void withGoogle()}>
               {strings.join.google}
@@ -209,7 +223,10 @@ export function JoinScreen({ token }: { token: string }) {
             onSubmit={(e) => {
               e.preventDefault();
               void run(async () => {
-                afterSubmit(await submitJoinRequest(token, name.trim(), email.trim()), "email");
+                afterSubmit(
+                  await submitJoinRequest(token, name.trim(), email.trim(), normalizeKidNames(kidNames)),
+                  "email"
+                );
               });
             }}
           >
