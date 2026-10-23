@@ -2223,6 +2223,7 @@ export type Database = {
         }
         Returns: string
       }
+      trip_now_country: { Args: { p_trip_id: string }; Returns: string }
       trip_member_names: {
         Args: { p_trip_id: string }
         Returns: {

@@ -2,6 +2,7 @@
 // to nudge for the evening journal. Pure, so they test without a clock.
 
 export { haversineKm, leaveByMinutes, travelMinutes, type LatLng } from "@/supabase/functions/_shared/travel";
+import { ZONE_BY_COUNTRY } from "@/supabase/functions/_shared/notifyPolicy";
 
 /** "HH:MM" for minutes past midnight. */
 export function hhmm(minutes: number): string {
@@ -23,6 +24,24 @@ export function zoneMinutes(now: Date, timeZone: string): number {
 export function homeClock(now: Date, deviceMinutes: number, homeZone = "Asia/Jerusalem"): string | null {
   const home = zoneMinutes(now, homeZone);
   return home === deviceMinutes ? null : hhmm(home);
+}
+
+/**
+ * The family's clock for a guest in Israel (00069): "HH:MM" in the zone of the
+ * country they are in today. Null when it would say nothing new (in Israel,
+ * no day today) or when the country's zone is not known - a wrong time is
+ * worse than none.
+ */
+export function familyClock(now: Date, countryCode: string | null | undefined): string | null {
+  const code = countryCode?.toUpperCase();
+  if (!code || code === "IL") return null;
+  const zone = ZONE_BY_COUNTRY[code];
+  return zone ? hhmm(zoneMinutes(now, zone)) : null;
+}
+
+/** Israel's clock, always (the kids' home): "HH:MM". */
+export function israelClock(now: Date): string {
+  return hhmm(zoneMinutes(now, "Asia/Jerusalem"));
 }
 
 /** The journal nudge shows from 18:00 until the day ends. */
