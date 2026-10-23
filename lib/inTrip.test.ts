@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { haversineKm, hhmm, homeClock, isEvening, leaveByMinutes, travelMinutes, zoneMinutes } from "./inTrip";
+import { familyClock, haversineKm, hhmm, homeClock, isEvening, israelClock, leaveByMinutes, travelMinutes, zoneMinutes } from "./inTrip";
 
 const hanoiOldQuarter = { lat: 21.0341, lng: 105.8516 };
 const hanoiWestLake = { lat: 21.0583, lng: 105.8227 };
@@ -37,5 +37,25 @@ describe("in-trip helpers (1.6)", () => {
   it("knows when it is evening", () => {
     expect(isEvening(17 * 60 + 59)).toBe(false);
     expect(isEvening(18 * 60)).toBe(true);
+  });
+});
+
+describe("familyClock / israelClock", () => {
+  // 04:00 UTC in January: Israel 06:00 (UTC+2), Hanoi 11:00, Tokyo 13:00
+  const d = new Date("2027-01-10T04:00:00Z");
+
+  it("gives the time where the family is today", () => {
+    expect(familyClock(d, "VN")).toBe("11:00");
+    expect(familyClock(d, "jp")).toBe("13:00");
+  });
+
+  it("says nothing in Israel, with no day, or for an unknown zone", () => {
+    expect(familyClock(d, "IL")).toBeNull();
+    expect(familyClock(d, null)).toBeNull();
+    expect(familyClock(d, "ZZ")).toBeNull();
+  });
+
+  it("always gives Israel's time", () => {
+    expect(israelClock(d)).toBe("06:00");
   });
 });

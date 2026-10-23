@@ -41,7 +41,8 @@ import {
 } from "@/lib/data/weather";
 import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { daysUntil } from "@/lib/data/readiness";
-import { getActiveTrip } from "@/lib/data/trip";
+import { getActiveTrip, getNowCountry } from "@/lib/data/trip";
+import { GuestFamilyClock, KidIsraelClock } from "./FamilyClock";
 import { strings } from "@/lib/strings";
 import { kidTagText } from "@/lib/kidTag";
 import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
@@ -219,6 +220,8 @@ export function TodayScreen() {
   // Re-derives "next up" and the current agenda row as the day moves on.
   const [now, setNow] = useState(() => minutesNow());
   const [clock, setClock] = useState(() => new Date());
+  // guests: the country the family is in today (00069), for their clock
+  const [nowCountry, setNowCountry] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,6 +274,26 @@ export function TodayScreen() {
   }, []);
 
   const { member, memberLoading } = useMember();
+  const isGuest = member?.role === "guest";
+  const tripId = trip?.id ?? null;
+
+  // The country changes at most once a day; a quarter-hour re-ask catches the
+  // border day without a request per minute.
+  useEffect(() => {
+    if (!isGuest || !tripId) return;
+    let alive = true;
+    const ask = () =>
+      void getNowCountry(tripId).then((code) => {
+        if (alive) setNowCountry(code);
+      });
+    ask();
+    const every = setInterval(ask, 15 * 60_000);
+    return () => {
+      alive = false;
+      clearInterval(every);
+    };
+  }, [isGuest, tripId]);
+
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
 
@@ -299,6 +322,7 @@ export function TodayScreen() {
             <h1 className="sovev-display text-2xl font-extrabold text-sv-ink">{strings.guestHome.welcome}</h1>
             <p className="text-sm text-sv-ink-soft">{strings.guestHome.subtitle}</p>
           </div>
+          <GuestFamilyClock now={clock} countryCode={nowCountry} />
           <div className="grid grid-cols-2 gap-2.5">
             {tiles.map((tile) => (
               <Link
@@ -392,6 +416,7 @@ export function TodayScreen() {
               </span>
             </p>
           )}
+          <KidIsraelClock now={clock} />
         </section>
 
         {activeItems.length > 0 && (

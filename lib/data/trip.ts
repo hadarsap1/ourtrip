@@ -181,3 +181,15 @@ export async function getCurrentMember(): Promise<Member | null> {
   });
   return memberInFlight;
 }
+
+/**
+ * The country of the day the family is living now (00069), for the guests'
+ * "time where they are". One fact, readable by anyone on the trip; null
+ * before the trip, on a gap, or offline.
+ */
+export async function getNowCountry(tripId: string): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc("trip_now_country", { p_trip_id: tripId });
+  return error ? null : (data ?? null);
+}

@@ -2414,3 +2414,18 @@ other group's name in its `audience` (names only, no content).
   device and as a kid with one, and reads no budget or guest list; a second
   test guest per trip is refused; a guest cannot set `is_preview`. Full suite
   346 PASS, 0 FAIL.
+
+## The family's clock for guests (00069) - 23/10/2026
+
+- No policy changed. Guests still read itinerary days only with a done,
+  shared item (00009).
+- `trip_now_country(trip)` (security definer, stable): returns one country
+  code, of the itinerary day whose date is the current date in that
+  country's zone (Israel date or the next), only to an owner, kid or active
+  guest of that trip. Nothing else about the day. Not executable by anon.
+- `country_time_zone(code)`: immutable lookup, no data access.
+- Probe `scripts/rls/probes/69_trip_now_country.sql` (10 checks): guest, kid
+  and owner get the family's today (Tokyo date, not Israel's); the guest
+  still reads no itinerary day; revoked guest and outsider get nothing; anon
+  cannot call it; no day today gives null; unknown country falls back to
+  Israel's zone. Full suite 356 PASS, 0 FAIL.

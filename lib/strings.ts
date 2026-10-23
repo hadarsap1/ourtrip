@@ -1728,6 +1728,11 @@ export const strings = {
 
   guestHome: {
     welcome: "ברוכים הבאים!",
+    // 00069: the family's local time, for friends in Israel deciding when to write
+    familyTime: "אצלנו {where} עכשיו",
+    inCountry: "ב{country}",
+    // where "ב" + the Intl name reads wrong: the article drops, a leading vav doubles
+    inCountryExceptions: { PH: "בפיליפינים", VN: "בווייטנאם", AE: "באמירויות" } as Record<string, string>,
     subtitle: "הסיפורים, התמונות והפודקאסט של משפחת סו מהדרך",
     tileStories: "סיפורים מהמסע",
     tilePodcast: "הפודקאסט",
@@ -1760,6 +1765,8 @@ export const strings = {
 
   kidHome: {
     hello: "שלום",
+    // always shown: what time it is for the friends at home
+    israelTime: "בישראל עכשיו",
     whereToday: "איפה אנחנו היום?",
     noLocation: "יום חופשי!",
     journalPrompt: "מה היה הכי כיף היום?",
