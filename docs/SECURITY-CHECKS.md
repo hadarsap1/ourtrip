@@ -2447,3 +2447,11 @@ rows with the same `trip_id` as the row being saved. No policy changes.
 `extract-places` now accepts `knownAreas` (strings only, 150 max, 60 chars
 each). It is the owner's own bank passed as a naming hint, placed outside the
 untrusted post markers; the owner gate still runs before the body is read.
+
+## Inventory check - 24/10/2026
+
+Counted in production for `docs/HANDOFF.md` (supersedes #34's August counts):
+44 public tables, **0 without RLS enabled**; 8 storage buckets, 7 private and
+`public-stories` public by design (00046, the open blog); 6 pg_cron jobs;
+Realtime on bookings, checklists, checklist_items, comments, itinerary_days,
+itinerary_items, messages, reactions. 72 migration files, 22 Edge Functions.

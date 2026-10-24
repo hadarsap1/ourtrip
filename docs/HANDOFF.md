@@ -90,11 +90,11 @@ Next.js 16 App Router (RTL, Hebrew)          Vercel
         │
         ▼
 Supabase                                     project ref in migrations
-  Postgres + RLS        30 tables, deny-by-default, 21 migrations
-  Storage               6 private buckets
-  Realtime              itinerary, bookings, checklists, messages
-  Edge Functions        13, Deno
-  pg_cron + pg_net      3 scheduled jobs
+  Postgres + RLS        44 tables, deny-by-default, 72 migrations
+  Storage               8 buckets: 7 private, public-stories public by design (00046)
+  Realtime              itinerary, bookings, checklists, messages, comments, reactions
+  Edge Functions        22, Deno
+  pg_cron + pg_net      6 scheduled jobs
 ```
 
 **The layering rule that matters:** components never call Supabase directly.
@@ -219,7 +219,7 @@ than breaking its screen. That pattern is intentional; preserve it.
 
 ### Migrations
 
-18 files in `supabase/migrations/`, applied in order.
+72 files in `supabase/migrations/`, applied in order.
 `00001_initial_schema.sql` is the whole Sprint-1 world (types, 23 tables,
 triggers, RLS helpers, owner policies); later files add kids (`00007`), guests
 (`00008`/`00009`), push + backups (`00010`), and the post-roadmap features
@@ -228,7 +228,7 @@ numbered migration (CLAUDE.md).
 
 ### RLS model
 
-Deny-by-default on all 29 public tables. Policies are expressed through SQL
+Deny-by-default on all 44 public tables. Policies are expressed through SQL
 helpers, so a policy reads like a sentence:
 
 | Helper | Answers |
