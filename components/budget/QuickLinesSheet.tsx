@@ -106,7 +106,7 @@ export function QuickLinesSheet({
               {lines.map((l, i) => (
                 <li
                   key={i}
-                  className="flex items-baseline justify-between gap-2 rounded-lg bg-white px-2 py-1.5 text-sm shadow-sm"
+                  className="flex items-baseline justify-between gap-2 rounded-lg bg-surface px-2 py-1.5 text-sm shadow-sm"
                 >
                   <span className="truncate text-ink">{l.description || "-"}</span>
                   <span className="shrink-0 font-semibold text-sea-deep" dir="ltr">
@@ -131,7 +131,7 @@ export function QuickLinesSheet({
           type="button"
           onClick={() => void save()}
           disabled={saving || lines.length === 0}
-          className="w-full rounded-xl bg-sea py-3 font-semibold text-white disabled:opacity-50"
+          className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-50"
         >
           {saving ? s.quickLinesSaving : s.quickLinesSave}
         </button>

@@ -47,7 +47,10 @@ export async function uploadPhoto(input: {
   file: File;
   caption?: string | null;
   journalEntryId?: string | null;
-}): Promise<void> {
+  /** [] = every guest once shared; else only these groups (00063/00064).
+   *  Sharing stays a parent's separate step (#5). */
+  audience?: string[];
+}): Promise<Photo> {
   const supabase = requireClient();
   const blob = await compressImage(input.file);
   const path = `${input.tripId}/${crypto.randomUUID()}.jpg`;
@@ -57,18 +60,24 @@ export async function uploadPhoto(input: {
     .upload(path, blob, { contentType: "image/jpeg" });
   if (uploadError) throw new Error(uploadError.message);
 
-  const { error } = await supabase.from("photos").insert({
-    trip_id: input.tripId,
-    uploaded_by: input.memberId,
-    file_path: path,
-    caption: input.caption?.trim() || null,
-    taken_on: todayISO(),
-    journal_entry_id: input.journalEntryId ?? null,
-    ...(input.isOwner
-      ? { status: "approved" as const, approved_by: input.memberId }
-      : {}),
-  });
+  const { data, error } = await supabase
+    .from("photos")
+    .insert({
+      trip_id: input.tripId,
+      uploaded_by: input.memberId,
+      file_path: path,
+      caption: input.caption?.trim() || null,
+      taken_on: todayISO(),
+      journal_entry_id: input.journalEntryId ?? null,
+      audience: input.audience ?? [],
+      ...(input.isOwner
+        ? { status: "approved" as const, approved_by: input.memberId }
+        : {}),
+    })
+    .select()
+    .single();
   if (error) throw new Error(error.message);
+  return data;
 }
 
 // ---------- owner moderation ----------
@@ -95,6 +104,13 @@ export async function setPhotoShared(id: string, shared: boolean): Promise<void>
     .from("photos")
     .update({ shared_with_guests: shared })
     .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Which guests a shared photo reaches (00063): [] = every guest. Narrows
+ *  DECISIONS #5, never widens it - an unshared photo stays hidden. */
+export async function setPhotoAudience(id: string, audience: string[]): Promise<void> {
+  const { error } = await requireClient().from("photos").update({ audience }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 

@@ -35,7 +35,7 @@ export function SegmentedControl<T extends string>({
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-[3px] -z-10 rounded-[10px] bg-white transition-[inset-inline-start] duration-[180ms] ease-out"
+        className="absolute inset-y-[3px] -z-10 rounded-[10px] bg-surface transition-[inset-inline-start] duration-[180ms] ease-out"
         style={{
           width: `calc(${width}% - 6px)`,
           insetInlineStart: `calc(${index * width}% + 3px)`,
@@ -51,7 +51,7 @@ export function SegmentedControl<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(option.value)}
-            className={`min-h-[40px] rounded-[10px] py-[7px] text-[12.5px] transition-colors ${
+            className={`min-h-[44px] rounded-[10px] py-[7px] text-[12.5px] transition-colors ${
               active ? "font-bold text-sea-deep" : "font-semibold text-ink-soft"
             }`}
           >

@@ -69,6 +69,35 @@ describe("groupBookingsByLeg", () => {
     ]);
   });
 
+  it("files a hotel under where its nights are, not its check-in travel day", () => {
+    // Check-in is the travel day, which the plan still files under Vietnam.
+    const hotel = booking({
+      id: "h",
+      type: "hotel",
+      start_date: "2026-11-02",
+      end_date: "2026-11-05",
+    });
+    const groups = groupBookingsByLeg([hotel], days);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].stretch?.locationName).toBe("תאילנד");
+    expect(groups[0].bookings[0].stretches.map((s) => s.locationName)).toEqual([
+      "תאילנד",
+    ]);
+  });
+
+  it("gives a hotel split evenly between two legs to the later one", () => {
+    const hotel = booking({
+      id: "h",
+      type: "hotel",
+      start_date: "2026-11-02",
+      end_date: "2026-11-04",
+    });
+    const groups = groupBookingsByLeg([hotel], days);
+
+    expect(groups[0].stretch?.locationName).toBe("תאילנד");
+  });
+
   it("keeps legs in trip order and drops the empty ones", () => {
     const groups = groupBookingsByLeg(
       [

@@ -98,7 +98,7 @@ function ItemEdit({
             className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           >
             <option value="">{strings.common.none}</option>
-            {members.map((m) => (
+            {members.filter((m) => !m.is_preview).map((m) => (
               <option key={m.id} value={m.id}>
                 {m.display_name}
               </option>
@@ -109,7 +109,7 @@ function ItemEdit({
         <div className="flex gap-2 pt-1">
           <button
             type="submit"
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep"
           >
             {strings.common.save}
           </button>

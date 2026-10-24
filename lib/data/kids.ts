@@ -48,6 +48,8 @@ export async function listKids(tripId: string): Promise<Member[]> {
     .select("*")
     .eq("trip_id", tripId)
     .eq("role", "kid")
+    // the test kid of "view as" (00068) is not one of the family's kids
+    .eq("is_preview", false)
     .order("display_name");
   if (error) throw new Error(error.message);
   return data;

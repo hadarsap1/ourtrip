@@ -101,7 +101,7 @@ function LegLocationForm({
             {leg.stretch.locationName ??
               (leg.stretch.countryCode ? countryName(leg.stretch.countryCode) : "")}
           </p>
-          <p className="mt-0.5 text-[11.5px] text-ink-soft" dir="ltr">
+          <p className="mt-0.5 text-[12px] text-ink-soft" dir="ltr">
             {formatShortDate(leg.stretch.from)} - {formatShortDate(leg.stretch.to)}
             {" · "}
             {s.legDays.replace("{n}", String(leg.dayCount))}
@@ -130,7 +130,7 @@ function LegLocationForm({
             }}
           />
           <p
-            className={`mt-1 text-[11.5px] ${
+            className={`mt-1 text-[12px] ${
               searchable ? "text-ink-soft" : "font-semibold text-alert"
             }`}
             role={searchable ? undefined : "alert"}
@@ -155,7 +155,7 @@ function LegLocationForm({
             // in the box (the autocomplete degrades to a plain input without
             // an API key) but it cannot place anything on a map.
             disabled={saving || picked === null}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white active:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea active:bg-sea-deep disabled:opacity-60"
           >
             {strings.common.save}
           </button>

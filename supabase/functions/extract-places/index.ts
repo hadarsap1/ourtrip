@@ -32,6 +32,9 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
+
+const FN = "extract-places";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -252,8 +255,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .join(", ")}. Prefer places in that destination.`
       : "";
 
+  // the AI budget (00053): one reservation per paste, however many chunks;
+  // the cost of every chunk is recorded below
+  const gate = await reserveAi(caller, FN);
+  if (!gate.ok) return json({ ok: false, error: gate.error }, gate.status);
+
   const anthropic = new Anthropic(); // ANTHROPIC_API_KEY from function secrets
   const chunks = chunkText(text);
+  const answered: Parameters<typeof recordAi>[2] = [];
 
   const collected: Raw[] = [];
   let truncatedChunks = 0;
@@ -303,6 +312,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       failedChunks++;
       continue;
     }
+    answered.push(response);
 
     // A reply cut off at the token ceiling leaves the tool input as incomplete
     // JSON. Count it so the caller is never told "no places found" when the
@@ -322,6 +332,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const places = (toolUse.input as { places?: Raw[] }).places;
     if (Array.isArray(places)) collected.push(...places);
   }
+
+  await recordAi(gate.memberId, FN, answered);
 
   if (creditExhausted) return json({ ok: false, error: "no_credit" }, 402);
 

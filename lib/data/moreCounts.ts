@@ -9,6 +9,8 @@ export type MoreCounts = {
   options: number;
   journal: number;
   photos: number;
+  stories: number;
+  episodes: number;
   messages: number;
   /** Checklist items ticked / total, across every list. */
   checklistDone: number;
@@ -26,6 +28,8 @@ const EMPTY: MoreCounts = {
   options: 0,
   journal: 0,
   photos: 0,
+  stories: 0,
+  episodes: 0,
   messages: 0,
   checklistDone: 0,
   checklistTotal: 0,
@@ -71,6 +75,8 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     options,
     journal,
     photos,
+    stories,
+    episodes,
     messages,
     checklistTotal,
     checklistDone,
@@ -123,6 +129,18 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     ),
     simpleCount(
       supabase
+        .from("posts")
+        .select("*", { count: "exact", head: true })
+        .eq("trip_id", trip.id)
+    ),
+    simpleCount(
+      supabase
+        .from("episodes")
+        .select("*", { count: "exact", head: true })
+        .eq("trip_id", trip.id)
+    ),
+    simpleCount(
+      supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("trip_id", trip.id)
@@ -141,6 +159,8 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     options,
     journal,
     photos,
+    stories,
+    episodes,
     messages,
     checklistDone,
     checklistTotal,
@@ -187,7 +207,8 @@ async function countKidDevices(
       .from("members")
       .select("id")
       .eq("trip_id", tripId)
-      .eq("role", "kid");
+      .eq("role", "kid")
+      .eq("is_preview", false);
     const ids = (kids ?? []).map((k) => k.id);
     if (ids.length === 0) return 0;
     const { count } = await supabase

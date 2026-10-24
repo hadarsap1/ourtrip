@@ -6,15 +6,21 @@ import { getActiveTrip } from "@/lib/data/trip";
 import {
   autofillEmergency,
   countryName,
+  getCurrentOrNextCountryCode,
   getTodayCountryCode,
   listCountryOptions,
   listEmergencyPages,
+  pickEmergencyCountry,
   type EmergencyContent,
   type EmergencyPage,
 } from "@/lib/data/emergency";
 import { useMember } from "@/lib/useMember";
-import { EditIcon, SparkleIcon } from "@/components/icons";
+import { CheckIcon, EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
+import { readEmergencySnapshots } from "@/lib/offline/caches";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
+import { isEnabled } from "@/lib/flags";
 import type { Trip } from "@/lib/types";
 import { EmergencyEditSheet } from "./EmergencyEditSheet";
 
@@ -23,7 +29,7 @@ function TelRow({ label, value }: { label: string; value?: string }) {
   return (
     <a
       href={`tel:${value.replace(/[^\d+*#]/g, "")}`}
-      className="flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-sm"
+      className="flex items-center justify-between rounded-xl bg-surface px-3 py-3 shadow-sm"
     >
       <span className="text-sm font-medium text-ink">{label}</span>
       <span className="text-lg font-bold text-rose-600" dir="ltr">
@@ -49,6 +55,7 @@ export function EmergencyScreen() {
   const [countryOptions, setCountryOptions] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
+  const [offlineReady, setOfflineReady] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ countryCode: string | null } | null>(null);
@@ -82,8 +89,8 @@ export function EmergencyScreen() {
         await autofillEmergency(code);
         await refresh(trip.id);
         showToast(strings.emergency.autofilled);
-      } catch {
-        showToast(strings.common.error);
+      } catch (e) {
+        showToast(aiLimitMessage(e instanceof Error ? e.message : null) ?? strings.common.error);
       } finally {
         setAutofilling(false);
       }
@@ -102,15 +109,20 @@ export function EmergencyScreen() {
       try {
         const nextPages = await refresh(tripId);
         if (cancelled) return;
+        const snaps = await readEmergencySnapshots().catch(() => []);
+        if (!cancelled) setOfflineReady(new Set(snaps.map((x) => x.countryCode)));
         const todayCountry = await getTodayCountryCode(tripId);
+        const nextCountry = isEnabled("emergencyAutoCountry") ? await getCurrentOrNextCountryCode(tripId) : null;
         if (cancelled) return;
-        setSelected((current) => {
-          if (current) return current;
-          if (todayCountry && nextPages.some((p) => p.countryCode === todayCountry)) {
-            return todayCountry;
-          }
-          return todayCountry ?? nextPages[0]?.countryCode ?? null;
-        });
+        setSelected(
+          (current) =>
+            current ??
+            pickEmergencyCountry(
+              nextPages.map((p) => p.countryCode),
+              todayCountry,
+              nextCountry
+            )
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -121,11 +133,7 @@ export function EmergencyScreen() {
   }, [refresh]);
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   const allCountries = [
@@ -139,8 +147,8 @@ export function EmergencyScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-rose-700">
-          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[10px] font-extrabold tracking-[0.06em]">
+        <h1 data-plain className="text-2xl font-bold text-rose-700">
+          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]">
             {strings.emergency.sos}
           </span>{" "}
           {strings.emergency.title}
@@ -157,13 +165,22 @@ export function EmergencyScreen() {
       </div>
 
       {fromCache && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">
+        <p className="rounded-xl bg-warning-soft px-3 py-2 text-center text-xs font-medium text-warning">
           {strings.offline.fromCache}
         </p>
       )}
 
+      {/* Offline readiness (1.6): every page is saved on the device whenever it
+          loads online, so say so - this is the screen you open with no signal. */}
+      {selected && offlineReady.has(selected) && (
+        <p className="flex items-center justify-center gap-1.5 self-start rounded-full bg-success-soft px-3 py-1 text-xs font-bold text-success">
+          <CheckIcon className="h-3.5 w-3.5" />
+          {strings.emergency.offlineReady}
+        </p>
+      )}
+
       {allCountries.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.emergency.noCountries}
         </p>
       ) : (
@@ -173,10 +190,10 @@ export function EmergencyScreen() {
               key={code}
               type="button"
               onClick={() => setSelected(code)}
-              className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === code
                   ? "bg-rose-600 text-white"
-                  : "bg-white text-ink-soft shadow-sm"
+                  : "bg-surface text-ink-soft shadow-sm"
               }`}
             >
               {countryName(code)}
@@ -197,7 +214,7 @@ export function EmergencyScreen() {
       {selected && (
         <>
           {!page || Object.keys(content).length === 0 ? (
-            <div className="space-y-3 rounded-2xl border border-dashed border-rose-200 bg-white p-6 text-center">
+            <div className="space-y-3 rounded-2xl border border-dashed border-rose-200 bg-surface p-6 text-center">
               <p className="text-sm text-ink-soft">{strings.emergency.emptyPage}</p>
               {isOwner && trip && (
                 <>
@@ -205,7 +222,7 @@ export function EmergencyScreen() {
                     type="button"
                     onClick={() => void runAutofill(selected)}
                     disabled={autofilling}
-                    className="w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm disabled:opacity-50"
+                    className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow-sm disabled:opacity-50"
                   >
                     <SparkleIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
                     {autofilling ? strings.emergency.autofilling : strings.emergency.autofill}
@@ -230,7 +247,7 @@ export function EmergencyScreen() {
               )}
 
               {(content.embassy_phone || content.embassy_address) && (
-                <section className="rounded-2xl border border-line bg-white shadow-sm">
+                <section className="rounded-2xl border border-line bg-surface shadow-sm">
                   <h2 className="border-b border-line px-3 py-2 text-sm font-bold text-ink">
                     {strings.emergency.embassy}
                   </h2>
@@ -244,7 +261,7 @@ export function EmergencyScreen() {
               )}
 
               {(content.insurance_company || content.insurance_policy || content.insurance_phone) && (
-                <section className="rounded-2xl border border-line bg-white shadow-sm">
+                <section className="rounded-2xl border border-line bg-surface shadow-sm">
                   <h2 className="border-b border-line px-3 py-2 text-sm font-bold text-ink">
                     {strings.emergency.insurance}
                   </h2>
@@ -259,7 +276,7 @@ export function EmergencyScreen() {
               )}
 
               {(content.hotel_name || content.hotel_address || content.hotel_phone) && (
-                <section className="rounded-2xl border border-line bg-white shadow-sm">
+                <section className="rounded-2xl border border-line bg-surface shadow-sm">
                   <h2 className="border-b border-line px-3 py-2 text-sm font-bold text-ink">
                     {strings.emergency.hotel}
                   </h2>
@@ -274,7 +291,7 @@ export function EmergencyScreen() {
               )}
 
               {content.medical_notes && (
-                <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+                <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
                   <h2 className="mb-1 text-sm font-bold text-ink">
                     {strings.emergency.medical}
                   </h2>
@@ -298,7 +315,7 @@ export function EmergencyScreen() {
                     href="https://embassies.gov.il"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold underline"
+                    className="mt-1 flex min-h-[44px] items-center font-semibold underline"
                   >
                     {strings.emergency.verifyLink}
                   </a>

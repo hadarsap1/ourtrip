@@ -4,28 +4,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toast } from "@/components/Toast";
-import { CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
+import { CalendarIcon, CloseIcon, FileIcon, PinIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { BookingFormSheet } from "@/components/bookings/BookingFormSheet";
 import { BookingsList } from "@/components/bookings/BookingsList";
 import { ExpensePromptSheet } from "@/components/bookings/ExpensePromptSheet";
 import { MailImportSheet } from "@/components/bookings/MailImportSheet";
+import { HotelSyncSheet } from "@/components/bookings/HotelSyncSheet";
+import { proposeHotelSyncs, type HotelSyncProposal } from "@/lib/hotelItinerarySync";
+import { canLocateHotels, locateHotel } from "@/lib/locateHotel";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
   createItem,
   deleteDay,
   deleteItem,
-  listDays,
-  listItems,
   moveItemToDay,
   reorderItems,
+  shiftStretchNights,
   subscribeItinerary,
   updateItem,
 } from "@/lib/data/itinerary";
-import {
-  listBookingFiles,
-  listBookings,
-  subscribeBookings,
-} from "@/lib/data/bookings";
+import { subscribeBookings } from "@/lib/data/bookings";
 import { buildBookingIndex, buildLinkedIndex } from "@/lib/bookingCalendar";
 import {
   buildLegOverviews,
@@ -33,11 +31,16 @@ import {
   type LegOverview,
 } from "@/lib/itineraryOverview";
 import type { OptionForAreas } from "@/lib/data/segments";
-import { todayISO } from "@/lib/format";
-import { listOptionAreas, planFromOptions } from "@/lib/data/placeOptions";
-import { listCategories } from "@/lib/data/expenses";
+import { formatDate, todayISO } from "@/lib/format";
+import { planFromOptions } from "@/lib/data/placeOptions";
+import { listBookingExpenseIds, listCategories } from "@/lib/data/expenses";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { queryKeys, readQuery } from "@/lib/offline/queryCache";
+import { fetchItineraryBundle, type ItineraryBundle } from "@/lib/data/itineraryBundle";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
+import { useUndoToast } from "@/components/ui/UndoToast";
 import type {
   Booking,
   BookingFile,
@@ -49,6 +52,11 @@ import type {
 } from "@/lib/types";
 import { DayCard } from "./DayCard";
 import { LegSection } from "./LegSection";
+import { PlanMyDaySheet } from "./PlanMyDaySheet";
+import { buildIcs } from "@/lib/ics";
+import { splitIntoStretches } from "@/lib/data/segments";
+import { countryName } from "@/lib/data/emergency";
+import { PasteImportSheet } from "@/components/bookings/PasteImportSheet";
 import { TripSummary } from "./TripSummary";
 import { TripMap } from "./TripMap";
 import { LegLocationSheet } from "./LegLocationSheet";
@@ -104,14 +112,24 @@ export function ItineraryScreen() {
   const [segmenting, setSegmenting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [bookingForm, setBookingForm] = useState<{ booking: Booking | null } | null>(null);
-  const [expenseFor, setExpenseFor] = useState<Booking | null>(null);
+  // Bookings waiting to be asked "put it in the budget?" - one after an add,
+  // several after a mail import - and which ones already have their expense.
+  const [expenseQueue, setExpenseQueue] = useState<{ items: Booking[]; i: number } | null>(null);
+  const [expensedIds, setExpensedIds] = useState<Set<string>>(new Set());
+  const expenseFor = expenseQueue ? (expenseQueue.items[expenseQueue.i] ?? null) : null;
   const [dayPickFor, setDayPickFor] = useState<Booking | null>(null);
   const [importingMail, setImportingMail] = useState(false);
+  // Hotels proposing a place for the plan's days, waiting on a confirm.
+  const [hotelSync, setHotelSync] = useState<HotelSyncProposal[] | null>(null);
+  const [syncingHotels, setSyncingHotels] = useState(false);
   // The day that is currently pulling from the options bank.
   const [bankFor, setBankFor] = useState<ItineraryDay | null>(null);
   // The leg whose location is being pinned from the map.
   const [locatingLeg, setLocatingLeg] = useState<LegOverview | null>(null);
+  const [planningDay, setPlanningDay] = useState<ItineraryDay | null>(null);
+  const [pasting, setPasting] = useState(false);
 
+  const { show: showUndo, toast: undoToast } = useUndoToast();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -120,20 +138,14 @@ export function ItineraryScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [nextDays, nextBookings, nextFiles, nextAreas] = await Promise.all([
-      listDays(tripId),
-      listBookings(tripId),
-      listBookingFiles(tripId),
-      // A failure here costs the idea counts and nothing else, so it must not
-      // take the whole plan down with it.
-      listOptionAreas(tripId).catch(() => [] as OptionForAreas[]),
-    ]);
-    const nextItems = await listItems(nextDays.map((d) => d.id));
-    setDays(nextDays);
-    setBookings(nextBookings);
-    setBookingFiles(nextFiles);
-    setOptionAreas(nextAreas);
-    setItems(nextItems);
+    // Never blocks the plan: without it the cards just offer the budget button.
+    void listBookingExpenseIds(tripId).then(setExpensedIds).catch(() => {});
+    const b = await fetchItineraryBundle(tripId);
+    setDays(b.days);
+    setBookings(b.bookings);
+    setBookingFiles(b.files);
+    setOptionAreas(b.areas);
+    setItems(b.items);
   }, []);
 
   useEffect(() => {
@@ -149,6 +161,16 @@ export function ItineraryScreen() {
         return;
       }
       setTrip(activeTrip);
+      // Cache-first (F9): paint the last good plan, then refresh.
+      const cached = await readQuery<ItineraryBundle>(queryKeys.itinerary(activeTrip.id));
+      if (cached && !cancelled) {
+        setDays(cached.data.days);
+        setBookings(cached.data.bookings);
+        setBookingFiles(cached.data.files);
+        setOptionAreas(cached.data.areas);
+        setItems(cached.data.items);
+        setLoading(false);
+      }
       try {
         const [, cats] = await Promise.all([
           refresh(activeTrip.id),
@@ -156,7 +178,7 @@ export function ItineraryScreen() {
         ]);
         if (!cancelled) setCategories(cats);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -168,6 +190,7 @@ export function ItineraryScreen() {
           void refresh(activeTrip.id).catch(() => {});
         }, 250);
       };
+      if (cancelled) return; // closed during the awaits: no orphan channel
       unsubItinerary = subscribeItinerary(onRemoteChange);
       unsubBookings = subscribeBookings(onRemoteChange);
     })();
@@ -179,6 +202,18 @@ export function ItineraryScreen() {
       unsubBookings();
     };
   }, [refresh, showToast]);
+
+  // Asks about every booking that has a price and is not in the budget yet.
+  // Covers all the ways a booking arrives - the form, travel search, mail and
+  // paste - so none of them quietly skips the budget.
+  function askExpense(saved: Booking[]) {
+    const items = saved.filter((b) => b.cost != null && b.cost > 0 && !expensedIds.has(b.id));
+    if (items.length > 0) setExpenseQueue({ items, i: 0 });
+  }
+
+  function nextExpense() {
+    setExpenseQueue((q) => (q && q.i + 1 < q.items.length ? { ...q, i: q.i + 1 } : null));
+  }
 
   // Runs a mutation, then refetches; errors surface as a Hebrew toast.
   const run = useCallback(
@@ -279,6 +314,24 @@ export function ItineraryScreen() {
     });
   }, [legs, openLeg]);
 
+  // 1.5: the leg and day that hold today, when the trip is under way.
+  const todayLeg = legs.find((leg) => leg.stretch.days.some((d) => d.date === today));
+  const todayDay = todayLeg?.stretch.days.find((d) => d.date === today);
+  const todayLegKey = todayLeg?.key ?? null;
+  const todayDayId = todayDay?.id ?? null;
+  const todayTarget = todayLegKey && todayDayId;
+
+  const jumpToToday = useCallback(() => {
+    if (!todayLegKey || !todayDayId) return;
+    openLeg(todayLegKey);
+    requestAnimationFrame(() => {
+      (dayRefs.current[todayDayId] ?? legRefs.current[todayLegKey])?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }, [todayLegKey, todayDayId, openLeg]);
+
   /** Opens the options bank already cut to this leg. The cut travels in the
    *  URL so the bank can be reached the same way from anywhere, and so going
    *  back does not lose it. Country code, never the Hebrew name: the bank
@@ -297,6 +350,94 @@ export function ItineraryScreen() {
     },
     [router]
   );
+
+  /**
+   * Looks the hotels up and asks to relabel the days they disagree with.
+   * `announce` is for the sync button: there an answer of "nothing to change"
+   * is still an answer. After a save it is silent - most saves change nothing.
+   */
+  const syncHotels = useCallback(
+    async (hotels: Booking[], announce: boolean) => {
+      const active = hotels.filter(
+        (b) => b.type === "hotel" && b.status !== "cancelled" && b.start_date && b.end_date
+      );
+      if (active.length === 0) return;
+      if (!(await canLocateHotels())) {
+        if (announce) showToast(strings.bookings.hotelSyncUnavailable);
+        return;
+      }
+      const entries: Parameters<typeof proposeHotelSyncs>[0] = [];
+      let missed = 0;
+      // One at a time: a handful of hotels, and the geocoder rate-limits bursts.
+      for (const booking of active) {
+        const place = await locateHotel(booking);
+        if (place) entries.push({ booking, place });
+        else missed++;
+      }
+      const proposals = proposeHotelSyncs(entries, days);
+      if (proposals.length > 0) {
+        setHotelSync(proposals);
+      } else if (announce) {
+        showToast(
+          missed > 0
+            ? strings.bookings.hotelSyncMissed.replace("{n}", String(missed))
+            : strings.bookings.hotelSyncNone
+        );
+      }
+    },
+    [days, showToast]
+  );
+
+  const shiftNights = useCallback(
+    async (leg: LegOverview, delta: 1 | -1) => {
+      if (!trip) return;
+      const place = leg.stretch.locationName ?? leg.stretch.countryCode ?? "";
+      const question = (delta === 1 ? strings.itinerary.nightsAddConfirm : strings.itinerary.nightsRemoveConfirm)
+        .replace("{place}", place)
+        .replace("{date}", formatDate(leg.stretch.to));
+      if (!(await askConfirm(question))) return;
+      try {
+        const r = await shiftStretchNights(trip.id, leg.stretch.to, delta);
+        await refresh(trip.id);
+        showToast(
+          r.bookingsAfter > 0
+            ? strings.itinerary.nightsBookingsWarn.replace("{n}", String(r.bookingsAfter))
+            : strings.itinerary.nightsDone
+        );
+      } catch (e) {
+        const code = e instanceof Error ? e.message : "";
+        showToast(
+          code === "day_not_empty"
+            ? strings.itinerary.nightsDayNotEmpty
+            : code === "unavailable"
+              ? strings.itinerary.nightsUnavailable
+              : strings.common.error
+        );
+      }
+    },
+    [trip, refresh, showToast]
+  );
+
+  /** ICS export (2.7): stays + bookings as one file the phone's calendar imports. */
+  const exportIcs = useCallback(() => {
+    if (!trip) return;
+    const ics = buildIcs({
+      tripName: trip.name,
+      stretches: splitIntoStretches(days),
+      bookings,
+      countryName,
+      typeLabel: (t) => strings.bookings.types[t],
+    });
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ourtrip.ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    showToast(strings.bookingsV2.exportedIcs);
+  }, [trip, days, bookings, showToast]);
 
   const refreshNow = useCallback(() => {
     if (!trip) return;
@@ -362,6 +503,19 @@ export function ItineraryScreen() {
         onItemClick={(item) => setItemForm({ dayId: day.id, item })}
         onMoveItem={setMovingItem}
         onDeleteItem={async (item) => {
+          if (isEnabled("itineraryV2")) {
+            // 1.5: delete at once, undo for 5s, then the real delete.
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            showUndo(
+              strings.itinerary.itemDeletedUndo,
+              () => setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item])),
+              () => void deleteItem(item.id).catch(() => {
+                setItems((prev) => [...prev, item]);
+                showToast(strings.common.error);
+              })
+            );
+            return;
+          }
           if (!(await askConfirm(strings.itinerary.deleteItemConfirm))) return;
           void run(() => deleteItem(item.id), strings.itinerary.itemDeleted);
         }}
@@ -373,7 +527,7 @@ export function ItineraryScreen() {
         onReorder={(orderedIds) => handleReorder(day.id, orderedIds)}
       />
     ),
-    [itemsOf, bookings, bookingsByDate, run, handleReorder]
+    [itemsOf, bookings, bookingsByDate, run, handleReorder, showUndo, showToast]
   );
 
   const editingBookingFiles = useMemo(() => {
@@ -414,11 +568,7 @@ export function ItineraryScreen() {
   );
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8 sm:max-w-2xl">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="list" />;
   }
 
   return (
@@ -439,7 +589,7 @@ export function ItineraryScreen() {
             aria-pressed={searching}
             className={`grid h-11 w-11 place-items-center rounded-[11px] transition-colors ${
               searching
-                ? "bg-sea text-white"
+                ? "bg-sea text-on-sea"
                 : "bg-paper-deep text-ink-soft active:bg-line"
             }`}
           >
@@ -470,7 +620,7 @@ export function ItineraryScreen() {
             type="button"
             onClick={() => setDayForm({ day: null })}
             aria-label={strings.itinerary.addDay}
-            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-white active:bg-sea-deep"
+            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-on-sea active:bg-sea-deep"
           >
             <PlusIcon className="h-[17px] w-[17px]" />
           </button>
@@ -491,9 +641,7 @@ export function ItineraryScreen() {
               setSearching(false);
               setView("bookings");
               showToast(strings.travelSearch.saved);
-              if (saved.cost != null && saved.cost > 0) {
-                setExpenseFor(saved);
-              }
+              askExpense([saved]);
             }}
             onError={(message) => showToast(message)}
           />
@@ -547,19 +695,42 @@ export function ItineraryScreen() {
                 onImportMail={() => setImportingMail(true)}
                 onEdit={(booking) => setBookingForm({ booking })}
                 onAddToDay={setDayPickFor}
+                onSyncHotels={() => {
+                  setSyncingHotels(true);
+                  void syncHotels(bookings, true)
+                    .catch(() => showToast(strings.common.error))
+                    .finally(() => setSyncingHotels(false));
+                }}
+                syncingHotels={syncingHotels}
                 onError={() => showToast(strings.common.error)}
+                onPaste={isEnabled("bookingsV2") ? () => setPasting(true) : undefined}
+                onExportIcs={isEnabled("icsExport") ? exportIcs : undefined}
+                expensedIds={expensedIds}
+                onAddExpense={(b) => askExpense([b])}
               />
             ) : (
               <>
                 {days.length === 0 && (
-                  <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+                  <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
                     {strings.itinerary.emptyDays}
                   </p>
                 )}
 
                 <div className="space-y-3">
                   {legs.length > 0 && (
-                    <TripSummary legs={legs} onJump={jumpToCurrentLeg} />
+                    <TripSummary
+                      legs={legs}
+                      onJump={jumpToCurrentLeg}
+                      onOpenLeg={(key) => {
+                        openLeg(key);
+                        requestAnimationFrame(() => {
+                          legRefs.current[key]?.scrollIntoView({
+                            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+                            block: "start",
+                          });
+                        });
+                      }}
+                    />
                   )}
 
                   {legs.map((leg) => (
@@ -584,17 +755,34 @@ export function ItineraryScreen() {
                         }}
                         todayISO={today}
                         renderDay={renderDayCard}
+                        onPlanDay={isEnabled("planMyDay") ? setPlanningDay : undefined}
+                        onShiftNights={
+                          isEnabled("nightsStepper")
+                            ? (delta) => void shiftNights(leg, delta)
+                            : undefined
+                        }
                       />
                     </div>
                   ))}
+
+                  {todayTarget && isEnabled("itineraryV2") && (
+                    <button
+                      type="button"
+                      onClick={jumpToToday}
+                      className="fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] start-4 z-30 flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-bold text-sea shadow-[var(--e2)] lg:bottom-6"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      {strings.itinerary.jumpToday}
+                    </button>
+                  )}
 
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => setDayForm({ day: null })}
-                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
+                      className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
                       style={{
-                        boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)",
+                        boxShadow: "0 10px 22px -14px rgba(78,107,69,.7)",
                       }}
                     >
                       {strings.itinerary.addDay}
@@ -602,7 +790,7 @@ export function ItineraryScreen() {
                     <button
                       type="button"
                       onClick={() => setImporting(true)}
-                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft active:bg-paper-deep"
                     >
                       <FileIcon className="h-[17px] w-[17px]" />
                       {strings.itinerary.importFromFile}
@@ -682,11 +870,14 @@ export function ItineraryScreen() {
           files={editingBookingFiles}
           onClose={() => setBookingForm(null)}
           onSaved={(saved, isNew) => {
+            // An edit that sets or changes the price asks too: a booking
+            // imported without one gets it here, later.
+            const priceChanged = isNew || saved.cost !== bookingForm?.booking?.cost;
             setBookingForm(null);
             refreshNow();
-            if (isNew && saved.cost != null && saved.cost > 0) {
-              setExpenseFor(saved);
-            }
+            if (priceChanged) askExpense([saved]);
+            // The booking leads, the plan follows - see hotelItinerarySync.
+            if (saved.type === "hotel") void syncHotels([saved], false).catch(() => {});
           }}
           onError={(message) =>
             showToast(
@@ -711,13 +902,30 @@ export function ItineraryScreen() {
         onError={() => showToast(strings.common.error)}
       />
 
+      {/* Waits behind the expense prompt: one question at a time. */}
+      <HotelSyncSheet
+        proposals={expenseFor === null ? hotelSync : null}
+        onClose={() => setHotelSync(null)}
+        onDone={() => {
+          setHotelSync(null);
+          refreshNow();
+          showToast(strings.bookings.hotelSyncDone);
+        }}
+        onError={() => showToast(strings.common.error)}
+      />
+
       <ExpensePromptSheet
         open={expenseFor !== null}
         booking={expenseFor}
         categories={categories}
-        onClose={() => setExpenseFor(null)}
-        onResult={(message) => {
-          setExpenseFor(null);
+        position={expenseQueue ? { n: expenseQueue.i + 1, total: expenseQueue.items.length } : undefined}
+        onClose={nextExpense}
+        onResult={(message, created) => {
+          if (created && expenseFor) {
+            const id = expenseFor.id;
+            setExpensedIds((prev) => new Set(prev).add(id));
+          }
+          nextExpense();
           showToast(message);
         }}
       />
@@ -772,10 +980,11 @@ export function ItineraryScreen() {
           tripId={trip.id}
           existing={bookings}
           onClose={() => setImportingMail(false)}
-          onDone={(message) => {
+          onDone={(message, saved) => {
             setImportingMail(false);
             refreshNow();
             showToast(message);
+            askExpense(saved);
           }}
         />
       )}
@@ -792,7 +1001,34 @@ export function ItineraryScreen() {
         />
       )}
 
+      {trip && (
+        <PasteImportSheet
+          open={pasting}
+          tripId={trip.id}
+          onClose={() => setPasting(false)}
+          onDone={(message, saved) => {
+            setPasting(false);
+            refreshNow();
+            showToast(message);
+            askExpense([saved]);
+          }}
+        />
+      )}
+      {trip && (
+        <PlanMyDaySheet
+          tripId={trip.id}
+          day={planningDay}
+          startSortOrder={planningDay ? items.filter((i) => i.day_id === planningDay.id).length : 0}
+          onClose={() => setPlanningDay(null)}
+          onDone={(message) => {
+            setPlanningDay(null);
+            refreshNow();
+            showToast(message);
+          }}
+        />
+      )}
       <Toast message={toast} />
+      {undoToast}
     </div>
   );
 }

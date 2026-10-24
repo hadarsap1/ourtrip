@@ -2,13 +2,21 @@ import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
+import { RoleGate } from "@/components/RoleGate";
 import { BottomNav } from "@/components/BottomNav";
 import { ConfirmHost } from "@/components/ConfirmSheet";
 import { SideRail } from "@/components/SideRail";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { SimDateBanner } from "@/components/SimDateBanner";
+import { PreviewBanner } from "@/components/PreviewBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
+import { ThemeSync } from "@/components/ThemeSync";
+import { CaptureFab } from "@/components/capture/CaptureFab";
+import { sovevFont } from "@/components/sovev/font";
 import { strings } from "@/lib/strings";
+import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
+import { FLAG_BOOT_SCRIPT } from "@/lib/flags";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
@@ -32,7 +40,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e7c6b",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -44,19 +55,39 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-paper text-ink">
+    // data-theme is set by the head script before hydration, hence
+    // suppressHydrationWarning on <html> only.
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${sovevFont.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Runs before first paint: picks light/dark from the saved choice or the
+            OS, so a dark-mode phone never flashes cream on open (F7). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* ?test=flagA,flagB - per-device feature testing (lib/flags.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: FLAG_BOOT_SCRIPT }} />
+      </head>
+      {/* The body never scrolls: it is exactly one screen tall and <main> is
+          the only scroller. With the document scrolling and the bottom bar
+          position:fixed, iOS WebKit could leave the visual viewport offset
+          after its toolbars or keyboard moved, so the bar floated up and a
+          screen of blank paper opened below it. */}
+      <body className="flex h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)] text-ink">
+        <PreviewBanner />
+        <SimDateBanner />
         <OfflineBanner />
         {/* ps at lg leaves room for the fixed rail, which sits at the
-            inline-start (right) edge. pb-20 clears the bottom bar below lg. */}
-        <main className="flex-1 pb-20 pt-[env(safe-area-inset-top)] lg:pb-0 lg:ps-[216px]">
-          <AuthGate>{children}</AuthGate>
+            inline-start (right) edge. */}
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0 lg:ps-[216px]">
+          <AuthGate>
+            <RoleGate>{children}</RoleGate>
+          </AuthGate>
         </main>
         <BottomNav />
         <SideRail />
         <ConfirmHost />
         <OfflineSync />
         <RegisterSW />
+        <ThemeSync />
+        <CaptureFab />
       </body>
     </html>
   );

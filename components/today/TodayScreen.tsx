@@ -3,23 +3,31 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CountdownHome } from "./CountdownHome";
+import { PendingApprovalsCard } from "./PendingApprovalsCard";
+import { InTripNow } from "./InTripNow";
+import { StepsCard } from "./StepsCard";
+import { IosInstallHint } from "./IosInstallHint";
+import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
   BedIcon,
   CameraIcon,
   CoinIcon,
-  DocumentIcon,
-  JournalIcon,
   MapIcon,
   MessagesIcon,
+  MicIcon,
   PhotosIcon,
   PhrasebookIcon,
   PinIcon,
   PlusIcon,
   RouteIcon,
   SparkleIcon,
+  StarIcon,
+  StoryIcon,
   WeatherIcon,
 } from "@/components/icons";
+import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
+import { countryName } from "@/lib/data/emergency";
 import { loadToday, type TodayData } from "@/lib/data/today";
 import {
   loadTodayDashboard,
@@ -33,10 +41,14 @@ import {
 } from "@/lib/data/weather";
 import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { daysUntil } from "@/lib/data/readiness";
-import { getActiveTrip } from "@/lib/data/trip";
+import { getActiveTrip, getNowCountry } from "@/lib/data/trip";
+import { GuestFamilyClock, KidIsraelClock } from "./FamilyClock";
 import { strings } from "@/lib/strings";
+import { kidTagText } from "@/lib/kidTag";
+import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
+import { useUnreadWall } from "@/lib/useUnreadWall";
 import type { Booking, ItineraryItem, Trip } from "@/lib/types";
 
 /** Tonight's bed: the lodging booking covering today, if there is one. */
@@ -70,11 +82,11 @@ function Tile({
       className={`rounded-[18px] border px-3.5 py-3 ${
         tone === "sun"
           ? "border-sun/20 bg-sun-tint"
-          : "border-line bg-white"
+          : "border-line bg-surface"
       }`}
     >
       <p
-        className={`text-[10px] font-bold uppercase tracking-[0.09em] ${
+        className={`text-[12px] font-bold uppercase tracking-[0.09em] ${
           tone === "sun" ? "text-sun-deep" : "text-ink-soft"
         }`}
       >
@@ -112,10 +124,10 @@ function AgendaCard({
 }) {
   const currentId = currentItemId(items, nowMinutes);
   return (
-    <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+    <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
       <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
         <h2 className="text-xs font-bold text-ink">{strings.today.agenda}</h2>
-        <span className="text-[10.5px] text-ink-soft">
+        <span className="text-[12px] text-ink-soft">
           {strings.today.agendaCount.replace("{n}", String(items.length))}
         </span>
       </header>
@@ -170,7 +182,7 @@ function AgendaCard({
                     {item.title}
                   </span>
                   {item.location_name && (
-                    <span className="block truncate text-[10.5px] text-ink-soft">
+                    <span className="block truncate text-[12px] text-ink-soft">
                       {item.location_name}
                     </span>
                   )}
@@ -203,8 +215,13 @@ export function TodayScreen() {
   // and rendering the dashboard before this settles would flash the empty card
   // for a moment before the countdown replaced it.
   const [tripChecked, setTripChecked] = useState(false);
+  // the kids' wall tile shows new messages (0 and no work for owners)
+  const unreadWall = useUnreadWall();
   // Re-derives "next up" and the current agenda row as the day moves on.
   const [now, setNow] = useState(() => minutesNow());
+  const [clock, setClock] = useState(() => new Date());
+  // guests: the country the family is in today (00069), for their clock
+  const [nowCountry, setNowCountry] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,49 +265,109 @@ export function TodayScreen() {
   }, []);
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(minutesNow()), 60_000);
+    const tick = setInterval(() => {
+      const d = new Date();
+      setNow(minutesNow(d));
+      setClock(d);
+    }, 60_000);
     return () => clearInterval(tick);
   }, []);
 
-  const { member } = useMember();
+  const { member, memberLoading } = useMember();
+  const isGuest = member?.role === "guest";
+  const tripId = trip?.id ?? null;
+
+  // The country changes at most once a day; a quarter-hour re-ask catches the
+  // border day without a request per minute.
+  useEffect(() => {
+    if (!isGuest || !tripId) return;
+    let alive = true;
+    const ask = () =>
+      void getNowCountry(tripId).then((code) => {
+        if (alive) setNowCountry(code);
+      });
+    ask();
+    const every = setInterval(ask, 15 * 60_000);
+    return () => {
+      alive = false;
+      clearInterval(every);
+    };
+  }, [isGuest, tripId]);
+
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
 
   // ---------- guest portal home ----------
   if (member?.role === "guest") {
     const tiles = [
+      { href: "/stories", Icon: StoryIcon, label: strings.guestHome.tileStories },
+      { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
       { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
-      { href: "/journal", Icon: JournalIcon, label: strings.guestHome.tileJournal },
       { href: "/map", Icon: MapIcon, label: strings.guestHome.tileMap },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall },
     ];
+    // The guest portal wears the "סו-בב עולם!" brand: the illustration from
+    // the farewell invitation, parchment and ink (docs/DESIGN-sharing.md).
     return (
-      <div className="mx-auto max-w-lg space-y-4 px-4 pt-8 pb-8 sm:max-w-2xl">
-        <h1 className="text-2xl font-bold">{strings.guestHome.welcome}</h1>
-        <p className="text-sm text-ink-soft">{strings.guestHome.subtitle}</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {tiles.map((tile) => (
-            <Link
-              key={tile.href}
-              href={tile.href}
-              className="flex flex-col items-center gap-2.5 rounded-[18px] border border-line bg-white p-6 active:bg-sea-tint/50"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-sea-tint text-sea-deep">
-                <tile.Icon className="h-6 w-6" />
-              </span>
-              <span className="font-semibold text-ink">{tile.label}</span>
-            </Link>
-          ))}
+      <SovevScreen>
+        <div className="mx-auto max-w-lg space-y-5 px-4 pt-6 pb-8 sm:max-w-2xl">
+          <SovevBrand size="lg" subtitle={strings.sovev.tagline} />
+          {/* eslint-disable-next-line @next/next/no-img-element -- static brand illustration */}
+          <img
+            src="/sovev/scene.jpg"
+            alt=""
+            className="aspect-[5/3] w-full rounded-[20px] border-2 border-sv-ink object-cover"
+          />
+          <div>
+            <h1 className="sovev-display text-2xl font-extrabold text-sv-ink">{strings.guestHome.welcome}</h1>
+            <p className="text-sm text-sv-ink-soft">{strings.guestHome.subtitle}</p>
+          </div>
+          <GuestFamilyClock now={clock} countryCode={nowCountry} />
+          <div className="grid grid-cols-2 gap-2.5">
+            {tiles.map((tile) => (
+              <Link
+                key={tile.href}
+                href={tile.href}
+                className="flex flex-col items-center gap-2.5 rounded-[18px] border border-sv-line bg-sv-card p-5 active:bg-sv-sage-soft"
+              >
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
+                  <tile.Icon className="h-6 w-6" />
+                </span>
+                <span className="text-center font-bold text-ink">{tile.label}</span>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/settings"
+            className="flex min-h-[44px] items-center justify-between gap-2 rounded-[18px] border border-sv-line bg-sv-card px-4 py-2.5 text-sm"
+          >
+            {(member.kid_names ?? []).length > 0 ? (
+              <>
+                <span className="min-w-0 truncate font-semibold text-sv-ink">{kidTagText(member.kid_names)}</span>
+                <span className="shrink-0 font-semibold text-sv-sage">{strings.kidTag.homeEdit}</span>
+              </>
+            ) : (
+              <span className="font-semibold text-sv-sage">{strings.kidTag.homeAdd}</span>
+            )}
+          </Link>
         </div>
-      </div>
+      </SovevScreen>
     );
   }
 
   // ---------- kid home variant (SPEC 2.1) ----------
   if (member?.role === "kid") {
-    const kidTiles = [
+    // The wall leads: friends write there, and the kids missed it behind the
+    // bottom tab alone (Hadar 20/10/2026).
+    const kidTiles: { href: string; Icon: typeof RouteIcon; label: string; badge?: number }[] = [
+      { href: "/messages", Icon: MessagesIcon, label: strings.kidHome.tileWall, badge: unreadWall },
+      { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
+      { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
+      { href: "/stories", Icon: StoryIcon, label: strings.kidHome.tileStories },
       { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos },
-      { href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket },
+      ...(FLAG_DEFAULTS.pocketMoney
+        ? [{ href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket }]
+        : []),
       {
         href: "/phrasebook",
         Icon: PhrasebookIcon,
@@ -301,11 +378,9 @@ export function TodayScreen() {
         Icon: SparkleIcon,
         label: strings.kidHome.tileFacts,
       },
-      {
-        href: "/documents",
-        Icon: DocumentIcon,
-        label: strings.kidHome.tileDocuments,
-      },
+      ...(isEnabled("statsStamps")
+        ? [{ href: "/stats", Icon: StarIcon, label: strings.kidHome.tileStamps }]
+        : []),
     ];
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8 sm:max-w-2xl">
@@ -316,13 +391,13 @@ export function TodayScreen() {
           <Link
             href="/emergency"
             aria-label={strings.emergency.title}
-            className="shrink-0 rounded-2xl bg-alert px-3 py-2 text-sm font-bold text-white"
+            className="shrink-0 rounded-2xl bg-alert px-3 py-2 text-sm font-bold text-on-alert"
           >
             {strings.emergency.sos}
           </Link>
         </header>
 
-        <section className="rounded-[20px] bg-sea p-4 text-white">
+        <section className="rounded-[20px] bg-sea p-4 text-on-sea">
           <p className="text-sm font-medium opacity-80">
             {strings.kidHome.whereToday}
           </p>
@@ -341,10 +416,11 @@ export function TodayScreen() {
               </span>
             </p>
           )}
+          <KidIsraelClock now={clock} />
         </section>
 
         {activeItems.length > 0 && (
-          <section className="rounded-[20px] border border-line bg-white">
+          <section className="rounded-[20px] border border-line bg-surface">
             <ul className="divide-y divide-line">
               {activeItems.map((item) => (
                 <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
@@ -389,10 +465,15 @@ export function TodayScreen() {
             <Link
               key={tile.href}
               href={tile.href}
-              className="flex flex-col items-center gap-2 rounded-[18px] border border-line bg-white p-4 active:bg-sea-tint/50"
+              className="flex flex-col items-center gap-2 rounded-[18px] border border-line bg-surface p-4 active:bg-sea-tint/50"
             >
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-sea-tint text-sea-deep">
+              <span className="relative grid h-10 w-10 place-items-center rounded-xl bg-sea-tint text-sea-deep">
                 <tile.Icon className="h-[22px] w-[22px]" />
+                {tile.badge ? (
+                  <span className="absolute -end-2 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
+                    {tile.badge > 9 ? "9+" : tile.badge}
+                  </span>
+                ) : null}
               </span>
               <span className="text-sm font-semibold text-ink">{tile.label}</span>
             </Link>
@@ -408,15 +489,12 @@ export function TodayScreen() {
      shown for weeks. Between now and then the useful home screen is what still
      has to happen before the flight. Switches over on its own on the day the
      trip starts; no setting to forget. */
-  if (!tripChecked) {
+  // Below is the parents' home. While the member is still being looked up it
+  // is not yet known to be a parent's - a guest's first open after approval
+  // briefly had no member and showed the parents' budget card (QA 17/10).
+  if (!tripChecked || (!member && memberLoading)) {
     return (
-      <div
-        className="mx-auto max-w-lg px-4 pt-16 text-center"
-        role="status"
-        aria-live="polite"
-      >
-        <p className="text-ink-soft">{strings.common.loading}</p>
-      </div>
+      <ScreenSkeleton variant="today" />
     );
   }
 
@@ -428,6 +506,7 @@ export function TodayScreen() {
   /* ---------- owner: dashboard (direction 1b) ---------- */
 
   const position = dashboard?.position ?? null;
+  const v2 = isEnabled("todayV2");
   const upcoming = nextUp(activeItems, now);
   const lodging = data ? tonightsLodging(data.bookings) : null;
   const remaining = dashboard ? dashboard.budget - dashboard.spentTotal : null;
@@ -449,22 +528,22 @@ export function TodayScreen() {
       {/* Place bar. Full-bleed and flat: at this height the postcard's dashed
           arc was noise, and a solid band reads as chrome rather than as content
           competing with the cards below. */}
-      <header className="bg-sea-deep px-6 pb-3.5 pt-4 text-white">
+      <header className="bg-sea-deep px-6 pb-3.5 pt-4 text-on-sea">
         <div className="mx-auto flex max-w-lg items-start justify-between gap-3 sm:max-w-2xl lg:max-w-none">
           <div className="min-w-0">
             <h1 className="flex items-center gap-1.5 text-[19px] font-extrabold leading-tight">
-              <PinIcon className="h-[17px] w-[17px] shrink-0 text-white/80" />
+              <PinIcon className="h-[17px] w-[17px] shrink-0 text-on-sea/80" />
               <span className="truncate">
                 {data?.day?.location_name ?? strings.today.noPlace}
-                {data?.day?.country_code ? `, ${data.day.country_code}` : ""}
+                {data?.day?.country_code ? `, ${countryName(data.day.country_code)}` : ""}
               </span>
             </h1>
-            <p className="mt-1 text-[11.5px] text-white/70">{dayLine}</p>
+            <p className="mt-1 text-[12px] text-on-sea/70">{dayLine}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <Link
               href="/budget"
-              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-white/28 bg-white/15 px-3 py-1.5 text-[11px] font-bold text-white active:bg-white/25"
+              className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-bold text-on-sea active:bg-on-sea/20"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               {strings.today.addExpenseShort}
@@ -472,7 +551,7 @@ export function TodayScreen() {
             <Link
               href="/emergency"
               aria-label={strings.emergency.title}
-              className="min-h-[44px] rounded-[10px] border border-white/28 bg-white/15 px-3 py-1.5 text-[11px] font-extrabold tracking-[0.06em] text-white active:bg-white/25"
+              className="min-h-[44px] rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-extrabold tracking-[0.06em] text-on-sea active:bg-on-sea/20"
             >
               {strings.emergency.sos}
             </Link>
@@ -481,6 +560,16 @@ export function TodayScreen() {
       </header>
 
       <div className="mx-auto max-w-lg px-4 pt-3 sm:max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_282px_282px] lg:items-start lg:gap-4 lg:px-9 lg:pt-6">
+        {v2 && (
+          <div className="mb-2.5 lg:col-span-3">
+            <IosInstallHint />
+          </div>
+        )}
+        {trip && (
+          <div className="mb-2.5 empty:hidden lg:col-span-3">
+            <PendingApprovalsCard tripId={trip.id} />
+          </div>
+        )}
         {result?.fromCache && (
           <p className="mb-2.5 rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun-deep lg:col-span-3">
             {strings.offline.fromCache}
@@ -489,9 +578,11 @@ export function TodayScreen() {
         )}
 
         {loading ? (
-          <p className="pt-4 text-center text-ink-soft lg:col-span-3">
-            {strings.common.loading}
-          </p>
+          <div className="space-y-3 pt-4 lg:col-span-3" role="status" aria-busy="true" aria-label={strings.common.loading}>
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
         ) : !data || !data.day ? (
           <section className="ot-card p-8 text-center lg:col-span-3">
             <RouteIcon className="mx-auto mb-3 h-9 w-9 text-line" />
@@ -515,14 +606,19 @@ export function TodayScreen() {
                   </p>
                 )}
 
-              {upcoming && (
+              {v2 ? (
+                <>
+                  <InTripNow items={activeItems} day={data.day} now={now} clock={clock} />
+                  {trip && <StepsCard tripId={trip.id} />}
+                </>
+              ) : upcoming && (
                 <section
-                  className="rounded-[18px] border border-line bg-white px-3.5 py-3"
+                  className="rounded-[18px] border border-line bg-surface px-3.5 py-3"
                   style={{ boxShadow: "0 8px 20px -16px rgba(34,49,46,.4)" }}
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="ot-kicker">{strings.today.nextUp}</p>
-                    <span className="text-[10.5px] font-medium text-ink-soft">
+                    <span className="text-[12px] font-medium text-ink-soft">
                       {countdownLabel(upcoming.minutesUntil)}
                     </span>
                   </div>
@@ -540,7 +636,7 @@ export function TodayScreen() {
                     </span>
                   </p>
                   {upcoming.item.location_name && (
-                    <p className="mt-1 truncate text-[11px] text-ink-soft">
+                    <p className="mt-1 truncate text-[12px] text-ink-soft">
                       {upcoming.item.location_name}
                     </p>
                   )}
@@ -557,7 +653,7 @@ export function TodayScreen() {
                   <p className="flex items-center gap-2">
                     <WeatherIcon
                       code={weather.weatherCode}
-                      className="h-[22px] w-[22px] shrink-0 text-sun"
+                      className="h-[22px] w-[22px] shrink-0 text-sun-deep"
                     />
                     <span
                       className="text-[19px] font-extrabold leading-none text-ink"
@@ -566,7 +662,7 @@ export function TodayScreen() {
                       {weather.tempMin}-{weather.tempMax}°
                     </span>
                   </p>
-                  <p className="mt-1 truncate text-[11px] text-ink-soft">
+                  <p className="mt-1 truncate text-[12px] text-ink-soft">
                     {describeWeather(weather.weatherCode).label}
                     {weather.precipitationChance > 0 && (
                       <span dir="ltr"> · {weather.precipitationChance}%</span>
@@ -586,7 +682,7 @@ export function TodayScreen() {
                     </p>
                     {lodging.confirmation_code && (
                       <p
-                        className="mt-1 truncate text-[11px] font-semibold text-ink-soft"
+                        className="mt-1 truncate text-[12px] font-semibold text-ink-soft"
                         dir="ltr"
                       >
                         {lodging.confirmation_code}
@@ -646,7 +742,7 @@ export function TodayScreen() {
                     </h2>
                     <Link
                       href="/photos"
-                      className="text-[11px] font-bold text-sea"
+                      className="text-[12px] font-bold text-sea"
                     >
                       {strings.today.seeAll} ←
                     </Link>
@@ -691,7 +787,7 @@ export function TodayScreen() {
 
               {/* today's bookings other than the bed, which has its own tile */}
               {data.bookings.filter((b) => b !== lodging).length > 0 && (
-                <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+                <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
                   <header className="bg-paper-deep px-3.5 py-2.5">
                     <h2 className="text-xs font-bold text-ink">
                       {strings.today.bookingsToday}
@@ -709,7 +805,7 @@ export function TodayScreen() {
                             {booking.title}
                           </span>
                           <span
-                            className="shrink-0 text-[10.5px] text-ink-soft"
+                            className="shrink-0 text-[12px] text-ink-soft"
                             dir="ltr"
                           >
                             {booking.confirmation_code ??
@@ -746,8 +842,8 @@ export function TodayScreen() {
             copy of a link one tap away, and it cost half the row. */}
         <Link
           href="/budget"
-          className="mt-2.5 block rounded-2xl bg-sea py-3 text-center text-sm font-bold text-white active:bg-sea-deep lg:col-span-3 lg:mt-1"
-          style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
+          className="mt-2.5 block rounded-2xl bg-sea py-3 text-center text-sm font-bold text-on-sea active:bg-sea-deep lg:col-span-3 lg:mt-1"
+          style={{ boxShadow: "0 10px 22px -14px rgba(78,107,69,.7)" }}
         >
           {strings.today.quickExpense}
         </Link>

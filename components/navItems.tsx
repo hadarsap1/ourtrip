@@ -12,6 +12,7 @@ import {
   MapIcon,
   MemoryBookIcon,
   MessagesIcon,
+  MicIcon,
   MoreIcon,
   OptionsIcon,
   PersonIcon,
@@ -20,8 +21,11 @@ import {
   PlaneIcon,
   RouteIcon,
   SparkleIcon,
+  StoryIcon,
   VisaIcon,
+  SettingsIcon,
 } from "@/components/icons";
+import { FLAG_DEFAULTS } from "@/lib/flags";
 import { strings } from "@/lib/strings";
 
 export type NavItem = {
@@ -31,23 +35,25 @@ export type NavItem = {
 };
 
 // Kid tablet variant: kid-relevant destinations only (cosmetic - kids are
-// locked out of owner data by RLS regardless). Phrasebook stays reachable from
-// the kid home tile.
+// locked out of owner data by RLS regardless). Phrasebook and the podcast stay
+// reachable from the kid home tiles. Pocket money is behind a flag (off).
 export const kidTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
-  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
-  { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
-  { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
+  { href: "/itinerary", label: strings.kidNav.route, Icon: RouteIcon },
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },
-  { href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon },
+  { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
+  { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
+  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
+  ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon }] : []),
 ];
 
-// Guest portal: only shared content + the family wall.
+// Guest portal ("סו-בב עולם!"): stories and the podcast lead; the map stays
+// one tap away on the guest home. The journal is family-only (DECISIONS #32).
 export const guestTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
+  { href: "/stories", label: strings.guestNav.stories, Icon: StoryIcon },
+  { href: "/podcast", label: strings.guestNav.podcast, Icon: MicIcon },
   { href: "/photos", label: strings.guestNav.photos, Icon: PhotosIcon },
-  { href: "/journal", label: strings.guestNav.journal, Icon: JournalIcon },
-  { href: "/map", label: strings.guestNav.map, Icon: MapIcon },
   { href: "/messages", label: strings.guestNav.messages, Icon: MessagesIcon },
 ];
 
@@ -91,6 +97,8 @@ export const ownerRailGroups: NavGroup[] = [
   {
     label: strings.more.groupMemories,
     items: [
+      { href: "/stories", label: strings.more.menuStories, Icon: StoryIcon },
+      { href: "/podcast", label: strings.more.menuPodcast, Icon: MicIcon },
       { href: "/journal", label: strings.more.menuJournal, Icon: JournalIcon },
       { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
       { href: "/memory-book", label: strings.more.menuMemoryBook, Icon: MemoryBookIcon },
@@ -101,12 +109,13 @@ export const ownerRailGroups: NavGroup[] = [
     label: strings.more.groupFamily,
     items: [
       { href: "/checklists", label: strings.more.menuChecklists, Icon: ChecklistIcon },
-      { href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon },
+      ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon }] : []),
       { href: "/kids", label: strings.more.menuKids, Icon: PersonIcon },
       { href: "/guests", label: strings.more.menuGuests, Icon: MailIcon },
       { href: "/notifications", label: strings.more.menuNotifications, Icon: BellIcon },
       { href: "/ready", label: strings.ready.menu, Icon: PlaneIcon },
       { href: "/visas", label: strings.more.menuVisas, Icon: VisaIcon },
+      { href: "/settings", label: strings.settings.title, Icon: SettingsIcon },
     ],
   },
 ];

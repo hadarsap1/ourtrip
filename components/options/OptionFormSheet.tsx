@@ -11,7 +11,7 @@ import { strings } from "@/lib/strings";
 import type { PlaceOption } from "@/lib/types";
 
 const FIELD =
-  "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-sea";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-sea";
 
 export function OptionFormSheet({
   open,
@@ -153,7 +153,7 @@ export function OptionFormSheet({
 
         <button
           type="submit"
-          className="w-full rounded-2xl bg-sea py-3 font-semibold text-white"
+          className="w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea"
         >
           {s.save}
         </button>

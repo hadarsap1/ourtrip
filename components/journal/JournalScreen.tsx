@@ -1,18 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Toast } from "@/components/Toast";
 import { CameraIcon, PinIcon, TrashIcon } from "@/components/icons";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
-  createJournalEntry,
+  createJournalEntryOrQueue,
   deleteJournalEntry,
   getAutoLocation,
   listJournal,
-  setJournalShared,
   type JournalEntry,
 } from "@/lib/data/journal";
 import { uploadPhoto } from "@/lib/data/photos";
+import { storyFromJournal } from "@/lib/data/stories";
 import { formatDate, todayISO } from "@/lib/format";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
@@ -24,6 +26,7 @@ const MOODS = ["🤩", "😀", "🙂", "😐", "🙁", "😴"];
 
 export function JournalScreen() {
   const { member } = useMember();
+  const router = useRouter();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -84,13 +87,21 @@ export function JournalScreen() {
       // auto-tag: entry_date = today (createJournalEntry), location from
       // today's itinerary day (Sprint 6 acceptance)
       const locationName = await getAutoLocation(trip.id);
-      const entry = await createJournalEntry({
+      const entry = await createJournalEntryOrQueue({
         tripId: trip.id,
         authorId: member.id,
         body,
         mood,
         locationName,
       });
+      if (entry === "queued") {
+        // Text waits in the offline queue; a photo needs a connection, so it
+        // stays attached in the composer for the next try.
+        setBody("");
+        setMood(null);
+        showToast(photo ? strings.journal.queuedNoPhoto : strings.journal.queued);
+        return;
+      }
       if (photo) {
         await uploadPhoto({
           tripId: trip.id,
@@ -120,8 +131,24 @@ export function JournalScreen() {
     );
   }
 
+  // The journal is the family's own (DECISIONS #32): RLS returns guests
+  // nothing here, so point them to the stories instead of an empty page.
+  if (member?.role === "guest") {
+    return (
+      <div className="mx-auto max-w-lg space-y-3 px-4 pt-8 text-center">
+        <p className="text-ink-soft">{strings.journal.familyOnly}</p>
+        <Link
+          href="/stories"
+          className="inline-flex min-h-11 items-center rounded-full bg-sea px-5 font-bold text-on-sea"
+        >
+          {strings.journal.toStories}
+        </Link>
+      </div>
+    );
+  }
+
   const isOwner = member?.role === "owner";
-  const showAuthor = member?.role !== "kid"; // owners + guests see who wrote
+  const showAuthor = member?.role !== "kid"; // owners see who wrote
   const memberName = (id: string) =>
     members.find((m) => m.id === id)?.display_name ?? "";
 
@@ -132,18 +159,18 @@ export function JournalScreen() {
   const writersToday = new Set(
     entries.filter((e) => e.entry_date === today).map((e) => e.author_id)
   ).size;
-  const family = members.filter((m) => m.role !== "guest").length;
+  const family = members.filter((m) => m.role !== "guest" && !m.is_preview).length;
   const initial = (id: string) => (memberName(id) || "•").slice(0, 1);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-5 pb-8 sm:max-w-2xl lg:max-w-4xl">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-5 pb-8 sm:max-w-2xl lg:max-w-4xl">
       {/* The place leads, the way a scrapbook page would - logistics sit quiet
           beneath it. Heebo 800 stands in for the display face. */}
       <header>
         <h1 className="text-[28px] font-extrabold leading-none text-ink">
           {place ?? strings.journal.title}
         </h1>
-        <p className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-ink-soft">
+        <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
           <span dir="ltr">{formatDate(today)}</span>
           {position && (
             <>
@@ -163,7 +190,7 @@ export function JournalScreen() {
       <div className="flex items-baseline justify-between gap-2">
         <p className="ot-kicker">{strings.journal.todayEyebrow}</p>
         {family > 0 && (
-          <span className="text-[11px] text-ink-soft">
+          <span className="text-[12px] text-ink-soft">
             {strings.journal.wroteCount
               .replace("{n}", String(writersToday))
               .replace("{total}", String(family))}
@@ -172,7 +199,7 @@ export function JournalScreen() {
       </div>
 
       {entries.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line bg-white p-8 text-center text-sm text-ink-faint">
+        <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {strings.journal.empty}
         </p>
       ) : (
@@ -180,7 +207,7 @@ export function JournalScreen() {
           {entries.map((entry) => (
             <li
               key={entry.id}
-              className="rounded-[20px] border border-line bg-white px-3.5 py-3.5"
+              className="rounded-[20px] border border-line bg-surface px-3.5 py-3.5"
             >
               <div className="flex items-start gap-2.5">
                 <span
@@ -195,7 +222,7 @@ export function JournalScreen() {
                       {memberName(entry.author_id)}
                     </p>
                   )}
-                  <p className="flex items-center gap-1 text-[10.5px] text-ink-soft">
+                  <p className="flex items-center gap-1 text-[12px] text-ink-soft">
                     <span dir="ltr">{formatDate(entry.entry_date)}</span>
                     {entry.location_name && (
                       <>
@@ -216,35 +243,24 @@ export function JournalScreen() {
                 {entry.body}
               </p>
 
-              <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[11px] font-bold">
-                {isOwner ? (
-                  <label className="flex items-center gap-1.5 text-ink-soft">
-                    <input
-                      type="checkbox"
-                      checked={entry.shared_with_guests}
-                      onChange={(e) => {
-                        const next = e.target.checked;
-                        setEntries((prev) =>
-                          prev.map((x) =>
-                            x.id === entry.id
-                              ? { ...x, shared_with_guests: next }
-                              : x
-                          )
-                        );
-                        void setJournalShared(entry.id, next).catch(() =>
-                          showToast(strings.common.error)
-                        );
-                      }}
-                      className="h-4 w-4 accent-[var(--color-sea)]"
-                    />
-                    {strings.journal.shareToggle}
-                  </label>
-                ) : entry.shared_with_guests ? (
-                  <span className="text-sea">
-                    {strings.journal.sharedWithGuests}
-                  </span>
-                ) : (
-                  <span />
+              <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[12px] font-bold">
+                {member && (isOwner || entry.author_id === member.id) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // a draft story with this entry's words and photos; the
+                      // author (or a parent) finishes it on the stories screen
+                      void storyFromJournal(entry, member.id)
+                        .then(() => {
+                          showToast(strings.stories.fromJournalDone);
+                          router.push("/stories");
+                        })
+                        .catch(() => showToast(strings.common.error));
+                    }}
+                    className="ms-auto shrink-0 rounded-lg px-2 text-[12px] font-bold text-sea"
+                  >
+                    {strings.journal.toStory}
+                  </button>
                 )}
                 {(isOwner || entry.author_id === member?.id) && (
                   <button
@@ -269,8 +285,8 @@ export function JournalScreen() {
 
       {/* Writing is the screen's action, not another card in the stack: the
           composer is pinned to the bottom, within thumb reach, and the author,
-          date and location are captured for you. Guests read only. */}
-      {member?.role !== "guest" && (
+          date and location are captured for you. */}
+      {member && (
         <section className="mt-auto rounded-[20px] bg-sun-tint px-4 py-4 pt-3.5">
           <p className="text-[17.5px] font-extrabold leading-tight text-sun-deep">
             {strings.journal.prompt}
@@ -280,7 +296,7 @@ export function JournalScreen() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={strings.journal.placeholder}
-            className="mt-2.5 w-full rounded-[13px] border border-sun-deep/20 bg-white/70 px-3 py-2.5 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+            className="mt-2.5 w-full rounded-[13px] border border-sun-deep/20 bg-surface/70 px-3 py-2.5 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
           />
           <div className="mt-2 flex items-center justify-between gap-2">
             <div
@@ -296,7 +312,7 @@ export function JournalScreen() {
                   aria-checked={mood === m}
                   onClick={() => setMood(mood === m ? null : m)}
                   className={`grid h-11 w-11 place-items-center rounded-full text-xl leading-none transition-opacity ${
-                    mood === m ? "bg-white/80" : "opacity-50"
+                    mood === m ? "bg-surface/80" : "opacity-50"
                   }`}
                 >
                   {m}
@@ -304,8 +320,8 @@ export function JournalScreen() {
               ))}
             </div>
             <label
-              className={`flex cursor-pointer items-center gap-1.5 rounded-[11px] px-2.5 py-2 text-[11.5px] font-bold ${
-                photo ? "bg-sea-tint text-sea" : "bg-white/70 text-ink-soft"
+              className={`flex cursor-pointer items-center gap-1.5 rounded-[11px] px-2.5 py-2 text-[12px] font-bold ${
+                photo ? "bg-sea-tint text-sea" : "bg-surface/70 text-ink-soft"
               }`}
             >
               <CameraIcon className="h-4 w-4" />
@@ -322,7 +338,7 @@ export function JournalScreen() {
             type="button"
             onClick={() => void handlePublish()}
             disabled={saving || !body.trim()}
-            className="mt-2.5 min-h-[44px] w-full rounded-[13px] bg-sun-deep py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
+            className="mt-2.5 min-h-[44px] w-full rounded-[13px] bg-sun-deep py-2.5 text-[12.5px] font-bold text-paper disabled:opacity-50"
           >
             {strings.journal.publish}
           </button>

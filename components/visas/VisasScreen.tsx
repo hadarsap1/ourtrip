@@ -41,7 +41,7 @@ function fill(template: string, values: Record<string, number | string>): string
 const TRUST_BADGE: Record<Trust, { label: string; className: string } | null> = {
   // The loudest thing on the screen, and the only loud thing. An unverified
   // rule is not a gap in the data, it is a rule you must not act on yet.
-  unverified: { label: s.unverifiedBadge, className: "bg-alert text-white" },
+  unverified: { label: s.unverifiedBadge, className: "bg-alert text-on-alert" },
   stale: { label: s.staleBadge, className: "bg-sun-tint text-sun-deep" },
   ok: null,
 };
@@ -122,15 +122,15 @@ function RequirementCard({
   const status = s.statuses[row.status as VisaStatus];
 
   return (
-    <li className="rounded-[17px] border border-line bg-white p-3.5 shadow-sm">
+    <li className="rounded-[17px] border border-line bg-surface p-3.5 shadow-sm">
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-[11px] font-bold text-ink-soft">
+        <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-[12px] font-bold text-ink-soft">
           {type}
         </span>
         <span className="font-bold text-ink">{row.title_he}</span>
         {trust && (
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[11px] font-extrabold ${trust.className}`}
+            className={`rounded-md px-1.5 py-0.5 text-[12px] font-extrabold ${trust.className}`}
           >
             {trust.label}
           </span>
@@ -179,7 +179,7 @@ function RequirementCard({
           {s.statusLabel}: {status}
         </button>
         {row.verified_at && (
-          <span className="text-[11px] text-ink-faint">
+          <span className="text-[12px] text-ink-faint">
             {fill(s.verifiedOn, { date: formatDate(row.verified_at) })}
           </span>
         )}
@@ -314,7 +314,7 @@ export function VisasScreen() {
       ) : (
         groups.map((group) => (
           <section key={group.countryCode} className="space-y-3">
-            <div className="rounded-[17px] bg-sea px-4 py-3 text-white">
+            <div className="rounded-[17px] bg-sea px-4 py-3 text-on-sea">
               <h2 className="text-lg font-extrabold">{group.countryHe}</h2>
               <StayLine blocks={group.blocks} />
             </div>

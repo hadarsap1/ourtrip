@@ -1523,7 +1523,914 @@ no pins - worth re-checking if a guest-facing map is ever added, because the
 bank is planning content and must not leak through it.
 
 
-## place_options country code on save (migration 00040)
+---
+
+## Hotel bookings relabel the plan (bookings tab "סנכרון מסלול לפי מלונות")
+
+No new table, no new policy, no migration. The proposal is computed in the
+browser from rows the owner already reads (`bookings`, `itinerary_days`); the
+one write is an UPDATE of `location_name`, `country_code`, `lat`, `lng` on
+`itinerary_days`, covered by the pre-existing `itinerary_days_owner_all`
+(00001: `for all using (is_owner_of(trip_id)) with check (is_owner_of(trip_id))`).
+The hotel address goes to Google's geocoder through the Maps script the app
+already loads; nothing else leaves the browser.
+
+| Check | Result |
+|---|---|
+| The write touches only the four place columns, only on the proposed days | ✅ PASS - `setDaysPlace` sends those columns with `.in("id", dayIds)` |
+| A kid or guest cannot perform the write | ✅ PASS - kids (00007) and guests (00008/00009) have SELECT-only policies on `itinerary_days`; no UPDATE policy exists for either role, and the bookings tab that triggers it reads `bookings`, which is owner-only |
+| Nothing changes without the owner confirming | ✅ PASS - every proposal goes through `HotelSyncSheet`; there is no automatic write path |
+
+X Not probed live with a kid or guest session in this change; the UPDATE
+denial rests on the absence of any non-owner UPDATE policy.
+
+## Phase 2 - steps counter (migration 00042, `steps-ingest`) - 04/10/2026
+
+`daily_steps` and `step_tokens` are new, parents only. Tested on a local
+Postgres 16 with a stub of `members` / `current_member_id` / `is_owner_of`
+(`docs/upgrade/migrations/00042_steps.test.sql`): two owners, a kid and a guest
+in trip 1, an owner of trip 2.
+
+| Check | Result |
+|---|---|
+| Both parents read both parents' steps and tokens | ✅ PASS - owner A and owner B each see 2 step rows, 1 token |
+| A parent creates a token only for themself | ✅ PASS - B inserting for A: "new row violates row-level security policy" |
+| Either parent can revoke any token of the trip (lost phone) | ✅ PASS - B's UPDATE of A's token succeeds |
+| Kid: no read, no write | ✅ PASS - 0 rows; inserts into both tables rejected by RLS |
+| Guest: no read | ✅ PASS - 0 rows |
+| Owner of another trip: no cross-trip read or write | ✅ PASS - sees only own row; insert for trip 1's member rejected |
+| anon: nothing | ✅ PASS - "permission denied for table daily_steps" |
+| Garbage rejected | ✅ PASS - non-hex token hash and steps > 200000 fail CHECK constraints |
+| `steps-ingest` (verify_jwt off) accepts only an unrevoked token of an OWNER | ✅ by code: hash lookup, `revoked_at` null, `members.role = 'owner'`, 401 for every miss without saying which; 20 s per-phone throttle; fails closed (503) if the tables are missing; logs outcome codes only |
+
+## Phase 2 - `ai_usage` (migration 00041, `booking-paste`) - 04/10/2026
+
+| Check | Result |
+|---|---|
+| No client can write usage counts | ✅ by policy set - only a SELECT policy exists (owners of the member's trip); writes are service-role only |
+| Unauthenticated call never reaches the model | ✅ PASS live - `booking-paste` without Authorization → 401 `UNAUTHORIZED_NO_AUTH_HEADER` |
+| Missing `ai_usage` cannot bypass the limit | ✅ by code - usage read/write error → 503 before the model call (fixed during review) |
+
+Applied live 06/10/2026 (versions 20261006103933, 20261006104002). Catalog check on the live DB:
+
+| Table | RLS | Policies | anon SELECT |
+|---|---|---|---|
+| `ai_usage` | on | `ai_usage_owner_select` (select only) | none |
+| `daily_steps` | on | `daily_steps_owner_all` | none |
+| `step_tokens` | on | owner select / update / delete, `step_tokens_self_insert` | none |
+
+X Not yet probed live with real kid/guest sessions (the local Postgres test covers it).
+
+## Offline hardening - device copies and the saved login - 04/10/2026
+
+No policy change. What is kept on the device and what it can unlock:
+
+| Check | Result |
+|---|---|
+| Saved document list holds no secrets | ✅ by code - titles, tags, expiry only; `notes` set to null before the write; files stay AES-GCM wrapped |
+| A parent's list never shows on the kids' tablet | ✅ by code - cache key `documents:<trip>:<auth user id>`; the kid login has its own id |
+| Offline "allowed" by AuthGate grants no data | ✅ by design - only a login saved on this phone (with a refresh token) opens the shell offline; every server read still carries the real token through RLS |
+| Saved member row is cosmetic | ✅ by code - `ourtrip-member:<auth user id>`, used for UI mode only; RLS checks the token |
+
+## Sharing - stories, podcast, likes/comments, bridge, open blog (migrations 00043-00046) - 13/10/2026
+
+Environment: **local**, not the live project (the Supabase MCP connection was
+down in this session). `scripts/rls/run.sh` applies all 46 migrations to a
+throwaway Postgres 16 database on top of `scripts/rls/shim.sql` - the same
+roles (`anon`, `authenticated`, `service_role`), `auth.uid()` / `auth.jwt()`
+read from `request.jwt.claims` the way PostgREST sets them, and `storage`
+tables with RLS - then runs the probe files in `scripts/rls/probes/` as each
+role (owner, kid via a device-style `member_id` claim, active guest, revoked
+guest, signed-in stranger, anon). Every probe runs in a transaction that is
+rolled back. Re-run with `scripts/rls/run.sh`.
+
+Policies covering the feature: `posts_owner_all`, `posts_kid_select/insert/update/delete`,
+`posts_guest_select`, `posts_public_select`, `post_photos_select`,
+`post_photos_owner_write`, `post_photos_kid_insert/delete`,
+`post_photos_public_select`, `episodes_owner_all`,
+`episodes_kid_select/insert/update/delete`, `episodes_guest_select`,
+`reactions_owner_all`, `reactions_member_select/insert`, `reactions_self_delete`,
+`comments_owner_all`, `comments_guest_select/insert/delete` (no kid policy on
+comments, by design); triggers `posts_guard`, `episodes_enforce_kid_rules`,
+`episodes_guard`, `messages_bridge_guard`; storage policies `audio_bucket_*`
+(family read/upload, owner update/delete) and `public_stories_owner_*`.
+
+| Probe file | Checks | Result |
+|---|---|---|
+| `43_stories.sql` - kid insert forced to pending/family/unapproved; kid cannot approve, change audience, edit or delete an approved story, set a public copy path, or attach photos to a published story; a kid's story cannot be made public even by a parent; guest sees only approved guests stories past `publish_after`, and only the story photos that are approved AND shared; guest cannot write; revoked guest, stranger and anon see nothing | 23 | ✅ all PASS |
+| `44_podcast.sql` - kid recording forced pending + unshared, frozen after approval; guest hears nothing until approved AND shared; un-approving un-shares and re-approving does not re-share; guest cannot read or upload to the `audio` bucket; revoked guest and anon see nothing | 13 | ✅ all PASS |
+| `45_feedback_bridge.sql` - guest cannot like/comment what they cannot see, comment in someone else's name, or pre-mark a comment as shown to kids; bridge columns are stripped from a guest's own message; kid sees likes (with names) but zero comments and cannot comment; a comment is bridged once; the kid sees the bridged copy with its context and still cannot read `comments` | 17 | ✅ all PASS |
+| `46_public_stories.sql` - anon reads exactly the live public story and only its copied photo paths; no `photos`, `members`, `comments` or `reactions`; anon cannot comment or edit; a scheduled or draft public story stays hidden; guest/kid cannot write the public bucket; unpublishing removes the story and its photo rows from anon at once | 14 | ✅ all PASS |
+
+UI check against the same database (PostgREST 12 in front of it, a local stub
+for auth/storage/`guest-media`, the production build at 390px): owner, kid
+and guest sessions drove approve → publish → WhatsApp prompt, comment → "show
+the kids", kid message → "share with guests", a guest like and comment, and a
+kid story sent for approval. 19/19 assertions passed, including: the kid's
+unapproved story never reaches the guest, the kid sees no comment box and no
+comment text, the guest sees a passed-on message with "שיתף/ה: הדר". The new
+screens met the 44px tap-target and 12px type floors with no horizontal
+scroll, light and dark. Public page: `noindex, nofollow`, Open Graph from the
+public copy only; unknown and malformed slugs render "not available" without
+querying.
+
+Also fixed on the way: `guest-invite` interpolated the guest's display name
+into the invitation email unescaped; it is now HTML-escaped (a name pasted
+from a class list is untrusted text).
+
+X **To do on the live project after applying 00043-00046:** re-run the
+anonymous REST check (anon key against `posts`, `post_photos`, `episodes`,
+`comments`, `reactions`) and one guest-session check of `guest-media`. The
+local shim reproduces the policy semantics, not Supabase's storage server or
+Edge runtime.
+
+### Addendum - parents edit episodes (migration 00047) - 13/10/2026
+
+Same local harness. `47_podcast_editing.sql`: a kid cannot swap the audio of
+even their own pending take (episodes_guard reverts `file_path`); a parent
+replaces the audio and the episode keeps `approved` + `shared_with_guests`; a
+guest cannot touch it; the bucket accepts `audio/wav`. 4/4 PASS (71 probes in
+total across 00043-00047). Browser check against PostgREST: decode, cut, undo,
+keep, join another episode, rename, save (new `.wav`, duration 5 s, approval
+and sharing kept, joined episode deleted after confirmation), and no edit
+button for a kid - 8/8 PASS.
+
+### Live rollout - 00043-00047 on the real project - 14/10/2026
+
+Applied in order through the Supabase migration tool (`sharing_stories`,
+`podcast`, `reactions_comments_bridge`, `public_stories`, `podcast_editing`).
+Buckets after apply: `audio` private, 50 MB, audio types incl. `audio/wav`;
+`public-stories` public, 5 MB, jpeg/webp. Edge Functions: `guest-media` v1 and
+`guest-invite` v9, both `verify_jwt = true`.
+
+Advisors: no errors. New warnings only for `post_trip_id` and
+`is_own_open_post` being executable by `anon` / `authenticated`. Accepted: both
+are used inside policies that run as the caller (`post_photos_owner_write` is
+`for all`, so Postgres evaluates it for anon selects too and revoking execute
+breaks anon reads); they return a trip id / a boolean about a post the caller
+names, nothing else.
+
+| Check (live) | How | Result |
+|---|---|---|
+| Owner / kid / guest / revoked guest / outsider / anon on stories, post photos, episodes, reactions, comments, bridge columns, public blog | `scripts/rls/live-readonly-probe.sql` - inserts and reads only, one transaction, always rolled back; the report is the error message | ✅ 25/25 PASS |
+| Nothing left behind | probe trip / users / members and the `rls` schema counted after the run | ✅ 0 rows |
+| Anonymous REST: `posts`, `post_photos`, `episodes`, `reactions`, `comments`, `photos`, `members`, `trips` | anon key over HTTP via `pg_net` from the database (the session sandbox cannot reach supabase.co) | ✅ 200 `[]` on every table (real data exists in `members`) |
+| `guest-media` without a member | anon key | ✅ 200 `{"ok":true,"photos":[],"episodes":[]}` - nothing to sign |
+| `guest-invite` without an owner | anon key | ✅ 403 `forbidden` |
+| CI on `main` after the merge (lint, types, unit tests, build) | GitHub Actions run 216 | ✅ success |
+
+UPDATE/DELETE rules (kid cannot approve, cannot change audience, cannot swap
+audio, owner-only bucket deletes) were not re-run live: the Supabase tool asks
+for a human confirmation on destructive SQL, and this ran unattended. They are
+covered by the 71 local probes on the same migrations.
+
+X Not yet checked live: a real guest session calling `guest-media` (signed URLs
+for a shared photo / episode), the invitation email through Resend, likes
+arriving in realtime on a second device, and recording on a real iPhone and
+Android. The production pages could not be fetched from this session (the
+Vercel connection was refused for the team scope), so `/stories`, `/podcast`
+and `/s/<slug>` on production rest on the build passing in CI and the local
+browser run.
+
+## Journal becomes family-only (migration 00048) - 14/10/2026
+
+DECISIONS #32. Guests lose their only policy on `journal_entries`
+(`journal_entries_guest_select`), and the `shared_with_guests` column goes with
+the kid guard trigger whose only job was that flag. Owners keep
+`journal_entries_owner_all`, kids keep their own entries
+(`journal_entries_kid_own_all`). A photo attached to an entry is unchanged: it
+reaches guests only when it is itself approved AND shared (#5).
+
+Local harness, `scripts/rls/probes/48_journal_family_only.sql`:
+
+| Check | Result |
+|---|---|
+| Owner writes and reads the journal | ✅ PASS |
+| Kid writes and reads own entry | ✅ PASS |
+| Guest reads no journal entry; the guest policy is gone | ✅ PASS |
+| Anon reads no journal entry | ✅ PASS |
+| No share flag left on the table | ✅ PASS |
+
+77/77 probes pass across 00043-00048. UI: the share toggle is gone from the
+journal, the guest home no longer has a journal tile, and a guest who opens
+`/journal` directly gets a note and a link to the stories.
+
+Applied live 14/10/2026. Before the apply the live journal held 0 entries (0
+shared with guests), so nothing was hidden from anyone. Catalog check on the
+live DB afterwards:
+
+| Check (live) | Result |
+|---|---|
+| `shared_with_guests` column on `journal_entries` | ✅ gone |
+| `journal_entries_guest_select` policy | ✅ gone |
+| `journal_before_write` trigger / `journal_guard_kid()` | ✅ gone |
+| Policies left on `journal_entries` | ✅ `journal_entries_owner_all`, `journal_entries_kid_own_all` only |
+
+The DROP statements need a human confirmation in the Supabase tool; the final
+apply went through the dashboard, so 00048 is not listed in
+`supabase_migrations.schema_migrations` (the file in the repo is the record).
+
+X Not probed with a real guest session; with no guest policy left, RLS returns
+a guest nothing by construction.
+
+## Kid PIN unlock bounced back to the login screen - 14/10/2026
+
+No policy change. Report (Hadar): a new code for Omer, PIN entered, back to the
+login screen every time. Live data showed the server side worked: the code was
+redeemed at 14:18, the device row exists, and the kid's auth user signed in at
+14:19. The fault was in `AuthGate`: its per-session verdict ("redirecting",
+cached when the tablet first opened with no session) survived the unlock, which
+mints the session in place and navigates client-side, so `/` sent the kid to
+`/login`. The unlock now clears the cached verdict (`resetAuthGate`) before
+navigating; the gate then asks the server again (`link_member_to_auth_user` →
+`kid`). Access is unchanged: the gate is routing only, RLS decides every read.
+
+| Check | Result |
+|---|---|
+| Before the fix, mock Supabase + browser: `/` → login → kid login → code → PIN | ✅ reproduced - ends on `/login` |
+| After the fix, same flow | ✅ PASS - ends on `/` with the kid tabs; the role is re-checked once |
+
+## Kids' side reshaped - one wall with approval, parent-recorded podcast, owner-only documents (migration 00049) - 14/10/2026
+
+DECISIONS #33-#35. What changed at the policy level:
+
+| Table / bucket | Before | After |
+|---|---|---|
+| `messages` (kids) | read + write the family feed only | read the guests wall (approved messages + own pending), write to it; own message forced pending (`messages_approval_guard`), can take back only a pending one |
+| `messages` (guests) | the whole guests feed | approved messages only (`approved_at is not null`) |
+| `messages` approval | - | only an owner can set `approved_at`; the trigger stamps who and when, and ignores it from anyone else |
+| `message_reads` | FK without cascade | cascades, so rejecting a read message works |
+| `episodes` (kids) | insert / update / delete own pending | select approved only |
+| `audio` bucket | owners + kids upload | owners only |
+| `comments` (kids) | none | select, on episodes they can hear only (`comments_kid_select`) |
+| `documents` (kids) | select where `shared_with_kids` + bytes | none; column, function and both policies dropped |
+
+Push: a pending kid message notifies owners only; on approval
+`messages_notify_approved` runs push-send again for everyone else on the wall,
+so no preview reaches a guest before a parent approves.
+
+Local harness: `49_kids_experience.sql` (20 checks) plus probes 44, 45 and 47
+updated for owner-only recording and the retired family feed. 99/99 PASS
+across 00043-00049. Highlights: a kid's message lands pending even when it
+sends `approved_at`; a guest cannot see it; a kid cannot approve it; a parent's
+approval is stamped with the parent; a guest's own message goes out at once;
+a kid reads listener comments on an approved episode but not on a pending one
+or on a story, and cannot write or delete one; a kid reads no documents.
+
+Browser check against a mock Supabase (kid session after the PIN, then an
+owner session): kid home shows the route tile and no pocket money or
+documents; kid tabs: today, route, messages, photos, journal, facts; the route
+groups the days ahead by place with "we're here now"; the wall shows the
+guest's message and the kid's own as "waiting for approval" with "cancel",
+and sending says it went to a parent; the podcast has no recorder and shows
+the listener's comment with no reply box; the owner sees approve / don't send
+on the kid's message and approving sends one PATCH of `approved_at`.
+
+Found on the way: after the PIN unlock the member store still held the
+"nobody" it resolved before the login, so the tablet showed a member-less app
+instead of the kid home until a reload. The unlock now re-resolves the member
+(`refreshMember`), next to `resetAuthGate`.
+
+Applied live 14/10/2026 through the dashboard SQL editor (the DROPs need a
+human confirmation the Supabase tool could not get in time; not listed in
+`schema_migrations`, the file is the record). Before the apply the live DB
+held 0 messages, 0 episodes, 0 comments and 0 documents shared with kids.
+Catalog check afterwards:
+
+| Check (live) | Result |
+|---|---|
+| `messages.approved_at` / `approved_by` | ✅ present, 0 pending rows |
+| `messages_guest_select` | ✅ `is_active_guest_of(trip_id) AND channel = 'guests' AND approved_at IS NOT NULL` |
+| New policies `messages_kid_select/insert/delete_pending`, `episodes_kid_select`, `audio_bucket_owner_insert`, `comments_kid_select` | ✅ all 7 present |
+| Old policies `episodes_kid_insert/update/delete`, `documents_kid_select`, `documents_kid_read`, `audio_bucket_family_insert` | ✅ all gone |
+| `documents.shared_with_kids` | ✅ gone |
+| Triggers `messages_approval_guard`, `messages_notify_approved` | ✅ present |
+| `message_reads` → `messages` FK | ✅ on delete cascade |
+| `push-send` v14 deployed after the migration (`verify_jwt = false` as before, cron secret unchanged); a wall-message call for an unknown id via `pg_net` | ✅ 200 `{"ok":true,"sent":0}` |
+
+X Not yet checked live with real sessions: a kid's message staying hidden from
+a guest until approved, and the two pushes (parents on write, everyone else on
+approval). Worth one real round on the tablet and a guest phone.
+
+## Kids read story comments too (migration 00050) - 14/10/2026
+
+`comments_kid_select` loses its `episode_id is not null` condition (ALTER
+POLICY, never dropped): a kid reads any comment on a story or episode they can
+see, still read-only (no kid insert/update/delete policy on `comments`).
+Probes 45 and 49 updated to expect it; a kid still cannot write or delete a
+comment and sees none on an episode they cannot hear. 99/99 PASS.
+
+Applied live 14/10/2026 (`apply_migration`, an ALTER needs no confirmation);
+the live policy reads `is_kid_of(trip_id) AND feedback_target_visible(trip_id,
+post_id, episode_id)`.
+
+## Full security pass - 14/10/2026
+
+Hadar: "massive security tests for every part of the app". Five layers.
+
+**1. Database deny matrix** (`scripts/rls/matrix.sql`, `probes/90_matrix.sql`,
+runs with every harness run). One generated row in each of the 40 public
+tables, owned by the probe trip; every role tries select / insert / update /
+delete, each attempt rolled back.
+
+| Role | Result |
+|---|---|
+| anon, signed-in outsider, revoked guest, another trip's parent | read nothing of the trip (fx rates are global), write nothing anywhere ✅ |
+| guest | none of the family's generic rows, no write on a parent's row ✅ |
+| kid | only day-to-day tables (itinerary, photos, phrasebook, emergency, facts, google photos, fx); never documents, bookings, expenses, budget, guests list, devices, AI usage; no write on a parent's row ✅ |
+| every table | RLS on; no policy is a bare `true` ✅ |
+
+Found and fixed:
+- **Member emails (00051).** `members_kid_guest_select` let every kid and
+  guest read every members row, emails included - with the class lists that
+  is ~50 addresses any guest could list. Now `trip_member_names()` returns
+  names and roles only, the broad policy matches nothing; owners keep emails.
+- **Photo file swap (00052).** After a parent approved and shared a kid's
+  photo, the kid could repoint `file_path` at another object (a pending or
+  never-shared photo) and guests would get it signed. The guard now freezes
+  `file_path`, `trip_id`, `uploaded_by` for kids (hard rule #3).
+
+**2. Storage and functions.** Bucket policies: documents, booking files,
+backups, map photos owner-only; photos / audio / gphotos family-only (guests
+only through signed URLs from the guest functions); public-stories write
+owner-only. Security-definer functions: helpers return facts about the
+caller; trigger functions are not executable by API roles.
+
+**3. Edge Functions** (code audit of all 21). No critical or high issue;
+every paid path is owner-gated, guest functions read under the caller's RLS.
+Found and fixed:
+- **Cron secret was off.** push-send / backup-weekly / fx-daily ran with
+  `verify_jwt = false` and an `x-cron-secret` check that failed open, and the
+  secret had never been set - anyone with the URL could push notifications to
+  the family's phones at 3am. 00052 generates the secret inside the database
+  (`private.app_secrets`, no API role can read it); the jobs send it; the
+  functions ask `cron_secret_matches()` and fail closed. The value never
+  passed through a file, a chat or a dashboard.
+- **Backup drift.** 8 tables (stories, podcast, comments, likes, steps, AI
+  usage) were not in the weekly backup; added, and `lib/backupTables.test.ts`
+  fails the build on future drift.
+- Revoked guests no longer get wall push previews; `config.toml` pins
+  `verify_jwt` for 5 functions that relied on defaults.
+- Left as low / accepted: kid-auth lockout counter not atomic (needs the
+  physical tablet), raw error text in some 500s, owner-only `ilike` in
+  guest-invite, no spend cap on owner AI calls.
+
+**4. Live project.** 00051 (function part) and 00052 applied; fx-daily v9,
+backup-weekly v9, push-send v15 deployed. Checked live: without the secret
+all three answer 401, with it fx-daily refreshed 165 rates, backup-weekly
+wrote all 40 tables with no failure, push-send passed auth. Advisors: the
+mutable search_path warning fixed; remaining warnings are the known helper
+functions (callable by design), pg_net in public (pre-existing) and leaked
+password protection (a dashboard toggle; passwords are only used by kid
+accounts).
+
+**5. Code and dependencies.** No secret in the repo, no `.env` tracked;
+headers: CSP (report-only), frame-ancestors none, X-Frame-Options DENY,
+Referrer-Policy, Permissions-Policy. `npm audit`: next 16.3.4 had a critical
+advisory in `next/og` (unused here) - upgraded to 16.4.0, sharp and
+source-map-js fixed; `xlsx` has no upstream fix and only parses the owner's
+own import files.
+
+Harness: 124/124 PASS (probes 43-49, 52, 90).
+
+Live 14/10/2026 after #112 deployed: the second half of 00051
+(`members_kid_guest_select` -> false) applied. Checked on the live project as a
+kid inside a rolled-back transaction: `members` shows 1 row (his own, no email),
+`trip_member_names()` returns all 4 names.
+
+## AI budget (00053) - 14/10/2026
+
+Hadar asked for a cap on AI spend. What enforces it:
+
+- `ai_reserve(fn, daily_cap)` runs as the calling parent (their JWT, security
+  definer, `search_path` pinned). It resolves the member itself, refuses kids,
+  guests and outsiders (`forbidden`), takes a row lock on the trip so two taps
+  can't both slip under the cap, then refuses on the month's estimated spend
+  (`ai_budget`) or the function's daily cap (`ai_daily_limit`). Executable by
+  `authenticated` only; a parent calling it directly can only count calls
+  against their own trip.
+- `ai_record(...)` adds tokens and cost; executable by `service_role` only,
+  negatives clamp to 0.
+- `trip_ai_settings` holds the budget: owner-only select/insert/update, check
+  0-200, `updated_by` stamped by a trigger (the client can't set it). Kids and
+  guests can't read it (hard rule 2).
+- All 8 AI functions call `reserveAi` before the model and fail closed if the
+  RPC is unavailable; `recordAi` runs right after the response, before any
+  early return on refusal / max_tokens. extract-places reserves once per paste
+  and records every chunk.
+
+Probe `53_ai_budget.sql`: 22 checks (reserve per role, daily cap per function,
+budget refusal and raise, last month not counted, record privileges, negative
+cost, stamping, over-200 rejected, kid/guest read and write denied). The deny
+matrix covers `trip_ai_settings` too. Harness 146/146 PASS.
+
+X The cost is an estimate (token counts x list price); the bill is
+Anthropic's. One call can overshoot the cap by its own cost (known only after
+it returns). A timed-out call is counted but its cost is unknown.
+
+## Guest join link (00054) - 15/10/2026
+
+DECISIONS #37. One link per trip; anyone holding it can ask to join, and a
+parent approves. What enforces it:
+
+- `guest_join_links` and `guest_join_requests`: RLS on, one policy each,
+  `is_owner_of(trip_id)` for all commands. Kids, guests, outsiders and anon
+  have no policy, so they read and write nothing (also asserted in the deny
+  matrix, `90_matrix.sql`).
+- `guest_join_token(trip, reset)`: security definer, refuses anyone but a
+  parent of that trip (`42501`). Not executable by anon. Token = 122 random
+  bits (`gen_random_uuid`), unique; reset replaces it.
+- `submit_guest_join(token, name, email)` (anon + authenticated): the only
+  write path for a request. With a Google session the address comes from the
+  JWT and the typed one is ignored; `auth_user_id` is stored only then
+  (shown to the parent as "verified via Google"). Name 1-60, address checked,
+  30 sends per trip per hour and 200 open requests, so a leaked link cannot
+  flood the list or the parents' phones. It never inserts into `members` or
+  `guests_allowlist`: asking grants nothing.
+- An anonymous caller submitting an address that is already on the list gets
+  the same `pending` as anyone else, so the link cannot be used to test which
+  addresses are guests. Only a signed-in caller learns that their own address
+  is already in (`member`). A declined request also reads `pending`.
+- `guest_join_info(token)` (anon + authenticated): `valid` plus, for a
+  signed-in caller, their own status. Nothing about the trip or other people.
+- Approval is `guest-invite` (owner-gated, unchanged). The allowlist trigger
+  `guest_join_mark_approved` closes the matching request, also when a parent
+  invites the same address by hand.
+- Push to parents (`guest-request` in `push-send`) sends the typed name only,
+  through the same shared-secret path as the other DB-triggered pushes.
+- Client: `/join/<token>` bypasses the auth gate (like `/s/`). A signed-in
+  non-member who came through the link keeps their session and is sent back to
+  the join page ("waiting for approval") instead of being signed out. This is
+  routing only; with no allowlist row every guest policy still returns nothing.
+
+Probe `54_guest_join_link.sql`: 39 checks (token per role, reset kills the old
+link, anon/Google/revoked-guest submissions, typed address ignored under
+Google, no read for anon/kid/guest/outsider, guest cannot approve, decline
+sticks, approval by allowlist row, rate limit). Full harness 185/185 PASS on a
+local Postgres with all 54 migrations.
+
+Live rollout 15/10/2026: migration `00054_guest_join_link` applied to
+`xeqfcrxrpfjlqhkijrwd`; `push-send` v16 and `backup-weekly` v10 redeployed
+(verify_jwt=false, as before). Checked live: RLS on for both tables, only the
+two owner policies, anon cannot execute `guest_join_token` or
+`guest_join_caller_status`, both triggers present; as anon an unknown token
+reads `{"valid": false}` / `invalid` and both tables return 0 rows. Security
+advisor: the only new findings are `guest_join_info` and `submit_guest_join`
+being anon-executable security definer functions, which is the design (the
+link is used before any account exists).
+X A typed address is not verified until the guest clicks the sign-in email
+that approval sends. Someone holding the link could ask in another person's
+name; the parent sees name, address and "typed" before approving.
+
+### E2E security + QA on production - 15/10/2026
+
+The sandbox cannot reach supabase.co or vercel.app directly, so: role
+emulation on the live DB inside rolled-back transactions, real HTTP from the
+database through `pg_net`, and the UI against a production build with
+Supabase mocked at the network layer. Nothing was left behind (checked: 0
+requests, link untouched, no QA members, empty pg_net queue).
+
+**Live DB, real roles (42/42 PASS).** Anon: valid/fake link, typed request
+stored lowercased and unverified, an owner's address reads `pending` and stores
+nothing, bad address refused, reads 0 rows. Google user: typed address ignored
+for the login's, `link_member_to_auth_user` null, reads nothing (requests,
+members, photos, documents, expenses, names). Kid: no rows, cannot approve,
+`guest_join_token` refused. Parent: same token as the live link, sees and
+declines, decline sticks and reads `pending` to the asker. Approval by
+allowlist row marks only that request; the approved guest links as `guest`,
+sees names but no other address, only approved+shared photos, still no
+documents/expenses/bookings/requests. Revoke cuts access at once and lets them
+ask again. Reset kills the old link. A new request queues exactly one
+`push-send` call carrying the cron secret.
+
+**Real HTTP against production (15/15).** REST as anon: `guest_join_info` /
+`submit_guest_join` on a fake token answer `{"valid":false}` / `"invalid"`;
+`guest_join_token` and `guest_join_caller_status` 401 (42501); select on both
+tables `[]`; direct insert 401 (RLS). `push-send` without the secret 401,
+with it and an unknown id `{"ok":true,"sent":0}`, without an id 400.
+`guest-invite` as anon 403. `https://ourtrip-umber.vercel.app/join/...`: 200,
+`dir=rtl`, Hebrew title, `noindex`, `no-store`, `X-Frame-Options: DENY`,
+`nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (the token never
+reaches another site in a Referer), CSP report-only present.
+
+**UI at 390px (42/42).** Invalid link; form with browser validation; typed,
+`busy` and `bad_input` answers; back from Google = automatic send with no
+`p_email`, then "check again" lands on "you're in" and clears the remembered
+token; signed-in without the Google button = one tap; auth gate sends a
+pending joiner to the join page and keeps the session, still rejects and signs
+out a stranger with no token; guests screen: link card, pending list with
+Google/typed badges, approve (guest-invite, no label key), decline (confirm,
+PATCH by the parent), approve-all, reset (confirm, `p_reset`), HTML in a name
+rendered as text, no overflow, no JS errors.
+
+Found and fixed: the share button's label was clipped at 390px (three buttons
+in one row). Share now has its own row.
+
+X Not covered: the real Google OAuth round trip and the real sign-in email
+(needs a person and a phone). The `*.vercel.app` team aliases are behind
+Vercel Authentication; the link must be shared from `ourtrip-umber.vercel.app`
+(it is: the card uses the page's own origin).
+
+## Linking by email needs a Google or invited account (migration 00055) - 16/10/2026
+
+Found in the join-link QA. Auth settings (`/auth/v1/settings`): sign-ups open
+(needed for Google sign-up through the join link), Google on, and
+`mailer_autoconfirm: true` ("Confirm email" off - Hadar keeps it off, no extra
+step). With those, anyone holding the public key can register an
+email+password account for someone else's address, and
+`link_member_to_auth_user` linked a members row to any session whose JWT
+carried that address: registering an address a parent was about to approve
+would have handed over that guest's access.
+
+`link_member_to_auth_user` now links by email only when the account is a
+Google login or has no password (the accounts `guest-invite` creates and signs
+in by magic link). Live data checked first: Google users carry
+`encrypted_password = null`, the two password accounts are the kids, linked by
+id in kid-auth and never through this function; every account was already
+linked, so nothing existing changes. Probe `55_link_member_guard.sql` (8
+checks): a password account for another's address is not linked and gets no
+guest access, the invited and Google accounts link as guest, the owner stays
+owner, anon cannot call it. Harness 193/193 PASS.
+
+Also fixed: approving a join request said "will get a sign-in email" even when
+`guest-invite` could not email it (no `RESEND_API_KEY`, or Resend failed). The
+link is now shown for the parent to send on WhatsApp, as manual invite does.
+
+X A magic link is valid for 1 hour (Supabase default). Sent later by WhatsApp,
+it may have expired; the parent invites the same address again ("הזמנת אורח/ת"), which issues a fresh link.
+
+## Podcast: shorten pauses, locked screen keeps the take - 17/10/2026
+
+No schema or policy change. Shortening pauses and joining a take's parts run
+on the parent's device and save through the existing paths: a new episode via
+`uploadEpisode` (episodes insert, kid rules unchanged - kids have no insert
+policy since 00049), an edit via `replaceEpisodeAudio` (owners only,
+`episodes_owner_all`; `episodes_guard` still reverts `file_path` for a kid).
+A joined take is `audio/wav`, already allowed in the `audio` bucket (00047);
+`extensionFor` now names it `.wav` instead of falling back to `.webm`. Status
+and `shared_with_guests` are never touched by either flow, so a guest still
+hears an episode only when approved AND shared.
+
+X Screen Wake Lock in an iPhone home-screen app: only from iOS 18.4 on; on
+older iOS the screen may still lock, and the take then pauses and keeps what
+was recorded instead of continuing.
+X If iOS discards the page entirely while locked for a long time, the parts
+held in memory are lost; only a page that comes back keeps them.
+
+## QA pass: the overall trip budget was readable by kids and guests - 17/10/2026
+
+Found in the end-to-end QA (docs/QA-2026-10-17.md). `trips.total_budget`
+(00022) sat on a table every member can read, because kids and guests need the
+trip's name and dates. The 27/08 check above reasoned "a column inherits its
+table's policies" - true, and those policies let kids and guests read the row.
+Read live: `select total_budget from trips` returned 180,000 to a kid; a
+guest's first open after approval showed "₪180,000 left for the trip" on the
+home screen. Hard rule 2 (kids and guests never read budget).
+
+Migration `00056_trip_budget_owner_only` moves the number to its own table,
+`trip_budget`, with one policy, `trip_budget_owner_all` (`is_owner_of`), no
+anon privileges, and drops the column from `trips`. Same shape as
+`trip_ai_settings` (00053), which says why: RLS is per row, not per column.
+
+| Check | Method | Result |
+|---|---|---|
+| `trips` no longer has the column | probe `56_trip_budget.sql` | ✅ PASS |
+| Owner reads, changes and clears the budget | probe | ✅ PASS |
+| Kid, guest, revoked guest, outsider read nothing | probe | ✅ PASS |
+| Kid and guest updates change nothing; a kid insert is refused | probe | ✅ PASS |
+| anon has no privilege on `trip_budget` | probe | ✅ PASS |
+| Over HTTP (PostgREST, real JWTs): guest and kid get `[]`, owner gets the row | QA stand-in | ✅ PASS |
+| Full harness | `scripts/rls/run.sh` | ✅ 204/204 PASS |
+
+Also in the client: the home screen no longer renders the parents' dashboard
+while the member is still unknown, and AuthGate re-reads the member right
+after `link_member_to_auth_user` links it (the store had asked before the link
+existed and got "nobody"). Cosmetic on top of the policy - the policy is the fix.
+
+`trip_budget` is added to the weekly backup (backup-weekly needs a redeploy)
+and to the parents' export.
+
+Applied live 18/10/2026 in two steps. The Supabase connector holds any
+statement with `drop column` for a confirmation it cannot show here, so
+`apply_migration` timed out without reaching the database (postgres logs show
+no such statement). Step 1, run: `trip_budget` created with its policy, the
+180,000 copied, `trips.total_budget` set to NULL and pinned by
+`trips_total_budget_moved check (total_budget is null)`. Verified live as each
+linked member: kids read NULL from `trips` and 0 rows from `trip_budget`;
+owners read the row. The leak is closed from step 1 on.
+
+X Step 2, still to run by hand in the SQL editor: drop the column (and the
+pin), and record 00056 in the migration history - see docs/QA-2026-10-17.md.
+
+## Shorter guests' join link - 19/10/2026
+
+Migration 00057. The token is now 8 characters (lowercase, no i/l/o/u, 40
+random bits) instead of 32 hex, and the shared link is `/j/<token>` (a
+redirect to `/join/<token>`). No policy change: `guest_join_links` stays
+owner-only, `guest_join_token` still refuses anyone who is not a parent, and a
+token still only lets someone ASK - every request waits for a parent, and
+access still needs a `guests_allowlist` row. `guest_join_new_token()` is not
+callable by anon. Probe `57_short_join_token.sql`: short token, reset gives a
+new short one, the old one reads invalid, 2000 draws are distinct.
+
+X 40 bits is far less than the old 122. Guessing a live token stays out of
+reach (there is one per trip), and a correct guess only puts a request in
+front of the parents. Links posted before this keep the long token until a
+parent presses "קישור חדש".
+
+## Join link locked: no "new link" button - 20/10/2026
+
+The join link is printed on stickers, so the app no longer offers a reset
+(button, strings and the `reset` argument of `getJoinToken` removed). No
+policy change: `guest_join_token` still refuses non-parents, and a parent can
+still pass `p_reset` through the API, so this is a guard against an accidental
+tap, not a permission. Test `lib/joinLinkStable.test.ts` fails the build if
+`/j/:token` stops redirecting to `/join/:token`. Reset if the link ever leaks:
+`update guest_join_links set token = guest_join_new_token();` in the SQL editor.
+
+## Waiting for approval: one view for parents - 20/10/2026
+
+No schema or policy change. The "ממתינים לאישורך" card on Today and the red
+numbers on the More tiles are `head: true` counts of rows with
+`status = 'pending'` in `posts`, `photos`, `episodes` and
+`guest_join_requests`, run under the caller's own RLS. They are loaded only
+for a member whose role is owner (More) or on the parents' home (Today);
+`guest_join_requests` is owner-only by policy (00054), so a kid or guest
+would read 0 there even if the code asked. No row content is fetched.
+
+## Wall: kids' tile, parents delete any message - 20/10/2026
+
+No schema or policy change. The kid home gets a wall tile (link + unread
+count). Parents get a delete button on every message already out, using the
+existing `messages_owner_all`; `message_reads` cascade (00049) and
+`comments.origin_message_id` is set null (00045). Checked live, each inside a
+rolled-back transaction: as a kid, 0 rows deleted among approved messages
+(`messages_kid_delete_pending` covers only their own pending ones); as a
+guest, 0 rows (no delete policy). As a kid, both approved wall messages,
+the guest's included, are readable (`messages_kid_select`).
+
+## Documents open by their real type; double-locked files recovered - 20/10/2026
+
+PRs #130, #131, #132. No schema, policy, bucket or migration change: the
+`documents` table and bucket stay owner-only (00001, 00005; kid sharing was
+dropped in 00049), `document_pin` stays owner-only (00015). Reviewed the
+client-side vault after the changes:
+
+- Ciphertext at rest unchanged. A locked file is still uploaded only as
+  `encryptBlob` output; locking now strips stray vault layers first, so a file
+  ends with exactly one layer, never zero. `peelVaultLayers` decrypts only
+  with the caller's own vault key, and AES-GCM fails on anything that is not
+  ciphertext under that key, so it can neither alter a real file nor open
+  another key's data. Tests: `lib/peelVaultLayers.test.ts`.
+- Offline copies unchanged: unlocked documents are still stored encrypted
+  under the vault key; the new offline fallback in `fetchBytes` decrypts in
+  memory only, and returns nothing without the key.
+- Fewer exposures: opening no longer hands the phone a signed Storage URL
+  (`window.open`), so no URL lands in browser history or a new tab; the
+  decrypted bytes live in an object URL revoked when the viewer closes.
+- Upload sets `contentType` from the file header; it is metadata on a private
+  bucket and grants nothing.
+- An unlocked row whose bytes are not a known file asks for the passphrase;
+  a wrong one opens nothing.
+- The new error toast shows only an error's name and message (Storage/fetch
+  errors), never file bytes, keys or URLs.
+
+X Residual, not new: "שמירה ופתיחה" (Android) and "שמירה או שיתוף" write the
+decrypted file outside the vault (Downloads, Files, a share target), as the
+existing share action already did. Once saved there, it is protected only by
+the phone's own lock.
+
+## Wall at scale: shared realtime channel, payload apply, members index (00058) - 20/10/2026
+
+Load-test prep (100 concurrent readers/writers). No policy, grant or function
+changed:
+
+- 00058 adds an index on `members(auth_user_id)` only. `current_member_id()`
+  and every policy that resolves through it are untouched.
+- The wall now applies realtime payloads instead of refetching. Realtime
+  delivers `postgres_changes` only for rows the subscriber's RLS lets them
+  select, so a guest still never receives a kid's pending message: the payload
+  path shows exactly what `listMessages` would. DELETE events carry the id
+  alone (no content), as before.
+- The `trip_id=eq.<id>` filters on messages/reactions/comments narrow what is
+  delivered; they grant nothing - RLS still decides per subscriber.
+- `markRead` writes the same rows as before, just once per message per device.
+
+## RLS evaluated once per query, not per row (00059) - 20/10/2026
+
+Same rules, cheaper evaluation, for the policies a crowd of readers hits:
+messages, posts, episodes, reactions, comments (USING of reads, and the
+owners' FOR ALL). `is_owner_of / is_kid_of / is_active_guest_of(trip_id)` per
+row became `trip_id = (select member_trip_as(role))` / `(select
+active_guest_trip())`, run once per query; `feedback_target_visible()` per row
+became an uncorrelated `(target, trip_id) in (select id, trip_id from
+posts|episodes)`, still under the caller's own posts/episodes RLS. INSERT
+checks unchanged. Measured as one guest on a 100-member copy: likes 1628 ms →
+12 ms, wall 300 → 5 ms, comments 314 → 11 ms.
+
+- New probe `scripts/rls/probes/59_rls_once_per_query.sql`: for owner, kid,
+  guest, revoked guest, outsider and anon, the rows visible on all five
+  tables equal the pre-00059 predicates exactly (two trips, family/guests/
+  public/draft stories, shared/unshared/pending episodes, kid pending and
+  family-channel messages, a like and a comment on every target). Kid can
+  take back own pending message, cannot delete an approved one.
+- Full suite: 245 PASS, 0 FAIL.
+- The probe caught one regression before it shipped: the helpers were first
+  revoked from anon, which made an anon read of a public story error (the
+  owners' FOR ALL policies apply to every role). Granted to anon; both return
+  null without a member, like the functions they stand in for.
+
+## Load test round 2: likes/comments polled, wall read marks in one call (00060) - 21/10/2026
+
+- Likes and comments are no longer streamed over realtime; screens reload
+  them (same RLS-filtered `listReactions` / `listComments`) on open, on
+  return to view and about every 30 s. Nothing new is readable; realtime
+  simply carries less.
+- `mark_wall_read(trip)` (00060) is SECURITY INVOKER: it selects messages
+  under the caller's own policies and inserts under `message_reads`' own
+  WITH CHECK (`member_id = current_member_id()`), so it can only do what
+  `markRead` could. Not executable by anon.
+- Probe `scripts/rls/probes/60_mark_wall_read.sql`: a guest marks only the
+  owner's approved message (not own, not a kid's pending one, not another
+  trip's), only for themself, and a second call marks nothing; a kid marks
+  the two others' messages; revoked guest and outsider mark nothing; anon
+  cannot call it. Full suite 253 PASS, 0 FAIL.
+
+## Guest groups: several per guest (00061) - 22/10/2026
+
+- `guests_allowlist.labels text[]` replaces the single `label` (backfilled from
+  it; `label` stays, unread, until guest-invite is redeployed). Still
+  addressing only: no policy reads it, every active guest sees the same
+  content. Existing owner-only policies on `guests_allowlist` cover it.
+- Shape enforced in the database (`guest_labels_valid`): at most 10 groups,
+  each 1-40 characters, no nulls.
+- guest-invite adds the requested groups to the guest's existing ones (owner
+  gate unchanged), so a re-invite never takes a guest out of a group.
+- Probe `scripts/rls/probes/61_guest_labels_multi.sql`: owner sets two groups;
+  guest and kid see no groups and their updates change nothing; empty, 41-char,
+  11 groups and null are rejected. Full suite 262 PASS, 0 FAIL.
+
+## Guest groups: old `label` column dropped (00062) - 22/10/2026
+
+- `guests_allowlist.label` dropped; `labels` (00061) is the only group field.
+  No policy, function or app code read it. guest-invite v10 maps an old
+  client's `label` into `labels` and never writes the column.
+- Probe 43 now writes `labels`. Full suite 262 PASS, 0 FAIL.
+
+## Group audiences: wall, stories, photos (00063) - 22/10/2026
+
+Policies changed (all `alter policy`, read paths keep the 00059 once-per-query
+shape via `(select public.my_guest_labels())` / `my_kid_labels()`):
+
+- `messages_guest_select`, `messages_kid_select`: `audience = '{}'` or it
+  overlaps the caller's groups (kid: also own messages).
+- `messages_guest_insert`, `messages_kid_insert`: `audience <@` the caller's
+  groups - a guest writes only into their own groups, a kid only into the
+  groups linked to them. `messages_approval_guard` keeps `audience` for any
+  non-owner update.
+- `posts_guest_select`, `posts_kid_select`: same audience rule. `posts_guard`
+  forces a kid's story to `audience '{}'` and keeps it on update;
+  `posts_audience_guests_only` forbids an audience on family/public stories.
+- `photos_guest_select`: approved AND shared AND audience match - #5 narrowed,
+  never widened. Kids' photo access unchanged. Kid uploads forced to `{}`,
+  kid updates keep it.
+- New table `guest_group_kids`: owner all; kid reads own links only; guests
+  nothing. Trigger refuses a link to anyone but a kid of the same trip.
+- Indirect readers checked, no change needed: `post_photos_select`,
+  `comments_*_select`, `reactions_member_select`, `feedback_target_visible`
+  (invoker) and the `guest-photos` / `guest-media` functions (read through the
+  caller's JWT) all inherit the narrowed `posts` / `photos`. `push-send`
+  (service role) filters wall pushes with `_shared/wallAudience.ts`, unit
+  tested against the same cases.
+
+Probe `scripts/rls/probes/63_group_audience.sql` (43 checks): two classes, two
+kids. Each guest sees everyone + own groups; each kid sees own class, not the
+other's, not unlinked groups; revoked guest / outsider / anon see nothing; a
+guest cannot write into another group, a kid into another kid's or an
+unlinked group; a kid's pending class message is hidden from guests and from
+the other kid; a kid cannot widen an audience; a parent approves and changes
+it in one step; comments and reactions on a class story are invisible and
+refused for the other class; a class photo does not leak through an
+every-guest story's `post_photos`; #5 still holds inside a group. Matrix
+(probe 90) seeds the new table; a kid reading their own link is the one
+allowed read. Full suite 305 PASS, 0 FAIL.
+
+Known, accepted: a guest who sees a message sent to two groups can read the
+other group's name in its `audience` (names only, no content).
+
+## Group audiences simplified (00064) - 22/10/2026
+
+- Dropped `guest_group_kids` and `my_kid_labels()`. `messages_kid_select`,
+  `messages_kid_insert` and `posts_kid_select` are back to their pre-00063
+  form: the whole family reads every message and story; a kid may address
+  any group (the message still waits for a parent, who can change it).
+- Guest policies unchanged from 00063: read only `{}` or own groups; write
+  only into own groups (`audience <@ my_guest_labels()`).
+- New `my_groups()` (definer): parents and kids get the trip's group names,
+  a guest their own, anyone else none. Names only; who is in a group stays
+  owner-only (`guests_allowlist`).
+- `posts_guard` lets a kid set `audience` on a draft/pending story (it stays
+  `family` until a parent publishes); `posts_audience_not_public` replaces
+  the guests-only check. `photos_enforce_kid_rules` keeps a kid's chosen
+  audience but still forces pending + unshared (#5); `photos_guard_update`
+  still stops a kid changing it afterwards.
+- Probe 63 rewritten for the model (43 checks): every member's `my_groups`;
+  guests see everyone + own groups, kids see all; a guest cannot write into
+  or add a group they are not in; a kid's pending message hidden from guests
+  and its audience frozen for the kid; the parent changes it at approval;
+  a kid's story keeps its groups but is not out before a parent publishes,
+  then reaches only that class and cannot be widened by the kid; comments
+  and reactions refused outside the group; #5 holds inside a group; a kid's
+  photo keeps its groups but stays pending and unshared. Matrix probe back
+  to its pre-00063 form. Full suite 305 PASS, 0 FAIL.
+
+## Wall replies (00066) - 22/10/2026
+
+- `messages.reply_to`: `messages_reply_guard` (before insert/update, definer)
+  forces a reply's `audience` and `channel` to its top-level message's,
+  flattens a reply to a reply onto the top-level message, refuses replying
+  to a waiting (unapproved) message or one on another trip, and refuses
+  moving a reply. `messages_replies_follow` (after update of audience) carries
+  a parent's audience change to the replies. No policy changed: the forced
+  audience then meets `messages_guest_insert` as any message does, so a
+  guest cannot answer a message outside their groups.
+- Probe `scripts/rls/probes/66_wall_replies.sql` (13 checks): a guest reply
+  sent as "everyone" lands in the message's class; the other class neither
+  sees it nor can answer; reply-to-reply flattens; an everyone reply reaches
+  every guest; a kid's reply waits and is hidden from guests; a waiting
+  message cannot be answered, even by a parent; a parent moving a message
+  takes the replies along; a single reply cannot be given its own audience;
+  deleting a message deletes its replies. Full suite 318 PASS, 0 FAIL.
+
+## Guests' kids' names (00067) - 23/10/2026
+
+- `members.kid_names` / `guest_join_requests.kid_names`: display only, no
+  policy reads them. Shape enforced by a check (at most 3 names, 1-40
+  characters each) whatever the client sends.
+- Guests still have no UPDATE policy on `members`. Their own tag goes through
+  `set_my_kid_names(trip, names)` (security definer): refuses anyone who is
+  not an active guest of the trip (kids, revoked guests), writes only
+  `kid_names`, only on the caller's own guest row. Not executable by anon.
+- Parents edit any guest's tag through the existing `members_owner_all`.
+- `trip_member_names` returns `kid_names` with the name, under the same
+  membership rule as 00051 (still no email for kids and guests).
+- `submit_guest_join` takes optional `p_kid_names`, normalized in the
+  function; the old three-argument call still works. A before-insert trigger
+  on `members` copies the request's names when guest-invite creates the
+  guest's row; a row that already has a tag is not touched.
+- Probe `scripts/rls/probes/67_member_kid_names.sql` (16 checks): the guest
+  sets and reads back their own tag (trimmed, no repeats, three at most); a
+  direct UPDATE by the guest changes neither their name, their tag, nor the
+  parent's row; kids read the tag with the names; kid and revoked guest are
+  refused; anon cannot call it; a parent edits a guest's tag; 4 names, a
+  41-character name and an empty name are rejected; the join form stores the
+  names and approval carries them to the members row. Full suite 334 PASS,
+  0 FAIL.
+
+## View as a guest / a kid (00068) - 23/10/2026
+
+- `members.is_preview`: no policy reads it. One test member per role per trip
+  (`members_one_preview_per_role`). Guests have no UPDATE on `members`, so
+  they cannot mark themselves.
+- `preview-session` Edge Function (verify_jwt=true): refuses anyone whose
+  `current_member_role()` is not owner, and works only on the caller's own
+  trip. It creates/links the test member, gives the test guest an allowlist
+  row with the groups the parent picked, gives the test kid a `kid_devices`
+  binding whose token is never kept (so no tablet can unlock it, and 00024 is
+  satisfied), then rotates the auth password to a random value and signs in
+  with it server-side. The password is never returned or stored: there is no
+  standing credential, as with kid-auth's unlock.
+- Test addresses are on `preview.ourtrip.app`, which no mailbox receives, so
+  no magic link or Google login can reach them. `link_member_to_auth_user`
+  never links them by email (password accounts, 00055); they are linked by id.
+- Client: the parent's session is kept aside in localStorage (where
+  supabase-js already keeps it). Going back signs the test session out with
+  `scope: global` before restoring the parent's, so no test refresh token
+  survives. The banner is cosmetic; access is the test member's RLS.
+- Probe `scripts/rls/probes/68_preview_members.sql` (12 checks): the test
+  guest resolves as a guest, sees only its picked group's message, switches
+  class when its groups change, sees no unshared photo, no documents, no
+  budget, no other member's email; the test kid resolves as nobody without a
+  device and as a kid with one, and reads no budget or guest list; a second
+  test guest per trip is refused; a guest cannot set `is_preview`. Full suite
+  346 PASS, 0 FAIL.
+
+## The family's clock for guests (00069) - 23/10/2026
+
+- No policy changed. Guests still read itinerary days only with a done,
+  shared item (00009).
+- `trip_now_country(trip)` (security definer, stable): returns one country
+  code, of the itinerary day whose date is the current date in that
+  country's zone (Israel date or the next), only to an owner, kid or active
+  guest of that trip. Nothing else about the day. Not executable by anon.
+- `country_time_zone(code)`: immutable lookup, no data access.
+- Probe `scripts/rls/probes/69_trip_now_country.sql` (10 checks): guest, kid
+  and owner get the family's today (Tokyo date, not Israel's); the guest
+  still reads no itinerary day; revoked guest and outsider get nothing; anon
+  cannot call it; no day today gives null; unknown country falls back to
+  Israel's zone. Full suite 356 PASS, 0 FAIL.
+
+## place_options country code on save (migration 00071, applied in production 30/09/2026 as 00040)
 
 Adds `label_key(text)` (immutable SQL, no table access) and a BEFORE INSERT/UPDATE
 trigger `place_options_fill_country_code` on `place_options`. The trigger is

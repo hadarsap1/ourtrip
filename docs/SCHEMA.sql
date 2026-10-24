@@ -379,7 +379,8 @@ create table visa_requirements (
 --         messages: SELECT + INSERT, message_reads: own rows, pocket_*: own rows,
 --         phrasebook/emergency: SELECT. NO access: documents, expenses, bookings, budget_categories.
 -- guests: (allowlist row must have revoked_at IS NULL)
---         SELECT only where shared_with_guests = true (journal, done itinerary items),
+--         SELECT only where shared_with_guests = true (done itinerary items),
+--         never the journal (family-only since 00048, DECISIONS #32),
 --         photos where status = 'approved' AND shared_with_guests = true,
 --         messages SELECT + INSERT, message_reads: own rows.
 --         NO access to everything else.

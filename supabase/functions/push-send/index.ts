@@ -1,11 +1,20 @@
 // Sprint 8 - Web Push fan-out (SPEC 2.14). Single entry point for all four
 // notification kinds; the DB decides who exists, this function only decides
 // who to notify:
-//   - wall-message  : new family-wall message → everyone on the trip but the sender
+//   - wall-message  : new wall message → everyone who may read it (its group
+//                     audience, 00063) but the sender
 //   - pending-photo : kid/owner upload awaiting approval → owners
+//   - guest-request : someone asked to join through the join link (00054) → owners
 //   - daily (cron)  : rain-on-outdoor-day alert + flight check-in 24h reminder
 //   - backup-stale  : the weekly backup has not landed → owners (migration
 //                     00026; see the incident note in backup-weekly)
+//   - hourly (cron, 1.11): in the family's LOCAL time - 09:00 cancellation +
+//                     visa deadlines, 19:00 tomorrow digest, 20:00 evening
+//                     journal. Quiet hours 22:00-07:00. Policy lives in
+//                     _shared/notifyPolicy.ts (tested).
+//   - leave-now (cron every 15 min, 1.11): the next placed item's leave-by
+//                     time falls in the coming 15 minutes → owners.
+//   Kill switch for both: set NOTIFY_V2=off on the function.
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
 // so it is deployed verify_jwt=false. A forged call leaks no content - the
@@ -16,26 +25,40 @@
 
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  addDays,
+  cancelDeadline,
+  isReminderDay,
+  leaveNowDue,
+  localNow,
+  slotsDue,
+  visaRemindersDue,
+  zoneFor,
+  type LocalNow,
+} from "../_shared/notifyPolicy.ts";
+import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from "../_shared/travel.ts";
+import { canReadWallMessage, type WallReader } from "../_shared/wallAudience.ts";
 
-// ---- shared-secret gate (review findings M3/M4) ----
-// This function runs verify_jwt=false because pg_cron carries no JWT, which
-// left it invokable by anyone who knows the URL. Both callers now send
-// x-cron-secret (migration 00025) and we check it here.
-//
-// Deliberately fails OPEN while CRON_SECRET is unset: shipping the check
-// before the secret exists would stop notifications with nothing surfacing the
-// failure, which is the silent breakage supabase/config.toml exists to
-// prevent. Setting CRON_SECRET (both sides - see 00025) switches it on.
-function cronAuthorized(req: Request): boolean {
-  const expected = Deno.env.get("CRON_SECRET");
-  if (!expected) return true;
+// Since 00052 the secret is generated and kept in the database (it never
+// passes through a file or a dashboard): the jobs send it, and this asks the
+// database whether the header matches. A CRON_SECRET function secret, if one
+// is ever set, is checked instead. Fails CLOSED: no header, a wrong one, or a
+// failed lookup is a 401.
+async function cronAuthorized(req: Request): Promise<boolean> {
   const got = req.headers.get("x-cron-secret") ?? "";
-  if (got.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < got.length; i++) {
-    diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (!got) return false;
+  const expected = Deno.env.get("CRON_SECRET");
+  if (expected) {
+    if (got.length !== expected.length) return false;
+    let diff = 0;
+    for (let i = 0; i < got.length; i++) {
+      diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
+    }
+    return diff === 0;
   }
-  return diff === 0;
+  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data, error } = await db.rpc("cron_secret_matches", { p_secret: got });
+  return !error && data === true;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -50,7 +73,10 @@ const service = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-type Payload = { title: string; body: string; url: string; tag?: string };
+// `many` folds repeats into one notification on the device (public/sw.js): a
+// push whose tag is already showing replaces it, titled with the count
+// ("{n}" is filled in there). The app itself still lists every item.
+type Payload = { title: string; body: string; url: string; tag?: string; many?: string };
 
 /** Sends one payload to every push subscription owned by the given members.
  *  Prunes subscriptions the push service reports as gone (404/410). */
@@ -104,36 +130,53 @@ async function familyIds(tripId: string): Promise<string[]> {
 async function handleWallMessage(messageId: string): Promise<number> {
   const { data: msg } = await service
     .from("messages")
-    .select("id, body, sender_id, trip_id, channel")
+    .select("id, body, sender_id, trip_id, channel, approved_at, approved_by, audience")
     .eq("id", messageId)
     .maybeSingle();
   if (!msg) return 0;
 
-  const { data: members } = await service
-    .from("members")
-    .select("id, display_name, role")
-    .eq("trip_id", msg.trip_id);
+  const [{ data: members }, { data: allowed }] = await Promise.all([
+    service.from("members").select("id, display_name, role, email").eq("trip_id", msg.trip_id),
+    service.from("guests_allowlist").select("email, labels").eq("trip_id", msg.trip_id).is("revoked_at", null),
+  ]);
   const sender = members?.find((m) => m.id === msg.sender_id);
+  // a revoked guest keeps the members row (and maybe a push subscription), but
+  // must not get wall previews any more (security pass 14/10)
+  const activeGuests = new Map(
+    (allowed ?? []).map((a) => [a.email.toLowerCase(), (a.labels ?? []) as string[]])
+  );
 
-  // Notify only the roles that can actually READ this feed (migration 00027).
-  // Without this the split would leak by notification: a guest would get a
-  // push preview of a message the policies forbid them to open.
-  const audience = msg.channel === "guests"
-    ? ["owner", "guest"]
-    : ["owner", "kid"];
+  // Notify only those who can actually READ this message, or a push preview
+  // would leak what the policies forbid opening: a kid's message waiting for
+  // approval (00049) is the parents' alone - once approved this runs again
+  // (messages_notify_approved) - and a group message (00063/00064) goes to
+  // the family and its groups' guests only. The retired family channel never
+  // reached guests.
+  const pending = msg.approved_at === null;
+  const audience = (msg.audience ?? []) as string[];
   const recipients = (members ?? [])
-    .filter((m) => audience.includes(m.role) && m.id !== msg.sender_id)
+    .filter((m) => {
+      if (m.id === msg.sender_id || m.id === msg.approved_by) return false;
+      if (m.role === "guest" && msg.channel !== "guests") return false;
+      const guestLabels = m.role === "guest" && m.email ? activeGuests.get(m.email.toLowerCase()) : undefined;
+      return canReadWallMessage(
+        {
+          role: m.role as WallReader["role"],
+          guestLabels: guestLabels ?? [],
+          active: m.role !== "guest" || guestLabels !== undefined,
+        },
+        { pending, audience }
+      );
+    })
     .map((m) => m.id);
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;
   return pushToMembers(recipients, {
-    title:
-      msg.channel === "guests"
-        ? "הודעה חדשה בקיר האורחים 💬"
-        : "הודעה חדשה בקיר המשפחתי 💬",
+    title: pending ? "הודעה ממתינה לאישור שלכם ✋" : "הודעה חדשה בקיר 💬",
     body: sender ? `${sender.display_name}: ${preview}` : preview,
     url: "/messages",
-    tag: "wall",
+    tag: pending ? "wall-pending" : "wall",
+    many: pending ? "{n} הודעות ממתינות לאישור שלכם ✋" : "{n} הודעות חדשות בקיר 💬",
   });
 }
 
@@ -153,6 +196,25 @@ async function handlePendingPhoto(photoId: string): Promise<number> {
     body: "יש תמונה חדשה מהילדים - אפשר לאשר ולשתף",
     url: "/photos",
     tag: "pending-photo",
+    many: "{n} תמונות ממתינות לאישור 📷",
+  });
+}
+
+/** Someone asked to join through the guests' join link (00054). The name is
+ *  what they typed; the address stays on the guests screen. Owners only. */
+async function handleGuestRequest(requestId: string): Promise<number> {
+  const { data: request } = await service
+    .from("guest_join_requests")
+    .select("id, trip_id, display_name, status")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!request || request.status !== "pending") return 0;
+  return pushToMembers(await ownerIds(request.trip_id), {
+    title: "בקשת הצטרפות חדשה 👋",
+    body: `${request.display_name} רוצה לעקוב אחרי הטיול - אפשר לאשר`,
+    url: "/guests",
+    tag: "guest-request",
+    many: "{n} בקשות הצטרפות חדשות 👋",
   });
 }
 
@@ -256,8 +318,163 @@ async function handleDaily(): Promise<{ weather: number; checkin: number }> {
   return { weather: weatherSent, checkin: checkinSent };
 }
 
+
+// ---------------------------------------------------------------------------
+// 1.11 - local-time notifications
+// ---------------------------------------------------------------------------
+
+async function activeTripId(): Promise<string | null> {
+  const { data } = await service.from("trips").select("id").eq("is_active", true).limit(1).maybeSingle();
+  return data?.id ?? null;
+}
+
+/** The family's local clock: the zone of the latest itinerary country up to today (UTC), else Israel. */
+async function familyLocalNow(tripId: string): Promise<LocalNow> {
+  const now = new Date();
+  const { data } = await service
+    .from("itinerary_days")
+    .select("country_code")
+    .eq("trip_id", tripId)
+    .lte("date", addDays(now.toISOString().slice(0, 10), 1))
+    .not("country_code", "is", null)
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return localNow(now, zoneFor(data?.country_code));
+}
+
+const hm = (time: string) => time.slice(0, 5);
+
+async function sendDeadlines(tripId: string, today: string): Promise<number> {
+  const owners = await ownerIds(tripId);
+  let sent = 0;
+
+  const { data: bookings } = await service
+    .from("bookings")
+    .select("id, title, details")
+    .eq("trip_id", tripId)
+    .neq("status", "cancelled");
+  for (const b of bookings ?? []) {
+    const until = cancelDeadline(b.details);
+    if (!until || !isReminderDay(today, until)) continue;
+    const [y, m, d] = until.split("-");
+    sent += await pushToMembers(owners, {
+      title: "⏳ ביטול חינם עומד להסתיים",
+      body: `${b.title} - אפשר לבטל בלי עלות עד ${d}/${m}/${y}`,
+      url: "/itinerary",
+      tag: `cancel-${b.id}`,
+    });
+  }
+
+  const [{ data: visas }, { data: days }] = await Promise.all([
+    service.from("visa_requirements").select("country_code, requirement_type, status, max_days, title_he").eq("trip_id", tripId),
+    service.from("itinerary_days").select("date, country_code").eq("trip_id", tripId),
+  ]);
+  for (const r of visaRemindersDue(today, visas ?? [], days ?? [])) {
+    const [y, m, d] = r.date.split("-");
+    sent += await pushToMembers(owners, {
+      title: r.kind === "apply" ? "🛂 ויזה / טופס כניסה עדיין פתוח" : "🛂 תקופת השהייה מתקרבת לסוף",
+      body:
+        r.kind === "apply"
+          ? `${r.title} - נכנסים ב-${d}/${m}/${y}`
+          : `${r.title} - היום האחרון המותר ${d}/${m}/${y}`,
+      url: "/visas",
+      tag: `visa-${r.kind}-${r.country}`,
+    });
+  }
+  return sent;
+}
+
+async function sendTomorrowDigest(tripId: string, today: string): Promise<number> {
+  const tomorrow = addDays(today, 1);
+  const { data: day } = await service
+    .from("itinerary_days")
+    .select("id, location_name")
+    .eq("trip_id", tripId)
+    .eq("date", tomorrow)
+    .maybeSingle();
+  if (!day) return 0; // before the trip, or a day not planned yet
+  const [{ data: items }, { data: bookings }] = await Promise.all([
+    service.from("itinerary_items").select("title, start_time").eq("day_id", day.id).neq("status", "cancelled").order("start_time"),
+    service.from("bookings").select("title, type").eq("trip_id", tripId).eq("start_date", tomorrow).neq("status", "cancelled"),
+  ]);
+  const list = items ?? [];
+  const first = list.find((i) => i.start_time);
+  const parts = [
+    list.length > 0 ? `${list.length} פעילויות` : "יום פנוי",
+    first ? `הראשונה ב-${hm(first.start_time as string)} (${first.title})` : null,
+    ...(bookings ?? []).map((b) => (b.type === "flight" ? `טיסה: ${b.title}` : b.type === "hotel" ? `צ'ק-אין: ${b.title}` : b.title)),
+  ].filter(Boolean);
+  return pushToMembers(await ownerIds(tripId), {
+    title: `🗓️ מחר${day.location_name ? ` ב${day.location_name}` : ""}`,
+    body: parts.join(" · "),
+    url: "/itinerary",
+    tag: `digest-${tomorrow}`,
+  });
+}
+
+async function sendEveningJournal(tripId: string, today: string): Promise<number> {
+  const { data: day } = await service.from("itinerary_days").select("id").eq("trip_id", tripId).eq("date", today).maybeSingle();
+  if (!day) return 0; // only while travelling
+  const family = await familyIds(tripId);
+  const { data: wrote } = await service.from("journal_entries").select("author_id").eq("trip_id", tripId).eq("entry_date", today);
+  const done = new Set((wrote ?? []).map((w) => w.author_id));
+  return pushToMembers(
+    family.filter((id) => !done.has(id)),
+    { title: "✍️ איך היה היום?", body: "שתי שורות ביומן, לפני שהיום מתערבב עם מחר", url: "/journal", tag: `journal-${today}` }
+  );
+}
+
+async function handleHourly(): Promise<Record<string, number | string>> {
+  const tripId = await activeTripId();
+  if (!tripId) return { skipped: "no trip" };
+  const local = await familyLocalNow(tripId);
+  const out: Record<string, number | string> = { local: `${local.date} ${Math.floor(local.minutes / 60)}h` };
+  for (const slot of slotsDue(local.minutes)) {
+    if (slot === "deadlines") out.deadlines = await sendDeadlines(tripId, local.date);
+    if (slot === "tomorrowDigest") out.digest = await sendTomorrowDigest(tripId, local.date);
+    if (slot === "eveningJournal") out.journal = await sendEveningJournal(tripId, local.date);
+  }
+  return out;
+}
+
+async function handleLeaveNow(): Promise<number> {
+  const tripId = await activeTripId();
+  if (!tripId) return 0;
+  const local = await familyLocalNow(tripId);
+  const { data: day } = await service
+    .from("itinerary_days")
+    .select("id, lat, lng")
+    .eq("trip_id", tripId)
+    .eq("date", local.date)
+    .maybeSingle();
+  if (!day) return 0;
+  const { data: items } = await service
+    .from("itinerary_items")
+    .select("id, title, start_time, lat, lng, status")
+    .eq("day_id", day.id)
+    .neq("status", "cancelled");
+  const list = items ?? [];
+  let sent = 0;
+  for (const it of list) {
+    const start = minutesOfTime(it.start_time);
+    const to = placeOf(it);
+    if (start === null || !to || it.status === "done") continue;
+    const from = originFor(list, it, placeOf(day));
+    const leaveBy = leaveByMinutes(start, from, to);
+    if (!leaveNowDue(leaveBy, local.minutes)) continue;
+    sent += await pushToMembers(await ownerIds(tripId), {
+      title: "🚶 הגיע הזמן לצאת",
+      body: `${it.title} ב-${hm(it.start_time as string)} - כ-${from ? travelMinutes(from, to) : 0} דקות דרך (הערכה)`,
+      url: "/",
+      tag: `leave-${it.id}`,
+    });
+  }
+  return sent;
+}
+
 Deno.serve(async (req) => {
-  if (!cronAuthorized(req)) return json({ ok: false, error: "forbidden" }, 401);
+  if (!(await cronAuthorized(req))) return json({ ok: false, error: "forbidden" }, 401);
 
   const subject = Deno.env.get("VAPID_SUBJECT");
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
@@ -271,6 +488,7 @@ Deno.serve(async (req) => {
     type?: string;
     message_id?: string;
     photo_id?: string;
+    request_id?: string;
     age_days?: number;
   };
   try {
@@ -289,8 +507,19 @@ Deno.serve(async (req) => {
         if (!body.photo_id) return json({ ok: false, error: "missing photo_id" }, 400);
         return json({ ok: true, sent: await handlePendingPhoto(body.photo_id) });
       }
+      case "guest-request": {
+        if (!body.request_id) return json({ ok: false, error: "missing request_id" }, 400);
+        return json({ ok: true, sent: await handleGuestRequest(body.request_id) });
+      }
       case "daily": {
         return json({ ok: true, ...(await handleDaily()) });
+      }
+      case "hourly":
+      case "leave-now": {
+        if (Deno.env.get("NOTIFY_V2") === "off") return json({ ok: true, skipped: "NOTIFY_V2=off" });
+        return body.type === "hourly"
+          ? json({ ok: true, ...(await handleHourly()) })
+          : json({ ok: true, sent: await handleLeaveNow() });
       }
       case "backup-stale": {
         const age = typeof body.age_days === "number" ? body.age_days : -1;

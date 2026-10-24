@@ -9,7 +9,10 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { recordAi, reserveAi } from "../_shared/aiBudget.ts";
 import { cleanPhonetic, isUsableHebrew } from "../_shared/phonetic.ts";
+
+const FN = "phrasebook-generate";
 
 type Entry = {
   category: string;
@@ -126,6 +129,12 @@ Deno.serve(async (req) => {
   const languageName = new Intl.DisplayNames(["en"], { type: "language" })
     .of(language) ?? language;
 
+  // the AI budget (00053): monthly cap + this function's daily cap
+  const gate = await reserveAi(callerClient, FN);
+  if (!gate.ok) {
+    return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: jsonHeaders });
+  }
+
   let response;
   try {
     response = await anthropic.messages.create({
@@ -215,6 +224,8 @@ Deno.serve(async (req) => {
       headers: jsonHeaders,
     });
   }
+
+  await recordAi(gate.memberId, FN, [response]);
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/checklists";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
 import type { Checklist, ChecklistItem, Member, Trip } from "@/lib/types";
 import { ImportChecklistSheet } from "./ImportChecklistSheet";
 import { ItemEditSheet } from "./ItemEditSheet";
@@ -45,6 +46,7 @@ export function ChecklistsScreen() {
     const nextItems = await listChecklistItems(nextLists.map((l) => l.id));
     setLists(nextLists);
     setItems(nextItems);
+    void writeQuery(queryKeys.checklists(tripId), { lists: nextLists, items: nextItems });
   }, []);
 
   useEffect(() => {
@@ -59,6 +61,16 @@ export function ChecklistsScreen() {
         return;
       }
       setTrip(activeTrip);
+      // Cache-first: offline this used to say "no lists yet - start a new one"
+      // under a banner saying the data was on the device (QA 17/10).
+      const cached = await readQuery<{ lists: Checklist[]; items: ChecklistItem[] }>(
+        queryKeys.checklists(activeTrip.id)
+      );
+      if (cached && !cancelled) {
+        setLists(cached.data.lists);
+        setItems(cached.data.items);
+        setLoading(false);
+      }
       try {
         const [, tripMembers] = await Promise.all([
           refresh(activeTrip.id),
@@ -66,11 +78,13 @@ export function ChecklistsScreen() {
         ]);
         if (!cancelled) setMembers(tripMembers);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        // With cached lists on screen the offline banner already says why.
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }
 
+      if (cancelled) return; // closed during the awaits: no orphan channel
       // Realtime check-off: any change on either device → one refetch.
       unsubscribe = subscribeChecklists(() => {
         if (debounce) clearTimeout(debounce);
@@ -164,7 +178,7 @@ export function ChecklistsScreen() {
           <h1 className="text-2xl font-bold">
             {openList.title}
             {openList.is_template && (
-              <span className="mr-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
+              <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
                 {strings.checklists.templates}
               </span>
             )}
@@ -176,7 +190,7 @@ export function ChecklistsScreen() {
           )}
         </div>
 
-        <section className="rounded-2xl border border-line bg-white shadow-sm">
+        <section className="rounded-2xl border border-line bg-surface shadow-sm">
           {listItems.length === 0 ? (
             <p className="px-4 py-4 text-sm text-ink-soft">
               {strings.checklists.emptyItems}
@@ -194,7 +208,7 @@ export function ChecklistsScreen() {
                         onChange={(e) =>
                           void run(() => setItemChecked(item.id, e.target.checked))
                         }
-                        className="h-5 w-5 shrink-0 accent-teal-600"
+                        className="h-5 w-5 shrink-0 accent-[var(--brand)]"
                       />
                       <span
                         className={`min-w-0 truncate ${
@@ -248,7 +262,7 @@ export function ChecklistsScreen() {
             />
             <button
               type="submit"
-              className="shrink-0 rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-white hover:bg-sea-deep"
+              className="shrink-0 rounded-xl bg-sea px-4 py-2 text-sm font-semibold text-on-sea hover:bg-sea-deep"
             >
               {strings.checklists.add}
             </button>
@@ -294,7 +308,7 @@ export function ChecklistsScreen() {
           {strings.checklists.lists}
         </h2>
         {regularLists.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-ink-soft">
+          <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
             {strings.checklists.empty}
           </p>
         ) : (
@@ -307,7 +321,7 @@ export function ChecklistsScreen() {
                   <button
                     type="button"
                     onClick={() => setOpenListId(list.id)}
-                    className="flex w-full items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-start shadow-sm"
+                    className="flex w-full items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 text-start shadow-sm"
                   >
                     <span className="font-semibold text-ink">{list.title}</span>
                     <span className="text-sm font-semibold text-ink-soft" dir="ltr">
@@ -332,7 +346,7 @@ export function ChecklistsScreen() {
             {templates.map((template) => (
               <li
                 key={template.id}
-                className="rounded-2xl border border-line bg-white px-4 py-3 shadow-sm"
+                className="rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-2">
                   <button
@@ -341,7 +355,7 @@ export function ChecklistsScreen() {
                     className="min-w-0 flex-1 text-start font-semibold text-ink"
                   >
                     {template.title}
-                    <span className="mr-2 text-xs font-normal text-ink-soft" dir="ltr">
+                    <span className="ms-2 text-xs font-normal text-ink-soft" dir="ltr">
                       ({itemsOf(template.id).length})
                     </span>
                   </button>
@@ -368,14 +382,14 @@ export function ChecklistsScreen() {
         <button
           type="button"
           onClick={() => setListForm({ rename: null })}
-          className="flex-1 rounded-2xl bg-sea py-3 font-semibold text-white shadow hover:bg-sea-deep"
+          className="flex-1 rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow hover:bg-sea-deep"
         >
           {strings.checklists.addList}
         </button>
         <button
           type="button"
           onClick={() => setImporting(true)}
-          className="rounded-2xl border border-line bg-white px-4 py-3 font-semibold text-ink-soft shadow-sm"
+          className="rounded-2xl border border-line bg-surface px-4 py-3 font-semibold text-ink-soft shadow-sm"
         >
           ⤓ {strings.checklists.importList}
         </button>

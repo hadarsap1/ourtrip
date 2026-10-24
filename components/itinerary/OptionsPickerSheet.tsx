@@ -107,7 +107,7 @@ export function OptionsPickerSheet({
         >
           <span
             className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
-              on ? "border-sea bg-sea text-white" : "border-line bg-white"
+              on ? "border-sea bg-sea text-on-sea" : "border-line bg-surface"
             }`}
             aria-hidden="true"
           >
@@ -117,7 +117,7 @@ export function OptionsPickerSheet({
             <span className="block truncate text-[13.5px] font-medium text-ink">
               {option.title}
             </span>
-            <span className="block truncate text-[11px] text-ink-soft">
+            <span className="block truncate text-[12px] text-ink-soft">
               {option.area ? `${option.area} · ` : ""}
               {s.categories[option.category as keyof typeof s.categories] ??
                 option.category ??
@@ -136,7 +136,7 @@ export function OptionsPickerSheet({
       title={s.pickForDay.replace("{date}", formatDate(day.date))}
     >
       {plannedCount > 0 && (
-        <p className="mb-2 rounded-xl bg-paper-deep px-3 py-2 text-[11.5px] text-ink-soft">
+        <p className="mb-2 rounded-xl bg-paper-deep px-3 py-2 text-[12px] text-ink-soft">
           {s.pickAlready.replace("{n}", String(plannedCount))}
         </p>
       )}
@@ -146,7 +146,7 @@ export function OptionsPickerSheet({
           {strings.common.loading}
         </p>
       ) : flat.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-white p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
           <p className="text-sm font-medium text-ink">{s.pickEmpty}</p>
           <p className="mt-1 text-xs text-ink-soft">{s.pickEmptyBody}</p>
         </div>
@@ -202,11 +202,11 @@ export function OptionsPickerSheet({
                         {group.area ?? s.ungrouped}
                       </span>
                       {chosenHere > 0 && (
-                        <span className="shrink-0 rounded-full bg-sea px-2 py-0.5 text-[10.5px] font-bold text-white">
+                        <span className="shrink-0 rounded-full bg-sea px-2 py-0.5 text-[12px] font-bold text-on-sea">
                           {chosenHere}
                         </span>
                       )}
-                      <span className="shrink-0 text-[11px] text-ink-faint">
+                      <span className="shrink-0 text-[12px] text-ink-faint">
                         {group.options.length}
                       </span>
                     </button>
@@ -227,7 +227,7 @@ export function OptionsPickerSheet({
             type="button"
             onClick={confirm}
             disabled={picked.size === 0}
-            className="sticky bottom-0 mt-3 w-full rounded-2xl bg-sea py-3 font-semibold text-white shadow-sm disabled:opacity-40"
+            className="sticky bottom-0 mt-3 w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea shadow-sm disabled:opacity-40"
           >
             {picked.size === 0
               ? s.pickNoneChosen

@@ -20,6 +20,13 @@ describe("format", () => {
     expect(eur).not.toContain("₪");
   });
 
+  it("shows whole amounts whole and others with exactly two decimals", () => {
+    expect(formatMoney(14200, "ILS")).toBe("₪14,200");
+    expect(formatMoney(179815.5, "ILS")).toBe("₪179,815.50");
+    expect(formatMoney(36.499, "ILS")).toBe("₪36.50");
+    expect(formatMoney(-12.25, "ILS")).toContain("12.25");
+  });
+
   it("todayISO returns a YYYY-MM-DD string", () => {
     expect(todayISO()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });

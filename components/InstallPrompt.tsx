@@ -43,13 +43,13 @@ export function InstallPrompt() {
           <span className="block text-[13.5px] font-bold text-ink">
             {s.title}
           </span>
-          <span className="block text-[11px] text-ink-soft">{s.body}</span>
+          <span className="block text-[12px] text-ink-soft">{s.body}</span>
         </span>
         <button
           type="button"
           onClick={onInstall}
           disabled={busy}
-          className="shrink-0 rounded-full bg-sea px-4 py-2 text-[13px] font-bold text-white disabled:opacity-50"
+          className="shrink-0 rounded-full bg-sea px-4 py-2 text-[13px] font-bold text-on-sea disabled:opacity-50"
         >
           {busy ? s.working : s.button}
         </button>
@@ -64,7 +64,7 @@ export function InstallPrompt() {
           <ShareIcon className="h-4 w-4 shrink-0 text-sea" strokeWidth={1.7} />
           {s.iosTitle}
         </h2>
-        <ol className="space-y-1 text-[11.5px] text-ink-soft">
+        <ol className="space-y-1 text-[12px] text-ink-soft">
           {[s.iosStep1, s.iosStep2, s.iosStep3, s.iosStep4].map((step, i) => (
             <li key={step} className="flex gap-1.5">
               <span className="font-bold text-sea">{i + 1}.</span>

@@ -15,15 +15,16 @@ export function BottomNav() {
   const role = member?.role ?? (isKid ? "kid" : "owner");
   const unread = useUnreadWall();
 
-  if (pathname === "/kid-login" || pathname === "/login") return null;
+  if (pathname === "/kid-login" || pathname === "/login" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
 
   const tabs = tabsForRole(role);
 
   return (
     // Opaque, not paper/90 + blur: translucency muddies text over the warm
-    // background. Hidden from lg up, where the side rail takes over.
+    // background. Hidden from lg up, where the side rail takes over. A flex
+    // row under <main>, not position:fixed - see the body in app/layout.tsx.
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="relative z-50 shrink-0 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label={strings.nav.bottomBarLabel}
     >
       <ul className="flex items-start gap-0.5 px-1.5 pt-[9px] pb-3">
@@ -41,13 +42,13 @@ export function BottomNav() {
                 <span className="relative">
                   <tab.Icon className="h-[23px] w-[23px]" strokeWidth={1.7} />
                   {tab.href === "/messages" && unread > 0 && (
-                    <span className="absolute -left-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
                       {unread > 9 ? "9+" : unread}
                     </span>
                   )}
                 </span>
                 <span
-                  className={`text-[10.5px] leading-none tracking-[0.01em] ${
+                  className={`text-[12px] leading-none tracking-[0.01em] ${
                     active ? "font-bold" : "font-medium"
                   }`}
                 >

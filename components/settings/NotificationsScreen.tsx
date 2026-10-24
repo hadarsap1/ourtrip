@@ -69,7 +69,7 @@ export function NotificationsScreen() {
       </header>
 
       {/* what we send */}
-      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold text-ink">{s.whatTitle}</h2>
         <ul className="space-y-1.5 text-sm text-ink-soft">
           <li className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export function NotificationsScreen() {
             type="button"
             onClick={onDisable}
             disabled={busy}
-            className="w-full rounded-2xl border border-line bg-white py-3 font-medium text-ink-soft disabled:opacity-50"
+            className="w-full rounded-2xl border border-line bg-surface py-3 font-medium text-ink-soft disabled:opacity-50"
           >
             {s.disable}
           </button>
@@ -130,7 +130,7 @@ export function NotificationsScreen() {
           type="button"
           onClick={onEnable}
           disabled={busy}
-          className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-white shadow-sm disabled:opacity-50"
+          className="w-full rounded-2xl bg-sea py-3.5 font-semibold text-on-sea shadow-sm disabled:opacity-50"
         >
           {busy ? s.working : s.enable}
         </button>

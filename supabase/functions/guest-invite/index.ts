@@ -26,10 +26,23 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// The display name is typed by a parent (or pasted from a class list) and
+// lands inside an HTML email.
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  let body: { email?: string; display_name?: string; redirect_to?: string };
+  let body: {
+    email?: string;
+    display_name?: string;
+    redirect_to?: string;
+    labels?: unknown;
+    /** pre-00061 clients: one group */
+    label?: string | null;
+  };
   try {
     body = await req.json();
   } catch {
@@ -38,6 +51,18 @@ Deno.serve(async (req) => {
 
   const email = (body.email ?? "").trim().toLowerCase();
   const displayName = (body.display_name ?? "").trim();
+  // Optional groups (family / a class / friends) - addressing only, no policy
+  // reads them (migrations 00043, 00061). They are added to the groups the
+  // guest already has, so a re-invite never takes a guest out of a group.
+  const rawLabels = Array.isArray(body.labels) ? body.labels : body.label ? [body.label] : [];
+  const addLabels = [
+    ...new Set(
+      rawLabels
+        .filter((l): l is string => typeof l === "string")
+        .map((l) => l.trim().slice(0, 40))
+        .filter(Boolean)
+    ),
+  ];
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !displayName) {
     return json({ ok: false, error: "bad input" }, 400);
   }
@@ -79,6 +104,17 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "email belongs to a family member" }, 400);
   }
 
+  let labels: string[] | undefined;
+  if (addLabels.length > 0) {
+    const { data: existing } = await service
+      .from("guests_allowlist")
+      .select("labels")
+      .eq("trip_id", trip.id)
+      .eq("email", email)
+      .maybeSingle();
+    labels = [...new Set([...((existing?.labels as string[] | undefined) ?? []), ...addLabels])].slice(0, 10);
+  }
+
   // allowlist upsert: re-inviting clears a previous revocation
   const { error: allowlistError } = await service.from("guests_allowlist").upsert(
     {
@@ -86,6 +122,7 @@ Deno.serve(async (req) => {
       email,
       invited_by: callerId,
       revoked_at: null,
+      ...(labels === undefined ? {} : { labels }),
     },
     { onConflict: "trip_id,email" }
   );
@@ -134,13 +171,13 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: Deno.env.get("RESEND_FROM") ?? "OurTrip <onboarding@resend.dev>",
           to: [email],
-          subject: "הוזמנתם לעקוב אחרי הטיול שלנו! 🌍",
+          subject: "הוזמנתם לעקוב אחרי סו-בב עולם! 🌍",
           html:
-            `<div dir="rtl" style="font-family:sans-serif">` +
-            `<h2>שלום ${displayName}!</h2>` +
-            `<p>הוזמנתם לפורטל הטיול המשפחתי שלנו - תמונות, יומן מסע ומפה.</p>` +
-            `<p><a href="${link}" style="background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold">כניסה לפורטל</a></p>` +
-            `<p style="color:#64748b;font-size:12px">הקישור אישי - לא להעביר הלאה.</p>` +
+            `<div dir="rtl" style="font-family:sans-serif;background:#F7EBD6;color:#3A2C24;padding:24px;border-radius:16px">` +
+            `<h2 style="margin:0 0 8px">שלום ${escapeHtml(displayName)}!</h2>` +
+            `<p>הוזמנתם ל"סו-בב עולם!" - הסיפורים, התמונות והפודקאסט של משפחת סו מהדרך.</p>` +
+            `<p><a href="${link}" style="background:#4E6B45;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold">כניסה</a></p>` +
+            `<p style="color:#6B5A4E;font-size:12px">הקישור אישי - לא להעביר הלאה. נכנסים פעם אחת, והטלפון זוכר.</p>` +
             `</div>`,
         }),
       });

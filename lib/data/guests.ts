@@ -1,8 +1,10 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
 import type { Tables } from "@/lib/database.types";
+import { parseJoinInfo, parseSubmitResult, type JoinInfo, type SubmitResult } from "@/lib/guestJoin";
 
 export type GuestAllowlistRow = Tables<"guests_allowlist">;
+export type JoinRequestRow = Tables<"guest_join_requests">;
 
 function requireClient() {
   const supabase = getSupabase();
@@ -14,7 +16,9 @@ function requireClient() {
  *  link + whether it was emailed via Resend. */
 export async function inviteGuest(
   email: string,
-  displayName: string
+  displayName: string,
+  /** Groups to add; the guest's existing groups are kept. */
+  labels: string[] = []
 ): Promise<{ link: string; emailed: boolean }> {
   const { data, error } = await requireClient().functions.invoke(
     "guest-invite",
@@ -23,6 +27,7 @@ export async function inviteGuest(
         email,
         display_name: displayName,
         redirect_to: window.location.origin,
+        ...(labels.length === 0 ? {} : { labels }),
       },
     }
   );
@@ -46,9 +51,58 @@ export async function listAllowlist(
     .from("guests_allowlist")
     .select("*")
     .eq("trip_id", tripId)
+    // the test guest of "view as" (00068) is not on the list to manage
+    .not("email", "like", "%@preview.ourtrip.app")
     .order("created_at");
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** A guest's groups, replaced as a whole (migration 00061). Owner-only by RLS. */
+export async function setGuestLabels(
+  tripId: string,
+  email: string,
+  labels: string[]
+): Promise<void> {
+  const { error } = await requireClient()
+    .from("guests_allowlist")
+    .update({ labels })
+    .eq("trip_id", tripId)
+    .eq("email", email);
+  if (error) throw new Error(error.message);
+}
+
+export type BulkInviteResult = {
+  email: string;
+  name: string;
+  ok: boolean;
+  link?: string;
+  emailed?: boolean;
+};
+
+/**
+ * One invite at a time, in order: Resend's free tier takes a couple of
+ * requests a second, and a class list arriving all at once would trip it.
+ * A failure is recorded and the rest carry on.
+ */
+export async function inviteMany(
+  guests: { name: string; email: string }[],
+  /** groups to add to each guest; their existing groups are kept */
+  labels: string[],
+  onProgress: (done: number) => void
+): Promise<BulkInviteResult[]> {
+  const results: BulkInviteResult[] = [];
+  for (const [i, guest] of guests.entries()) {
+    try {
+      const { link, emailed } = await inviteGuest(guest.email, guest.name, labels);
+      results.push({ ...guest, ok: true, link, emailed });
+    } catch {
+      results.push({ ...guest, ok: false });
+    }
+    onProgress(i + 1);
+    if (i < guests.length - 1) await new Promise((r) => setTimeout(r, 600));
+  }
+  return results;
 }
 
 /** Sets revoked_at - every guest policy re-checks it per query, so access
@@ -60,6 +114,83 @@ export async function revokeGuest(tripId: string, email: string): Promise<void> 
     .eq("trip_id", tripId)
     .eq("email", email);
   if (error) throw new Error(error.message);
+}
+
+// ---------- kids' names next to a guest's name (00067) ----------
+
+/** A guest's own tag. Only that column, only their own row (checked in the function). */
+export async function setMyKidNames(tripId: string, kidNames: string[]): Promise<string[]> {
+  const { data, error } = await requireClient().rpc("set_my_kid_names", {
+    p_trip_id: tripId,
+    p_kid_names: kidNames,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** A parent sets any guest's tag. Owner-only by RLS (members_owner_all). */
+export async function setMemberKidNames(memberId: string, kidNames: string[]): Promise<void> {
+  const { error } = await requireClient().from("members").update({ kid_names: kidNames }).eq("id", memberId);
+  if (error) throw new Error(error.message);
+}
+
+// ---------- join link (00054) ----------
+
+/** The trip's join token (created on first call). Never reset from the app:
+ *  the link is printed on stickers. Owner-only (checked in the function). */
+export async function getJoinToken(tripId: string): Promise<string> {
+  const { data, error } = await requireClient().rpc("guest_join_token", {
+    p_trip_id: tripId,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Open requests, oldest first. Owner-only by RLS. */
+export async function listJoinRequests(tripId: string): Promise<JoinRequestRow[]> {
+  const { data, error } = await requireClient()
+    .from("guest_join_requests")
+    .select("*")
+    .eq("trip_id", tripId)
+    .eq("status", "pending")
+    .order("requested_at");
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Approving is inviteGuest(): the allowlist trigger marks the request
+ *  approved. Declining only closes it; the asker is not told. */
+export async function declineJoinRequest(id: string, memberId: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("guest_join_requests")
+    .update({ status: "declined", decided_at: new Date().toISOString(), decided_by: memberId })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Anyone with the link (signed in or not). */
+export async function getJoinInfo(token: string): Promise<JoinInfo> {
+  const { data, error } = await requireClient().rpc("guest_join_info", { p_token: token });
+  if (error) throw new Error(error.message);
+  return parseJoinInfo(data);
+}
+
+/** Signed in with Google, the address comes from the login and email is ignored. */
+export async function submitJoinRequest(
+  token: string,
+  name: string,
+  email?: string,
+  /** the kids this person is a parent of (00067), copied to their tag on approval */
+  kidNames: string[] = []
+): Promise<SubmitResult> {
+  const { data, error } = await requireClient().rpc("submit_guest_join", {
+    p_token: token,
+    p_name: name,
+    ...(email ? { p_email: email } : {}),
+    ...(kidNames.length === 0 ? {} : { p_kid_names: kidNames }),
+  });
+  if (error) throw new Error(error.message);
+  return parseSubmitResult(data);
 }
 
 // ---------- guest-side photo access (via Edge Function) ----------

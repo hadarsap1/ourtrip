@@ -38,7 +38,7 @@ import type {
 
 const labelClass = "mb-1 block text-[12.5px] font-semibold text-ink-soft";
 const inputClass =
-  "w-full rounded-xl border border-line bg-white px-3 py-2.5 text-base text-ink focus:border-sea focus:outline-none";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink focus:border-sea focus:outline-none";
 
 const BOOKING_TYPES: { value: BookingType; Icon: React.FC<IconProps> }[] = [
   { value: "flight", Icon: PlaneIcon },
@@ -583,7 +583,7 @@ function BookingForm({
             save button on screen instead of at the far end of twelve fields.
             The negative margins let it span the sheet's padding, and the
             safe-area inset it cancels is added back below the buttons. */}
-        <div className="sticky bottom-0 -mx-4 -mb-[calc(1.5rem+env(safe-area-inset-bottom))] flex gap-2 border-t border-line bg-white/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="sticky bottom-0 -mx-4 -mb-[calc(1.5rem+env(safe-area-inset-bottom))] flex gap-2 border-t border-line bg-surface/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
           <button
             type="button"
             onClick={onClose}
@@ -595,7 +595,7 @@ function BookingForm({
           <button
             type="submit"
             disabled={busy || datesContradict}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {progress
               ? strings.bookings.uploading
@@ -624,9 +624,9 @@ function Section({
   return (
     <section className="rounded-2xl border border-line bg-paper/70 p-3">
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <h3 className="text-[11.5px] font-extrabold text-ink">{title}</h3>
+        <h3 className="text-[12px] font-extrabold text-ink">{title}</h3>
         {note && (
-          <span className="text-[11.5px] font-semibold text-sea-deep">
+          <span className="text-[12px] font-semibold text-sea-deep">
             {note}
           </span>
         )}
@@ -729,14 +729,14 @@ function FilePicker({
         className={`flex w-full flex-col items-center gap-1 rounded-xl border border-dashed py-3.5 transition-colors disabled:opacity-60 ${
           dragging
             ? "border-sea bg-sea-tint"
-            : "border-line bg-white hover:bg-paper-deep"
+            : "border-line bg-surface hover:bg-paper-deep"
         }`}
       >
         <span className="flex items-center gap-1.5 text-[13px] font-bold text-sea">
           <PlusIcon className="h-4 w-4" />
           {strings.bookings.attachFiles}
         </span>
-        <span className="text-[11px] text-ink-soft" dir="auto">
+        <span className="text-[12px] text-ink-soft" dir="auto">
           {strings.bookings.attachHint}
         </span>
       </button>
@@ -816,7 +816,7 @@ function FileRow({
       className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${
         tone === "pending"
           ? "border-dashed border-sea/40 bg-sea-tint/40"
-          : "border-line bg-white"
+          : "border-line bg-surface"
       }`}
     >
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-paper-deep text-ink-soft">
@@ -832,7 +832,7 @@ function FileRow({
           {name}
         </span>
         {meta && (
-          <span className="block text-[11px] text-ink-soft" dir="auto">
+          <span className="block text-[12px] text-ink-soft" dir="auto">
             {meta}
           </span>
         )}
@@ -888,7 +888,7 @@ function TypePicker({
             className={`flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-[12px] transition-colors ${
               active
                 ? "border-sea bg-sea-tint font-bold text-sea-deep"
-                : "border-line bg-white font-semibold text-ink-soft hover:bg-paper-deep"
+                : "border-line bg-surface font-semibold text-ink-soft hover:bg-paper-deep"
             }`}
           >
             <Icon className="h-[19px] w-[19px]" strokeWidth={1.7} />

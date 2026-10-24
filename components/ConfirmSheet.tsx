@@ -80,7 +80,7 @@ export function ConfirmHost() {
         <button
           type="button"
           onClick={() => answer(false)}
-          className="min-h-[48px] flex-1 rounded-xl border border-line bg-white px-4 font-semibold text-ink-soft active:bg-paper-deep"
+          className="min-h-[48px] flex-1 rounded-xl border border-line bg-surface px-4 font-semibold text-ink-soft active:bg-paper-deep"
         >
           {strings.common.cancel}
         </button>

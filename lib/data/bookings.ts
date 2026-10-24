@@ -1,3 +1,4 @@
+import { realtimeTopic } from "@/lib/realtimeTopic";
 import { getSupabase } from "@/lib/supabase";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { Booking, BookingFile } from "@/lib/types";
@@ -183,7 +184,7 @@ export function subscribeBookings(onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
   const channel = supabase
-    .channel("bookings-sync")
+    .channel(realtimeTopic("bookings-sync"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "bookings" },

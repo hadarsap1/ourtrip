@@ -47,6 +47,8 @@ export async function createJournalEntry(input: {
   body: string;
   mood: string | null;
   locationName: string | null;
+  /** Defaults to today; a replayed offline entry keeps the day it was written. */
+  entryDate?: string;
 }): Promise<JournalEntry> {
   const { data, error } = await requireClient()
     .from("journal_entries")
@@ -55,7 +57,7 @@ export async function createJournalEntry(input: {
       author_id: input.authorId,
       body: input.body.trim(),
       mood: input.mood,
-      entry_date: todayISO(),
+      entry_date: input.entryDate ?? todayISO(),
       location_name: input.locationName,
     })
     .select()
@@ -64,19 +66,36 @@ export async function createJournalEntry(input: {
   return data;
 }
 
+/**
+ * Saves, or queues when the connection is down (F10 write queue). The entry
+ * keeps the date it was written on. Returns the saved row, or "queued".
+ */
+export async function createJournalEntryOrQueue(
+  input: Parameters<typeof createJournalEntry>[0]
+): Promise<JournalEntry | "queued"> {
+  const entryDate = input.entryDate ?? todayISO();
+  try {
+    return await createJournalEntry({ ...input, entryDate });
+  } catch (e) {
+    const { isConnectivityError } = await import("@/lib/data/expenses");
+    if (!isConnectivityError(e)) throw e;
+    const { enqueueJournal } = await import("@/lib/offline/queue");
+    await enqueueJournal({
+      tripId: input.tripId,
+      authorId: input.authorId,
+      body: input.body.trim(),
+      mood: input.mood,
+      locationName: input.locationName,
+      entryDate,
+    });
+    return "queued";
+  }
+}
+
 export async function deleteJournalEntry(id: string): Promise<void> {
   const { error } = await requireClient()
     .from("journal_entries")
     .delete()
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
-/** Owner-only (RLS + journal guard block kids from flipping this). */
-export async function setJournalShared(id: string, shared: boolean): Promise<void> {
-  const { error } = await requireClient()
-    .from("journal_entries")
-    .update({ shared_with_guests: shared })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }

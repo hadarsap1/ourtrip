@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import { resetAuthGate } from "@/components/AuthGate";
 import { isKidDevice, registerDevice, unlockWithPin } from "@/lib/data/kids";
 import { CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useIsKidDevice, useKidDisplayName } from "@/lib/useKidDevice";
+import { refreshMember } from "@/lib/useMember";
 
 export function KidLoginScreen() {
   const router = useRouter();
@@ -56,6 +58,8 @@ export function KidLoginScreen() {
     );
     setPin("");
     if (result.status === "ok") {
+      resetAuthGate();
+      refreshMember();
       router.replace("/");
       return;
     }
@@ -113,7 +117,7 @@ export function KidLoginScreen() {
             <button
               type="submit"
               disabled={busy || code.trim().length < 6}
-              className="w-full rounded-2xl bg-sea py-4 text-lg font-bold text-white hover:bg-sea-deep disabled:opacity-50"
+              className="w-full rounded-2xl bg-sea py-4 text-lg font-bold text-on-sea hover:bg-sea-deep disabled:opacity-50"
             >
               {strings.kidLogin.connect}
             </button>
@@ -149,7 +153,7 @@ export function KidLoginScreen() {
                 type="button"
                 onClick={() => pressDigit(d)}
                 disabled={busy}
-                className="rounded-2xl bg-white py-4 text-2xl font-bold text-ink shadow-sm active:bg-sea-tint disabled:opacity-50"
+                className="rounded-2xl bg-surface py-4 text-2xl font-bold text-ink shadow-sm active:bg-sea-tint disabled:opacity-50"
               >
                 {d}
               </button>
@@ -167,7 +171,7 @@ export function KidLoginScreen() {
               type="button"
               onClick={() => pressDigit("0")}
               disabled={busy}
-              className="rounded-2xl bg-white py-4 text-2xl font-bold text-ink shadow-sm active:bg-sea-tint disabled:opacity-50"
+              className="rounded-2xl bg-surface py-4 text-2xl font-bold text-ink shadow-sm active:bg-sea-tint disabled:opacity-50"
             >
               0
             </button>
@@ -175,7 +179,7 @@ export function KidLoginScreen() {
               type="button"
               onClick={() => pin.length >= 4 && void submitPin(pin)}
               disabled={busy || pin.length < 4}
-              className="rounded-2xl bg-sea py-4 text-lg font-bold text-white disabled:opacity-40"
+              className="rounded-2xl bg-sea py-4 text-lg font-bold text-on-sea disabled:opacity-40"
             >
               <CheckIcon className="mx-auto h-5 w-5" />
             </button>

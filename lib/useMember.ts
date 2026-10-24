@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { getCurrentMember } from "@/lib/data/trip";
+import { forgetCurrentMember, getCurrentMember } from "@/lib/data/trip";
 import type { Member } from "@/lib/types";
 
 /** Current member row (cached module-side). Role gates are cosmetic -
@@ -36,21 +36,56 @@ function publish(next: Snapshot): void {
   for (const notify of listeners) notify();
 }
 
+// A lookup that was overtaken by a newer one must not publish its answer.
+let generation = 0;
+
+function resolve(): void {
+  started = true;
+  const mine = ++generation;
+  void getCurrentMember()
+    .then((member) => {
+      if (mine === generation) publish({ member, memberLoading: false, memberFailed: false });
+    })
+    .catch(() => {
+      if (mine === generation) publish({ member: null, memberLoading: false, memberFailed: true });
+    });
+}
+
 function subscribe(notify: () => void): () => void {
   listeners.add(notify);
-  if (!started) {
-    started = true;
-    void getCurrentMember()
-      .then((member) =>
-        publish({ member, memberLoading: false, memberFailed: false })
-      )
-      .catch(() =>
-        publish({ member: null, memberLoading: false, memberFailed: true })
-      );
-  }
+  if (!started) resolve();
   return () => {
     listeners.delete(notify);
   };
+}
+
+/**
+ * Ask again after signing in without a page load. The kid PIN unlock mints a
+ * session in place; the store had already resolved "nobody" before it, so the
+ * tablet showed a member-less app (no kid home) until a reload.
+ */
+export function refreshMember(): void {
+  publish(INITIAL);
+  resolve();
+}
+
+/**
+ * AuthGate just linked this login to its member row. The store may have asked
+ * "who am I?" before the link existed: on a guest's first open after a parent
+ * approved them it got "nobody", and the home screen fell through to the
+ * parents' dashboard (QA 17/10). Ask again unless it already knows the role.
+ */
+export function memberLinked(role: string): void {
+  if (snapshot.member?.role === role) return;
+  forgetCurrentMember();
+  refreshMember();
+}
+
+/** The member's own row was just changed (a guest's kids' names, 00067):
+ *  read it again quietly, without the loading state refreshMember shows. */
+export function memberChanged(): void {
+  forgetCurrentMember();
+  resolve();
 }
 
 export function useMember(): Snapshot {

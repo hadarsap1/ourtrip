@@ -14,6 +14,7 @@ import {
   deletePhoto,
   listPhotos,
   rejectPhoto,
+  setPhotoAudience,
   setPhotoShared,
   uploadPhoto,
   type PhotoWithUrl,
@@ -25,6 +26,8 @@ import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
+import { AudienceRow, AudienceSheet } from "@/components/AudienceSheet";
+import { listMyGroups } from "@/lib/data/groups";
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -88,7 +91,7 @@ function GuestPhotosView() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
       {isEmpty && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>
       )}
@@ -102,7 +105,7 @@ function GuestPhotosView() {
             {dayPhotos.map((photo) => (
               <li
                 key={photo.id}
-                className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
+                className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
               >
                 {photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -164,6 +167,11 @@ function FamilyPhotosView() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // guest groups (00063): a parent can limit a shared photo to some of them
+  const [groups, setGroups] = useState<string[]>([]);
+  const [audienceFor, setAudienceFor] = useState<PhotoWithUrl | null>(null);
+  // who the next upload is for - everyone by default (00064)
+  const [uploadAudience, setUploadAudience] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -199,6 +207,18 @@ function FamilyPhotosView() {
     };
   }, [refresh, showToast]);
 
+  const isOwnerRole = member?.role === "owner";
+  useEffect(() => {
+    if (!trip || !isOwnerRole) return;
+    let cancelled = false;
+    void listMyGroups("owner")
+      .then((g) => !cancelled && setGroups(g))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [trip, isOwnerRole]);
+
   async function handleUpload(file: File | null) {
     if (!file || !trip || !member || uploading) return;
     setUploading(true);
@@ -208,6 +228,7 @@ function FamilyPhotosView() {
         memberId: member.id,
         isOwner: member.role === "owner",
         file,
+        audience: uploadAudience,
       });
       await refresh(trip.id);
       showToast(
@@ -258,11 +279,12 @@ function FamilyPhotosView() {
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className="w-full rounded-2xl bg-sea py-3 font-bold text-white shadow hover:bg-sea-deep disabled:opacity-60"
+        className="w-full rounded-2xl bg-sea py-3 font-bold text-on-sea shadow hover:bg-sea-deep disabled:opacity-60"
       >
         <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
         {uploading ? strings.photos.uploading : strings.photos.upload}
       </button>
+      <AudienceRow label={strings.audience.who} value={uploadAudience} onChange={setUploadAudience} />
       <input
         ref={fileRef}
         type="file"
@@ -287,7 +309,7 @@ function FamilyPhotosView() {
           </h2>
           <ul className="space-y-3">
             {pending.map((photo) => (
-              <li key={photo.id} className="overflow-hidden rounded-xl bg-white shadow-sm">
+              <li key={photo.id} className="overflow-hidden rounded-xl bg-surface shadow-sm">
                 {photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
                   <img src={photo.url} alt={photo.caption ?? ""} className="max-h-72 w-full object-cover" />
@@ -296,7 +318,7 @@ function FamilyPhotosView() {
                   <button
                     type="button"
                     onClick={() => member && void run(() => approvePhoto(photo.id, member.id))}
-                    className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-bold text-white"
+                    className="flex-1 rounded-lg bg-sea py-2 text-sm font-bold text-on-sea"
                   >
                     <CheckIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
                     {strings.photos.approve}
@@ -317,7 +339,7 @@ function FamilyPhotosView() {
       )}
 
       {visible.length === 0 && pending.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>
       ) : (
@@ -325,7 +347,7 @@ function FamilyPhotosView() {
           {visible.map((photo) => (
             <li
               key={photo.id}
-              className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
             >
               {photo.url && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed URL
@@ -362,10 +384,21 @@ function FamilyPhotosView() {
                           showToast(strings.common.error)
                         );
                       }}
-                      className="h-3.5 w-3.5 accent-teal-600"
+                      className="h-3.5 w-3.5 accent-[var(--brand)]"
                     />
                     {strings.photos.shareToggle}
                   </label>
+                )}
+                {isOwner && photo.status === "approved" && photo.shared_with_guests && groups.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAudienceFor(photo)}
+                    className="block text-start font-semibold text-sea underline"
+                  >
+                    {photo.audience.length > 0
+                      ? strings.audience.onlyTo.replace("{to}", photo.audience.join(", "))
+                      : strings.audience.allGuests}
+                  </button>
                 )}
                 {!isOwner && photo.shared_with_guests && (
                   <span className="font-semibold text-sea">
@@ -390,6 +423,24 @@ function FamilyPhotosView() {
         </ul>
       )}
 
+      {audienceFor && (
+        <AudienceSheet
+          groups={groups}
+          value={audienceFor.audience}
+          onClose={() => setAudienceFor(null)}
+          onSave={async (audience) => {
+            const id = audienceFor.id;
+            setAudienceFor(null);
+            try {
+              await setPhotoAudience(id, audience);
+              setPhotos((prev) => prev.map((x) => (x.id === id ? { ...x, audience } : x)));
+              showToast(strings.audience.saved);
+            } catch {
+              showToast(strings.common.error);
+            }
+          }}
+        />
+      )}
       <Toast message={toast} />
     </div>
   );

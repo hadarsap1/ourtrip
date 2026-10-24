@@ -39,18 +39,47 @@ export type EmergencySnapshot = {
   updatedAt: string;
 };
 
-export type PendingWrite = {
+type QueueMeta = {
   id?: number;
-  kind: "expense";
-  payload: {
-    categoryId: string;
-    amount: number;
-    currency: string;
-    description: string | null;
-    spentOn: string;
-  };
   createdAt: string;
+  /** Transient failures so far; drives backoff (lib/offline/queuePolicy.ts). */
+  attempts?: number;
+  nextAttemptAt?: string;
+  lastError?: string;
 };
+
+export type ExpensePayload = {
+  categoryId: string;
+  amount: number;
+  currency: string;
+  description: string | null;
+  spentOn: string;
+};
+
+export type JournalPayload = {
+  tripId: string;
+  authorId: string;
+  body: string;
+  mood: string | null;
+  locationName: string | null;
+  /** The day it was written, not the day it syncs. */
+  entryDate: string;
+};
+
+export type DayNotePayload = {
+  dayId: string;
+  notes: string | null;
+  /** When the edit was made here; last-write-wins against the row's updated_at. */
+  editedAt: string;
+};
+
+export type PendingWrite =
+  | (QueueMeta & { kind: "expense"; payload: ExpensePayload })
+  | (QueueMeta & { kind: "journal"; payload: JournalPayload })
+  | (QueueMeta & { kind: "note"; payload: DayNotePayload });
+
+/** A write that can never succeed as-is, kept so nothing vanishes silently. */
+export type FailedWrite = PendingWrite & { failedAt: string; reason: string };
 
 export type PhrasebookSnapshot = {
   language: string;
@@ -84,6 +113,13 @@ export type MapSnapshot = {
   savedAt: string;
 };
 
+/** Last good result of a screen's queries, shown first on the next open (F9). */
+export type QueryCacheEntry = {
+  key: string;
+  data: unknown;
+  savedAt: string;
+};
+
 interface OurTripDB extends DBSchema {
   documents_offline: { key: string; value: OfflineDocument };
   today_itinerary: { key: string; value: TodaySnapshot };
@@ -92,13 +128,15 @@ interface OurTripDB extends DBSchema {
   pending_writes: { key: number; value: PendingWrite };
   map_snapshot: { key: string; value: MapSnapshot };
   destination_facts: { key: string; value: FactsSnapshot };
+  query_cache: { key: string; value: QueryCacheEntry };
+  failed_writes: { key: number; value: FailedWrite };
 }
 
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 3, {
+  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 5, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore("documents_offline", { keyPath: "id" });
@@ -115,6 +153,12 @@ export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
       }
       if (oldVersion < 3) {
         db.createObjectStore("destination_facts", { keyPath: "key" });
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore("query_cache", { keyPath: "key" });
+      }
+      if (oldVersion < 5) {
+        db.createObjectStore("failed_writes", { keyPath: "id", autoIncrement: true });
       }
     },
   });

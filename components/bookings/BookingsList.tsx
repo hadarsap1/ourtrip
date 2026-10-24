@@ -6,6 +6,9 @@ import {
   BedIcon,
   CalendarIcon,
   CarIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  CoinIcon,
   FileIcon,
   type IconProps,
   LinkIcon,
@@ -24,6 +27,8 @@ import { countryName } from "@/lib/data/emergency";
 import type { Stretch } from "@/lib/data/segments";
 import { formatDate, formatMoney, formatShortDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
+import { isEnabled } from "@/lib/flags";
+import { BookingFactsStrip, TypeTiles } from "./BookingsV2Parts";
 import type {
   Booking,
   BookingFile,
@@ -77,7 +82,13 @@ export function BookingsList({
   onImportMail,
   onEdit,
   onAddToDay,
+  onSyncHotels,
+  syncingHotels,
   onError,
+  onPaste,
+  onExportIcs,
+  expensedIds,
+  onAddExpense,
 }: {
   bookings: Booking[];
   /** The trip's days, which is what turns a booking's dates into a place. */
@@ -89,11 +100,37 @@ export function BookingsList({
   onImportMail: () => void;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
+  /** Lets the hotel bookings relabel the plan's days (one confirm sheet). */
+  onSyncHotels: () => void;
+  syncingHotels: boolean;
   onError: () => void;
+  /** Paste-to-import (2.1); absent when bookingsV2 is off. */
+  onPaste?: () => void;
+  /** ICS export (2.7); absent when icsExport is off. */
+  onExportIcs?: () => void;
+  /** Bookings that already have their expense in the budget. */
+  expensedIds: Set<string>;
+  onAddExpense: (booking: Booking) => void;
 }) {
+  const v2 = isEnabled("bookingsV2");
+  const [typeFilter, setTypeFilter] = useState<BookingType | null>(null);
+  const shown = useMemo(
+    () => (v2 && typeFilter ? bookings.filter((b) => b.type === typeFilter) : bookings),
+    [bookings, typeFilter, v2]
+  );
+  // A cancelled booking is history, not plan: it would only crowd the legs it
+  // no longer belongs to. It stays reachable (to read, edit or delete) in a
+  // collapsed section under the list.
   const groups = useMemo(
-    () => groupBookingsByLeg(bookings, days),
-    [bookings, days]
+    () => groupBookingsByLeg(shown.filter((b) => b.status !== "cancelled"), days),
+    [shown, days]
+  );
+  const cancelled = useMemo(
+    () =>
+      groupBookingsByLeg(shown.filter((b) => b.status === "cancelled"), days).flatMap(
+        (group) => group.bookings
+      ),
+    [shown, days]
   );
 
   const filesByBooking = useMemo(() => {
@@ -109,10 +146,12 @@ export function BookingsList({
   return (
     <div className="space-y-4 pb-8">
       {bookings.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-ink-soft">
+        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.bookings.empty}
         </p>
       )}
+
+      {v2 && <TypeTiles bookings={bookings} icons={TYPE_ICON} value={typeFilter} onChange={setTypeFilter} />}
 
       {groups.map((group) => (
         <LegSection
@@ -122,14 +161,39 @@ export function BookingsList({
           onEdit={onEdit}
           onAddToDay={onAddToDay}
           onError={onError}
+          expensedIds={expensedIds}
+          onAddExpense={onAddExpense}
         />
       ))}
+
+      {cancelled.length > 0 && (
+        <details className="group rounded-2xl border border-line bg-surface">
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-1 px-4 text-sm font-bold text-ink-soft [&::-webkit-details-marker]:hidden">
+            {strings.bookings.cancelledSection.replace("{n}", String(cancelled.length))}
+            <ChevronDownIcon className="h-4 w-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="space-y-3 px-3 pb-3">
+            {cancelled.map((placement) => (
+              <BookingCard
+                key={placement.booking.id}
+                placement={placement}
+                files={filesByBooking.get(placement.booking.id) ?? EMPTY_FILES}
+                onEdit={() => onEdit(placement.booking)}
+                onAddToDay={() => onAddToDay(placement.booking)}
+                onError={onError}
+                inBudget={expensedIds.has(placement.booking.id)}
+                onAddExpense={() => onAddExpense(placement.booking)}
+              />
+            ))}
+          </div>
+        </details>
+      )}
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         <button
           type="button"
           onClick={onAdd}
-          className="rounded-2xl bg-sea py-3 text-sm font-bold text-white hover:bg-sea-deep"
+          className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea hover:bg-sea-deep"
         >
           {strings.bookings.add}
         </button>
@@ -144,11 +208,43 @@ export function BookingsList({
         <button
           type="button"
           onClick={onImportMail}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
         >
           <MailIcon className="h-[17px] w-[17px]" />
           {strings.mailImport.open}
         </button>
+        {onExportIcs && (
+          <button
+            type="button"
+            onClick={onExportIcs}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          >
+            <CalendarIcon className="h-[17px] w-[17px]" />
+            {strings.bookingsV2.exportIcs}
+          </button>
+        )}
+        {onPaste && (
+          <button
+            type="button"
+            onClick={onPaste}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep"
+          >
+            <FileIcon className="h-[17px] w-[17px]" />
+            {strings.bookingsV2.paste}
+          </button>
+        )}
+        {/* Only worth offering once there is a hotel to sync from. */}
+        {bookings.some((b) => b.type === "hotel" && b.status !== "cancelled") && (
+          <button
+            type="button"
+            onClick={onSyncHotels}
+            disabled={syncingHotels}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft hover:bg-paper-deep disabled:opacity-60 sm:col-span-2"
+          >
+            <BedIcon className="h-[17px] w-[17px]" />
+            {syncingHotels ? strings.bookings.hotelSyncWorking : strings.bookings.hotelSyncOpen}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -167,12 +263,16 @@ function LegSection({
   onEdit,
   onAddToDay,
   onError,
+  expensedIds,
+  onAddExpense,
 }: {
   group: BookingGroup;
   filesByBooking: Map<string, BookingFile[]>;
   onEdit: (booking: Booking) => void;
   onAddToDay: (booking: Booking) => void;
   onError: () => void;
+  expensedIds: Set<string>;
+  onAddExpense: (booking: Booking) => void;
 }) {
   const { stretch } = group;
   const count = group.bookings.length;
@@ -188,21 +288,21 @@ function LegSection({
           {stretch ? legLabel(stretch) : strings.bookings.legUnplaced}
         </h2>
         {stretch?.countryCode && (
-          <span className="rounded bg-white px-1.5 py-px text-[10px] font-bold text-sea">
+          <span className="rounded bg-surface px-1.5 py-px text-[12px] font-bold text-sea">
             {stretch.countryCode}
           </span>
         )}
         {stretch && (
-          <span className="text-[11px] font-semibold text-ink-soft" dir="ltr">
+          <span className="text-[12px] font-semibold text-ink-soft" dir="ltr">
             {formatShortDate(stretch.from)}
             {stretch.to !== stretch.from && ` - ${formatShortDate(stretch.to)}`}
           </span>
         )}
-        <span className="text-[11px] text-ink-soft">{countLabel}</span>
+        <span className="text-[12px] text-ink-soft">{countLabel}</span>
       </div>
 
       {!stretch && (
-        <p className="mb-2 rounded-xl bg-alert-tint px-3 py-2 text-[11.5px] text-alert">
+        <p className="mb-2 rounded-xl bg-alert-tint px-3 py-2 text-[12px] text-alert">
           {strings.bookings.legUnplacedHint}
         </p>
       )}
@@ -216,6 +316,8 @@ function LegSection({
             onEdit={() => onEdit(placement.booking)}
             onAddToDay={() => onAddToDay(placement.booking)}
             onError={onError}
+            inBudget={expensedIds.has(placement.booking.id)}
+            onAddExpense={() => onAddExpense(placement.booking)}
           />
         ))}
       </div>
@@ -229,12 +331,16 @@ function BookingCard({
   onEdit,
   onAddToDay,
   onError,
+  inBudget,
+  onAddExpense,
 }: {
   placement: BookingPlacement;
   files: BookingFile[];
   onEdit: () => void;
   onAddToDay: () => void;
   onError: () => void;
+  inBudget: boolean;
+  onAddExpense: () => void;
 }) {
   const { booking } = placement;
   // One file opens straight from the row. Several would turn the action row
@@ -257,12 +363,13 @@ function BookingCard({
   // filed under Hanoi, and has to say where it lands.
   const crossing = placement.stretches.length > 1;
   const address = addressOf(booking);
+  const hasCost = booking.cost != null && booking.cost > 0;
   const where = crossing
     ? placement.stretches.map(legLabel).join(" ← ")
     : address;
 
   return (
-    <section className="rounded-[18px] border border-line bg-white p-3">
+    <section className="rounded-[18px] border border-line bg-surface p-3">
       <button
         type="button"
         onClick={onEdit}
@@ -298,11 +405,11 @@ function BookingCard({
             </span>
             {where && (
               <span
-                className="mt-1 flex items-center gap-1 text-[11.5px] text-sea-deep"
+                className="mt-1 flex items-center gap-1 text-[12px] text-sea-deep"
                 aria-label={strings.bookings.whereAria}
               >
                 <PinIcon className="h-3 w-3 shrink-0" strokeWidth={1.7} />
-                <span className="truncate">{where}</span>
+                <span className="truncate" dir="auto">{where}</span>
               </span>
             )}
           </span>
@@ -321,8 +428,10 @@ function BookingCard({
         </span>
       </button>
 
+      {isEnabled("bookingsV2") && <BookingFactsStrip booking={booking} />}
+
       {notOnPlan && (
-        <p className="mt-1.5 text-[11.5px] text-ink-soft">{notOnPlan}</p>
+        <p className="mt-1.5 text-[12px] text-ink-soft">{notOnPlan}</p>
       )}
 
       <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2 text-xs font-semibold">
@@ -361,6 +470,25 @@ function BookingCard({
           <CalendarIcon className="h-3.5 w-3.5" />
           {strings.bookings.addToDay}
         </button>
+        {/* Only a booking with a price can become an expense. Whichever way
+            it arrived (form, mail, paste) or got its price (an edit later),
+            the card is where it can still go into the budget. */}
+        {hasCost && booking.status !== "cancelled" &&
+          (inBudget ? (
+            <span className="flex items-center gap-1 rounded-lg bg-success-soft px-2.5 py-1.5 text-success">
+              <CheckIcon className="h-3.5 w-3.5" />
+              {strings.bookings.inBudget}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onAddExpense}
+              className="flex min-h-[44px] items-center gap-1.5 rounded-lg bg-sea-tint px-2.5 py-1.5 text-sea"
+            >
+              <CoinIcon className="h-3.5 w-3.5" />
+              {strings.bookings.addToBudget}
+            </button>
+          ))}
       </div>
 
       {showFiles && files.length > 1 && (

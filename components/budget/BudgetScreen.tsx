@@ -6,10 +6,12 @@ import { TicketIcon } from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
 import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
-import { listCategories, listExpenses } from "@/lib/data/expenses";
+import { getTripTotalBudget, listCategories, listExpenses } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
 import { strings } from "@/lib/strings";
+import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { tripPosition } from "@/lib/tripDay";
 import type { BudgetCategory, Expense, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
@@ -17,6 +19,10 @@ import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
+import { BudgetV2 } from "./BudgetV2";
+import { isEnabled } from "@/lib/flags";
+import { listDays } from "@/lib/data/itinerary";
+import type { ItineraryDay } from "@/lib/types";
 
 function daysBetween(fromISO: string, toISO: string): number {
   return Math.floor(
@@ -39,9 +45,13 @@ export function BudgetScreen() {
     category: BudgetCategory | null;
   } | null>(null);
   const [editingTotal, setEditingTotal] = useState(false);
+  // Owner-only (trip_budget, 00056); null = not set, or not a parent.
+  const [totalBudget, setTotalBudget] = useState<number | null>(null);
   const [quickLines, setQuickLines] = useState(false);
   // Today's local currency, so a new expense opens in the money you're holding.
   const [localCurrency, setLocalCurrency] = useState<string | null>(null);
+  // Budget v2: itinerary days place each expense in a country.
+  const [days, setDays] = useState<ItineraryDay[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -51,12 +61,16 @@ export function BudgetScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [cats, exps] = await Promise.all([
+    const [cats, exps, total] = await Promise.all([
       listCategories(tripId),
       listExpenses(tripId),
+      // not fatal: with no total the screen derives one from the categories
+      getTripTotalBudget(tripId).catch(() => null),
     ]);
     setCategories(cats);
     setExpenses(exps);
+    setTotalBudget(total);
+    void writeQuery(queryKeys.budget(tripId), { cats, exps, total });
   }, []);
 
   useEffect(() => {
@@ -73,10 +87,31 @@ export function BudgetScreen() {
           if (!cancelled) setLocalCurrency(currencyForCountry(code));
         })
         .catch(() => {});
+      if (isEnabled("budgetV2")) {
+        void readQuery<{ days: ItineraryDay[] }>(queryKeys.itinerary(activeTrip.id)).then((hit) => {
+          if (!cancelled && hit?.data.days) setDays(hit.data.days);
+        });
+        void listDays(activeTrip.id)
+          .then((d) => {
+            if (!cancelled) setDays(d);
+          })
+          .catch(() => {});
+      }
+      // Cache-first (F9): last good data paints at once, the network refresh follows.
+      const cached = await readQuery<{ cats: typeof categories; exps: typeof expenses; total?: number | null }>(
+        queryKeys.budget(activeTrip.id)
+      );
+      if (cached && !cancelled) {
+        setCategories(cached.data.cats);
+        setExpenses(cached.data.exps);
+        setTotalBudget(cached.data.total ?? null);
+        setLoading(false);
+      }
       try {
         await refresh(activeTrip.id);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        // With cached data on screen the offline banner already says why.
+        if (!cancelled && !cached) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -92,17 +127,13 @@ export function BudgetScreen() {
   }, [trip, refresh, showToast]);
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    return <ScreenSkeleton variant="cards" />;
   }
 
   // ---------- dashboard math ----------
   const spent = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
   const { planned, target, hasTarget, gap, overTarget, budgetForProgress } =
-    resolveBudgetTotals(trip?.total_budget, categories);
+    resolveBudgetTotals(totalBudget, categories);
   const spentByCategory = new Map<string, number>();
   for (const e of expenses) {
     spentByCategory.set(
@@ -148,6 +179,7 @@ export function BudgetScreen() {
     categories.find((c) => c.id === id)?.label_he ?? "";
 
   const position = tripPosition(trip?.start_date, trip?.end_date, today);
+  const v2 = isEnabled("budgetV2");
   // Shared with the home screen's budget block, so the two cannot drift apart
   // again: they once drew the same bar from different numbers.
   const { remaining, usedPct } = resolveBudgetProgress(
@@ -175,22 +207,34 @@ export function BudgetScreen() {
     .sort((a, b) => b.amount - a.amount);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
       <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.budget}</h1>
+
+      {v2 && (
+        <BudgetV2
+          categories={categories}
+          expenses={expenses}
+          days={days}
+          budgetForProgress={budgetForProgress}
+          remaining={remaining}
+          onEditCategory={(category) => setCategoryForm({ category })}
+        />
+      )}
 
       {/* Three numbers, three cards - spent, left, per day. The old screen made
           you read a paragraph of a card to find any of them. */}
+      {!v2 && (
       <div className="grid grid-cols-3 gap-2.5">
-        <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
+        <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+          <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-ink-soft">
             {strings.budget.kpiSpent}
           </p>
           <p className="mt-1 text-[17px] font-extrabold leading-none text-ink">
             {formatMoney(Math.round(spent), "ILS")}
           </p>
         </div>
-        <div className="rounded-2xl border border-line bg-white px-3 py-2.5">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-ink-soft">
+        <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+          <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-ink-soft">
             {remaining < 0 ? strings.budget.kpiOver : strings.budget.kpiRemaining}
           </p>
           <p
@@ -205,7 +249,7 @@ export function BudgetScreen() {
         </div>
         {/* the screen's single sun-filled surface */}
         <div className="rounded-2xl border border-sun/20 bg-sun-tint px-3 py-2.5">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-sun-deep">
+          <p className="text-[12px] font-bold uppercase tracking-[0.09em] text-sun-deep">
             {strings.budget.kpiPerDay}
           </p>
           <p className="mt-1 text-[17px] font-extrabold leading-none text-sun-deep">
@@ -215,10 +259,11 @@ export function BudgetScreen() {
           </p>
         </div>
       </div>
+      )}
 
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
-      <section className="rounded-[18px] border border-line bg-white px-3.5 py-3">
+      <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[12.5px] font-bold text-ink">
             {budgetForProgress > 0
@@ -226,7 +271,7 @@ export function BudgetScreen() {
               : strings.budget.totalSpent}
           </p>
           {position && (
-            <span className="shrink-0 text-[11px] text-ink-soft">
+            <span className="shrink-0 text-[12px] text-ink-soft">
               {strings.today.dayOf
                 .replace("{n}", String(position.day))
                 .replace("{total}", String(position.total))}
@@ -254,7 +299,7 @@ export function BudgetScreen() {
           )}
         </div>
 
-        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[11px] text-ink-soft">
+        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[12px] text-ink-soft">
           <span>
             {strings.budget.projection}{" "}
             <span className="font-bold text-ink" dir="ltr">
@@ -273,7 +318,7 @@ export function BudgetScreen() {
           )}
         </div>
         {notStarted && (
-          <p className="mt-1 text-[11px] text-ink-faint">
+          <p className="mt-1 text-[12px] text-ink-faint">
             {strings.budget.tripNotStarted}
           </p>
         )}
@@ -283,7 +328,7 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setEditingTotal(true)}
-          className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[11px] hover:bg-paper-deep"
+          className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg border-t border-line px-0.5 pt-2.5 text-[12px] hover:bg-paper-deep"
         >
           <span className="text-ink-soft">
             {hasTarget
@@ -305,7 +350,8 @@ export function BudgetScreen() {
       </section>
 
       {/* category rows, ruled rather than carded; tap → edit planned amount */}
-      <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+      {!v2 && (
+      <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
         <header className="flex items-center justify-between bg-paper-deep px-3.5 py-2.5">
           <h2 className="text-xs font-bold text-ink">
             {strings.budget.byCategory}
@@ -313,7 +359,7 @@ export function BudgetScreen() {
           <button
             type="button"
             onClick={() => setCategoryForm({ category: null })}
-            className="min-h-[40px] rounded-full bg-white px-3 py-1 text-[11px] font-bold text-sea"
+            className="min-h-[44px] rounded-full bg-surface px-3 py-1 text-[12px] font-bold text-sea"
           >
             + {strings.budget.addCategory}
           </button>
@@ -346,7 +392,7 @@ export function BudgetScreen() {
                         </span>
                         {pct !== null && (
                           <span
-                            className={`shrink-0 text-[10.5px] font-bold ${
+                            className={`shrink-0 text-[12px] font-bold ${
                               over ? "text-sun-deep" : "text-ink-faint"
                             }`}
                             dir="ltr"
@@ -396,11 +442,22 @@ export function BudgetScreen() {
           </ul>
         )}
       </section>
+      )}
+
+      {v2 && (
+        <button
+          type="button"
+          onClick={() => setCategoryForm({ category: null })}
+          className="self-start rounded-full px-3 text-[12px] font-bold text-sea"
+        >
+          + {strings.budget.addCategory}
+        </button>
+      )}
 
       <ConverterCard />
 
       {/* recent expenses */}
-      <section className="overflow-hidden rounded-[18px] border border-line bg-white">
+      <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
         <header className="bg-paper-deep px-3.5 py-2.5">
           <h2 className="text-xs font-bold text-ink">
             {strings.budget.recentExpenses}
@@ -423,7 +480,7 @@ export function BudgetScreen() {
                     <span className="block truncate text-[13.5px] font-medium text-ink">
                       {expense.description || categoryLabel(expense.category_id)}
                     </span>
-                    <span className="flex items-center gap-1 text-[10.5px] text-ink-soft">
+                    <span className="flex items-center gap-1 text-[12px] text-ink-soft">
                       {categoryLabel(expense.category_id)} ·{" "}
                       <span dir="ltr">{formatShortDate(expense.spent_on)}</span>
                       {expense.booking_id && (
@@ -439,7 +496,7 @@ export function BudgetScreen() {
                       {formatMoney(expense.amount_ils, "ILS")}
                     </span>
                     {expense.currency !== "ILS" && (
-                      <span className="text-[10.5px] text-ink-soft" dir="ltr">
+                      <span className="text-[12px] text-ink-soft" dir="ltr">
                         {formatMoney(expense.amount, expense.currency)}
                       </span>
                     )}
@@ -456,8 +513,8 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setExpenseForm({ expense: null })}
-          className="rounded-2xl bg-sea py-3 text-sm font-bold text-white active:bg-sea-deep"
-          style={{ boxShadow: "0 10px 22px -14px rgba(14,124,107,.7)" }}
+          className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea active:bg-sea-deep"
+          style={{ boxShadow: "0 10px 22px -14px rgba(78,107,69,.7)" }}
         >
           {strings.budget.addExpense}
         </button>
@@ -465,7 +522,7 @@ export function BudgetScreen() {
           type="button"
           onClick={() => setQuickLines(true)}
           disabled={categories.length === 0}
-          className="rounded-2xl border border-line bg-white py-3 text-sm font-bold text-ink-soft disabled:opacity-50"
+          className="rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft disabled:opacity-50"
         >
           {strings.budget.quickLines}
         </button>
@@ -504,6 +561,7 @@ export function BudgetScreen() {
       {editingTotal && trip && (
         <TotalBudgetSheet
           trip={trip}
+          totalBudget={totalBudget}
           planned={planned}
           onClose={() => setEditingTotal(false)}
           onDone={() => {

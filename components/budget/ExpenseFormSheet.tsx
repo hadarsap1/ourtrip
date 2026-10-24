@@ -193,7 +193,7 @@ function ExpenseForm({
       <div className="space-y-4">
         {/* 1. amount - the sheet's one focused element, so the eye lands where
             typing starts. Numeric keypad, pre-focused. */}
-        <div className="rounded-[20px] border-[1.5px] border-sea bg-white px-4 py-3.5">
+        <div className="rounded-[20px] border-[1.5px] border-sea bg-surface px-4 py-3.5">
           <label htmlFor="exp-amount" className="sr-only">
             {strings.budget.amount}
           </label>
@@ -216,7 +216,7 @@ function ExpenseForm({
             </span>
           </div>
           {inIls !== null && currency !== "ILS" && (
-            <p className="mt-2 text-[11.5px] text-ink-soft">
+            <p className="mt-2 text-[12px] text-ink-soft">
               <span dir="ltr">
                 {strings.budget.approxIls.replace(
                   "{ils}",
@@ -245,7 +245,7 @@ function ExpenseForm({
                 onClick={() => setCurrency(c)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${
                   currency === c
-                    ? "bg-sea-deep text-white"
+                    ? "bg-sea-deep text-on-sea"
                     : "bg-paper-deep text-ink-soft"
                 }`}
               >
@@ -265,7 +265,7 @@ function ExpenseForm({
           <span className={labelClass}>
             {strings.budget.category}
             {isNew && (
-              <span className="mr-1 text-xs font-normal text-ink-soft">
+              <span className="ms-1 text-xs font-normal text-ink-soft">
                 · {strings.budget.categoryTapHint}
               </span>
             )}
@@ -282,8 +282,8 @@ function ExpenseForm({
                 }}
                 className={`rounded-[14px] px-2 py-2.5 text-sm font-bold disabled:opacity-40 ${
                   categoryId === cat.id
-                    ? "bg-sea text-white"
-                    : "border border-line bg-white text-ink"
+                    ? "bg-sea text-on-sea"
+                    : "border border-line bg-surface text-ink"
                 }`}
               >
                 {cat.label_he}
@@ -326,7 +326,7 @@ function ExpenseForm({
               type="button"
               disabled={saving || !amountValid || !categoryId}
               onClick={() => void save(categoryId)}
-              className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+              className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
             >
               {strings.common.save}
             </button>

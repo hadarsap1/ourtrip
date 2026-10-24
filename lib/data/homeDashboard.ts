@@ -39,7 +39,7 @@ export type ChecklistPreview = {
   open: { id: string; label: string }[];
 };
 
-export type BudgetSummary = BudgetTotals & { spent: number };
+export type BudgetSummary = BudgetTotals & { spent: number; spentToday?: number };
 
 export type HomeSummary = {
   budget: BudgetSummary | null;
@@ -107,17 +107,20 @@ export async function loadHomeSummary(
 
   const [trip, categories, expenses, checklists, destinations, days] =
     await Promise.all([
-      client.from("trips").select("total_budget").eq("id", tripId).maybeSingle(),
+      client.from("trip_budget").select("total_budget").eq("trip_id", tripId).maybeSingle(),
       client.from("budget_categories").select("planned_amount").eq("trip_id", tripId),
-      client.from("expenses").select("amount_ils").eq("trip_id", tripId),
+      client.from("expenses").select("amount_ils, spent_on").eq("trip_id", tripId),
       // The oldest list is the one the trip was planned around; a list made
       // later is usually a side list (packing, shopping) and not the deadline
-      // one the home screen should lead with.
+      // one the home screen should lead with. checklists has no created_at
+      // (ordering by it was a 400 on every home load, so the preview never
+      // showed); updated_at moves only when the list itself is renamed, not
+      // when an item is checked, so it keeps that order.
       client
         .from("checklists")
         .select("id, title")
         .eq("trip_id", tripId)
-        .order("created_at")
+        .order("updated_at")
         .limit(1),
       listDestinations(tripId).catch(() => [] as Destination[]),
       client
@@ -129,6 +132,9 @@ export async function loadHomeSummary(
   const budget: BudgetSummary = {
     ...resolveBudgetTotals(trip.data?.total_budget ?? null, categories.data ?? []),
     spent: (expenses.data ?? []).reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
+    spentToday: (expenses.data ?? [])
+      .filter((e) => e.spent_on === todayISO)
+      .reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
   };
 
   const checklistRow = checklists.data?.[0] ?? null;

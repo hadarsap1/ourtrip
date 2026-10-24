@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Sheet } from "@/components/Sheet";
 import {
   DOCUMENT_TAGS,
@@ -23,6 +23,11 @@ export function DocumentFormSheet({
   onClose,
   onDone,
   onError,
+  initialTag,
+  onShare,
+  onCopy,
+  camera,
+  status,
 }: {
   open: boolean;
   tripId: string;
@@ -30,16 +35,30 @@ export function DocumentFormSheet({
   onClose: () => void;
   onDone: () => void;
   onError: () => void;
+  /** Preset tag for a new document (the missing-insurance prompt). */
+  initialTag?: string;
+  /** F1/1.4: share the file through the phone's share sheet; works offline. */
+  onShare?: (doc: Document) => void;
+  onCopy?: (doc: Document) => void;
+  /** FAB "scan": the file picker opens the camera. */
+  camera?: boolean;
+  /** Existing document: its lock / on-device state and actions, shown first. */
+  status?: ReactNode;
 }) {
   if (!open) return null;
   return (
     <DocumentForm
-      key={doc?.id ?? "new"}
+      key={doc?.id ?? `new-${initialTag ?? ""}`}
       tripId={tripId}
       doc={doc}
       onClose={onClose}
       onDone={onDone}
       onError={onError}
+      initialTag={initialTag}
+      onShare={onShare}
+      onCopy={onCopy}
+      camera={camera}
+      status={status}
     />
   );
 }
@@ -50,15 +69,25 @@ function DocumentForm({
   onClose,
   onDone,
   onError,
+  initialTag,
+  onShare,
+  onCopy,
+  camera,
+  status,
 }: {
   tripId: string;
   doc: Document | null;
   onClose: () => void;
   onDone: () => void;
   onError: () => void;
+  initialTag?: string;
+  onShare?: (doc: Document) => void;
+  onCopy?: (doc: Document) => void;
+  camera?: boolean;
+  status?: ReactNode;
 }) {
   const [title, setTitle] = useState(doc?.title ?? "");
-  const [tag, setTag] = useState(doc?.tag ?? "passport");
+  const [tag, setTag] = useState(doc?.tag ?? initialTag ?? "passport");
   const [notes, setNotes] = useState(doc?.notes ?? "");
   const [expiresAt, setExpiresAt] = useState(doc?.expires_at ?? "");
   const [file, setFile] = useState<File | null>(null);
@@ -120,6 +149,26 @@ function DocumentForm({
       onClose={onClose}
       title={doc ? strings.documents.edit : strings.documents.upload}
     >
+      {doc && status}
+      {doc && (onShare || onCopy) && (
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {onShare && (
+            <button type="button" onClick={() => onShare(doc)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
+              {strings.documents.share}
+            </button>
+          )}
+          {onCopy && (
+            <button type="button" onClick={() => onCopy(doc)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-line bg-surface text-sm font-bold text-ink">
+              {strings.documents.copyDetails}
+            </button>
+          )}
+        </div>
+      )}
+      {doc && (
+        <h3 className="mb-3 border-t border-line pt-4 text-sm font-bold text-ink">
+          {strings.documents.detailsSection}
+        </h3>
+      )}
       <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
         {!doc && (
           <div>
@@ -127,9 +176,10 @@ function DocumentForm({
             <input
               type="file"
               required
-              accept="application/pdf,image/*"
+              accept={camera ? "image/*" : "application/pdf,image/*"}
+              capture={camera ? "environment" : undefined}
               onChange={(e) => handleFilePick(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-ink-soft file:ml-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
+              className="block w-full text-sm text-ink-soft file:me-3 file:rounded-lg file:border-0 file:bg-sea-tint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sea"
             />
           </div>
         )}
@@ -156,8 +206,8 @@ function DocumentForm({
                 key={t}
                 type="button"
                 onClick={() => setTag(t)}
-                className={`min-h-[40px] rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  tag === t ? "bg-sea text-white" : "bg-paper-deep text-ink-soft"
+                className={`min-h-[44px] rounded-full px-3 py-1.5 text-sm font-semibold ${
+                  tag === t ? "bg-sea text-on-sea" : "bg-paper-deep text-ink-soft"
                 }`}
               >
                 {strings.documents.tags[t]}
@@ -200,7 +250,7 @@ function DocumentForm({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {saving && !doc ? strings.documents.uploading : strings.common.save}
           </button>

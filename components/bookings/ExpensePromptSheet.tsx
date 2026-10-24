@@ -23,12 +23,15 @@ export function ExpensePromptSheet({
   categories,
   onClose,
   onResult,
+  position,
 }: {
   open: boolean;
   booking: Booking | null;
   categories: BudgetCategory[];
   onClose: () => void;
-  onResult: (message: string) => void;
+  onResult: (message: string, created: boolean) => void;
+  /** Several bookings imported at once are asked about one after another. */
+  position?: { n: number; total: number };
 }) {
   if (!open || !booking) return null;
   // key remounts the prompt per booking, so the default category re-resolves
@@ -39,6 +42,7 @@ export function ExpensePromptSheet({
       categories={categories}
       onClose={onClose}
       onResult={onResult}
+      position={position}
     />
   );
 }
@@ -48,11 +52,13 @@ function ExpensePrompt({
   categories,
   onClose,
   onResult,
+  position,
 }: {
   booking: Booking;
   categories: BudgetCategory[];
   onClose: () => void;
-  onResult: (message: string) => void;
+  onResult: (message: string, created: boolean) => void;
+  position?: { n: number; total: number };
 }) {
   const [categoryId, setCategoryId] = useState(() => {
     const preferred = categories.find(
@@ -67,12 +73,13 @@ function ExpensePrompt({
     setSaving(true);
     try {
       await createExpenseForBooking(booking, categoryId);
-      onResult(strings.bookings.expenseCreated);
+      onResult(strings.bookings.expenseCreated, true);
     } catch (e) {
       onResult(
         e instanceof Error && e.message === "fx"
           ? strings.bookings.expenseFxError
-          : strings.common.error
+          : strings.common.error,
+        false
       );
     }
   }
@@ -80,10 +87,21 @@ function ExpensePrompt({
   return (
     <Sheet open onClose={onClose} title={strings.bookings.expensePromptTitle}>
       <div className="space-y-4">
+        {/* Asked from a card or after an import, so name the booking. */}
+        <p className="text-base font-semibold text-ink">
+          {booking.title}
+          {position && position.total > 1 && (
+            <span className="ms-2 text-xs font-normal text-ink-soft">
+              {strings.bookings.expenseQueue
+                .replace("{n}", String(position.n))
+                .replace("{total}", String(position.total))}
+            </span>
+          )}
+        </p>
         <p className="text-sm text-ink-soft">
           {strings.bookings.expensePromptBody}
           {booking.cost != null && (
-            <span className="mr-1 font-semibold text-ink" dir="ltr">
+            <span className="ms-1 font-semibold text-ink" dir="ltr">
               {formatMoney(booking.cost, booking.currency ?? "ILS")}
             </span>
           )}
@@ -115,7 +133,7 @@ function ExpensePrompt({
             type="button"
             onClick={() => void handleCreate()}
             disabled={saving || !categoryId}
-            className="flex-1 rounded-xl bg-sea py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-60"
+            className="min-h-[44px] flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
           >
             {strings.bookings.expenseCreate}
           </button>
@@ -123,7 +141,7 @@ function ExpensePrompt({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-xl border border-line px-4 py-3 font-semibold text-ink-soft hover:bg-paper-deep"
+            className="min-h-[44px] rounded-xl border border-line px-4 py-3 font-semibold text-ink-soft hover:bg-paper-deep"
           >
             {strings.bookings.expenseSkip}
           </button>

@@ -239,6 +239,78 @@ export type Database = {
           },
         ]
       }
+      comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          episode_id: string | null
+          id: string
+          post_id: string | null
+          shown_by: string | null
+          shown_to_kids_at: string | null
+          trip_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          episode_id?: string | null
+          id?: string
+          post_id?: string | null
+          shown_by?: string | null
+          shown_to_kids_at?: string | null
+          trip_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          episode_id?: string | null
+          id?: string
+          post_id?: string | null
+          shown_by?: string | null
+          shown_to_kids_at?: string | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_shown_by_fkey"
+            columns: ["shown_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destination_facts: {
         Row: {
           country_code: string
@@ -394,7 +466,6 @@ export type Database = {
           id: string
           notes: string | null
           pin_protected: boolean
-          shared_with_kids: boolean
           tag: string
           title: string
           trip_id: string
@@ -408,7 +479,6 @@ export type Database = {
           id?: string
           notes?: string | null
           pin_protected?: boolean
-          shared_with_kids?: boolean
           tag: string
           title: string
           trip_id: string
@@ -422,7 +492,6 @@ export type Database = {
           id?: string
           notes?: string | null
           pin_protected?: boolean
-          shared_with_kids?: boolean
           tag?: string
           title?: string
           trip_id?: string
@@ -460,6 +529,99 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "emergency_info_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episodes: {
+        Row: {
+          approved_by: string | null
+          country_code: string | null
+          cover_photo_id: string | null
+          created_at: string
+          day_id: string | null
+          description: string | null
+          duration_seconds: number | null
+          file_path: string
+          id: string
+          mime_type: string
+          recorded_by: string
+          shared_with_guests: boolean
+          status: Database["public"]["Enums"]["photo_status"]
+          title: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          country_code?: string | null
+          cover_photo_id?: string | null
+          created_at?: string
+          day_id?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          file_path: string
+          id?: string
+          mime_type?: string
+          recorded_by: string
+          shared_with_guests?: boolean
+          status?: Database["public"]["Enums"]["photo_status"]
+          title: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          country_code?: string | null
+          cover_photo_id?: string | null
+          created_at?: string
+          day_id?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          file_path?: string
+          id?: string
+          mime_type?: string
+          recorded_by?: string
+          shared_with_guests?: boolean
+          status?: Database["public"]["Enums"]["photo_status"]
+          title?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episodes_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episodes_cover_photo_id_fkey"
+            columns: ["cover_photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episodes_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episodes_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episodes_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
@@ -635,11 +797,105 @@ export type Database = {
           },
         ]
       }
+      guest_join_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          token: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          token?: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          token?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_join_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_join_links_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_join_requests: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          display_name: string
+          email: string
+          id: string
+          kid_names: string[]
+          requested_at: string
+          status: string
+          trip_id: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          display_name: string
+          email: string
+          id?: string
+          kid_names?: string[]
+          requested_at?: string
+          status?: string
+          trip_id: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          display_name?: string
+          email?: string
+          id?: string
+          kid_names?: string[]
+          requested_at?: string
+          status?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_join_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_join_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests_allowlist: {
         Row: {
           created_at: string
           email: string
           invited_by: string
+          labels: string[]
           revoked_at: string | null
           trip_id: string
         }
@@ -647,6 +903,7 @@ export type Database = {
           created_at?: string
           email: string
           invited_by: string
+          labels?: string[]
           revoked_at?: string | null
           trip_id: string
         }
@@ -654,6 +911,7 @@ export type Database = {
           created_at?: string
           email?: string
           invited_by?: string
+          labels?: string[]
           revoked_at?: string | null
           trip_id?: string
         }
@@ -799,7 +1057,6 @@ export type Database = {
           id: string
           location_name: string | null
           mood: string | null
-          shared_with_guests: boolean
           trip_id: string
           updated_at: string
         }
@@ -811,7 +1068,6 @@ export type Database = {
           id?: string
           location_name?: string | null
           mood?: string | null
-          shared_with_guests?: boolean
           trip_id: string
           updated_at?: string
         }
@@ -823,7 +1079,6 @@ export type Database = {
           id?: string
           location_name?: string | null
           mood?: string | null
-          shared_with_guests?: boolean
           trip_id?: string
           updated_at?: string
         }
@@ -1004,6 +1259,8 @@ export type Database = {
           display_name: string
           email: string | null
           id: string
+          is_preview: boolean
+          kid_names: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
         }
@@ -1013,6 +1270,8 @@ export type Database = {
           display_name: string
           email?: string | null
           id?: string
+          is_preview?: boolean
+          kid_names?: string[]
           role: Database["public"]["Enums"]["member_role"]
           trip_id: string
         }
@@ -1022,6 +1281,8 @@ export type Database = {
           display_name?: string
           email?: string | null
           id?: string
+          is_preview?: boolean
+          kid_names?: string[]
           role?: Database["public"]["Enums"]["member_role"]
           trip_id?: string
         }
@@ -1070,30 +1331,78 @@ export type Database = {
       }
       messages: {
         Row: {
+          audience: string[]
           body: string
+          approved_at: string | null
+          approved_by: string | null
+          bridged_at: string | null
+          bridged_by: string | null
+          bridged_context: string | null
           channel: Database["public"]["Enums"]["message_channel"]
           created_at: string
           id: string
+          origin_comment_id: string | null
+          origin_message_id: string | null
+          reply_to: string | null
           sender_id: string
           trip_id: string
         }
         Insert: {
+          audience?: string[]
           body: string
+          approved_at?: string | null
+          approved_by?: string | null
+          bridged_at?: string | null
+          bridged_by?: string | null
+          bridged_context?: string | null
           channel?: Database["public"]["Enums"]["message_channel"]
           created_at?: string
           id?: string
+          origin_comment_id?: string | null
+          origin_message_id?: string | null
+          reply_to?: string | null
           sender_id: string
           trip_id: string
         }
         Update: {
+          audience?: string[]
           body?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          bridged_at?: string | null
+          bridged_by?: string | null
+          bridged_context?: string | null
           channel?: Database["public"]["Enums"]["message_channel"]
           created_at?: string
           id?: string
+          origin_comment_id?: string | null
+          origin_message_id?: string | null
+          reply_to?: string | null
           sender_id?: string
           trip_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_bridged_by_fkey"
+            columns: ["bridged_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_origin_comment_id_fkey"
+            columns: ["origin_comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_origin_message_id_fkey"
+            columns: ["origin_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
@@ -1112,6 +1421,7 @@ export type Database = {
       }
       photos: {
         Row: {
+          audience: string[]
           approved_by: string | null
           caption: string | null
           created_at: string
@@ -1126,6 +1436,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          audience?: string[]
           approved_by?: string | null
           caption?: string | null
           created_at?: string
@@ -1140,6 +1451,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          audience?: string[]
           approved_by?: string | null
           caption?: string | null
           created_at?: string
@@ -1425,6 +1737,141 @@ export type Database = {
           },
         ]
       }
+      post_photos: {
+        Row: {
+          photo_id: string
+          position: number
+          post_id: string
+          public_path: string | null
+        }
+        Insert: {
+          photo_id: string
+          position?: number
+          post_id: string
+          public_path?: string | null
+        }
+        Update: {
+          photo_id?: string
+          position?: number
+          post_id?: string
+          public_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_photos_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_photos_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          audience: string[]
+          approved_by: string | null
+          author_id: string
+          body: string
+          country_code: string | null
+          created_at: string
+          day_id: string | null
+          id: string
+          journal_entry_id: string | null
+          place_label: string | null
+          public_slug: string | null
+          publish_after: string | null
+          published_at: string | null
+          status: Database["public"]["Enums"]["post_status"]
+          title: string
+          trip_id: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["post_visibility"]
+        }
+        Insert: {
+          audience?: string[]
+          approved_by?: string | null
+          author_id: string
+          body?: string
+          country_code?: string | null
+          created_at?: string
+          day_id?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          place_label?: string | null
+          public_slug?: string | null
+          publish_after?: string | null
+          published_at?: string | null
+          status?: Database["public"]["Enums"]["post_status"]
+          title: string
+          trip_id: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["post_visibility"]
+        }
+        Update: {
+          audience?: string[]
+          approved_by?: string | null
+          author_id?: string
+          body?: string
+          country_code?: string | null
+          created_at?: string
+          day_id?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          place_label?: string | null
+          public_slug?: string | null
+          publish_after?: string | null
+          published_at?: string | null
+          status?: Database["public"]["Enums"]["post_status"]
+          title?: string
+          trip_id?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["post_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1456,6 +1903,65 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reactions: {
+        Row: {
+          created_at: string
+          episode_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["reaction_kind"]
+          member_id: string
+          post_id: string | null
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          episode_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["reaction_kind"]
+          member_id: string
+          post_id?: string | null
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          episode_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["reaction_kind"]
+          member_id?: string
+          post_id?: string | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -1518,6 +2024,61 @@ export type Database = {
           },
         ]
       }
+      trip_ai_settings: {
+        Row: {
+          monthly_budget_usd: number
+          trip_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          monthly_budget_usd?: number
+          trip_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          monthly_budget_usd?: number
+          trip_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_ai_settings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_budget: {
+        Row: {
+          total_budget: number
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          total_budget: number
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          total_budget?: number
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_budget_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           base_currency: string
@@ -1527,7 +2088,6 @@ export type Database = {
           is_active: boolean
           name: string
           start_date: string | null
-          total_budget: number | null
         }
         Insert: {
           base_currency?: string
@@ -1537,7 +2097,6 @@ export type Database = {
           is_active?: boolean
           name: string
           start_date?: string | null
-          total_budget?: number | null
         }
         Update: {
           base_currency?: string
@@ -1547,7 +2106,6 @@ export type Database = {
           is_active?: boolean
           name?: string
           start_date?: string | null
-          total_budget?: number | null
         }
         Relationships: []
       }
@@ -1636,17 +2194,46 @@ export type Database = {
         Returns: boolean
       }
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
-      document_shared_with_current_kid: {
-        Args: { p_path: string }
-        Returns: boolean
-      }
       functions_base_url: { Args: never; Returns: string }
+      guest_join_info: { Args: { p_token: string }; Returns: Json }
+      guest_join_token: {
+        Args: { p_reset?: boolean; p_trip_id: string }
+        Returns: string
+      }
       is_active_guest_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_kid_of: { Args: { p_trip_id: string }; Returns: boolean }
       is_owner_of: { Args: { p_trip_id: string }; Returns: boolean }
       link_member_to_auth_user: {
         Args: never
         Returns: Database["public"]["Enums"]["member_role"]
+      }
+      mark_wall_read: { Args: { p_trip_id: string }; Returns: number }
+      my_groups: { Args: never; Returns: string[] }
+      my_guest_labels: { Args: never; Returns: string[] }
+      set_my_kid_names: {
+        Args: { p_kid_names: string[]; p_trip_id: string }
+        Returns: string[]
+      }
+      submit_guest_join: {
+        Args: {
+          p_email?: string
+          p_kid_names?: string[]
+          p_name: string
+          p_token: string
+        }
+        Returns: string
+      }
+      trip_now_country: { Args: { p_trip_id: string }; Returns: string }
+      trip_member_names: {
+        Args: { p_trip_id: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          id: string
+          kid_names: string[]
+          role: Database["public"]["Enums"]["member_role"]
+          trip_id: string
+        }[]
       }
     }
     Enums: {
@@ -1662,6 +2249,9 @@ export type Database = {
       member_role: "owner" | "kid" | "guest"
       message_channel: "family" | "guests"
       photo_status: "pending" | "approved" | "rejected"
+      post_status: "draft" | "pending" | "approved"
+      post_visibility: "family" | "guests" | "public"
+      reaction_kind: "heart" | "smile" | "wow" | "star"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1802,6 +2392,9 @@ export const Constants = {
       member_role: ["owner", "kid", "guest"],
       message_channel: ["family", "guests"],
       photo_status: ["pending", "approved", "rejected"],
+      post_status: ["draft", "pending", "approved"],
+      post_visibility: ["family", "guests", "public"],
+      reaction_kind: ["heart", "smile", "wow", "star"],
     },
   },
 } as const

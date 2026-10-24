@@ -1,3 +1,4 @@
+import { realtimeTopic } from "@/lib/realtimeTopic";
 import { getSupabase } from "@/lib/supabase";
 import type { Checklist, ChecklistItem } from "@/lib/types";
 
@@ -193,7 +194,7 @@ export function subscribeChecklists(onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
   const channel = supabase
-    .channel("checklists-sync")
+    .channel(realtimeTopic("checklists-sync"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "checklists" },

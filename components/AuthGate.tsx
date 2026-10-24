@@ -3,11 +3,17 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { needsKidUnlock } from "@/lib/data/kids";
-import { getSupabase } from "@/lib/supabase";
+import { forgetJoinToken, rememberedJoinToken } from "@/lib/guestJoin";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { getSupabase, storedAuthUserId } from "@/lib/supabase";
+import { offlineNow, TimeoutError, withTimeout } from "@/lib/offline/network";
 import { SuitcaseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { memberLinked } from "@/lib/useMember";
 
-type GateState = "loading" | "allowed" | "rejected" | "redirecting";
+// "joining": signed in, not a member yet, and this phone came through the
+// join link - back to that page (it shows "waiting for approval").
+type GateState = "loading" | "allowed" | "rejected" | "redirecting" | "joining";
 
 // The verdict is per session, not per route: re-running two round-trips on
 // every tab switch made navigation feel like a page load.
@@ -19,6 +25,25 @@ let inFlight: Promise<Exclude<GateState, "loading">> | null = null;
 // refresh" reports, and blocking buys no safety: access control is RLS in the
 // database (CLAUDE.md rule #1). The real verdict still lands when it arrives.
 const GATE_TIMEOUT_MS = 2500;
+// supabase-js retries a failed token refresh for up to ~30 s before answering.
+const SESSION_TIMEOUT_MS = 5000;
+
+/**
+ * Forget the cached verdict. Call after signing in without a page load - the
+ * kid PIN unlock mints a session in place and navigates client-side, so the
+ * "redirecting" verdict from before the PIN would otherwise still stand and
+ * bounce the kid straight back to the login screen.
+ */
+export function resetAuthGate(): void {
+  decided = null;
+  inFlight = null;
+}
+
+function redirectTarget(verdict: "redirecting" | "joining"): string {
+  const token = verdict === "joining" ? rememberedJoinToken() : null;
+  if (token) return `/join/${encodeURIComponent(token)}`;
+  return needsKidUnlock() ? "/kid-login" : "/login";
+}
 
 async function decide(): Promise<Exclude<GateState, "loading">> {
   const supabase = getSupabase();
@@ -28,8 +53,20 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
   // rate-limited in kid-auth), regardless of any stored session.
   if (needsKidUnlock()) return "redirecting";
 
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) return "redirecting";
+  // Offline with a login saved on this phone: open the app. The login page is
+  // a dead end with no network, and the offline-critical screens must open.
+  if (offlineNow()) return storedAuthUserId() ? "allowed" : "redirecting";
+
+  const { data, error: sessionError } = await withTimeout(supabase.auth.getSession(), SESSION_TIMEOUT_MS).catch(
+    (err: unknown) => ({ data: { session: null }, error: err })
+  );
+  if (!data.session) {
+    // "No session" because the expired token could not be renewed (no signal,
+    // or a hung line) is not "signed out": the login is still on the phone and
+    // renews once there is a connection. RLS still decides every read.
+    const couldNotAsk = isAuthRetryableFetchError(sessionError) || sessionError instanceof TimeoutError;
+    return couldNotAsk && storedAuthUserId() ? "allowed" : "redirecting";
+  }
 
   // Link auth user ↔ seeded member row; null role = not allowed.
   const { data: role, error } = await supabase.rpc("link_member_to_auth_user");
@@ -40,9 +77,14 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
   if (error) return "allowed";
 
   if (!role) {
+    // Asked to join through the link (00054) and not approved yet: keep the
+    // session, so the moment a parent approves they are simply in.
+    if (rememberedJoinToken()) return "joining";
     await supabase.auth.signOut();
     return "rejected";
   }
+  forgetJoinToken();
+  memberLinked(role);
   return "allowed";
 }
 
@@ -59,6 +101,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname === "/kid-login" ||
     pathname === "/offline" ||
+    // the open blog (00046): readable without an account, by design
+    pathname.startsWith("/s/") ||
+    // the join link (00054): opened before there is any account
+    pathname.startsWith("/join/") ||
     !getSupabase();
 
   const [state, setState] = useState<GateState>(() => decided ?? "loading");
@@ -68,8 +114,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     if (decided) {
       // Verdict already known: only the redirect still needs re-issuing, in
       // case this mount came from a route that bypassed the gate.
-      if (decided === "redirecting") {
-        router.replace(needsKidUnlock() ? "/kid-login" : "/login");
+      if (decided === "redirecting" || decided === "joining") {
+        router.replace(redirectTarget(decided));
       }
       return;
     }
@@ -89,8 +135,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       inFlight = null;
       clearTimeout(timer);
       if (cancelled) return;
-      if (verdict === "redirecting") {
-        router.replace(needsKidUnlock() ? "/kid-login" : "/login");
+      if (verdict === "redirecting" || verdict === "joining") {
+        router.replace(redirectTarget(verdict));
       }
       setState(verdict);
     });
@@ -118,7 +164,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Never render an empty document: a blank screen is indistinguishable from
   // a crash, which is exactly why people were force-refreshing.
-  if (state === "loading" || state === "redirecting") {
+  if (state === "loading" || state === "redirecting" || state === "joining") {
     return (
       <div
         className="mx-auto max-w-lg px-4 pt-24 text-center"

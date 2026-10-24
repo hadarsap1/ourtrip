@@ -2,6 +2,15 @@ import type { Enums, Tables } from "./database.types";
 
 export type Trip = Tables<"trips">;
 export type Member = Tables<"members">;
+export type MemberRole = Enums<"member_role">;
+// Sharing (migrations 00043-00045, docs/DESIGN-sharing.md)
+export type Post = Tables<"posts">;
+export type PostPhoto = Tables<"post_photos">;
+export type PostVisibility = Enums<"post_visibility">;
+export type Episode = Tables<"episodes">;
+export type Reaction = Tables<"reactions">;
+export type ReactionKind = Enums<"reaction_kind">;
+export type Comment = Tables<"comments">;
 export type ItineraryDay = Tables<"itinerary_days">;
 export type ItineraryItem = Tables<"itinerary_items">;
 export type Booking = Tables<"bookings">;

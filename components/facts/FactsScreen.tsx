@@ -19,6 +19,7 @@ import { todayISO } from "@/lib/format";
 import { getActiveTrip } from "@/lib/data/trip";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { aiLimitMessage } from "@/lib/aiLimit";
 import { useMember } from "@/lib/useMember";
 import type { DestinationFact, Trip } from "@/lib/types";
 
@@ -123,11 +124,12 @@ export function FactsScreen() {
     } catch (err) {
       const code = (err as Error).message;
       showToast(
-        code === "not_configured"
+        aiLimitMessage(code) ??
+        (code === "not_configured"
           ? s.notConfigured
           : code === "no_credit"
             ? s.noCredit
-            : s.generateFailed
+            : s.generateFailed)
       );
     } finally {
       setBusy(false);
@@ -196,8 +198,8 @@ export function FactsScreen() {
                 key={key}
                 type="button"
                 onClick={() => void select(dest)}
-                className={`min-h-[40px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  on ? "bg-sea text-white" : "bg-white text-ink-soft shadow-sm"
+                className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                  on ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
                 }`}
               >
                 {dest.locationName}
@@ -218,7 +220,7 @@ export function FactsScreen() {
           {strings.common.loading}
         </p>
       ) : facts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-white p-8 text-center">
+        <div className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
           <p className="text-sm font-medium text-ink">
             {isOwner ? s.empty : s.emptyKid}
           </p>
@@ -237,7 +239,7 @@ export function FactsScreen() {
             {facts.map((fact) => (
               <li
                 key={fact.id}
-                className="flex items-start gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm"
+                className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 shadow-sm"
               >
                 <span className="text-2xl leading-none" aria-hidden="true">
                   {fact.emoji ?? "✨"}
@@ -287,7 +289,7 @@ export function FactsScreen() {
             type="button"
             onClick={() => void runGenerate()}
             disabled={busy}
-            className="rounded-2xl bg-sea py-3 text-sm font-bold text-white disabled:opacity-60"
+            className="rounded-2xl bg-sea py-3 text-sm font-bold text-on-sea disabled:opacity-60"
           >
             {busy ? s.generating : aiFacts > 0 ? s.regenerate : s.generate}
           </button>
@@ -298,7 +300,7 @@ export function FactsScreen() {
               setDraft({ fact: "", emoji: "" });
             }}
             disabled={busy}
-            className="rounded-2xl border border-line bg-white py-3 text-sm font-bold text-sea disabled:opacity-60"
+            className="rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-sea disabled:opacity-60"
           >
             {s.addFact}
           </button>
@@ -337,7 +339,7 @@ export function FactsScreen() {
             type="button"
             onClick={() => void saveDraft()}
             disabled={busy || draft.fact.trim() === ""}
-            className="mt-3 w-full rounded-2xl bg-sea py-3 font-semibold text-white disabled:opacity-40"
+            className="mt-3 w-full rounded-2xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-40"
           >
             {strings.common.save}
           </button>

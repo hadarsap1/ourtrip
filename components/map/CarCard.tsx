@@ -115,7 +115,7 @@ export function CarCard({
     : null;
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+    <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-ink">
           <CarIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.map.car}
@@ -151,7 +151,7 @@ export function CarCard({
                 href={navigationUrl(carPin.lat, carPin.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl bg-sea px-3 py-2 text-white hover:bg-sea-deep"
+                className="rounded-xl bg-sea px-3 py-2 text-on-sea hover:bg-sea-deep"
               >
                 {strings.map.carNavigate}
               </a>

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
-import { SuitcaseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 
 export function LoginScreen() {
@@ -23,16 +22,21 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-5 pb-16">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 pb-16">
       <div className="ot-postcard mb-8 p-7 text-center">
-        <SuitcaseIcon className="relative z-10 mx-auto h-12 w-12 text-sea" />
-        <h1 className="relative z-10 mt-3 text-3xl font-bold">{strings.appName}</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
+        <img
+          src="/sovev/badge-192.png"
+          alt=""
+          className="relative z-10 mx-auto h-24 w-24 rounded-full border-[3px] border-white/90 object-cover"
+        />
+        <h1 className="relative z-10 mt-3 text-4xl">{strings.appName}</h1>
         <p className="relative z-10 mt-1 text-white/80">{strings.appDescription}</p>
       </div>
       <button
         type="button"
         onClick={signIn}
-        className="rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-white shadow-sm active:bg-sea-deep"
+        className="rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-on-sea shadow-sm active:bg-sea-deep"
       >
         {strings.auth.signIn}
       </button>

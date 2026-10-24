@@ -1,7 +1,13 @@
 # Proposal: letting the kids talk to friends, without opening a channel to a child
 
-**Status: PROPOSAL. Nothing here is built, and `DECISIONS.md` is untouched until
-Hadar and Sivan approve.** Raised 2026-09-04.
+**Status: SUPERSEDED 14/10/2026** by DECISIONS #33 (migration `00049`): the
+family feed is gone, kids read the wall directly and their messages wait for a
+parent's approval. The bridge columns stay in the table; the UI no longer
+offers them. History below.
+
+**Was: APPROVED 13/10/2026 and BUILT** (migration `00045`, DECISIONS #30),
+extended to comments on stories and episodes. The migration number below
+(`00029`) was taken by the time it was built. Raised 2026-09-04.
 
 ## The ask
 

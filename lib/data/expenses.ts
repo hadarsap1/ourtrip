@@ -3,6 +3,7 @@ import { todayISO } from "@/lib/format";
 import { getActiveTrip, getCurrentMember } from "@/lib/data/trip";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { Booking, BudgetCategory, Expense } from "@/lib/types";
+import { cachedFxRate, saveFxRate } from "@/lib/fxCache";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -33,7 +34,8 @@ const rateInFlight = new Map<string, Promise<number | null>>();
 /**
  * ILS rate for a given day (DECISIONS #7 order): the day's cached rate in
  * fx_rates (populated daily by the fx-daily Edge Function) → live providers
- * (open.er-api.com, then Frankfurter) → last known cached rate.
+ * (open.er-api.com, then Frankfurter) → last known cached rate → the rate kept
+ * on this device (lib/fxCache.ts), so conversion still works offline.
  */
 export async function getRateToIls(
   currency: string,
@@ -48,8 +50,13 @@ export async function getRateToIls(
   let pending = rateInFlight.get(key);
   if (!pending) {
     pending = fetchRateToIls(currency, day)
-      .then((rate) => {
-        if (rate !== null) rateCache.set(key, rate);
+      .then(({ rate, fromDevice }) => {
+        if (rate !== null && !fromDevice) {
+          rateCache.set(key, rate);
+          // Only network-sourced rates refresh the device copy; re-saving the
+          // device copy would make a stale "updated" stamp look fresh.
+          saveFxRate(currency, rate, day);
+        }
         return rate;
       })
       .finally(() => {
@@ -63,16 +70,29 @@ export async function getRateToIls(
 async function fetchRateToIls(
   currency: string,
   day: string
+): Promise<{ rate: number | null; fromDevice: boolean }> {
+  const net = await fetchNetworkRateToIls(currency, day);
+  if (net !== null) return { rate: net, fromDevice: false };
+  return { rate: cachedFxRate(currency)?.rate ?? null, fromDevice: true };
+}
+
+async function fetchNetworkRateToIls(
+  currency: string,
+  day: string
 ): Promise<number | null> {
   const cached = getSupabase();
   if (cached) {
-    const { data } = await cached
-      .from("fx_rates")
-      .select("rate_to_ils")
-      .eq("day", day)
-      .eq("currency", currency)
-      .maybeSingle();
-    if (data) return data.rate_to_ils;
+    try {
+      const { data } = await cached
+        .from("fx_rates")
+        .select("rate_to_ils")
+        .eq("day", day)
+        .eq("currency", currency)
+        .maybeSingle();
+      if (data) return data.rate_to_ils;
+    } catch {
+      // offline - fall through
+    }
   }
 
   try {
@@ -101,16 +121,25 @@ async function fetchRateToIls(
 
   const supabase = getSupabase();
   if (supabase) {
-    const { data } = await supabase
-      .from("fx_rates")
-      .select("rate_to_ils")
-      .eq("currency", currency)
-      .order("day", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (data) return data.rate_to_ils;
+    try {
+      const { data } = await supabase
+        .from("fx_rates")
+        .select("rate_to_ils")
+        .eq("currency", currency)
+        .order("day", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) return data.rate_to_ils;
+    } catch {
+      // offline - fall through to the device copy
+    }
   }
   return null;
+}
+
+/** Resolves (and so caches on the device) today's rate for each currency. For prefetch. */
+export async function warmFxRates(currencies: string[]): Promise<void> {
+  await Promise.all([...new Set(currencies)].filter((c) => c !== "ILS").map((c) => getRateToIls(c).catch(() => null)));
 }
 
 export async function updateCategoryPlanned(
@@ -124,16 +153,29 @@ export async function updateCategoryPlanned(
   if (error) throw new Error(error.message);
 }
 
+/** Overall trip budget, or null when none is set. Owner-only (trip_budget,
+ *  00056): a kid or guest gets no row, so null - the same as "not set". */
+export async function getTripTotalBudget(tripId: string): Promise<number | null> {
+  const { data, error } = await requireClient()
+    .from("trip_budget")
+    .select("total_budget")
+    .eq("trip_id", tripId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.total_budget ?? null;
+}
+
 /** Overall trip budget. NULL clears it, which puts the screen back to
  *  deriving the total from the categories. */
 export async function updateTripTotalBudget(
   tripId: string,
   totalBudget: number | null
 ): Promise<void> {
-  const { error } = await requireClient()
-    .from("trips")
-    .update({ total_budget: totalBudget })
-    .eq("id", tripId);
+  const table = requireClient().from("trip_budget");
+  const { error } =
+    totalBudget === null
+      ? await table.delete().eq("trip_id", tripId)
+      : await table.upsert({ trip_id: tripId, total_budget: totalBudget });
   if (error) throw new Error(error.message);
 }
 
@@ -343,6 +385,19 @@ export async function updateExpense(
 export async function deleteExpense(id: string): Promise<void> {
   const { error } = await requireClient().from("expenses").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/** Which bookings already have an expense in the budget, so a booking card
+ *  can say "in the budget" or offer to put it there. Owners only by RLS; for
+ *  anyone else this is simply empty. */
+export async function listBookingExpenseIds(tripId: string): Promise<Set<string>> {
+  const { data, error } = await requireClient()
+    .from("expenses")
+    .select("booking_id")
+    .eq("trip_id", tripId)
+    .not("booking_id", "is", null);
+  if (error) throw new Error(error.message);
+  return new Set(data.map((r) => r.booking_id).filter((id): id is string => id !== null));
 }
 
 /** Creates the budget expense linked to a booking. Throws "fx" when the
