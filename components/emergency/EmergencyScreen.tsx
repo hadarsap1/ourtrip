@@ -64,6 +64,15 @@ export function EmergencyScreen() {
   const isOwner = !member || member.role === "owner";
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chipsRef = useRef<HTMLDivElement | null>(null);
+
+  // The chip row scrolls sideways; keep the chosen country in view, or the
+  // numbers below are for a country the screen does not visibly name.
+  useEffect(() => {
+    chipsRef.current
+      ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [selected, loading]);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(message);
@@ -136,9 +145,11 @@ export function EmergencyScreen() {
     return <ScreenSkeleton variant="list" />;
   }
 
+  // Route order, not alphabetical: sorted by ISO code the chips read Georgia,
+  // Japan, Cambodia... and the country you are in could sit off-screen.
   const allCountries = [
-    ...new Set([...pages.map((p) => p.countryCode), ...countryOptions]),
-  ].sort();
+    ...new Set([...countryOptions, ...pages.map((p) => p.countryCode)]),
+  ];
   const page = selected
     ? (pages.find((p) => p.countryCode === selected) ?? null)
     : null;
@@ -184,11 +195,12 @@ export function EmergencyScreen() {
           {strings.emergency.noCountries}
         </p>
       ) : (
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div ref={chipsRef} className="flex gap-1.5 overflow-x-auto pb-1">
           {allCountries.map((code) => (
             <button
               key={code}
               type="button"
+              aria-pressed={selected === code}
               onClick={() => setSelected(code)}
               className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === code
@@ -203,7 +215,7 @@ export function EmergencyScreen() {
             <button
               type="button"
               onClick={() => setEditing({ countryCode: null })}
-              className="shrink-0 rounded-full border border-dashed border-line px-3 py-1.5 text-sm font-semibold text-ink-soft"
+              className="min-h-[44px] shrink-0 rounded-full border border-dashed border-line px-3 py-1.5 text-sm font-semibold text-ink-soft"
             >
               + {strings.emergency.addCountry}
             </button>
@@ -237,6 +249,7 @@ export function EmergencyScreen() {
                 <section className="rounded-2xl bg-rose-50 p-3">
                   <h2 className="mb-2 px-1 text-sm font-bold text-rose-700">
                     {strings.emergency.numbers}
+                    {selected && ` - ${countryName(selected)}`}
                   </h2>
                   <div className="space-y-2">
                     <TelRow label={strings.emergency.police} value={content.police} />

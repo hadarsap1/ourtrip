@@ -699,7 +699,7 @@ export function TodayScreen() {
               {dashboard && (
                 <Tile label={strings.today.tileSpentToday}>
                   <p className="text-[19px] font-extrabold leading-none text-ink">
-                    {formatMoney(dashboard.spentToday, "ILS")}
+                    {formatMoney(Math.round(dashboard.spentToday), "ILS")}
                   </p>
                   {dashboard.budget > 0 && (
                     <ProgressBar
@@ -718,7 +718,7 @@ export function TodayScreen() {
                         remaining < 0 ? "text-alert" : "text-sun-deep"
                       }`}
                     >
-                      {formatMoney(remaining, "ILS")}
+                      {formatMoney(Math.round(remaining), "ILS")}
                     </p>
                   ) : (
                     <p className="text-[13px] text-sun-deep/70">

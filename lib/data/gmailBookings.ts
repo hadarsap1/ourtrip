@@ -158,7 +158,14 @@ export function candidateToInsert(candidate: BookingCandidate, tripId: string) {
     type: candidate.type,
     title: candidate.title,
     start_date: candidate.start_date,
-    end_date: candidate.end_date,
+    // The form refuses an end before the start; mail import went around it.
+    // A misread end date is worse than none: the start still places it.
+    end_date:
+      candidate.end_date &&
+      candidate.start_date &&
+      candidate.end_date < candidate.start_date
+        ? null
+        : candidate.end_date,
     confirmation_code: candidate.confirmation_code,
     cost: candidate.cost,
     currency: candidate.cost != null ? candidate.currency : null,
