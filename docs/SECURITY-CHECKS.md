@@ -2429,3 +2429,21 @@ other group's name in its `audience` (names only, no content).
   still reads no itinerary day; revoked guest and outsider get nothing; anon
   cannot call it; no day today gives null; unknown country falls back to
   Israel's zone. Full suite 356 PASS, 0 FAIL.
+
+## place_options country code on save (migration 00071, applied in production 30/09/2026 as 00040)
+
+Adds `label_key(text)` (immutable SQL, no table access) and a BEFORE INSERT/UPDATE
+trigger `place_options_fill_country_code` on `place_options`. The trigger is
+`security invoker` with an empty `search_path`, so it runs with the saving
+user's rights under the existing `place_options_owner_all` (00020) and reads only
+rows with the same `trip_id` as the row being saved. No policy changes.
+
+| Check | Result |
+|---|---|
+| Trigger cannot read another trip's options | ✅ PASS - lookup is `where p.trip_id = new.trip_id`, and RLS still applies (invoker) |
+| A kid or guest gains nothing | ✅ PASS - neither role can insert or update `place_options`, so the trigger never runs for them |
+| Behaviour verified live, rolled back | ✅ PASS - insert with ויטנאם got VN, changing to יפן re-derived JP, an uncoded country (לאוס) stayed null |
+
+`extract-places` now accepts `knownAreas` (strings only, 150 max, 60 chars
+each). It is the owner's own bank passed as a naming hint, placed outside the
+untrusted post markers; the owner gate still runs before the body is read.

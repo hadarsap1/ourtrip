@@ -22,6 +22,7 @@
 
 import { chunkDayIds } from "@/lib/data/itinerary";
 import { getSupabase } from "@/lib/supabase";
+import { labelKey } from "@/lib/labels";
 import type { ItineraryDay, PlaceOption } from "@/lib/types";
 
 function requireClient() {
@@ -119,8 +120,9 @@ export function areaChoicesForCountry(
     const area = (option.area ?? "").trim();
     if (area === "") continue;
 
-    // Case- and spacing-insensitive, so "הואה הין" does not split in two.
-    const key = area.toLowerCase();
+    // Case-, spacing- and apostrophe-insensitive, so "הואה הין" does not
+    // split in two and neither does מאי צ'או typed against מאי צ׳או.
+    const key = labelKey(area);
     const bucket = buckets.get(key) ?? {
       area,
       options: 0,
@@ -247,13 +249,13 @@ export function areaChoicesForStretch(
     return { matched: all, rest: [], scoped: all, rule: "country" };
   }
 
-  const haystack = label.toLowerCase();
+  const haystack = labelKey(label);
 
   // ---- rule 1: the label names towns we know ----
   // Substring both ways: a label may write the town on its own ("קיוטו") or
   // inside a phrase ("קנאזאווה וטאקאיאמה").
   const named = all.filter((choice) => {
-    const area = choice.area.trim().toLowerCase();
+    const area = labelKey(choice.area);
     return area.length >= 3 && haystack.includes(area);
   });
 
@@ -269,9 +271,9 @@ export function areaChoicesForStretch(
         )
       );
     };
-    const namedKeys = new Set(named.map((c) => c.area.toLowerCase()));
+    const namedKeys = new Set(named.map((c) => labelKey(c.area)));
     const others = all
-      .filter((c) => !namedKeys.has(c.area.toLowerCase()))
+      .filter((c) => !namedKeys.has(labelKey(c.area)))
       // An ungeocoded area sorts last rather than first: infinity is "we do not
       // know", not "very far", and it should not head the list.
       .sort(
