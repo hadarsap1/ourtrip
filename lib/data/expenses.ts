@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { realtimeTopic } from "@/lib/realtimeTopic";
 import { todayISO } from "@/lib/format";
 import { getActiveTrip, getCurrentMember } from "@/lib/data/trip";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
@@ -431,4 +432,31 @@ export async function createExpenseForBooking(
     created_by: member.id,
   });
   if (error) throw new Error(error.message);
+}
+
+// ---------- realtime ----------
+
+/** Fired on this device after an expense is saved outside the budget screen
+ *  (the capture button), so an open budget screen refetches at once rather
+ *  than waiting for the realtime echo. */
+export const EXPENSES_CHANGED_EVENT = "ourtrip:expenses-changed";
+
+export function notifyExpensesChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(EXPENSES_CHANGED_EVENT));
+}
+
+/** Refires onChange for any change to expenses, categories or the total
+ *  (00073). Returns unsubscribe. */
+export function subscribeBudget(onChange: () => void): () => void {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel(realtimeTopic("budget-sync"))
+    .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "budget_categories" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "trip_budget" }, onChange)
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }

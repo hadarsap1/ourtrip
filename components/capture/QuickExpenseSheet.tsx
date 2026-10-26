@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
-import { createExpenseOrQueue, listCategories } from "@/lib/data/expenses";
+import { createExpenseOrQueue, listCategories, notifyExpensesChanged } from "@/lib/data/expenses";
 import { getActiveTrip } from "@/lib/data/trip";
 import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
@@ -90,6 +90,7 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
         // non-essential
       }
       setAmount("");
+      if (result === "saved") notifyExpensesChanged();
       onDone(result === "queued" ? strings.budget.expenseQueued : strings.budget.expenseSaved);
     } catch (e) {
       onDone(e instanceof Error && e.message === "fx" ? strings.budget.fxError : strings.common.error);

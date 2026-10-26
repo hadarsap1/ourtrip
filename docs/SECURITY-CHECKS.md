@@ -2455,3 +2455,15 @@ Counted in production for `docs/HANDOFF.md` (supersedes #34's August counts):
 `public-stories` public by design (00046, the open blog); 6 pg_cron jobs;
 Realtime on bookings, checklists, checklist_items, comments, itinerary_days,
 itinerary_items, messages, reactions. 72 migration files, 22 Edge Functions.
+
+## Budget realtime (00073) - 26/10/2026
+
+`expenses`, `budget_categories` and `trip_budget` join the `supabase_realtime`
+publication so the budget screen updates live. Realtime authorizes each event
+against the table's SELECT policy, so no new policy is needed.
+
+| Check | Result |
+|---|---|
+| A kid or guest subscribing to `expenses` gets no events | ⏳ PENDING live check - `expenses_owner_all` admits owners only, same as the insert-time select |
+| A guest subscribing to `trip_budget` gets no events | ⏳ PENDING live check - owner-only policy (00056) |
+| Owner on device A sees an expense added on device B without reopening | ⏳ PENDING after the migration is applied |

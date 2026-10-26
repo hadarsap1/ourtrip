@@ -6,7 +6,13 @@ import { TicketIcon } from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
 import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
-import { getTripTotalBudget, listCategories, listExpenses } from "@/lib/data/expenses";
+import {
+  EXPENSES_CHANGED_EVENT,
+  getTripTotalBudget,
+  listCategories,
+  listExpenses,
+  subscribeBudget,
+} from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
 import { strings } from "@/lib/strings";
@@ -75,6 +81,9 @@ export function BudgetScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let unsubscribe = () => {};
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    let detach = () => {};
     void (async () => {
       const activeTrip = await getActiveTrip();
       if (cancelled || !activeTrip) {
@@ -115,9 +124,34 @@ export function BudgetScreen() {
       } finally {
         if (!cancelled) setLoading(false);
       }
+
+      if (cancelled) return; // closed during the awaits: no orphan channel
+      // Any change on either device, a capture-button save on this one, or
+      // coming back to the app (a backgrounded PWA misses realtime events)
+      // → one refetch. Before this the screen showed a new expense only once
+      // it was opened again.
+      const refetch = () => {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          void refresh(activeTrip.id).catch(() => {});
+        }, 250);
+      };
+      const onVisible = () => {
+        if (document.visibilityState === "visible") refetch();
+      };
+      unsubscribe = subscribeBudget(refetch);
+      window.addEventListener(EXPENSES_CHANGED_EVENT, refetch);
+      document.addEventListener("visibilitychange", onVisible);
+      detach = () => {
+        window.removeEventListener(EXPENSES_CHANGED_EVENT, refetch);
+        document.removeEventListener("visibilitychange", onVisible);
+      };
     })();
     return () => {
       cancelled = true;
+      if (debounce) clearTimeout(debounce);
+      unsubscribe();
+      detach();
     };
   }, [refresh, showToast]);
 
