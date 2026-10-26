@@ -2464,6 +2464,8 @@ against the table's SELECT policy, so no new policy is needed.
 
 | Check | Result |
 |---|---|
-| A kid or guest subscribing to `expenses` gets no events | ⏳ PENDING live check - `expenses_owner_all` admits owners only, same as the insert-time select |
+| Only owner policies on the three tables | ✅ PASS - production `pg_policies`: `expenses_owner_all`, `budget_categories_owner_all`, `trip_budget_owner_all`, no other policy |
+| Applied to production | ✅ PASS - 26/10, `pg_publication_tables` lists expenses, budget_categories, trip_budget |
+| A kid or guest subscribing to `expenses` gets no events | ⏳ PENDING live check - `expenses_owner_all` admits owners only |
 | A guest subscribing to `trip_budget` gets no events | ⏳ PENDING live check - owner-only policy (00056) |
 | Owner on device A sees an expense added on device B without reopening | ⏳ PENDING after the migration is applied |
