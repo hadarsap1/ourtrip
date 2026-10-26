@@ -2469,3 +2469,20 @@ against the table's SELECT policy, so no new policy is needed.
 | A kid or guest subscribing to `expenses` gets no events | ⏳ PENDING live check - `expenses_owner_all` admits owners only |
 | A guest subscribing to `trip_budget` gets no events | ⏳ PENDING live check - owner-only policy (00056) |
 | Owner on device A sees an expense added on device B without reopening | ⏳ PENDING after the migration is applied |
+
+## place_options owner policy once per query (00074) - 26/10/2026
+
+Saving places from a pasted post timed out (8 s) once a post held more than
+about a dozen: the country-code trigger (00071) scans the trip's options as the
+saving owner, and `is_owner_of(trip_id)` ran for every scanned row.
+`place_options_owner_all` moves to 00059's form,
+`trip_id = (select member_trip_as('owner'))`, for USING and WITH CHECK.
+
+| Check | Result |
+|---|---|
+| Owner reads only own trip's options | ✅ PASS - probe 74 |
+| Trigger fills the code from own trip, not another trip's | ✅ PASS - probe 74 |
+| Owner cannot insert into another trip | ✅ PASS - probe 74 |
+| Kid / guest read nothing and cannot insert; outsider reads nothing | ✅ PASS - probe 74 |
+| Full RLS suite after 00074 | ✅ PASS - `scripts/rls/run.sh`, no FAIL |
+| Speed, production, as an owner, rolled back | ✅ 10 rows 6.3 s before, 30 rows 0.46 s after |
