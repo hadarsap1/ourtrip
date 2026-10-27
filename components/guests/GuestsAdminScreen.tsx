@@ -22,6 +22,7 @@ import { approvedShareText, joinShareText, joinUrl, type ApprovedGuest } from "@
 import { useMember } from "@/lib/useMember";
 import { normalizeLabels, parseGuestList } from "@/lib/guestBulk";
 import { shareToWhatsApp } from "@/lib/share";
+import { withTimeout } from "@/lib/offline/network";
 import { formatDate } from "@/lib/format";
 import { ClipboardIcon, MailIcon, ShareIcon, UsersIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -32,6 +33,13 @@ import { strings } from "@/lib/strings";
 import type { Member, Trip } from "@/lib/types";
 
 type Group = { label: string | null; rows: GuestAllowlistRow[] };
+
+// The first load gets one time limit as a whole. Each request already has its
+// own (lib/supabase.ts), but after a phone sat idle for hours every call first
+// waits on the token refresh, with its own retries, so the loader stayed up
+// for a minute and then showed empty lists, which read as "nobody asked"
+// (Hadar's iPhone, 27/10/2026: nothing reached the server for ~2 minutes).
+const LOAD_LIMIT_MS = 15_000;
 
 /** Labelled groups first (alphabetical), the unlabelled ones last. A guest
  *  in several groups is listed under each of them. */
@@ -61,6 +69,7 @@ export function GuestsAdminScreen() {
   const [unsent, setUnsent] = useState<ApprovedGuest[] | null>(null);
   const { member } = useMember();
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
   const [labelFor, setLabelFor] = useState<GuestAllowlistRow | null>(null);
   const [kidsFor, setKidsFor] = useState<Member | null>(null);
@@ -87,17 +96,17 @@ export function GuestsAdminScreen() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const activeTrip = await getActiveTrip();
-      if (cancelled || !activeTrip) {
-        setLoading(false);
-        return;
-      }
-      setTrip(activeTrip);
       try {
-        const [joinToken] = await Promise.all([getJoinToken(activeTrip.id), refresh(activeTrip.id)]);
+        const activeTrip = await withTimeout(getActiveTrip(), LOAD_LIMIT_MS);
+        if (cancelled || !activeTrip) return;
+        setTrip(activeTrip);
+        const [joinToken] = await withTimeout(
+          Promise.all([getJoinToken(activeTrip.id), refresh(activeTrip.id)]),
+          LOAD_LIMIT_MS
+        );
         if (!cancelled) setToken(joinToken);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled) setLoadFailed(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -105,7 +114,7 @@ export function GuestsAdminScreen() {
     return () => {
       cancelled = true;
     };
-  }, [refresh, showToast]);
+  }, [refresh]);
 
   const groups = useMemo(() => groupByLabel(allowlist), [allowlist]);
   const knownLabels = useMemo(
@@ -181,6 +190,23 @@ export function GuestsAdminScreen() {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8">
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
+      </div>
+    );
+  }
+
+  // Empty lists here would read as "nobody asked to join". A reload also
+  // starts a fresh Supabase client, which a retry in place would not.
+  if (loadFailed) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 px-4 pt-8 text-center">
+        <p className="text-ink-soft">{strings.guests.loadFailed}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="w-full rounded-2xl border border-line bg-surface py-3 text-sm font-medium text-ink-soft active:bg-paper-deep"
+        >
+          {strings.common.retry}
+        </button>
       </div>
     );
   }

@@ -1601,6 +1601,7 @@ export const strings = {
 
   guests: {
     title: "אורחים",
+    loadFailed: "לא הצלחנו לטעון את רשימת האורחים והבקשות. נסו שוב.",
     invite: "הזמנת אורח/ת",
     email: "אימייל",
     name: "שם",
