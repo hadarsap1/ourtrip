@@ -23,7 +23,7 @@ import { useMember } from "@/lib/useMember";
 import { normalizeLabels, parseGuestList } from "@/lib/guestBulk";
 import { shareToWhatsApp } from "@/lib/share";
 import { formatDate } from "@/lib/format";
-import { ClipboardIcon, MailIcon, ShareIcon, UsersIcon } from "@/components/icons";
+import { ChevronForwardIcon, ClipboardIcon, MailIcon, ShareIcon, UsersIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { KidTag } from "@/components/KidTag";
 import { KidNamesField } from "@/components/guests/KidNamesField";
@@ -63,6 +63,7 @@ export function GuestsAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<"invite" | "bulk" | null>(null);
   const [labelFor, setLabelFor] = useState<GuestAllowlistRow | null>(null);
+  const [detailFor, setDetailFor] = useState<GuestAllowlistRow | null>(null);
   const [kidsFor, setKidsFor] = useState<Member | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -322,61 +323,37 @@ export function GuestsAdminScreen() {
                 const revoked = row.revoked_at !== null;
                 const guest = memberOf(row.email);
                 return (
-                  <li
-                    key={row.email}
-                    className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm"
-                  >
-                    <span className="min-w-0">
-                      {guest && (
-                        <span className="block truncate font-semibold text-ink">
-                          {guest.display_name}
-                          <KidTag names={guest.kid_names} />
-                        </span>
-                      )}
-                      <span className="block truncate text-sm text-ink-soft" dir="ltr">
-                        {row.email}
+                  <li key={row.email}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailFor(row)}
+                      className="flex w-full items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-3 text-start shadow-sm active:bg-paper-deep"
+                    >
+                      <span className="min-w-0 flex-1">
+                        {guest ? (
+                          <span className="block truncate font-semibold text-ink">
+                            {guest.display_name}
+                            <KidTag names={guest.kid_names} />
+                          </span>
+                        ) : (
+                          <span className="block truncate text-ink-soft" dir="ltr">
+                            {row.email}
+                          </span>
+                        )}
                       </span>
-                      <span
-                        className={`text-xs font-semibold ${revoked ? "text-alert" : "text-success"}`}
-                      >
-                        {revoked ? strings.guests.revoked : strings.guests.active}
-                        <span className="ms-1 font-normal text-ink-soft">
-                          · <span dir="ltr">{formatDate(row.created_at.slice(0, 10))}</span>
+                      {revoked ? (
+                        <span className="shrink-0 text-xs font-semibold text-alert">
+                          {strings.guests.revoked}
                         </span>
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setLabelFor(row)}
-                        className="rounded-lg bg-paper-deep px-2.5 py-1 text-xs font-semibold text-ink-soft"
-                      >
-                        {strings.guests.setLabel}
-                      </button>
-                      {guest && (
-                        <button
-                          type="button"
-                          onClick={() => setKidsFor(guest)}
-                          className="rounded-lg bg-paper-deep px-2.5 py-1 text-xs font-semibold text-ink-soft"
-                        >
-                          {strings.kidTag.edit}
-                        </button>
+                      ) : (
+                        !guest && (
+                          <span className="shrink-0 text-xs text-ink-soft">
+                            {strings.guests.notSignedIn}
+                          </span>
+                        )
                       )}
-                      {!revoked && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!(await askConfirm(strings.guests.revokeConfirm))) return;
-                            void revokeGuest(row.trip_id, row.email)
-                              .then(() => trip && refresh(trip.id))
-                              .catch(() => showToast(strings.common.error));
-                          }}
-                          className="rounded-lg bg-alert-tint px-2.5 py-1 text-xs font-semibold text-alert"
-                        >
-                          {strings.guests.revoke}
-                        </button>
-                      )}
-                    </span>
+                      <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />
+                    </button>
                   </li>
                 );
               })}
@@ -408,6 +385,28 @@ export function GuestsAdminScreen() {
         />
       )}
       {unsent && <UnsentLinksSheet links={unsent} onClose={() => setUnsent(null)} onToast={showToast} />}
+      {detailFor && (
+        <GuestSheet
+          row={detailFor}
+          guest={memberOf(detailFor.email)}
+          onClose={() => setDetailFor(null)}
+          onEditLabels={() => {
+            setDetailFor(null);
+            setLabelFor(detailFor);
+          }}
+          onEditKids={(guest) => {
+            setDetailFor(null);
+            setKidsFor(guest);
+          }}
+          onRevoke={async () => {
+            if (!(await askConfirm(strings.guests.revokeConfirm))) return;
+            setDetailFor(null);
+            void revokeGuest(detailFor.trip_id, detailFor.email)
+              .then(() => trip && refresh(trip.id))
+              .catch(() => showToast(strings.common.error));
+          }}
+        />
+      )}
       {labelFor && trip && (
         <LabelSheet
           row={labelFor}
@@ -856,6 +855,93 @@ function UnsentLinksSheet({
         >
           {strings.common.close}
         </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** One guest's card: who, since when, groups and kids, and every action.
+ *  The list itself stays names only, so a class of 30 reads at a glance. */
+function GuestSheet({
+  row,
+  guest,
+  onClose,
+  onEditLabels,
+  onEditKids,
+  onRevoke,
+}: {
+  row: GuestAllowlistRow;
+  guest: Member | null;
+  onClose: () => void;
+  onEditLabels: () => void;
+  onEditKids: (guest: Member) => void;
+  onRevoke: () => void;
+}) {
+  const revoked = row.revoked_at !== null;
+  const kids = guest?.kid_names ?? [];
+  return (
+    <Sheet open onClose={onClose} title={guest?.display_name ?? row.email}>
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="truncate text-sm text-ink-soft" dir="ltr">
+            {row.email}
+          </p>
+          <p className={`text-xs font-semibold ${revoked ? "text-alert" : "text-success"}`}>
+            {revoked
+              ? strings.guests.revoked
+              : guest
+                ? strings.guests.active
+                : strings.guests.notSignedIn}
+            <span className="ms-1 font-normal text-ink-soft">
+              ·{" "}
+              {strings.guests.addedOn.replace("{date}", formatDate(row.created_at.slice(0, 10)))}
+            </span>
+          </p>
+        </div>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-ink">{strings.guests.groupsTitle}</h3>
+            <button
+              type="button"
+              onClick={onEditLabels}
+              className="rounded-lg bg-paper-deep px-2.5 py-1 text-xs font-semibold text-ink-soft"
+            >
+              {strings.guests.setLabel}
+            </button>
+          </div>
+          <p className="text-sm text-ink-soft">
+            {row.labels.length > 0 ? row.labels.join(" · ") : strings.guests.noLabel}
+          </p>
+        </section>
+
+        {guest && (
+          <section className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-ink">{strings.guests.kidsTitle}</h3>
+              <button
+                type="button"
+                onClick={() => onEditKids(guest)}
+                className="rounded-lg bg-paper-deep px-2.5 py-1 text-xs font-semibold text-ink-soft"
+              >
+                {strings.kidTag.edit}
+              </button>
+            </div>
+            <p className="text-sm text-ink-soft">
+              {kids.length > 0 ? kids.join(" · ") : strings.guests.none}
+            </p>
+          </section>
+        )}
+
+        {!revoked && (
+          <button
+            type="button"
+            onClick={onRevoke}
+            className="w-full rounded-xl bg-alert-tint py-3 font-semibold text-alert"
+          >
+            {strings.guests.revoke}
+          </button>
+        )}
       </div>
     </Sheet>
   );
