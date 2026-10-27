@@ -35,9 +35,10 @@ import type { Member, Trip } from "@/lib/types";
 type Group = { label: string | null; rows: GuestAllowlistRow[] };
 
 // The first load gets one time limit as a whole. Each request already has its
-// own (lib/supabase.ts), but a call can stall inside the Supabase client before
-// any request leaves the phone, and then the screen sat on "טוען..." for good
-// (Hadar's iPhone, 27/10/2026: no request reached the server at all).
+// own (lib/supabase.ts), but after a phone sat idle for hours every call first
+// waits on the token refresh, with its own retries, so the loader stayed up
+// for a minute and then showed empty lists, which read as "nobody asked"
+// (Hadar's iPhone, 27/10/2026: nothing reached the server for ~2 minutes).
 const LOAD_LIMIT_MS = 15_000;
 
 /** Labelled groups first (alphabetical), the unlabelled ones last. A guest
