@@ -6,7 +6,7 @@
 import { getSupabase } from "@/lib/supabase";
 import { photoUrls } from "@/lib/data/media";
 import { titleFromJournal } from "@/lib/stories";
-import { photoAudienceAfterShare } from "@/lib/audience";
+import { photoAudienceAfterShare, photoMayGoPublic } from "@/lib/audience";
 import type { JournalEntry } from "@/lib/data/journal";
 import type { TablesUpdate } from "@/lib/database.types";
 import type { MemberRole, Post, PostVisibility } from "@/lib/types";
@@ -240,12 +240,12 @@ export async function syncPublicCopies(story: Story): Promise<void> {
   if (missing.length === 0) return;
   const { data: rows, error } = await supabase
     .from("photos")
-    .select("id, file_path, audience")
+    .select("id, file_path, audience, status, shared_with_guests")
     .in("id", missing.map((p) => p.photoId));
   if (error) throw new Error(error.message);
-  // A photo uploaded or shared for some groups stays with them (00064): a
-  // public story shows it in the app to those groups, never on the open page.
-  for (const row of (rows ?? []).filter((r) => r.audience.length === 0)) {
+  // Only an approved, shared, everyone photo goes on the open page: one the
+  // parent left unshared, or kept for some groups (00064), stays in the app.
+  for (const row of (rows ?? []).filter(photoMayGoPublic)) {
     const { data: blob, error: downloadError } = await supabase.storage.from("photos").download(row.file_path);
     if (downloadError || !blob) throw new Error(downloadError?.message ?? "download failed");
     const path = publicPathFor(story, row.id);

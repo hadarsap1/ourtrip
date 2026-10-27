@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { audienceText, photoAudienceAfterShare, withDefaultGroups } from "./audience";
+import { audienceText, photoAudienceAfterShare, photoMayGoPublic, withDefaultGroups } from "./audience";
 
 describe("audienceText", () => {
   it("names the groups, or nothing for everyone", () => {
@@ -42,5 +42,20 @@ describe("withDefaultGroups", () => {
   });
   it("a guest gets only their own groups", () => {
     expect(withDefaultGroups(["חברים"], "guest", defaults)).toEqual(["חברים"]);
+  });
+});
+
+describe("photoMayGoPublic", () => {
+  const ok = { status: "approved", shared_with_guests: true, audience: [] as string[] };
+  it("an approved photo shared with every guest may go on the open page", () => {
+    expect(photoMayGoPublic(ok)).toBe(true);
+  });
+  it("never a photo the parent did not share, or did not approve (rule 3)", () => {
+    expect(photoMayGoPublic({ ...ok, shared_with_guests: false })).toBe(false);
+    expect(photoMayGoPublic({ ...ok, status: "pending" })).toBe(false);
+    expect(photoMayGoPublic({ ...ok, status: "rejected", shared_with_guests: false })).toBe(false);
+  });
+  it("never a photo kept for some groups", () => {
+    expect(photoMayGoPublic({ ...ok, audience: ["כיתה עומר"] })).toBe(false);
   });
 });

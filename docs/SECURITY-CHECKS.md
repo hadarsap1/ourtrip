@@ -2486,3 +2486,19 @@ saving owner, and `is_owner_of(trip_id)` ran for every scanned row.
 | Kid / guest read nothing and cannot insert; outsider reads nothing | ✅ PASS - probe 74 |
 | Full RLS suite after 00074 | ✅ PASS - `scripts/rls/run.sh`, no FAIL |
 | Speed, production, as an owner, rolled back | ✅ 10 rows 6.3 s before, 30 rows 0.46 s after |
+
+## QA 27/10/2026 - open blog photos follow rule 3
+
+No migration. The public bucket is written from the parent's device
+(`syncPublicCopies`), so the gate lives there: a photo gets a public copy only
+when `status = 'approved' AND shared_with_guests AND audience = '{}'`, and its
+copies are withdrawn when it is unshared, rejected, narrowed to groups or
+deleted. Full report: `docs/QA-2026-10-27.md`.
+
+| Check | Result |
+|---|---|
+| Public story with "share the photos" unticked copies no unshared photo | ✅ PASS - `photoMayGoPublic` unit tests (unshared, pending, rejected, group photo all refused) |
+| Unshare / reject / narrow / delete removes the public copy and link | ✅ by code (`withdrawPublicCopies`, owner-only callers) |
+| Live: any public copy of a photo that does not qualify | ✅ PASS - 0 public copies, 0 public stories in production |
+| Full RLS suite | ✅ PASS - 364/364, `scripts/rls/run.sh` |
+| Live policies and functions = repo | ✅ PASS - fingerprint diff, see the QA report |

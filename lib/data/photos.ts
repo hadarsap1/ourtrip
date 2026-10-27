@@ -7,6 +7,7 @@ export type Photo = Tables<"photos">;
 export type PhotoWithUrl = Photo & { url: string | null };
 
 const BUCKET = "photos";
+const PUBLIC_BUCKET = "public-stories";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -82,6 +83,31 @@ export async function uploadPhoto(input: {
 
 // ---------- owner moderation ----------
 
+/**
+ * Takes a photo off the open blog (00046): deletes its public copies and the
+ * links to them. Called whenever a photo stops qualifying for the open page
+ * (unshared, rejected, kept for some groups, deleted), so a public story
+ * never keeps showing what guests can no longer see (hard rule 3).
+ */
+async function withdrawPublicCopies(photoId: string): Promise<void> {
+  const supabase = requireClient();
+  const { data, error } = await supabase
+    .from("post_photos")
+    .select("public_path")
+    .eq("photo_id", photoId)
+    .not("public_path", "is", null);
+  if (error) throw new Error(error.message);
+  const paths = (data ?? []).map((r) => r.public_path).filter((p): p is string => p !== null);
+  if (paths.length === 0) return;
+  await supabase.storage.from(PUBLIC_BUCKET).remove(paths);
+  const { error: unlinkError } = await supabase
+    .from("post_photos")
+    .update({ public_path: null })
+    .eq("photo_id", photoId)
+    .not("public_path", "is", null);
+  if (unlinkError) throw new Error(unlinkError.message);
+}
+
 export async function approvePhoto(id: string, ownerId: string): Promise<void> {
   const { error } = await requireClient()
     .from("photos")
@@ -96,6 +122,7 @@ export async function rejectPhoto(id: string, ownerId: string): Promise<void> {
     .update({ status: "rejected", approved_by: ownerId, shared_with_guests: false })
     .eq("id", id);
   if (error) throw new Error(error.message);
+  await withdrawPublicCopies(id);
 }
 
 /** Separate explicit step from approval (DECISIONS #5). */
@@ -105,6 +132,7 @@ export async function setPhotoShared(id: string, shared: boolean): Promise<void>
     .update({ shared_with_guests: shared })
     .eq("id", id);
   if (error) throw new Error(error.message);
+  if (!shared) await withdrawPublicCopies(id);
 }
 
 /** Which guests a shared photo reaches (00063): [] = every guest. Narrows
@@ -112,10 +140,14 @@ export async function setPhotoShared(id: string, shared: boolean): Promise<void>
 export async function setPhotoAudience(id: string, audience: string[]): Promise<void> {
   const { error } = await requireClient().from("photos").update({ audience }).eq("id", id);
   if (error) throw new Error(error.message);
+  if (audience.length > 0) await withdrawPublicCopies(id);
 }
 
 export async function deletePhoto(photo: Photo): Promise<void> {
   const supabase = requireClient();
+  // before the delete: the post_photos links cascade with it, and after that
+  // nothing says which public copies were this photo's
+  await withdrawPublicCopies(photo.id);
   const { error } = await supabase.from("photos").delete().eq("id", photo.id);
   if (error) throw new Error(error.message);
   await supabase.storage.from(BUCKET).remove([photo.file_path]);

@@ -85,7 +85,12 @@ export function parseDateCell(cell: unknown): string | null {
     return `${year}-${pad(m[2])}-${pad(m[1])}`;
   }
   const t = Date.parse(s);
-  if (!Number.isNaN(t) && /\d{4}/.test(s)) return new Date(t).toISOString().slice(0, 10);
+  // Date.parse reads "3 Nov 2026" as LOCAL midnight; toISOString would shift
+  // it to the day before anywhere east of UTC (Israel, the whole trip).
+  if (!Number.isNaN(t) && /\d{4}/.test(s)) {
+    const d = new Date(t);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
   return null;
 }
 
