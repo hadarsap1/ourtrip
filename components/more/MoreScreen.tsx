@@ -288,17 +288,18 @@ export function MoreScreen() {
                 <span className="flex-1 text-[13.5px] font-medium text-ink">
                   {row.label}
                 </span>
+                {/* both: "10 approved" next to "2 waiting" - with only the
+                    badge, the approved count vanished whenever someone asked */}
+                {row.state && (
+                  <span className="shrink-0 text-[12px] text-ink-soft">
+                    {row.state}
+                  </span>
+                )}
                 {row.badge ? (
                   <span className="shrink-0 rounded-full bg-rose-500 px-2 py-0.5 text-[12px] font-extrabold text-white">
                     {strings.approvals.waiting.replace("{n}", String(row.badge))}
                   </span>
-                ) : (
-                  row.state && (
-                    <span className="shrink-0 text-[12px] text-ink-soft">
-                      {row.state}
-                    </span>
-                  )
-                )}
+                ) : null}
                 <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />
               </Link>
             </li>

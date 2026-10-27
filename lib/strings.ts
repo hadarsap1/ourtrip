@@ -659,7 +659,7 @@ export const strings = {
     emergencyMeta: "‏112 · שגרירות · ביטוח",
     checklistState: "{done} מתוך {total}",
     devicesState: "‏{n} טאבלטים",
-    guestsState: "‏{n} מוזמנים",
+    guestsState: "‏{n} מאושרים",
     notificationsState: "התראות ותזכורות",
     pocketState: "דמי כיס לילדים",
     memoryBookState: "יומן ותמונות להדפסה",
@@ -1667,6 +1667,12 @@ export const strings = {
     viaGoogle: "מאומת דרך Google",
     viaEmail: "מייל שהוקלד",
     manualTitle: "הוספה ידנית",
+    // the list is names only; a tap opens the guest's card (Hadar 27/10/2026)
+    notSignedIn: "עוד לא נכנס/ה",
+    addedOn: "נוסף/ה ב־{date}",
+    groupsTitle: "קבוצות",
+    kidsTitle: "הורה של",
+    none: "אין",
   },
 
   // the public page behind the join link
@@ -1985,7 +1991,7 @@ export const strings = {
         okDetail: "לכל מדינה יש שיחון",
       },
       kid_devices: { label: "טאבלט הילדים", detail: "‏{n} מכשירים מחוברים" },
-      guests: { label: "אורחים", detail: "‏{n} מוזמנים" },
+      guests: { label: "אורחים", detail: "‏{n} מאושרים" },
       push: { label: "התראות", detail: "‏{n} מכשירים רשומים" },
     } as Record<string, { label: string; detail: string; okDetail?: string }>,
   },
