@@ -18,6 +18,21 @@ describe("importItinerary date parsing", () => {
     expect(parseDateCell(46244)).toBe("2026-08-10");
   });
 
+  it("keeps the calendar day of a text date east of UTC", () => {
+    // Node re-reads TZ when it changes; Israel and the whole trip are UTC+
+    const saved = process.env.TZ;
+    try {
+      for (const tz of ["Asia/Jerusalem", "Asia/Ho_Chi_Minh", "Asia/Tokyo"]) {
+        process.env.TZ = tz;
+        expect(parseDateCell("3 Nov 2026")).toBe("2026-11-03");
+        expect(parseDateCell("Nov 3, 2026")).toBe("2026-11-03");
+      }
+    } finally {
+      if (saved === undefined) delete process.env.TZ;
+      else process.env.TZ = saved;
+    }
+  });
+
   it("returns null for junk", () => {
     expect(parseDateCell("")).toBeNull();
     expect(parseDateCell("hello")).toBeNull();
