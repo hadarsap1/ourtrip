@@ -177,8 +177,10 @@ function FamilyPhotosView() {
   // who the next upload is for - everyone by default (00064)
   const [uploadAudience, setUploadAudience] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  // picked photo waiting for its text before it uploads
+  // the composer on the screen (no sheet after the picker: on an iPhone
+  // nothing opened after picking - 30/10): the text, and the picked photo
   const [draft, setDraft] = useState<{ file: File; url: string } | null>(null);
+  const [draftText, setDraftText] = useState("");
   const [captionFor, setCaptionFor] = useState<PhotoWithUrl | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,17 +229,19 @@ function FamilyPhotosView() {
   }, [trip, isOwnerRole]);
 
   function pickFile(file: File | null) {
-    if (fileRef.current) fileRef.current.value = "";
     if (!file) return;
+    if (draft) URL.revokeObjectURL(draft.url);
     setDraft({ file, url: URL.createObjectURL(file) });
   }
 
   function closeDraft() {
     if (draft) URL.revokeObjectURL(draft.url);
     setDraft(null);
+    // cleared only now, so picking the same photo again still fires onChange
+    if (fileRef.current) fileRef.current.value = "";
   }
 
-  async function handleUpload(caption: string) {
+  async function handleUpload() {
     if (!draft || !trip || !member || uploading) return;
     setUploading(true);
     try {
@@ -246,10 +250,11 @@ function FamilyPhotosView() {
         memberId: member.id,
         isOwner: member.role === "owner",
         file: draft.file,
-        caption,
+        caption: draftText,
         audience: uploadAudience,
       });
       closeDraft();
+      setDraftText("");
       await refresh(trip.id);
       showToast(
         member.role === "owner"
@@ -294,25 +299,61 @@ function FamilyPhotosView() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
 
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        disabled={uploading}
-        className="w-full rounded-2xl bg-sea py-3 font-bold text-on-sea shadow hover:bg-sea-deep disabled:opacity-60"
-      >
-        <CameraIcon className="inline-block h-4 w-4 align-text-bottom" />{" "}
-        {uploading ? strings.photos.uploading : strings.photos.upload}
-      </button>
-      <AudienceRow label={strings.audience.who} value={uploadAudience} onChange={setUploadAudience} />
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        // no `capture`: it makes phones open the camera only, with no way to
-        // pick from the gallery; without it the phone offers both
-        className="hidden"
-        onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-      />
+      <section className="space-y-3 rounded-2xl border border-line bg-surface p-3 shadow-sm">
+        <textarea
+          value={draftText}
+          onChange={(e) => setDraftText(e.target.value)}
+          placeholder={strings.photos.captionPlaceholder}
+          aria-label={strings.photos.textTitle}
+          dir="auto"
+          rows={3}
+          className="block w-full resize-y rounded-xl border border-line bg-paper p-3 text-[16px] leading-[1.6] text-ink focus:border-sea focus:outline-none"
+        />
+        {draft && (
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local object URL */}
+            <img src={draft.url} alt="" className="max-h-64 w-full rounded-xl object-cover" />
+            <button
+              type="button"
+              onClick={closeDraft}
+              disabled={uploading}
+              aria-label={strings.photos.removePicked}
+              className="absolute end-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white"
+            >
+              <CloseIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        {/* A real tap on a label opens the picker - more reliable on an iPhone
+            than a script clicking a hidden input. No `capture`: it makes phones
+            open the camera only; without it they offer the gallery too. */}
+        <label
+          className={`flex min-h-12 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl font-bold ${
+            draft ? "border border-line text-ink-soft" : "bg-sea text-on-sea shadow hover:bg-sea-deep"
+          } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+        >
+          <CameraIcon className="h-4 w-4" />
+          {draft ? strings.photos.changePhoto : strings.photos.pickPhoto}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+        <AudienceRow label={strings.audience.who} value={uploadAudience} onChange={setUploadAudience} />
+        {draft && (
+          <button
+            type="button"
+            onClick={() => void handleUpload()}
+            disabled={uploading}
+            className="w-full rounded-xl bg-sea py-3 font-bold text-on-sea shadow hover:bg-sea-deep disabled:opacity-60"
+          >
+            {uploading ? strings.photos.uploading : strings.photos.send}
+          </button>
+        )}
+      </section>
 
       {/* Google Photos: owner imports, family (owner + kids) views */}
       {trip && (
@@ -479,16 +520,6 @@ function FamilyPhotosView() {
           }}
         />
       )}
-      <CaptionSheet
-        open={draft !== null}
-        title={strings.photos.composeTitle}
-        previewUrl={draft?.url}
-        initial=""
-        submitLabel={strings.photos.send}
-        busy={uploading}
-        onClose={() => !uploading && closeDraft()}
-        onSubmit={(text) => void handleUpload(text)}
-      />
       <CaptionSheet
         open={captionFor !== null}
         title={strings.photos.textTitle}
