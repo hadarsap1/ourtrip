@@ -2502,3 +2502,34 @@ deleted. Full report: `docs/QA-2026-10-27.md`.
 | Live: any public copy of a photo that does not qualify | ✅ PASS - 0 public copies, 0 public stories in production |
 | Full RLS suite | ✅ PASS - 364/364, `scripts/rls/run.sh` |
 | Live policies and functions = repo | ✅ PASS - fingerprint diff, see the QA report |
+
+## 30/10/2026 - guest sign-in link from the login screen (00075)
+
+A guest who joined with an email had no way back in once the approval link
+expired: the login screen offered Google only. New open function
+`guest-login-link` (verify_jwt = false) mails a fresh magic link via Resend.
+`claim_guest_login_link` (service role only) decides who gets one.
+
+| Check | Result |
+|---|---|
+| Approved guest of the active trip gets a link (email matched case-insensitively) | ✅ PASS - probe `75_guest_login_link.sql` |
+| Revoked guest, stranger, empty email, guest of an inactive trip: no link | ✅ PASS - probe 75 |
+| Owner whose email is on the allowlist: no link (a link is never a way into owner / kid roles) | ✅ PASS - probe 75 |
+| Same email within a minute: no second link (open endpoint cannot flood an inbox) | ✅ PASS - probe 75 |
+| anon / authenticated cannot call the function or read the send log | ✅ PASS - probe 75 |
+| Reply does not reveal who is a guest | ✅ by code - `{ ok: true }` whether or not a link went out |
+| Full RLS suite | ✅ PASS - 375/375, `scripts/rls/run.sh` |
+
+### Same day - the link no longer signs in on a plain GET
+
+WhatsApp fetched the approval link to draw a preview 7 s after it was made
+(edge log user agent `WhatsApp/2.23.20.0`) and spent the one-time token; the
+guest's own tap got "link expired". Links from `guest-invite` and
+`guest-login-link` now go to the app's `/auth/confirm?token_hash=...`, which
+calls `verifyOtp` only when the button is pressed.
+
+| Check | Result |
+|---|---|
+| Link origin cannot be chosen by the caller (open endpoint) | ✅ by code - built from `properties.redirect_to`, which Supabase has already checked against its redirect allow list, never from the request body |
+| Loading `/auth/confirm` spends nothing | ✅ by code - no auth call until the button |
+| `/auth/confirm` shows no trip data | ✅ by code - bypasses the gate like `/login`, renders only the button |
