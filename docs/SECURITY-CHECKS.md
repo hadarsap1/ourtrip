@@ -2568,3 +2568,22 @@ and a kid edit only their own (`updatePhotoCaption`).
 | Guest edits a photo's text | ✅ by policy - no update policy for guests on `photos` |
 | Guest sees the text of an unapproved or unshared photo | ✅ by policy - `guest-photos` reads rows with the guest's own JWT, so RLS returns the caption only for rows that pass rule 3 |
 | Full RLS suite | ✅ PASS - see the 00076 entry above |
+
+## 30/10/2026 - likes and comments on photos (00077)
+
+Same rules as stories: guests and parents comment, kids read and like.
+`comments` / `reactions` gain `photo_id` (exactly one target per row);
+`feedback_target_visible` checks the photo under the caller's own RLS, so a
+guest reaches a photo's feedback only while the photo passes rule 3 for them.
+Probe `scripts/rls/probes/77_photo_feedback.sql` (14 checks).
+
+| Check | Result |
+|---|---|
+| Guest comments on and likes a photo shared with them | ✅ PASS - probe 77 |
+| Guest cannot comment on or like an unshared, other-group or pending photo (rule 3) | ✅ PASS - probe 77 |
+| Guest reads comments and likes only on photos shared with them | ✅ PASS - probe 77 |
+| Guest editing a comment cannot move it to another photo | ✅ PASS - probe 77 (`comments_edit_guard` pins `photo_id`) |
+| Kid reads photo comments, likes, cannot comment | ✅ PASS - probe 77 |
+| Revoked guest, outsider, anon: nothing | ✅ PASS - probe 77 |
+| A row has exactly one target; the old 3-argument visibility function is gone | ✅ PASS - probe 77 |
+| Full RLS suite | ✅ PASS - 414/414, `scripts/rls/run.sh` |

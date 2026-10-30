@@ -17,9 +17,11 @@ function requireClient() {
 }
 
 function targetColumns(target: FeedbackTarget) {
-  return "postId" in target
-    ? { post_id: target.postId, episode_id: null }
-    : { post_id: null, episode_id: target.episodeId };
+  if ("postId" in target) return { post_id: target.postId, episode_id: null };
+  if ("episodeId" in target) return { post_id: null, episode_id: target.episodeId };
+  // photo_id is sent only for a photo, so stories and episodes keep working on
+  // a database that does not have the column yet (00077)
+  return { post_id: null, episode_id: null, photo_id: target.photoId };
 }
 
 /** Every like this member may see on the trip, in one query (RLS filters). */

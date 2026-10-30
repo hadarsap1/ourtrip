@@ -12,7 +12,7 @@ import {
   removeReaction,
   updateComment,
 } from "@/lib/data/feedback";
-import { matchesTarget, namesSummary, tallyReactions, type FeedbackTarget } from "@/lib/feedback";
+import { matchesTarget, namesSummary, tallyReactions, targetKey, type FeedbackTarget } from "@/lib/feedback";
 import { formatShortDate } from "@/lib/format";
 import { nameWithKidTag } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
@@ -99,7 +99,7 @@ export function FeedbackBar({
   // kids read the comments, without replying (00050)
   const showComments = canComment || mine.length > 0;
   const isOwner = member.role === "owner";
-  const inputId = `comment-${"postId" in target ? target.postId : target.episodeId}`;
+  const inputId = `comment-${targetKey(target)}`;
 
   async function toggle(kind: ReactionKind, mineId: string | null) {
     if (busy) return;

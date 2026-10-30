@@ -1822,6 +1822,8 @@ export const strings = {
     caption: "כיתוב (לא חובה)",
     captionPlaceholder: "מה קרה כאן? אפשר לכתוב כמה שרוצים",
     newUpload: "העלאה חדשה",
+    open: "פתיחת התמונה עם התגובות",
+    by: "הועלתה על ידי {name}",
     pickFrom: "מאיפה התמונה?",
     fromGallery: "מהגלריה",
     takePhoto: "צילום",
