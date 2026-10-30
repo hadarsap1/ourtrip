@@ -1922,6 +1922,14 @@ export const strings = {
     emailError: "משהו השתבש. נסו שוב בעוד דקה.",
   },
 
+  // where a guest's sign-in link lands (/auth/confirm)
+  confirmLink: {
+    button: "כניסה",
+    busy: "נכנסים…",
+    invalid: "הקישור כבר שומש או שפג תוקפו. אפשר לבקש קישור חדש במסך הכניסה.",
+    toLogin: "למסך הכניסה",
+  },
+
   // "מוכנות ליציאה". One screen that adds up what every other screen only
   // knows about itself.
   // The pre-departure home screen. It used to show only what was MISSING;

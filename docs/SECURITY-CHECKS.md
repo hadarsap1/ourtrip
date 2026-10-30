@@ -2519,3 +2519,17 @@ expired: the login screen offered Google only. New open function
 | anon / authenticated cannot call the function or read the send log | ✅ PASS - probe 75 |
 | Reply does not reveal who is a guest | ✅ by code - `{ ok: true }` whether or not a link went out |
 | Full RLS suite | ✅ PASS - 375/375, `scripts/rls/run.sh` |
+
+### Same day - the link no longer signs in on a plain GET
+
+WhatsApp fetched the approval link to draw a preview 7 s after it was made
+(edge log user agent `WhatsApp/2.23.20.0`) and spent the one-time token; the
+guest's own tap got "link expired". Links from `guest-invite` and
+`guest-login-link` now go to the app's `/auth/confirm?token_hash=...`, which
+calls `verifyOtp` only when the button is pressed.
+
+| Check | Result |
+|---|---|
+| Link origin cannot be chosen by the caller (open endpoint) | ✅ by code - built from `properties.redirect_to`, which Supabase has already checked against its redirect allow list, never from the request body |
+| Loading `/auth/confirm` spends nothing | ✅ by code - no auth call until the button |
+| `/auth/confirm` shows no trip data | ✅ by code - bypasses the gate like `/login`, renders only the button |

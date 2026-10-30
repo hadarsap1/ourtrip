@@ -22,6 +22,22 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// The link goes to the app's /auth/confirm page, which signs in only when the
+// guest presses a button. Supabase's own action_link signs in on a plain GET,
+// and WhatsApp's link preview spent it before the guest could tap (30/10).
+// The origin is the redirect Supabase already checked against its allow list,
+// never the raw redirect_to from the request.
+function confirmUrl(props?: { hashed_token?: string; redirect_to?: string }): string | null {
+  if (!props?.hashed_token || !props.redirect_to) return null;
+  try {
+    const url = new URL("/auth/confirm", new URL(props.redirect_to).origin);
+    url.searchParams.set("token_hash", props.hashed_token);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -67,7 +83,7 @@ Deno.serve(async (req) => {
     email,
     options: { redirectTo: body.redirect_to ?? undefined },
   });
-  const link = linkData?.properties?.action_link;
+  const link = confirmUrl(linkData?.properties);
   if (linkError || !link) return json({ ok: false, error: "failed" }, 500);
 
   try {

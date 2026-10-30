@@ -100,6 +100,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const bypass =
     pathname === "/login" ||
     pathname === "/kid-login" ||
+    // a guest's sign-in link: signs in only when the button is pressed
+    pathname === "/auth/confirm" ||
     pathname === "/offline" ||
     // the open blog (00046): readable without an account, by design
     pathname.startsWith("/s/") ||
