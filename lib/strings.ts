@@ -1656,11 +1656,12 @@ export const strings = {
     unsentTitle: "אושר - נשאר לשלוח קישור",
     unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
     // after approval, by WhatsApp (Hadar 20/10/2026). Google: the app's address,
-    // nothing expires. Typed email: the personal sign-in link, which expires.
+    // nothing expires. Typed email: the personal sign-in link (no expiry warning -
+    // it alarmed people, Hadar 30/10/2026).
     approvedGoogleText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nנכנסים כאן עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה קישור הכניסה האישי שלך. הוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה קישור הכניסה האישי שלך:\n{url}",
     viaGoogleShort: "Google",
     declined: "הבקשה נדחתה",
     declineConfirm: "לדחות את הבקשה? הפונה לא יקבל הודעה על כך",
