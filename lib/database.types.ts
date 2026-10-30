@@ -245,6 +245,7 @@ export type Database = {
           body: string
           created_at: string
           episode_id: string | null
+          photo_id: string | null
           id: string
           post_id: string | null
           shown_by: string | null
@@ -256,6 +257,7 @@ export type Database = {
           body: string
           created_at?: string
           episode_id?: string | null
+          photo_id?: string | null
           id?: string
           post_id?: string | null
           shown_by?: string | null
@@ -267,6 +269,7 @@ export type Database = {
           body?: string
           created_at?: string
           episode_id?: string | null
+          photo_id?: string | null
           id?: string
           post_id?: string | null
           shown_by?: string | null
@@ -279,6 +282,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
             referencedColumns: ["id"]
           },
           {
@@ -1911,6 +1921,7 @@ export type Database = {
         Row: {
           created_at: string
           episode_id: string | null
+          photo_id: string | null
           id: string
           kind: Database["public"]["Enums"]["reaction_kind"]
           member_id: string
@@ -1920,6 +1931,7 @@ export type Database = {
         Insert: {
           created_at?: string
           episode_id?: string | null
+          photo_id?: string | null
           id?: string
           kind: Database["public"]["Enums"]["reaction_kind"]
           member_id: string
@@ -1929,6 +1941,7 @@ export type Database = {
         Update: {
           created_at?: string
           episode_id?: string | null
+          photo_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["reaction_kind"]
           member_id?: string
@@ -1936,6 +1949,13 @@ export type Database = {
           trip_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reactions_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reactions_episode_id_fkey"
             columns: ["episode_id"]

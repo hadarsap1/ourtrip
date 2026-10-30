@@ -8,6 +8,7 @@ const r = (over: Partial<Reaction>): Reaction => ({
   member_id: "m",
   post_id: "p1",
   episode_id: null,
+  photo_id: null,
   kind: "heart",
   created_at: "2026-11-01T00:00:00Z",
   ...over,
@@ -39,5 +40,17 @@ describe("namesSummary", () => {
     expect(namesSummary(["א", "ב"])).toEqual({ shown: "א, ב", more: 0 });
     expect(namesSummary(["א", "ב", "ג", "ד", "ה"])).toEqual({ shown: "א, ב, ג", more: 2 });
     expect(namesSummary(["", "א"])).toEqual({ shown: "א", more: 0 });
+  });
+});
+
+describe("photo targets (00077)", () => {
+  it("counts only the photo's own likes", () => {
+    const rows = [
+      r({ id: "a", post_id: null, photo_id: "ph1", kind: "heart" }),
+      r({ id: "b", post_id: null, photo_id: "ph2", kind: "heart" }),
+      r({ id: "c", post_id: "ph1", kind: "heart" }),
+    ];
+    const { tallies } = tallyReactions(rows, { photoId: "ph1" }, null);
+    expect(tallies.find((t) => t.kind === "heart")?.count).toBe(1);
   });
 });

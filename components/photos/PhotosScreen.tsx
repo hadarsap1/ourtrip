@@ -21,7 +21,7 @@ import {
   type PhotoWithUrl,
 } from "@/lib/data/photos";
 import { formatDate } from "@/lib/format";
-import { CheckIcon, CloseIcon, PlusIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon, MessagesIcon, PlusIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
@@ -31,6 +31,8 @@ import { AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
 import { UploadSheet } from "./UploadSheet";
+import { PhotoView, type ViewedPhoto } from "./PhotoView";
+import { usePhotoFeedback } from "./usePhotoFeedback";
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -41,20 +43,27 @@ export function PhotosScreen() {
 // Guest portal: approved+shared photos only, grouped by day (Sprint 7).
 // Rows and URLs both come from the guest-photos Edge Function.
 function GuestPhotosView() {
+  const { member } = useMember();
   const [photos, setPhotos] = useState<GuestPhoto[]>([]);
   const [googlePhotos, setGooglePhotos] = useState<GuestGooglePhoto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tripId, setTripId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<ViewedPhoto | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const feedback = usePhotoFeedback(tripId);
 
   useEffect(() => {
     let cancelled = false;
     void Promise.all([
       listGuestPhotos().catch(() => [] as GuestPhoto[]),
       listGuestGooglePhotos().catch(() => [] as GuestGooglePhoto[]),
+      getActiveTrip().catch(() => null),
     ])
-      .then(([p, g]) => {
+      .then(([p, g, t]) => {
         if (!cancelled) {
           setPhotos(p);
           setGooglePhotos(g);
+          setTripId(t?.id ?? null);
         }
       })
       .finally(() => {
@@ -110,14 +119,7 @@ function GuestPhotosView() {
                 key={photo.id}
                 className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
               >
-                {photo.url && (
-                  // eslint-disable-next-line @next/next/no-img-element -- signed URL
-                  <img
-                    src={photo.url}
-                    alt={photo.caption ?? ""}
-                    className="aspect-square w-full object-cover"
-                  />
-                )}
+                <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
                 {photo.caption && (
                   <div className="p-2">
                     <PhotoCaption text={photo.caption} />
@@ -161,6 +163,21 @@ function GuestPhotosView() {
           ))}
         </div>
       )}
+
+      {viewing && tripId && member && (
+        <PhotoView
+          photo={viewing}
+          tripId={tripId}
+          member={member}
+          members={feedback.members}
+          reactions={feedback.reactions}
+          comments={feedback.comments}
+          onChanged={() => void feedback.reload()}
+          onToast={setToast}
+          onClose={() => setViewing(null)}
+        />
+      )}
+      <Toast message={toast} />
     </div>
   );
 }
@@ -179,6 +196,8 @@ function FamilyPhotosView() {
     () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1"
   );
   const [captionFor, setCaptionFor] = useState<PhotoWithUrl | null>(null);
+  // a tapped photo, open with its likes and comments (00077)
+  const [viewing, setViewing] = useState<PhotoWithUrl | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -190,6 +209,7 @@ function FamilyPhotosView() {
   const refresh = useCallback(async (tripId: string) => {
     setPhotos(await listPhotos(tripId));
   }, []);
+  const feedback = usePhotoFeedback(trip?.id ?? null);
 
   useEffect(() => {
     let cancelled = false;
@@ -333,14 +353,7 @@ function FamilyPhotosView() {
               key={photo.id}
               className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
             >
-              {photo.url && (
-                // eslint-disable-next-line @next/next/no-img-element -- signed URL
-                <img
-                  src={photo.url}
-                  alt={photo.caption ?? ""}
-                  className="aspect-square w-full object-cover"
-                />
-              )}
+              <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
               <div className="space-y-1 p-2 text-xs">
                 {photo.caption && <PhotoCaption text={photo.caption} />}
                 {/* a kid edits their own text only before approval until 00076 is
@@ -445,6 +458,19 @@ function FamilyPhotosView() {
           }}
         />
       )}
+      {viewing && trip && member && (
+        <PhotoView
+          photo={viewing}
+          tripId={trip.id}
+          member={member}
+          members={feedback.members}
+          reactions={feedback.reactions}
+          comments={feedback.comments}
+          onChanged={() => void feedback.reload()}
+          onToast={showToast}
+          onClose={() => setViewing(null)}
+        />
+      )}
       {uploadOpen && <UploadSheet onClose={() => setUploadOpen(false)} onUpload={handleUpload} />}
       <CaptionSheet
         open={captionFor !== null}
@@ -469,5 +495,30 @@ function FamilyPhotosView() {
       />
       <Toast message={toast} />
     </div>
+  );
+}
+
+/** A photo in the grid: tap to open it with its likes and comments (00077). */
+function PhotoTile({
+  photo,
+  comments,
+  onOpen,
+}: {
+  photo: { url: string | null; caption: string | null };
+  comments: number;
+  onOpen: () => void;
+}) {
+  if (!photo.url) return null;
+  return (
+    <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
+      {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
+      <img src={photo.url} alt={photo.caption ?? ""} className="aspect-square w-full object-cover" />
+      {comments > 0 && (
+        <span className="absolute bottom-1.5 start-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white">
+          <MessagesIcon className="h-3.5 w-3.5" />
+          {comments}
+        </span>
+      )}
+    </button>
   );
 }

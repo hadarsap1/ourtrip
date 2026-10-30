@@ -4,13 +4,22 @@ import type { Reaction, ReactionKind } from "@/lib/types";
 
 export const REACTION_KINDS: ReactionKind[] = ["heart", "smile", "wow", "star"];
 
-export type FeedbackTarget = { postId: string } | { episodeId: string };
+export type FeedbackTarget = { postId: string } | { episodeId: string } | { photoId: string };
 
 export function matchesTarget(
-  row: { post_id: string | null; episode_id: string | null },
+  row: { post_id: string | null; episode_id: string | null; photo_id: string | null },
   target: FeedbackTarget
 ): boolean {
-  return "postId" in target ? row.post_id === target.postId : row.episode_id === target.episodeId;
+  if ("postId" in target) return row.post_id === target.postId;
+  if ("episodeId" in target) return row.episode_id === target.episodeId;
+  return row.photo_id === target.photoId;
+}
+
+/** A stable id for the target, for element ids. */
+export function targetKey(target: FeedbackTarget): string {
+  if ("postId" in target) return target.postId;
+  if ("episodeId" in target) return target.episodeId;
+  return target.photoId;
 }
 
 export type ReactionTally = {
