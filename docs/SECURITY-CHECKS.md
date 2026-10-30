@@ -2502,3 +2502,17 @@ deleted. Full report: `docs/QA-2026-10-27.md`.
 | Live: any public copy of a photo that does not qualify | ✅ PASS - 0 public copies, 0 public stories in production |
 | Full RLS suite | ✅ PASS - 364/364, `scripts/rls/run.sh` |
 | Live policies and functions = repo | ✅ PASS - fingerprint diff, see the QA report |
+
+## 30/10/2026 - full text on photos
+
+No migration. `photos.caption` was already `text` (no length limit). The UI
+now asks for text before an upload, and lets a parent edit any photo's text
+and a kid edit only their own (`updatePhotoCaption`).
+
+| Check | Result |
+|---|---|
+| Kid edits the text of their own photo, but cannot change file, status or sharing | ✅ by existing policy - `photos_kid_update_own` + `photos_guard_update`, probe `52_security_pass.sql` |
+| Kid edits another member's photo text | ✅ by policy - `photos_kid_update_own` matches `uploaded_by` only, so 0 rows change |
+| Guest edits a photo's text | ✅ by policy - no update policy for guests on `photos` |
+| Guest sees the text of an unapproved or unshared photo | ✅ by policy - `guest-photos` reads rows with the guest's own JWT, so RLS returns the caption only for rows that pass rule 3 |
+| Live RLS suite run | ⚠️ not run in this session (Supabase connection failed) |

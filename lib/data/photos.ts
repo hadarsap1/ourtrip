@@ -108,6 +108,16 @@ async function withdrawPublicCopies(photoId: string): Promise<void> {
   if (unlinkError) throw new Error(unlinkError.message);
 }
 
+/** Free text, no length limit. RLS: owner any photo, kid only their own
+ *  (photos_kid_update_own; photos_guard_update pins everything else). */
+export async function updatePhotoCaption(id: string, caption: string): Promise<void> {
+  const { error } = await requireClient()
+    .from("photos")
+    .update({ caption: caption.trim() || null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function approvePhoto(id: string, ownerId: string): Promise<void> {
   const { error } = await requireClient()
     .from("photos")

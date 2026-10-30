@@ -16,6 +16,7 @@ import {
   rejectPhoto,
   setPhotoAudience,
   setPhotoShared,
+  updatePhotoCaption,
   uploadPhoto,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
@@ -28,6 +29,7 @@ import type { Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
 import { AudienceRow, AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
+import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -116,7 +118,9 @@ function GuestPhotosView() {
                   />
                 )}
                 {photo.caption && (
-                  <p className="p-2 text-xs text-ink-soft">{photo.caption}</p>
+                  <div className="p-2">
+                    <PhotoCaption text={photo.caption} />
+                  </div>
                 )}
               </li>
             ))}
@@ -173,6 +177,9 @@ function FamilyPhotosView() {
   // who the next upload is for - everyone by default (00064)
   const [uploadAudience, setUploadAudience] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  // picked photo waiting for its text before it uploads
+  const [draft, setDraft] = useState<{ file: File; url: string } | null>(null);
+  const [captionFor, setCaptionFor] = useState<PhotoWithUrl | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -219,17 +226,30 @@ function FamilyPhotosView() {
     };
   }, [trip, isOwnerRole]);
 
-  async function handleUpload(file: File | null) {
-    if (!file || !trip || !member || uploading) return;
+  function pickFile(file: File | null) {
+    if (fileRef.current) fileRef.current.value = "";
+    if (!file) return;
+    setDraft({ file, url: URL.createObjectURL(file) });
+  }
+
+  function closeDraft() {
+    if (draft) URL.revokeObjectURL(draft.url);
+    setDraft(null);
+  }
+
+  async function handleUpload(caption: string) {
+    if (!draft || !trip || !member || uploading) return;
     setUploading(true);
     try {
       await uploadPhoto({
         tripId: trip.id,
         memberId: member.id,
         isOwner: member.role === "owner",
-        file,
+        file: draft.file,
+        caption,
         audience: uploadAudience,
       });
+      closeDraft();
       await refresh(trip.id);
       showToast(
         member.role === "owner"
@@ -240,7 +260,6 @@ function FamilyPhotosView() {
       showToast(strings.common.error);
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -291,7 +310,7 @@ function FamilyPhotosView() {
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => void handleUpload(e.target.files?.[0] ?? null)}
+        onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
       />
 
       {/* Google Photos: owner imports, family (owner + kids) views */}
@@ -313,6 +332,11 @@ function FamilyPhotosView() {
                 {photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
                   <img src={photo.url} alt={photo.caption ?? ""} className="max-h-72 w-full object-cover" />
+                )}
+                {photo.caption && (
+                  <div className="px-2 pt-2">
+                    <PhotoCaption text={photo.caption} />
+                  </div>
                 )}
                 <div className="flex gap-2 p-2">
                   <button
@@ -358,6 +382,16 @@ function FamilyPhotosView() {
                 />
               )}
               <div className="space-y-1 p-2 text-xs">
+                {photo.caption && <PhotoCaption text={photo.caption} />}
+                {(isOwner || photo.uploaded_by === member?.id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCaptionFor(photo)}
+                    className="block text-start font-semibold text-sea"
+                  >
+                    {photo.caption ? strings.photos.editText : strings.photos.addText}
+                  </button>
+                )}
                 {photo.status === "pending" && (
                   <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">
                     {strings.photos.pending}
@@ -441,6 +475,37 @@ function FamilyPhotosView() {
           }}
         />
       )}
+      <CaptionSheet
+        open={draft !== null}
+        title={strings.photos.composeTitle}
+        previewUrl={draft?.url}
+        initial=""
+        submitLabel={strings.photos.send}
+        busy={uploading}
+        onClose={() => !uploading && closeDraft()}
+        onSubmit={(text) => void handleUpload(text)}
+      />
+      <CaptionSheet
+        open={captionFor !== null}
+        title={strings.photos.textTitle}
+        previewUrl={captionFor?.url}
+        initial={captionFor?.caption ?? ""}
+        submitLabel={strings.common.save}
+        onClose={() => setCaptionFor(null)}
+        onSubmit={async (text) => {
+          if (!captionFor) return;
+          const id = captionFor.id;
+          setCaptionFor(null);
+          try {
+            await updatePhotoCaption(id, text);
+            const caption = text.trim() || null;
+            setPhotos((prev) => prev.map((x) => (x.id === id ? { ...x, caption } : x)));
+            showToast(strings.photos.textSaved);
+          } catch {
+            showToast(strings.common.error);
+          }
+        }}
+      />
       <Toast message={toast} />
     </div>
   );
