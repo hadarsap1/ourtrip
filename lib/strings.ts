@@ -1922,6 +1922,14 @@ export const strings = {
     emailError: "משהו השתבש. נסו שוב בעוד דקה.",
   },
 
+  // editing text after it was published (00076)
+  editText: {
+    title: "עריכת הטקסט",
+    saved: "השינוי נשמר",
+    // a kid's edit of something a parent approved goes back to the parent
+    backToApproval: "השינוי נשמר. אמא או אבא יאשרו אותו לפני שהאורחים יראו",
+  },
+
   // where a guest's sign-in link lands (/auth/confirm)
   confirmLink: {
     button: "כניסה",

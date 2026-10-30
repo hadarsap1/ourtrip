@@ -10,6 +10,7 @@ import {
   approveMessage,
   canApplyWallChange,
   deleteMessage,
+  updateMessage,
   isPending,
   listMessages,
   markReadSoon,
@@ -25,7 +26,8 @@ import { audienceText } from "@/lib/audience";
 import { AudienceSheet } from "@/components/AudienceSheet";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
-import { MessagesIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, MessagesIcon, TrashIcon } from "@/components/icons";
+import { EditTextSheet } from "@/components/EditTextSheet";
 import { strings } from "@/lib/strings";
 import { spreadDelay } from "@/lib/realtimeTopic";
 import { useMember } from "@/lib/useMember";
@@ -48,6 +50,8 @@ export function MessagesScreen() {
   const [replyTo, setReplyTo] = useState<WallMessage | null>(null);
   // the audience sheet: for the composer, or for one (pending) message
   const [audienceFor, setAudienceFor] = useState<"compose" | WallMessage | null>(null);
+  // editing a message's text after it went out (00076)
+  const [editing, setEditing] = useState<WallMessage | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -254,6 +258,20 @@ export function MessagesScreen() {
               {formatShortDate(message.created_at.slice(0, 10))}
             </span>
           </p>
+          {/* the writer edits their own original, a parent any message; a
+              parent's bridge copy is the parent's, not the writer's (00076) */}
+          {(isOwner || (mine && !message.origin_message_id && !message.origin_comment_id)) && (
+            <button
+              type="button"
+              aria-label={strings.common.edit}
+              onClick={() => setEditing(message)}
+              className={`-mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                mine ? "text-sea-tint active:bg-on-sea/15" : "text-ink-soft active:bg-paper-deep"
+              }`}
+            >
+              <EditIcon className="h-4 w-4" />
+            </button>
+          )}
           {/* a parent deletes any message once it is out (messages_owner_all);
               a pending one keeps its own "לא לשלוח" below */}
           {isOwner && !pending && (
@@ -459,6 +477,21 @@ export function MessagesScreen() {
         />
       )}
 
+      {editing && (
+        <EditTextSheet
+          initial={editing.body}
+          onClose={() => setEditing(null)}
+          onSave={async (text) => {
+            const wasOut = !isPending(editing);
+            await updateMessage(editing.id, text);
+            setEditing(null);
+            showToast(
+              member.role === "kid" && wasOut ? strings.editText.backToApproval : strings.editText.saved
+            );
+            if (trip) await refresh(trip.id, member.id);
+          }}
+        />
+      )}
       <Toast message={toast} />
     </div>
   );
