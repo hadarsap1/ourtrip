@@ -103,6 +103,12 @@ verify_jwt = false
 [functions.booking-paste]
 verify_jwt = true
 
+# Open by design (00075): a guest asks for a sign-in link before signing in.
+# claim_guest_login_link decides who gets one (approved guests only, once a
+# minute) and the reply is the same either way.
+[functions.guest-login-link]
+verify_jwt = false
+
 [functions.facts-generate]
 verify_jwt = true
 
