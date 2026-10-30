@@ -156,7 +156,9 @@ export function StoriesScreen() {
         reactions={reactions}
         comments={comments}
         onApprove={isOwner && story.status === "pending" ? () => setApproving(story) : undefined}
-        onEdit={isOwner || mineOpen ? () => setComposer({ story }) : undefined}
+        // a kid edits their own story after approval too; it goes back to a
+        // parent for approval (posts_guard, 00076)
+        onEdit={isOwner || story.author_id === member.id ? () => setComposer({ story }) : undefined}
         onDelete={isOwner || mineOpen ? () => void remove(story) : undefined}
         onShare={
           story.status === "approved" && (role === "guest" || story.visibility !== "family")

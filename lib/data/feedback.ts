@@ -73,6 +73,19 @@ export async function addComment(
   if (error) throw new Error(error.message);
 }
 
+/** The guest who wrote it, or a parent (00076). Text only - the trigger pins
+ *  the rest. */
+export async function updateComment(id: string, body: string): Promise<void> {
+  const { data, error } = await requireClient()
+    .from("comments")
+    .update({ body: body.trim() })
+    .eq("id", id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  // RLS filters a row it will not let you touch instead of failing
+  if (!data || data.length === 0) throw new Error("not allowed");
+}
+
 export async function deleteComment(id: string): Promise<void> {
   const { error } = await requireClient().from("comments").delete().eq("id", id);
   if (error) throw new Error(error.message);

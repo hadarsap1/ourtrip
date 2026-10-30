@@ -2533,3 +2533,23 @@ calls `verifyOtp` only when the button is pressed.
 | Link origin cannot be chosen by the caller (open endpoint) | ✅ by code - built from `properties.redirect_to`, which Supabase has already checked against its redirect allow list, never from the request body |
 | Loading `/auth/confirm` spends nothing | ✅ by code - no auth call until the button |
 | `/auth/confirm` shows no trip data | ✅ by code - bypasses the gate like `/login`, renders only the button |
+
+## 30/10/2026 - editing text after it is published (00076)
+
+Writers edit their own text, parents edit any. A kid's edit of something a
+parent approved goes back to the parent. A non-parent's edit changes the text
+only. Probe `scripts/rls/probes/76_edit_text.sql` (25 checks).
+
+| Check | Result |
+|---|---|
+| Kid edits own wall message; it leaves the guests' wall (approved_at cleared), channel and audience pinned | ✅ PASS - probe 76 |
+| Kid edits own approved story; back to pending, visibility and audience pinned (probe 63 "cannot widen" still holds) | ✅ PASS - probes 76, 63 |
+| Kid edits caption of own approved photo; back to pending, so hidden from guests (rule 3) | ✅ PASS - probe 76 |
+| Public blog stops showing a photo that no longer qualifies (`photo_may_be_public` in `post_photos_public_select`) | ✅ PASS - probe 76 |
+| Kid / guest cannot edit someone else's message, comment, story or journal entry | ✅ PASS - probe 76 |
+| Kid / guest cannot edit a parent's bridge copy that carries their name | ✅ PASS - probe 76 |
+| Guest edits own message (stays approved) and own comment; sender, target, audience, kid-bridge stamp pinned | ✅ PASS - probe 76 |
+| Revoked guest edits nothing | ✅ PASS - probe 76 |
+| Parents edit anyone's message, comment, story, journal entry | ✅ PASS - probe 76 |
+| Guard functions not callable by API roles | ✅ PASS - probe 76 |
+| Full RLS suite | ✅ PASS - 400/400, `scripts/rls/run.sh` |
