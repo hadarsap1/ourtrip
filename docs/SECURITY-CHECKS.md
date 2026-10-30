@@ -2553,3 +2553,18 @@ only. Probe `scripts/rls/probes/76_edit_text.sql` (25 checks).
 | Parents edit anyone's message, comment, story, journal entry | ✅ PASS - probe 76 |
 | Guard functions not callable by API roles | ✅ PASS - probe 76 |
 | Full RLS suite | ✅ PASS - 400/400, `scripts/rls/run.sh` |
+
+## 30/10/2026 - full text on photos
+
+No migration. `photos.caption` was already `text` (no length limit). The UI
+now asks for text before an upload, and lets a parent edit any photo's text
+and a kid edit only their own (`updatePhotoCaption`).
+
+| Check | Result |
+|---|---|
+| Kid edits the text of their own photo, but cannot change file, status or sharing | ✅ by existing policy - `photos_kid_update_own` + `photos_guard_update`, probe `52_security_pass.sql` |
+| Kid edits the text of an approved photo: guests must not see new words before a parent | ✅ by code until 00076 is live: the edit button is shown to a kid only on a photo not yet approved. With 00076 the database sends it back to pending (probe 76) |
+| Kid edits another member's photo text | ✅ by policy - `photos_kid_update_own` matches `uploaded_by` only, so 0 rows change |
+| Guest edits a photo's text | ✅ by policy - no update policy for guests on `photos` |
+| Guest sees the text of an unapproved or unshared photo | ✅ by policy - `guest-photos` reads rows with the guest's own JWT, so RLS returns the caption only for rows that pass rule 3 |
+| Full RLS suite | ✅ PASS - see the 00076 entry above |
