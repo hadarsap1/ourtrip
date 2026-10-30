@@ -308,7 +308,8 @@ function FamilyPhotosView() {
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        // no `capture`: it makes phones open the camera only, with no way to
+        // pick from the gallery; without it the phone offers both
         className="hidden"
         onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
       />
