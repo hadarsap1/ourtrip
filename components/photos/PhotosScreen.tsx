@@ -21,15 +21,16 @@ import {
   type PhotoWithUrl,
 } from "@/lib/data/photos";
 import { formatDate } from "@/lib/format";
-import { CameraIcon, CheckIcon, CloseIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon, PlusIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
-import { AudienceRow, AudienceSheet } from "@/components/AudienceSheet";
+import { AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
+import { UploadSheet } from "./UploadSheet";
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -169,18 +170,14 @@ function FamilyPhotosView() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [photos, setPhotos] = useState<PhotoWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // guest groups (00063): a parent can limit a shared photo to some of them
   const [groups, setGroups] = useState<string[]>([]);
   const [audienceFor, setAudienceFor] = useState<PhotoWithUrl | null>(null);
-  // who the next upload is for - everyone by default (00064)
-  const [uploadAudience, setUploadAudience] = useState<string[]>([]);
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  // the composer on the screen (no sheet after the picker: on an iPhone
-  // nothing opened after picking - 30/10): the text, and the picked photo
-  const [draft, setDraft] = useState<{ file: File; url: string } | null>(null);
-  const [draftText, setDraftText] = useState("");
+  // "העלאה חדשה" (the capture button's photo option lands here with ?add=1)
+  const [uploadOpen, setUploadOpen] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1"
+  );
   const [captionFor, setCaptionFor] = useState<PhotoWithUrl | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -228,44 +225,19 @@ function FamilyPhotosView() {
     };
   }, [trip, isOwnerRole]);
 
-  function pickFile(file: File | null) {
-    if (!file) return;
-    if (draft) URL.revokeObjectURL(draft.url);
-    setDraft({ file, url: URL.createObjectURL(file) });
-  }
-
-  function closeDraft() {
-    if (draft) URL.revokeObjectURL(draft.url);
-    setDraft(null);
-    // cleared only now, so picking the same photo again still fires onChange
-    if (fileRef.current) fileRef.current.value = "";
-  }
-
-  async function handleUpload() {
-    if (!draft || !trip || !member || uploading) return;
-    setUploading(true);
-    try {
-      await uploadPhoto({
-        tripId: trip.id,
-        memberId: member.id,
-        isOwner: member.role === "owner",
-        file: draft.file,
-        caption: draftText,
-        audience: uploadAudience,
-      });
-      closeDraft();
-      setDraftText("");
-      await refresh(trip.id);
-      showToast(
-        member.role === "owner"
-          ? strings.photos.uploadedOwner
-          : strings.photos.uploaded
-      );
-    } catch {
-      showToast(strings.common.error);
-    } finally {
-      setUploading(false);
-    }
+  async function handleUpload(file: File, caption: string, audience: string[]) {
+    if (!trip || !member) throw new Error("not ready");
+    await uploadPhoto({
+      tripId: trip.id,
+      memberId: member.id,
+      isOwner: member.role === "owner",
+      file,
+      caption,
+      audience,
+    });
+    setUploadOpen(false);
+    showToast(member.role === "owner" ? strings.photos.uploadedOwner : strings.photos.uploaded);
+    await refresh(trip.id).catch(() => {});
   }
 
   const run = useCallback(
@@ -297,70 +269,16 @@ function FamilyPhotosView() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
-
-      <section className="space-y-3 rounded-2xl border border-line bg-surface p-3 shadow-sm">
-        <textarea
-          value={draftText}
-          onChange={(e) => setDraftText(e.target.value)}
-          placeholder={strings.photos.captionPlaceholder}
-          aria-label={strings.photos.textTitle}
-          dir="auto"
-          rows={3}
-          className="block w-full resize-y rounded-xl border border-line bg-paper p-3 text-[16px] leading-[1.6] text-ink focus:border-sea focus:outline-none"
-        />
-        {draft && (
-          <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element -- local object URL */}
-            <img src={draft.url} alt="" className="max-h-64 w-full rounded-xl object-cover" />
-            <button
-              type="button"
-              onClick={closeDraft}
-              disabled={uploading}
-              aria-label={strings.photos.removePicked}
-              className="absolute end-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white"
-            >
-              <CloseIcon className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        {/* A real tap on a label opens the picker - more reliable on an iPhone
-            than a script clicking a hidden input. No `capture`: it makes phones
-            open the camera only; without it they offer the gallery too. */}
-        <label
-          className={`flex min-h-12 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl font-bold ${
-            draft ? "border border-line text-ink-soft" : "bg-sea text-on-sea shadow hover:bg-sea-deep"
-          } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
+        <button
+          type="button"
+          onClick={() => setUploadOpen(true)}
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl bg-sea px-4 font-bold text-on-sea shadow hover:bg-sea-deep"
         >
-          <CameraIcon className="h-4 w-4" />
-          {draft ? strings.photos.changePhoto : strings.photos.pickPhoto}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
-        <AudienceRow label={strings.audience.who} value={uploadAudience} onChange={setUploadAudience} />
-        {draft && (
-          <button
-            type="button"
-            onClick={() => void handleUpload()}
-            disabled={uploading}
-            className="w-full rounded-xl bg-sea py-3 font-bold text-on-sea shadow hover:bg-sea-deep disabled:opacity-60"
-          >
-            {uploading ? strings.photos.uploading : strings.photos.send}
-          </button>
-        )}
-      </section>
-
-      {/* Google Photos: owner imports, family (owner + kids) views */}
-      {trip && (
-        <div className="border-t border-line pt-4">
-          <GooglePhotosSection tripId={trip.id} isOwner={isOwner} />
-        </div>
-      )}
+          <PlusIcon className="h-4 w-4" /> {strings.photos.newUpload}
+        </button>
+      </header>
 
       {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
       {isOwner && pending.length > 0 && (
@@ -502,6 +420,13 @@ function FamilyPhotosView() {
         </ul>
       )}
 
+      {/* Google Photos: owner imports, family (owner + kids) views */}
+      {trip && (
+        <div className="border-t border-line pt-4">
+          <GooglePhotosSection tripId={trip.id} isOwner={isOwner} />
+        </div>
+      )}
+
       {audienceFor && (
         <AudienceSheet
           groups={groups}
@@ -520,6 +445,7 @@ function FamilyPhotosView() {
           }}
         />
       )}
+      {uploadOpen && <UploadSheet onClose={() => setUploadOpen(false)} onUpload={handleUpload} />}
       <CaptionSheet
         open={captionFor !== null}
         title={strings.photos.textTitle}
