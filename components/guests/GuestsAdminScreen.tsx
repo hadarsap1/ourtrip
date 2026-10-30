@@ -424,6 +424,20 @@ export function GuestsAdminScreen() {
             setDetailFor(null);
             setKidsFor(guest);
           }}
+          onReinvite={async () => {
+            const row = detailFor;
+            const name = memberOf(row.email)?.display_name ?? row.email;
+            setDetailFor(null);
+            try {
+              // guest-invite clears revoked_at and keeps the guest's groups
+              const { link, emailed } = await inviteGuest(row.email, name);
+              if (emailed) showToast(strings.guests.emailed);
+              else setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
+              if (trip) await refresh(trip.id);
+            } catch {
+              showToast(strings.common.error);
+            }
+          }}
           onRevoke={async () => {
             if (!(await askConfirm(strings.guests.revokeConfirm))) return;
             setDetailFor(null);
@@ -894,6 +908,7 @@ function GuestSheet({
   onClose,
   onEditLabels,
   onEditKids,
+  onReinvite,
   onRevoke,
 }: {
   row: GuestAllowlistRow;
@@ -901,6 +916,7 @@ function GuestSheet({
   onClose: () => void;
   onEditLabels: () => void;
   onEditKids: (guest: Member) => void;
+  onReinvite: () => void;
   onRevoke: () => void;
 }) {
   const revoked = row.revoked_at !== null;
@@ -959,6 +975,16 @@ function GuestSheet({
           </section>
         )}
 
+        {/* lost in the #154 redesign: a removed guest had no way back */}
+        {revoked && (
+          <button
+            type="button"
+            onClick={onReinvite}
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
+          >
+            {strings.guests.reinvite}
+          </button>
+        )}
         {!revoked && (
           <button
             type="button"
