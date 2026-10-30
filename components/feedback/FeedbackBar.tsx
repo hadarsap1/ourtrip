@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { TrashIcon } from "@/components/icons";
+import { EditIcon, TrashIcon } from "@/components/icons";
+import { EditTextSheet } from "@/components/EditTextSheet";
 import { KidTag } from "@/components/KidTag";
 import { askConfirm } from "@/components/ConfirmSheet";
 import {
@@ -9,6 +10,7 @@ import {
   addReaction,
   deleteComment,
   removeReaction,
+  updateComment,
 } from "@/lib/data/feedback";
 import { matchesTarget, namesSummary, tallyReactions, type FeedbackTarget } from "@/lib/feedback";
 import { formatShortDate } from "@/lib/format";
@@ -84,6 +86,7 @@ export function FeedbackBar({
 }) {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<Comment | null>(null);
   const memberOf = (id: string) => members.find((m) => m.id === id);
   const nameOf = (id: string) => (id === member.id ? strings.wall.me : (memberOf(id)?.display_name ?? ""));
 
@@ -176,6 +179,14 @@ export function FeedbackBar({
                       <div className="mt-1 flex items-center justify-end gap-2">
                         <button
                           type="button"
+                          aria-label={strings.common.edit}
+                          onClick={() => setEditing(c)}
+                          className="grid place-items-center rounded-full text-sv-ink-soft"
+                        >
+                          <EditIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
                           aria-label={strings.common.delete}
                           onClick={async () => {
                             if (!(await askConfirm(strings.feedback.deleteConfirm))) return;
@@ -224,6 +235,19 @@ export function FeedbackBar({
             <p className="text-[12px] text-sv-ink-soft">{strings.feedback.commentsHint}</p>
           )}
         </div>
+      )}
+      {editing && (
+        <EditTextSheet
+          initial={editing.body}
+          maxLength={1000}
+          onClose={() => setEditing(null)}
+          onSave={async (text) => {
+            await updateComment(editing.id, text);
+            setEditing(null);
+            onToast(strings.editText.saved);
+            onChanged();
+          }}
+        />
       )}
     </div>
   );

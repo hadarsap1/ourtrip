@@ -92,6 +92,18 @@ export async function createJournalEntryOrQueue(
   }
 }
 
+/** The author (RLS: kid's own) or a parent (00076 header). */
+export async function updateJournalEntry(id: string, body: string): Promise<void> {
+  const { data, error } = await requireClient()
+    .from("journal_entries")
+    .update({ body })
+    .eq("id", id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  // RLS filters a row it will not let you touch instead of failing
+  if (!data || data.length === 0) throw new Error("not allowed");
+}
+
 export async function deleteJournalEntry(id: string): Promise<void> {
   const { error } = await requireClient()
     .from("journal_entries")

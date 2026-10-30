@@ -1922,6 +1922,29 @@ export const strings = {
     notAllowedTitle: "אין הרשאה",
     notAllowedBody: "החשבון הזה לא מורשה להיכנס לאפליקציה. נסו עם חשבון אחר.",
     missingEnv: "חסרים משתני סביבה של Supabase - ראו .env.local.example",
+    or: "או",
+    emailTitle: "נרשמתם עם מייל? נשלח לכם קישור כניסה",
+    emailLabel: "כתובת מייל",
+    emailSend: "שלחו לי קישור",
+    emailSending: "שולח…",
+    emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם. הקישור עובד פעם אחת.",
+    emailError: "משהו השתבש. נסו שוב בעוד דקה.",
+  },
+
+  // editing text after it was published (00076)
+  editText: {
+    title: "עריכת הטקסט",
+    saved: "השינוי נשמר",
+    // a kid's edit of something a parent approved goes back to the parent
+    backToApproval: "השינוי נשמר. אמא או אבא יאשרו אותו לפני שהאורחים יראו",
+  },
+
+  // where a guest's sign-in link lands (/auth/confirm)
+  confirmLink: {
+    button: "כניסה",
+    busy: "נכנסים…",
+    invalid: "הקישור כבר שומש או שפג תוקפו. אפשר לבקש קישור חדש במסך הכניסה.",
+    toLogin: "למסך הכניסה",
   },
 
   // "מוכנות ליציאה". One screen that adds up what every other screen only

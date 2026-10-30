@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/Toast";
-import { CameraIcon, PinIcon, TrashIcon } from "@/components/icons";
+import { CameraIcon, EditIcon, PinIcon, TrashIcon } from "@/components/icons";
+import { EditTextSheet } from "@/components/EditTextSheet";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import {
   createJournalEntryOrQueue,
   deleteJournalEntry,
   getAutoLocation,
+  updateJournalEntry,
   listJournal,
   type JournalEntry,
 } from "@/lib/data/journal";
@@ -38,6 +40,7 @@ export function JournalScreen() {
   const [mood, setMood] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<JournalEntry | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -265,6 +268,16 @@ export function JournalScreen() {
                 {(isOwner || entry.author_id === member?.id) && (
                   <button
                     type="button"
+                    onClick={() => setEditing(entry)}
+                    aria-label={strings.common.edit}
+                    className="shrink-0 rounded-lg p-1 text-ink-faint hover:text-sea"
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </button>
+                )}
+                {(isOwner || entry.author_id === member?.id) && (
+                  <button
+                    type="button"
                     onClick={async () => {
                       if (!(await askConfirm(strings.journal.deleteConfirm))) return;
                       void deleteJournalEntry(entry.id)
@@ -345,6 +358,18 @@ export function JournalScreen() {
         </section>
       )}
 
+      {editing && (
+        <EditTextSheet
+          initial={editing.body}
+          onClose={() => setEditing(null)}
+          onSave={async (text) => {
+            await updateJournalEntry(editing.id, text);
+            setEditing(null);
+            setEntries((prev) => prev.map((x) => (x.id === editing.id ? { ...x, body: text } : x)));
+            showToast(strings.editText.saved);
+          }}
+        />
+      )}
       <Toast message={toast} />
     </div>
   );

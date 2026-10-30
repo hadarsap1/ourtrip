@@ -44,6 +44,15 @@ export async function inviteGuest(
   return { link: data.link as string, emailed: Boolean(data.emailed) };
 }
 
+/** Login screen: ask for a fresh sign-in link (guest-login-link, 00075).
+ *  The reply never says whether the email is a guest. */
+export async function requestGuestLoginLink(email: string): Promise<void> {
+  const { data, error } = await requireClient().functions.invoke("guest-login-link", {
+    body: { email, redirect_to: window.location.origin },
+  });
+  if (error || !data?.ok) throw new Error("login link failed");
+}
+
 export async function listAllowlist(
   tripId: string
 ): Promise<GuestAllowlistRow[]> {

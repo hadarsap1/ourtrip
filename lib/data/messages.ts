@@ -106,6 +106,19 @@ export async function setMessageAudience(id: string, audience: string[]): Promis
   if (error) throw new Error(error.message);
 }
 
+/** The writer (kid / guest, own original only) or a parent. A kid's edit of
+ *  an approved message goes back for approval - the trigger does it (00076). */
+export async function updateMessage(id: string, body: string): Promise<void> {
+  const { data, error } = await requireClient()
+    .from("messages")
+    .update({ body })
+    .eq("id", id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  // RLS filters a row it will not let you touch instead of failing
+  if (!data || data.length === 0) throw new Error("not allowed");
+}
+
 /** Owner rejects a message, or a kid takes back their own pending one. */
 export async function deleteMessage(id: string): Promise<void> {
   const { error } = await requireClient().from("messages").delete().eq("id", id);

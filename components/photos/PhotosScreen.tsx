@@ -383,7 +383,10 @@ function FamilyPhotosView() {
               )}
               <div className="space-y-1 p-2 text-xs">
                 {photo.caption && <PhotoCaption text={photo.caption} />}
-                {(isOwner || photo.uploaded_by === member?.id) && (
+                {/* a kid edits their own text only before approval until 00076 is
+                    live in the database - it sends an approved photo whose text
+                    changed back to a parent. Lift `status !== "approved"` then. */}
+                {(isOwner || (photo.uploaded_by === member?.id && photo.status !== "approved")) && (
                   <button
                     type="button"
                     onClick={() => setCaptionFor(photo)}

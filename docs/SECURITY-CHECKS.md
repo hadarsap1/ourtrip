@@ -2503,6 +2503,57 @@ deleted. Full report: `docs/QA-2026-10-27.md`.
 | Full RLS suite | ✅ PASS - 364/364, `scripts/rls/run.sh` |
 | Live policies and functions = repo | ✅ PASS - fingerprint diff, see the QA report |
 
+## 30/10/2026 - guest sign-in link from the login screen (00075)
+
+A guest who joined with an email had no way back in once the approval link
+expired: the login screen offered Google only. New open function
+`guest-login-link` (verify_jwt = false) mails a fresh magic link via Resend.
+`claim_guest_login_link` (service role only) decides who gets one.
+
+| Check | Result |
+|---|---|
+| Approved guest of the active trip gets a link (email matched case-insensitively) | ✅ PASS - probe `75_guest_login_link.sql` |
+| Revoked guest, stranger, empty email, guest of an inactive trip: no link | ✅ PASS - probe 75 |
+| Owner whose email is on the allowlist: no link (a link is never a way into owner / kid roles) | ✅ PASS - probe 75 |
+| Same email within a minute: no second link (open endpoint cannot flood an inbox) | ✅ PASS - probe 75 |
+| anon / authenticated cannot call the function or read the send log | ✅ PASS - probe 75 |
+| Reply does not reveal who is a guest | ✅ by code - `{ ok: true }` whether or not a link went out |
+| Full RLS suite | ✅ PASS - 375/375, `scripts/rls/run.sh` |
+
+### Same day - the link no longer signs in on a plain GET
+
+WhatsApp fetched the approval link to draw a preview 7 s after it was made
+(edge log user agent `WhatsApp/2.23.20.0`) and spent the one-time token; the
+guest's own tap got "link expired". Links from `guest-invite` and
+`guest-login-link` now go to the app's `/auth/confirm?token_hash=...`, which
+calls `verifyOtp` only when the button is pressed.
+
+| Check | Result |
+|---|---|
+| Link origin cannot be chosen by the caller (open endpoint) | ✅ by code - built from `properties.redirect_to`, which Supabase has already checked against its redirect allow list, never from the request body |
+| Loading `/auth/confirm` spends nothing | ✅ by code - no auth call until the button |
+| `/auth/confirm` shows no trip data | ✅ by code - bypasses the gate like `/login`, renders only the button |
+
+## 30/10/2026 - editing text after it is published (00076)
+
+Writers edit their own text, parents edit any. A kid's edit of something a
+parent approved goes back to the parent. A non-parent's edit changes the text
+only. Probe `scripts/rls/probes/76_edit_text.sql` (25 checks).
+
+| Check | Result |
+|---|---|
+| Kid edits own wall message; it leaves the guests' wall (approved_at cleared), channel and audience pinned | ✅ PASS - probe 76 |
+| Kid edits own approved story; back to pending, visibility and audience pinned (probe 63 "cannot widen" still holds) | ✅ PASS - probes 76, 63 |
+| Kid edits caption of own approved photo; back to pending, so hidden from guests (rule 3) | ✅ PASS - probe 76 |
+| Public blog stops showing a photo that no longer qualifies (`photo_may_be_public` in `post_photos_public_select`) | ✅ PASS - probe 76 |
+| Kid / guest cannot edit someone else's message, comment, story or journal entry | ✅ PASS - probe 76 |
+| Kid / guest cannot edit a parent's bridge copy that carries their name | ✅ PASS - probe 76 |
+| Guest edits own message (stays approved) and own comment; sender, target, audience, kid-bridge stamp pinned | ✅ PASS - probe 76 |
+| Revoked guest edits nothing | ✅ PASS - probe 76 |
+| Parents edit anyone's message, comment, story, journal entry | ✅ PASS - probe 76 |
+| Guard functions not callable by API roles | ✅ PASS - probe 76 |
+| Full RLS suite | ✅ PASS - 400/400, `scripts/rls/run.sh` |
+
 ## 30/10/2026 - full text on photos
 
 No migration. `photos.caption` was already `text` (no length limit). The UI
@@ -2512,7 +2563,8 @@ and a kid edit only their own (`updatePhotoCaption`).
 | Check | Result |
 |---|---|
 | Kid edits the text of their own photo, but cannot change file, status or sharing | ✅ by existing policy - `photos_kid_update_own` + `photos_guard_update`, probe `52_security_pass.sql` |
+| Kid edits the text of an approved photo: guests must not see new words before a parent | ✅ by code until 00076 is live: the edit button is shown to a kid only on a photo not yet approved. With 00076 the database sends it back to pending (probe 76) |
 | Kid edits another member's photo text | ✅ by policy - `photos_kid_update_own` matches `uploaded_by` only, so 0 rows change |
 | Guest edits a photo's text | ✅ by policy - no update policy for guests on `photos` |
 | Guest sees the text of an unapproved or unshared photo | ✅ by policy - `guest-photos` reads rows with the guest's own JWT, so RLS returns the caption only for rows that pass rule 3 |
-| Live RLS suite run | ⚠️ not run in this session (Supabase connection failed) |
+| Full RLS suite | ✅ PASS - see the 00076 entry above |
