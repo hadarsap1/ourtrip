@@ -48,7 +48,7 @@ export const kidTabs: NavItem[] = [
 // Guest portal ("סו-בב עולם!"): the journal (what the family shared) and the
 // podcast lead; the map of where we've been sits at the top of the journal.
 export const guestTabs: NavItem[] = [
-  { href: "/", label: strings.nav.today, Icon: HomeIcon },
+  { href: "/", label: strings.guestNav.home, Icon: HomeIcon },
   { href: "/stories", label: strings.guestNav.stories, Icon: JournalIcon },
   { href: "/podcast", label: strings.guestNav.podcast, Icon: MicIcon },
   { href: "/photos", label: strings.guestNav.photos, Icon: PhotosIcon },

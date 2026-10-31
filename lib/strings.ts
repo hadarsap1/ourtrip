@@ -1540,6 +1540,8 @@ export const strings = {
   },
 
   guestNav: {
+    // the guest home is a doorway, not "today" (Hadar 31/10/2026)
+    home: "בית",
     stories: "יומן",
     podcast: "פודקאסט",
     photos: "תמונות",
