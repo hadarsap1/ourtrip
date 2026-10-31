@@ -1,0 +1,30 @@
+-- Verify 00078 on the live DB (read-only). Paste into the SQL Editor after
+-- running the migration. Every row should say ok = true.
+select check_name, ok from (values
+  ('posts.mood exists',
+    exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'posts' and column_name = 'mood')),
+  ('posts.entry_date exists and is not null',
+    exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'posts' and column_name = 'entry_date' and is_nullable = 'NO')),
+  ('posts.title is optional',
+    exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'posts' and column_name = 'title' and is_nullable = 'YES')),
+  ('a public entry needs a title',
+    exists (select 1 from pg_constraint where conrelid = 'public.posts'::regclass and conname = 'posts_public_has_title')),
+  ('posts.journal_entry_id is gone',
+    not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'posts' and column_name = 'journal_entry_id')),
+  ('photos.journal_entry_id is gone',
+    not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'photos' and column_name = 'journal_entry_id')),
+  ('journal_entries renamed to the archive',
+    to_regclass('public.journal_entries') is null and to_regclass('public.journal_entries_archive_00078') is not null),
+  ('the archive has no client policy',
+    not exists (select 1 from pg_policies where tablename = 'journal_entries_archive_00078')),
+  ('member_role_of exists',
+    exists (select 1 from pg_proc where proname = 'member_role_of')),
+  ('kids: a kid''s family entry is private',
+    (select qual from pg_policies where tablename = 'posts' and policyname = 'posts_kid_select') like '%member_role_of%'),
+  ('kids: may delete own family entry',
+    (select qual from pg_policies where tablename = 'posts' and policyname = 'posts_kid_delete') like '%family%'),
+  ('guard: a kid may save a family entry',
+    (select prosrc from pg_proc where proname = 'posts_guard') like '%only a family entry is the kid''s to publish%'),
+  ('nights stepper checks posts',
+    (select prosrc from pg_proc where proname = 'shift_stretch_nights') like '%from posts where%')
+) as t(check_name, ok);
