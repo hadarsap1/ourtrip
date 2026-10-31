@@ -35,7 +35,21 @@ export async function loadToday(): Promise<{
       .maybeSingle();
     if (dayError) throw new Error(dayError.message);
 
-    const items = day ? await listItems([day.id]) : [];
+    const dayItems = day ? await listItems([day.id]) : [];
+    // An entry made from a booking that was later cancelled is not today's
+    // plan (31/10: a cancelled hotel sat in "today's plan" beside "tonight").
+    // Cancelling now removes such entries (#165); this hides older leftovers.
+    const linked = [...new Set(dayItems.map((i) => i.booking_id).filter((id): id is string => id !== null))];
+    let cancelledIds = new Set<string>();
+    if (linked.length > 0) {
+      const { data: cancelled } = await supabase
+        .from("bookings")
+        .select("id")
+        .in("id", linked)
+        .eq("status", "cancelled");
+      cancelledIds = new Set((cancelled ?? []).map((b) => b.id));
+    }
+    const items = dayItems.filter((i) => !i.booking_id || !cancelledIds.has(i.booking_id));
 
     // bookings relevant today: ranges covering today + single-day bookings
     const { data: ranged, error: bookingsError } = await supabase
