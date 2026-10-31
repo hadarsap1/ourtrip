@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { AudienceRow } from "@/components/AudienceSheet";
 import { approveStory, returnStoryToDraft, type Story } from "@/lib/data/stories";
+import { storyHeadline } from "@/lib/stories";
 import { strings } from "@/lib/strings";
 import type { PostVisibility } from "@/lib/types";
 
@@ -47,7 +48,7 @@ export function ApproveStorySheet({
   return (
     <Sheet open onClose={onClose} title={strings.stories.approveTitle}>
       <div className="space-y-4">
-        <p className="font-semibold text-ink">{story.title}</p>
+        <p className="font-semibold text-ink">{storyHeadline(story)}</p>
         <fieldset>
           <legend className="mb-1 text-sm font-medium text-ink-soft">{strings.stories.audienceLabel}</legend>
           <div role="radiogroup" className="grid grid-cols-2 gap-2">
@@ -88,7 +89,7 @@ export function ApproveStorySheet({
           type="button"
           disabled={busy}
           onClick={() =>
-            void run(() => approveStory(story, audience, sharePhotos, ownerId, groups), strings.stories.published, true)
+            void run(() => approveStory(story, audience, sharePhotos, ownerId, groups), audience === "family" ? strings.stories.published : strings.stories.sharedDone, true)
           }
           className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
         >

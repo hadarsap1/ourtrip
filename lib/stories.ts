@@ -21,7 +21,9 @@ export function splitStories<T extends Post>(posts: T[], memberId: string | null
     else if (post.status === "pending") pending.push(post);
     else if (post.author_id === memberId) drafts.push(post);
   }
+  // the journal reads by the day an entry is about, newest first (00078)
   const byPublished = (a: T, b: T) =>
+    b.entry_date.localeCompare(a.entry_date) ||
     (b.published_at ?? b.created_at).localeCompare(a.published_at ?? a.created_at);
   const byCreated = (a: T, b: T) => b.created_at.localeCompare(a.created_at);
   return {
@@ -31,13 +33,18 @@ export function splitStories<T extends Post>(posts: T[], memberId: string | null
   };
 }
 
-/** A journal entry becomes a story draft: its first line is the title. */
+/** A short headline from an entry's first line (a journal line has no title). */
 export function titleFromJournal(body: string, max = 60): string {
   const first = body.trim().split(/\r?\n/)[0]?.trim() ?? "";
   if (first.length <= max) return first;
   const cut = first.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
   return `${(lastSpace > max / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+/** What to call an entry in a share line: its title, else its first line. */
+export function storyHeadline(post: Pick<Post, "title" | "body">): string {
+  return post.title?.trim() || titleFromJournal(post.body) || "…";
 }
 
 /** Scheduled ("publish after we left") and not there yet. */

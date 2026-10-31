@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Toast } from "@/components/Toast";
-import { PlusIcon } from "@/components/icons";
+import { MapIcon, PlusIcon, PrinterIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
@@ -14,11 +15,18 @@ import { getAutoLocation } from "@/lib/data/journal";
 import { deleteStory, listStories, type Story } from "@/lib/data/stories";
 import { listComments, listReactions, pollFeedback } from "@/lib/data/feedback";
 import { shareText, shareUrl } from "@/lib/share";
-import { splitStories } from "@/lib/stories";
+import { splitStories, storyHeadline } from "@/lib/stories";
+import { todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Comment, Member, Reaction, Trip } from "@/lib/types";
 
+/**
+ * The journal ("יומן המסע", 00078): what used to be the journal and the
+ * stories, one feed. The family writes here with one composer and one
+ * question - who sees it; guests read what went out to them, under the map
+ * of where we've been. The wall stays apart: it is the conversation.
+ */
 export function StoriesScreen() {
   const { member, memberLoading } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -120,8 +128,13 @@ export function StoriesScreen() {
   }
 
   const isOwner = role === "owner";
+  const isGuest = role === "guest";
   const canWrite = role === "owner" || role === "kid";
   const sections = splitStories(stories, member.id);
+  // whose voice is already on today's page: the nudge, as the journal had it
+  const today = todayISO();
+  const writersToday = new Set(stories.filter((x) => x.entry_date === today).map((x) => x.author_id)).size;
+  const family = members.filter((m) => m.role !== "guest" && !m.is_preview).length;
   const roleOf = (id: string) => members.find((m) => m.id === id)?.role;
 
   const offerShare = (story: Story) => {
@@ -131,7 +144,7 @@ export function StoriesScreen() {
       publicSlug: story.public_slug,
       isPublic: story.visibility === "public",
     });
-    setSharing({ url, text: shareText("story", story.title, url) });
+    setSharing({ url, text: shareText("story", storyHeadline(story), url) });
   };
 
   const remove = async (story: Story) => {
@@ -145,7 +158,9 @@ export function StoriesScreen() {
   };
 
   const card = (story: Story) => {
-    const mineOpen = story.author_id === member.id && story.status !== "approved";
+    // RLS: a kid deletes their own entry while it is open or family-only
+    const mineOpen =
+      story.author_id === member.id && (story.status !== "approved" || story.visibility === "family");
     return (
       <StoryCard
         key={story.id}
@@ -176,16 +191,59 @@ export function StoriesScreen() {
       <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
         <header className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{strings.stories.title}</h1>
-          {canWrite && (
-            <button
-              type="button"
-              onClick={() => setComposer({ story: null })}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl bg-sea px-4 font-bold text-on-sea"
+          {isOwner && (
+            <Link
+              href="/memory-book"
+              aria-label={strings.stories.printBook}
+              title={strings.stories.printBook}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-sv-line text-sv-ink-soft"
             >
-              <PlusIcon className="h-4 w-4" /> {strings.stories.newStory}
-            </button>
+              <PrinterIcon className="h-5 w-5" />
+            </Link>
           )}
         </header>
+
+        {/* Guests: where we've been leads, instead of being a place of its own */}
+        {isGuest && (
+          <Link
+            href="/map"
+            className="flex items-center gap-3 rounded-[20px] border border-sv-line bg-sv-card px-4 py-3.5 active:bg-sv-sage-soft"
+          >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
+              <MapIcon className="h-6 w-6" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold text-ink">{strings.stories.mapCard}</span>
+              <span className="block text-sm text-sv-ink-soft">{strings.stories.mapCardHint}</span>
+            </span>
+            <span aria-hidden="true" className="text-sv-ink-soft">←</span>
+          </Link>
+        )}
+
+        {/* The family: today's question is the way in */}
+        {canWrite && (
+          <button
+            type="button"
+            onClick={() => setComposer({ story: null })}
+            className="block w-full rounded-[20px] bg-sun-tint px-4 py-4 text-start"
+          >
+            <span className="flex items-baseline justify-between gap-2">
+              <span className="text-[17.5px] font-extrabold leading-tight text-sun-deep">
+                {strings.journal.prompt}
+              </span>
+              {family > 0 && (
+                <span className="shrink-0 text-[12px] text-ink-soft">
+                  {strings.journal.wroteCount
+                    .replace("{n}", String(writersToday))
+                    .replace("{total}", String(family))}
+                </span>
+              )}
+            </span>
+            <span className="mt-3 flex min-h-11 items-center justify-center gap-1.5 rounded-[13px] bg-sun-deep text-[14px] font-bold text-paper">
+              <PlusIcon className="h-4 w-4" /> {strings.stories.newStory}
+            </span>
+          </button>
+        )}
 
         {sections.pending.length > 0 && (
           <section className="space-y-3">
@@ -220,12 +278,13 @@ export function StoriesScreen() {
           onClose={() => setComposer(null)}
           onSaved={(post, published) => {
             setComposer(null);
+            if (!post) return; // queued offline; the composer said so
             void refresh(trip.id).catch(() => {});
             if (!published) {
-              showToast(post.status === "pending" ? strings.stories.sentForApproval : strings.stories.draftSaved);
+              showToast(strings.stories.sentForApproval);
               return;
             }
-            showToast(strings.stories.published);
+            showToast(post.visibility === "family" ? strings.stories.published : strings.stories.sharedDone);
             if (post.visibility !== "family") {
               const url = shareUrl(window.location.origin, {
                 kind: "story",
@@ -233,7 +292,7 @@ export function StoriesScreen() {
                 publicSlug: post.public_slug,
                 isPublic: post.visibility === "public",
               });
-              setSharing({ url, text: shareText("story", post.title, url) });
+              setSharing({ url, text: shareText("story", storyHeadline(post), url) });
             }
           }}
           onToast={showToast}

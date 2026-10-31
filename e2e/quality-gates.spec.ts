@@ -8,7 +8,7 @@ import { test, expect, type Page } from "@playwright/test";
 // empty states and forms - the data-driven rows are covered when the same
 // spec runs under playwright.auth.config.ts.
 
-const ROUTES = ["/", "/itinerary", "/budget", "/documents", "/more", "/emergency", "/phrasebook", "/journal"];
+const ROUTES = ["/", "/itinerary", "/budget", "/documents", "/more", "/emergency", "/phrasebook", "/stories"];
 const VIEWPORTS = [
   { width: 390, height: 844 },
   { width: 360, height: 800 },

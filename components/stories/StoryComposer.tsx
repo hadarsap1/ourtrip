@@ -13,6 +13,7 @@ import {
   updateStory,
   type Story,
 } from "@/lib/data/stories";
+import { createJournalEntryOrQueue } from "@/lib/data/journal";
 import { AudienceRow } from "@/components/AudienceSheet";
 import { audienceOptions, fromLocalInput, toLocalInput } from "@/lib/stories";
 import { strings } from "@/lib/strings";
@@ -20,21 +21,32 @@ import type { Member, Post, PostVisibility, Trip } from "@/lib/types";
 
 type Picked = { id: string; url: string | null };
 
-const AUDIENCE_LABEL: Record<PostVisibility, string> = {
-  family: strings.stories.audienceFamily,
-  guests: strings.stories.audienceGuests,
-  public: strings.stories.audiencePublic,
-};
-const AUDIENCE_HINT: Record<PostVisibility, string> = {
-  family: strings.stories.audienceFamilyHint,
-  guests: strings.stories.audienceGuestsHint,
-  public: strings.stories.audiencePublicHint,
-};
+export const MOODS = ["🤩", "😀", "🙂", "😐", "🙁", "😴"];
+
+const s = strings.stories;
+
+/** What the author chose, in the words of their own role. */
+function audienceText(o: PostVisibility, kid: boolean): { label: string; hint: string } {
+  if (o === "family") {
+    return kid
+      ? { label: s.audienceFamilyKid, hint: s.audienceFamilyKidHint }
+      : { label: s.audienceFamily, hint: s.audienceFamilyHint };
+  }
+  if (o === "guests") {
+    return { label: s.audienceGuests, hint: kid ? s.audienceGuestsKidHint : s.audienceGuestsHint };
+  }
+  return { label: s.audiencePublic, hint: s.audiencePublicHint };
+}
 
 /**
- * Write or edit a story. A parent publishes (choosing the audience); a kid
- * saves a draft or sends it for approval, and never sees the audience at all
- * - posts_guard would ignore it anyway (00043).
+ * Write or edit an entry in the journal (00078: the journal and the stories
+ * are one feed). One question decides where it goes - "מי רואה?":
+ *
+ *   family  saved at once, for a kid too (posts_guard: no gate for the family)
+ *   guests  a parent publishes; a kid's entry is sent to a parent (pending)
+ *   public  a parent's own entry only, and it needs a title (00046/00078)
+ *
+ * Title, place and the publishing details wait under "אפשרויות נוספות".
  */
 export function StoryComposer({
   trip,
@@ -48,22 +60,28 @@ export function StoryComposer({
 }: {
   trip: Trip;
   member: Member;
-  /** Role of the story's author (a parent may edit a kid's story). */
+  /** Role of the entry's author (a parent may edit a kid's entry). */
   authorRole: string | undefined;
   existing: Story | null;
   initialPlace: string | null;
   onClose: () => void;
-  onSaved: (post: Post, published: boolean) => void;
+  /** `post` is null when the entry waits offline in the queue. */
+  onSaved: (post: Post | null, published: boolean) => void;
   onToast: (message: string) => void;
 }) {
   const isOwner = member.role === "owner";
+  const isKid = member.role === "kid";
   const [title, setTitle] = useState(existing?.title ?? "");
   const [body, setBody] = useState(existing?.body ?? "");
+  const [mood, setMood] = useState<string | null>(existing?.mood ?? null);
   const [place, setPlace] = useState(existing?.place_label ?? initialPlace ?? "");
   const [photos, setPhotos] = useState<Picked[]>(
     existing?.photos.map((p) => ({ id: p.photoId, url: p.url })) ?? []
   );
-  const [audience, setAudience] = useState<PostVisibility>(existing?.visibility ?? "guests");
+  // a kid's entry waiting for a parent is one the kid asked to share
+  const [audience, setAudience] = useState<PostVisibility>(
+    existing ? (existing.status === "pending" ? "guests" : existing.visibility) : "family"
+  );
   // which guest groups, when the audience is guests (00063): [] = every guest
   const [groups, setGroups] = useState<string[]>(existing?.audience ?? []);
   const [later, setLater] = useState(Boolean(existing?.publish_after));
@@ -74,6 +92,7 @@ export function StoryComposer({
   const [galleryOpen, setGalleryOpen] = useState(false);
 
   const options = audienceOptions(authorRole);
+  const choice = audienceText(audience, isKid);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -95,30 +114,56 @@ export function StoryComposer({
     }
   }
 
-  async function save(status: "draft" | "pending" | "approved") {
+  async function save() {
     if (busy) return;
-    if (!title.trim()) {
-      onToast(strings.stories.titleRequired);
+    if (!body.trim() && photos.length === 0) {
+      onToast(s.bodyRequired);
       return;
     }
+    if (audience === "public" && !title.trim()) {
+      onToast(s.publicNeedsTitle);
+      return;
+    }
+    // a parent publishes; a kid saves for the family, or asks a parent
+    const status = isOwner || audience === "family" ? "approved" : "pending";
     setBusy(true);
     try {
       const fields = {
-        title,
+        title: title || null,
         body,
+        mood,
         placeLabel: place || null,
         status,
         // which groups: anyone writing suggests them (00064), a parent's
-        // publish decides. Family / guests / public stays the parents' choice,
-        // and only from what the author's role allows.
-        audience: groups,
+        // publish decides
+        audience: audience === "guests" ? groups : [],
         ...(isOwner
           ? {
               visibility: options.includes(audience) ? audience : ("family" as const),
-              publishAfter: later ? fromLocalInput(publishAfter) : null,
+              publishAfter: later && audience !== "family" ? fromLocalInput(publishAfter) : null,
             }
           : {}),
-      };
+      } as const;
+
+      // A family line with no photos still saves with no signal: it waits in
+      // the offline queue (F10), as the journal always did.
+      if (!existing && audience === "family" && photos.length === 0 && !title.trim()) {
+        const result = await createJournalEntryOrQueue({
+          tripId: trip.id,
+          authorId: member.id,
+          body,
+          mood,
+          locationName: place || null,
+        });
+        if (result === "queued") {
+          onToast(strings.journal.queued);
+          onSaved(null, false);
+          return;
+        }
+        onSaved(result, true);
+        return;
+      }
+
       const post = existing
         ? await updateStory(existing.id, fields)
         : await createStory(trip.id, member.id, {
@@ -127,7 +172,7 @@ export function StoryComposer({
             ...fields,
           });
       await setStoryPhotos(post.id, photos.map((p) => p.id));
-      if (isOwner && status === "approved" && sharePhotos && post.visibility !== "family") {
+      if (isOwner && post.status === "approved" && sharePhotos && post.visibility !== "family") {
         await shareStoryPhotos(photos.map((p) => p.id), member.id, post.audience);
       }
       if (isOwner) {
@@ -142,52 +187,44 @@ export function StoryComposer({
     }
   }
 
+  const action =
+    audience === "family" ? s.publish : isOwner ? s.publishShare : s.sendForApproval;
+
   return (
-    <Sheet open onClose={onClose} title={existing ? strings.stories.editTitle : strings.stories.composerTitle}>
+    <Sheet open onClose={onClose} title={existing ? s.editTitle : s.composerTitle}>
       <div className="space-y-4">
         <div>
-          <label htmlFor="story-title" className="mb-1 block text-sm font-medium text-ink-soft">
-            {strings.stories.titleLabel}
-          </label>
-          <input
-            id="story-title"
-            type="text"
-            maxLength={120}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
-          />
-        </div>
-        <div>
           <label htmlFor="story-body" className="mb-1 block text-sm font-medium text-ink-soft">
-            {strings.stories.bodyLabel}
+            {existing ? s.bodyLabel : strings.journal.prompt}
           </label>
           <textarea
             id="story-body"
-            rows={7}
+            rows={4}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder={strings.stories.bodyPlaceholder}
-            className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
+            placeholder={s.bodyPlaceholder}
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
           />
-        </div>
-        <div>
-          <label htmlFor="story-place" className="mb-1 block text-sm font-medium text-ink-soft">
-            {strings.stories.placeLabel}
-          </label>
-          <input
-            id="story-place"
-            type="text"
-            maxLength={80}
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
-          />
-          <p className="mt-1 text-xs text-ink-soft">{strings.stories.placeHint}</p>
+          <div className="mt-1 flex gap-0.5" role="radiogroup" aria-label={strings.journal.mood}>
+            {MOODS.map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="radio"
+                aria-checked={mood === m}
+                onClick={() => setMood(mood === m ? null : m)}
+                className={`grid h-11 w-11 place-items-center rounded-full text-xl leading-none transition-opacity ${
+                  mood === m ? "bg-sun-tint" : "opacity-50"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
 
         <fieldset>
-          <legend className="mb-1 text-sm font-medium text-ink-soft">{strings.stories.photosLabel}</legend>
+          <legend className="mb-1 text-sm font-medium text-ink-soft">{s.photosLabel}</legend>
           {photos.length > 0 && (
             <ul className="mb-2 grid grid-cols-3 gap-2">
               {photos.map((p) => (
@@ -199,7 +236,7 @@ export function StoryComposer({
                   <button
                     type="button"
                     onClick={() => setPhotos((prev) => prev.filter((x) => x.id !== p.id))}
-                    aria-label={strings.stories.removePhoto}
+                    aria-label={s.removePhoto}
                     className="absolute end-1 top-1 grid place-items-center rounded-full bg-ink/70 text-paper"
                   >
                     <CloseIcon className="h-4 w-4" />
@@ -211,7 +248,7 @@ export function StoryComposer({
           <div className="grid grid-cols-2 gap-2">
             <label className="flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-line bg-surface text-sm font-semibold text-ink-soft">
               <CameraIcon className="h-4 w-4" />
-              {uploading ? strings.photos.uploading : strings.stories.addPhotos}
+              {uploading ? strings.photos.uploading : s.addPhotos}
               <input
                 type="file"
                 accept="image/*"
@@ -229,35 +266,70 @@ export function StoryComposer({
               onClick={() => setGalleryOpen(true)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface text-sm font-semibold text-ink-soft"
             >
-              <PhotosIcon className="h-4 w-4" /> {strings.stories.fromGallery}
+              <PhotosIcon className="h-4 w-4" /> {s.fromGallery}
             </button>
           </div>
         </fieldset>
 
-        {isOwner && (
-          <fieldset className="space-y-2">
-            <legend className="mb-1 text-sm font-medium text-ink-soft">{strings.stories.audienceLabel}</legend>
-            <div role="radiogroup" className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))` }}>
-              {options.map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  role="radio"
-                  aria-checked={audience === o}
-                  onClick={() => setAudience(o)}
-                  className={`rounded-xl border py-2.5 text-sm font-semibold ${
-                    audience === o ? "border-sea bg-sea-tint text-sea-deep" : "border-line bg-surface text-ink-soft"
-                  }`}
-                >
-                  {AUDIENCE_LABEL[o]}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-ink-soft">{AUDIENCE_HINT[audience]}</p>
-            {audience === "guests" && <AudienceRow value={groups} onChange={setGroups} />}
-            {authorRole !== "owner" && <p className="text-xs text-ink-soft">{strings.stories.publicKidBlocked}</p>}
+        {/* the one question that decides where the entry goes */}
+        <fieldset className="space-y-2">
+          <legend className="mb-1 text-sm font-medium text-ink-soft">{s.audienceLabel}</legend>
+          <div
+            role="radiogroup"
+            className="grid gap-2"
+            style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))` }}
+          >
+            {options.map((o) => (
+              <button
+                key={o}
+                type="button"
+                role="radio"
+                aria-checked={audience === o}
+                onClick={() => setAudience(o)}
+                className={`min-h-[44px] rounded-xl border px-1 py-2 text-sm font-semibold ${
+                  audience === o ? "border-sea bg-sea-tint text-sea-deep" : "border-line bg-surface text-ink-soft"
+                }`}
+              >
+                {audienceText(o, isKid).label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-ink-soft">{choice.hint}</p>
+          {audience === "guests" && <AudienceRow value={groups} onChange={setGroups} />}
+          {isOwner && authorRole !== "owner" && <p className="text-xs text-ink-soft">{s.publicKidBlocked}</p>}
+        </fieldset>
 
-            {audience !== "family" && (
+        <details className="rounded-xl border border-line px-3 py-2" open={Boolean(existing?.title) || audience === "public"}>
+          <summary className="cursor-pointer py-1 text-sm font-semibold text-ink-soft">{s.more}</summary>
+          <div className="space-y-3 pt-2">
+            <div>
+              <label htmlFor="story-title" className="mb-1 block text-sm font-medium text-ink-soft">
+                {s.titleLabel}
+              </label>
+              <input
+                id="story-title"
+                type="text"
+                maxLength={120}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="story-place" className="mb-1 block text-sm font-medium text-ink-soft">
+                {s.placeLabel}
+              </label>
+              <input
+                id="story-place"
+                type="text"
+                maxLength={80}
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
+              />
+              <p className="mt-1 text-xs text-ink-soft">{s.placeHint}</p>
+            </div>
+            {isOwner && audience !== "family" && (
               <>
                 <label className="flex items-center gap-2 text-sm text-ink">
                   <input
@@ -266,7 +338,7 @@ export function StoryComposer({
                     onChange={(e) => setSharePhotos(e.target.checked)}
                     className="h-4 w-4 accent-[var(--color-sea)]"
                   />
-                  {strings.stories.sharePhotos}
+                  {s.sharePhotos}
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink">
                   <input
@@ -275,12 +347,12 @@ export function StoryComposer({
                     onChange={(e) => setLater(e.target.checked)}
                     className="h-4 w-4 accent-[var(--color-sea)]"
                   />
-                  {strings.stories.publishAfter}
+                  {s.publishAfter}
                 </label>
                 {later && (
                   <div>
                     <label htmlFor="story-after" className="mb-1 block text-sm font-medium text-ink-soft">
-                      {strings.stories.publishAfterLabel}
+                      {s.publishAfterLabel}
                     </label>
                     <input
                       id="story-after"
@@ -294,29 +366,17 @@ export function StoryComposer({
                 )}
               </>
             )}
-          </fieldset>
-        )}
-        {/* a kid suggests which groups; a parent decides when publishing (00064) */}
-        {!isOwner && <AudienceRow label={strings.stories.audienceLabel} value={groups} onChange={setGroups} />}
+          </div>
+        </details>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={busy || uploading}
-            onClick={() => void save("draft")}
-            className="rounded-xl border border-line py-3 font-semibold text-ink-soft disabled:opacity-60"
-          >
-            {strings.stories.saveDraft}
-          </button>
-          <button
-            type="button"
-            disabled={busy || uploading}
-            onClick={() => void save(isOwner ? "approved" : "pending")}
-            className="rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
-          >
-            {isOwner ? strings.stories.publish : strings.stories.sendForApproval}
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={busy || uploading}
+          onClick={() => void save()}
+          className="min-h-[48px] w-full rounded-xl bg-sea py-3 font-semibold text-on-sea disabled:opacity-60"
+        >
+          {action}
+        </button>
       </div>
 
       {galleryOpen && (
@@ -367,11 +427,11 @@ function GalleryPicker({
   }, [tripId]);
 
   return (
-    <Sheet open onClose={onClose} title={strings.stories.galleryTitle}>
+    <Sheet open onClose={onClose} title={s.galleryTitle}>
       {photos === null ? (
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
       ) : photos.length === 0 ? (
-        <p className="text-center text-sm text-ink-soft">{strings.stories.galleryEmpty}</p>
+        <p className="text-center text-sm text-ink-soft">{s.galleryEmpty}</p>
       ) : (
         <ul className="grid grid-cols-3 gap-2">
           {photos.map((p) => {
@@ -407,7 +467,7 @@ function GalleryPicker({
         }
         className="mt-4 w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
       >
-        {strings.stories.galleryDone}
+        {s.galleryDone}
       </button>
     </Sheet>
   );

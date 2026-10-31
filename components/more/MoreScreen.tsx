@@ -15,7 +15,6 @@ import {
   MailIcon,
   GlobeIcon,
   MapIcon,
-  MemoryBookIcon,
   MessagesIcon,
   MicIcon,
   OptionsIcon,
@@ -23,7 +22,6 @@ import {
   PhotosIcon,
   PhrasebookIcon,
   SparkleIcon,
-  StoryIcon,
   VisaIcon,
 } from "@/components/icons";
 import { countryName } from "@/lib/data/emergency";
@@ -151,26 +149,15 @@ export function MoreScreen() {
       : []),
   ];
 
+  // One journal (00078): the diary and the stories are one feed, the memory
+  // book prints from inside it, and the wall stays the conversation.
   const memories: Tile[] = [
     {
       href: "/stories",
-      label: strings.more.menuStories,
-      Icon: StoryIcon,
-      count: n(counts?.stories),
-      badge: pending?.stories,
-    },
-    {
-      href: "/podcast",
-      label: strings.more.menuPodcast,
-      Icon: MicIcon,
-      count: n(counts?.episodes),
-      badge: pending?.episodes,
-    },
-    {
-      href: "/journal",
       label: strings.more.menuJournal,
       Icon: JournalIcon,
-      count: n(counts?.journal),
+      count: n(counts?.stories),
+      badge: pending?.stories,
     },
     {
       href: "/photos",
@@ -180,17 +167,17 @@ export function MoreScreen() {
       badge: pending?.photos,
     },
     {
-      href: "/memory-book",
-      label: strings.more.menuMemoryBook,
-      Icon: MemoryBookIcon,
-      count: null,
-      tone: "sun",
-    },
-    {
       href: "/messages",
       label: strings.more.menuMessages,
       Icon: MessagesIcon,
       count: n(counts?.messages),
+    },
+    {
+      href: "/podcast",
+      label: strings.more.menuPodcast,
+      Icon: MicIcon,
+      count: n(counts?.episodes),
+      badge: pending?.episodes,
     },
   ];
 

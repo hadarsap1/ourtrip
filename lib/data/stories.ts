@@ -1,13 +1,12 @@
-// Stories (the blog) - migration 00043, public copies 00046.
+// The journal ("יומן המסע"): diary lines and stories in one table since
+// 00078 - migration 00043, public copies 00046.
 // RLS decides what each role reads and writes; posts_guard decides what a kid
 // may change. Nothing here re-implements those rules - a refused write comes
 // back as an error.
 
 import { getSupabase } from "@/lib/supabase";
 import { photoUrls } from "@/lib/data/media";
-import { titleFromJournal } from "@/lib/stories";
 import { photoAudienceAfterShare, photoMayGoPublic } from "@/lib/audience";
-import type { JournalEntry } from "@/lib/data/journal";
 import type { TablesUpdate } from "@/lib/database.types";
 import type { MemberRole, Post, PostVisibility } from "@/lib/types";
 
@@ -34,6 +33,7 @@ export async function listStories(tripId: string, role: MemberRole | undefined):
     .from("posts")
     .select("*")
     .eq("trip_id", tripId)
+    .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   if (posts.length === 0) return [];
@@ -64,12 +64,15 @@ export async function listStories(tripId: string, role: MemberRole | undefined):
 }
 
 export type StoryInput = {
-  title: string;
+  /** optional since 00078; a public entry needs one (posts_public_has_title) */
+  title: string | null;
   body: string;
+  mood?: string | null;
+  /** the day it is about; defaults to today in the database */
+  entryDate?: string;
   placeLabel: string | null;
   countryCode?: string | null;
   dayId?: string | null;
-  journalEntryId?: string | null;
   status: "draft" | "pending" | "approved";
   visibility: PostVisibility;
   /** for visibility 'guests': [] = every guest, else only these groups (00063) */
@@ -83,12 +86,13 @@ export async function createStory(tripId: string, authorId: string, input: Story
     .insert({
       trip_id: tripId,
       author_id: authorId,
-      title: input.title.trim(),
+      title: input.title?.trim() || null,
       body: input.body.trim(),
+      mood: input.mood ?? null,
+      ...(input.entryDate ? { entry_date: input.entryDate } : {}),
       place_label: input.placeLabel?.trim() || null,
       country_code: input.countryCode ?? null,
       day_id: input.dayId ?? null,
-      journal_entry_id: input.journalEntryId ?? null,
       status: input.status,
       visibility: input.visibility,
       // a public story has no group audience; a kid's family draft carries
@@ -104,8 +108,9 @@ export async function createStory(tripId: string, authorId: string, input: Story
 
 export async function updateStory(id: string, input: Partial<StoryInput>): Promise<Post> {
   const patch: TablesUpdate<"posts"> = {};
-  if (input.title !== undefined) patch.title = input.title.trim();
+  if (input.title !== undefined) patch.title = input.title?.trim() || null;
   if (input.body !== undefined) patch.body = input.body.trim();
+  if (input.mood !== undefined) patch.mood = input.mood;
   if (input.placeLabel !== undefined) patch.place_label = input.placeLabel?.trim() || null;
   if (input.status !== undefined) patch.status = input.status;
   if (input.visibility !== undefined) patch.visibility = input.visibility;
@@ -296,29 +301,6 @@ export function publicPhotoUrl(path: string): string | null {
   const supabase = getSupabase();
   if (!supabase) return null;
   return supabase.storage.from(PUBLIC_BUCKET).getPublicUrl(path).data.publicUrl;
-}
-
-// ---------- from the journal ----------
-
-/** Opens a draft story from a journal entry, with the entry's photos. */
-export async function storyFromJournal(entry: JournalEntry, authorId: string): Promise<Post> {
-  const supabase = requireClient();
-  const post = await createStory(entry.trip_id, authorId, {
-    title: titleFromJournal(entry.body) || entry.location_name || "…",
-    body: entry.body,
-    placeLabel: entry.location_name,
-    journalEntryId: entry.id,
-    status: "draft",
-    visibility: "family",
-    publishAfter: null,
-  });
-  const { data: photos } = await supabase
-    .from("photos")
-    .select("id")
-    .eq("journal_entry_id", entry.id)
-    .order("created_at");
-  if (photos && photos.length) await setStoryPhotos(post.id, photos.map((p) => p.id));
-  return post;
 }
 
 /** Waiting for a parent: the number on the "עוד" tile. */

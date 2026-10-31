@@ -28,10 +28,11 @@ insert into posts (id, trip_id, author_id, title, status, visibility, approved_b
 select rls.check('kid insert: forced to pending / family / unapproved',
   (select status = 'pending' and visibility = 'family' and approved_by is null and published_at is null
      from posts where id = '00000000-0000-0000-0000-0000000000e1'));
--- tries again on update
+-- tries again on update. 00078: a family entry is the kid's to save, so
+-- 'approved' now holds - but only for the family, with no approver
 update posts set status = 'approved', visibility = 'public' where id = '00000000-0000-0000-0000-0000000000e1';
-select rls.check('kid update: cannot approve or change audience',
-  (select status = 'pending' and visibility = 'family' from posts where id = '00000000-0000-0000-0000-0000000000e1'));
+select rls.check('kid update: cannot change audience or stamp an approver',
+  (select visibility = 'family' and approved_by is null from posts where id = '00000000-0000-0000-0000-0000000000e1'));
 update posts set status = 'draft', title = 'kid story v2' where id = '00000000-0000-0000-0000-0000000000e1';
 select rls.check('kid update: can move own story back to draft and edit it',
   (select status = 'draft' and title = 'kid story v2' from posts where id = '00000000-0000-0000-0000-0000000000e1'));

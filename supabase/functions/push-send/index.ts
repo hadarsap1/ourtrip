@@ -417,11 +417,11 @@ async function sendEveningJournal(tripId: string, today: string): Promise<number
   const { data: day } = await service.from("itinerary_days").select("id").eq("trip_id", tripId).eq("date", today).maybeSingle();
   if (!day) return 0; // only while travelling
   const family = await familyIds(tripId);
-  const { data: wrote } = await service.from("journal_entries").select("author_id").eq("trip_id", tripId).eq("entry_date", today);
+  const { data: wrote } = await service.from("posts").select("author_id").eq("trip_id", tripId).eq("entry_date", today);
   const done = new Set((wrote ?? []).map((w) => w.author_id));
   return pushToMembers(
     family.filter((id) => !done.has(id)),
-    { title: "✍️ איך היה היום?", body: "שתי שורות ביומן, לפני שהיום מתערבב עם מחר", url: "/journal", tag: `journal-${today}` }
+    { title: "✍️ איך היה היום?", body: "שתי שורות ביומן, לפני שהיום מתערבב עם מחר", url: "/stories", tag: `journal-${today}` }
   );
 }
 

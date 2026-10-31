@@ -56,7 +56,7 @@ export default async function PublicStoryPage({ params }: Props) {
   return (
     <SovevScreen>
       <article className="mx-auto max-w-2xl space-y-5 px-4 pt-6 pb-16">
-        <SovevBrand subtitle={strings.sovev.tagline} />
+        <SovevBrand />
         {!story ? (
           <div className="space-y-2 rounded-[22px] border-2 border-dashed border-sv-line p-8 text-center">
             <h1 className="sovev-display text-2xl font-extrabold">{strings.publicStory.notFound}</h1>

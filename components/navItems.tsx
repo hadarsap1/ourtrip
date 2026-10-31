@@ -10,7 +10,6 @@ import {
   JournalIcon,
   MailIcon,
   MapIcon,
-  MemoryBookIcon,
   MessagesIcon,
   MicIcon,
   MoreIcon,
@@ -21,7 +20,6 @@ import {
   PlaneIcon,
   RouteIcon,
   SparkleIcon,
-  StoryIcon,
   VisaIcon,
   SettingsIcon,
 } from "@/components/icons";
@@ -42,16 +40,16 @@ export const kidTabs: NavItem[] = [
   { href: "/itinerary", label: strings.kidNav.route, Icon: RouteIcon },
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },
   { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
-  { href: "/journal", label: strings.kidNav.journal, Icon: JournalIcon },
+  { href: "/stories", label: strings.kidNav.journal, Icon: JournalIcon },
   { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
   ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon }] : []),
 ];
 
-// Guest portal ("סו-בב עולם!"): stories and the podcast lead; the map stays
-// one tap away on the guest home. The journal is family-only (DECISIONS #32).
+// Guest portal ("סו-בב עולם!"): the journal (what the family shared) and the
+// podcast lead; the map of where we've been sits at the top of the journal.
 export const guestTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
-  { href: "/stories", label: strings.guestNav.stories, Icon: StoryIcon },
+  { href: "/stories", label: strings.guestNav.stories, Icon: JournalIcon },
   { href: "/podcast", label: strings.guestNav.podcast, Icon: MicIcon },
   { href: "/photos", label: strings.guestNav.photos, Icon: PhotosIcon },
   { href: "/messages", label: strings.guestNav.messages, Icon: MessagesIcon },
@@ -97,12 +95,10 @@ export const ownerRailGroups: NavGroup[] = [
   {
     label: strings.more.groupMemories,
     items: [
-      { href: "/stories", label: strings.more.menuStories, Icon: StoryIcon },
-      { href: "/podcast", label: strings.more.menuPodcast, Icon: MicIcon },
-      { href: "/journal", label: strings.more.menuJournal, Icon: JournalIcon },
+      { href: "/stories", label: strings.more.menuJournal, Icon: JournalIcon },
       { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
-      { href: "/memory-book", label: strings.more.menuMemoryBook, Icon: MemoryBookIcon },
       { href: "/messages", label: strings.more.menuMessages, Icon: MessagesIcon },
+      { href: "/podcast", label: strings.more.menuPodcast, Icon: MicIcon },
     ],
   },
   {

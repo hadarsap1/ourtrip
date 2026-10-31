@@ -7,7 +7,6 @@ export type MoreCounts = {
   mapPins: number;
   phrases: number;
   options: number;
-  journal: number;
   photos: number;
   stories: number;
   episodes: number;
@@ -26,7 +25,6 @@ const EMPTY: MoreCounts = {
   mapPins: 0,
   phrases: 0,
   options: 0,
-  journal: 0,
   photos: 0,
   stories: 0,
   episodes: 0,
@@ -73,7 +71,6 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     mapPins,
     phrases,
     options,
-    journal,
     photos,
     stories,
     episodes,
@@ -117,12 +114,6 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     ),
     simpleCount(
       supabase
-        .from("journal_entries")
-        .select("*", { count: "exact", head: true })
-        .eq("trip_id", trip.id)
-    ),
-    simpleCount(
-      supabase
         .from("photos")
         .select("*", { count: "exact", head: true })
         .eq("trip_id", trip.id)
@@ -157,7 +148,6 @@ export async function loadMoreCounts(): Promise<MoreCounts> {
     mapPins,
     phrases,
     options,
-    journal,
     photos,
     stories,
     episodes,

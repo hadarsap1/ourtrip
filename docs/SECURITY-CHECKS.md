@@ -2587,3 +2587,29 @@ Probe `scripts/rls/probes/77_photo_feedback.sql` (14 checks).
 | Revoked guest, outsider, anon: nothing | ✅ PASS - probe 77 |
 | A row has exactly one target; the old 3-argument visibility function is gone | ✅ PASS - probe 77 |
 | Full RLS suite | ✅ PASS - 414/414, `scripts/rls/run.sh` |
+
+## 31/10/2026 - one journal: journal entries merge into posts (00078)
+
+`journal_entries` is copied into `posts` (family, approved, same ids; photos to
+`post_photos`; an entry that already became a story is folded into it) and
+renamed `journal_entries_archive_00078` with every policy dropped. `posts_guard`
+lets a kid hold 'approved' only while the entry is family; `posts_kid_select`
+hides another kid's family entry; `is_own_open_post` and `posts_kid_delete` let a
+kid add photos to / delete their own family entry. Probe
+`scripts/rls/probes/78_journal_into_stories.sql` (21 checks) replaces
+`48_journal_family_only.sql`; probes 43 and 76 moved from `journal_entries` to
+`posts`. Data copy checked on a scratch DB (plain entry + photo, entry that
+already became a story: no duplicate).
+
+| Check | Result |
+|---|---|
+| Kid saves a family entry with no parent; it gets no approver and stays family | ✅ PASS - probe 78 |
+| Kid asks for guests (insert approved+guests): forced pending + family | ✅ PASS - probes 43, 63, 78 |
+| Kid cannot re-approve an entry that went out after editing it | ✅ PASS - probe 78 |
+| Another kid cannot read a kid's family or pending entry; can once it went out | ✅ PASS - probe 78 |
+| Guest sees no family or pending entry; sees it once a parent published it | ✅ PASS - probe 78 |
+| Kid's photo in a family entry stays pending and unshared (rule 3) | ✅ PASS - probe 78 |
+| A public entry without a title is refused | ✅ PASS - probe 78 |
+| The archive table has no client policy | ✅ PASS - probe 78 |
+| Anon reads no family entry | ✅ PASS - probe 78 |
+| Full RLS suite | ✅ PASS - 429/429, `scripts/rls/run.sh` |

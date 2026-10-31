@@ -77,7 +77,7 @@
 - One-tap save of a recommendation into the itinerary or a "maybe" list
 
 ### 2.9 Kids experience
-- Journal: text + mood emoji + optional photo (stored in `photos` with `journal_entry_id`, so it flows through the same approval pipeline), auto-tagged with date + location; gentle daily prompt notification on the tablet
+- Journal ("יומן המסע", `/stories`, one feed with the stories since 00078, DECISIONS #45): text + mood emoji + optional title + photos (via `post_photos`, each photo through its own approval), auto-tagged with date + location; one question "מי רואה?" - only us / friends too / open blog; gentle daily prompt notification on the tablet
 - Photo pipeline - approval and sharing are separate:
   - Kid uploads always start `pending` (server-enforced trigger) → owner approval queue → `approved` (visible to family) or `rejected` (visible to owners only)
   - Guests see a photo only when `status='approved'` **and** an owner explicitly set `shared_with_guests=true`. Owner uploads may skip approval but still require the explicit share step - nothing is guest-visible by default (DECISIONS #5)
@@ -85,13 +85,13 @@
 - Pocket money: each kid has a trip allowance (set by owner); kid logs purchases, sees remaining balance with a fun progress visual; owner sees it in the budget screen as an info section (not counted in family budget totals)
 
 ### 2.10 Guest portal
-- Clean read-only web page (no install): approved+shared photos by day, "where we've been" map, family wall composer. The journal is family-only (DECISIONS #32): what guests read is the stories
+- Clean read-only web page (no install): approved+shared photos by day, "where we've been" map (a card at the top of the journal), the wall ("הודעות"). Guests read the journal entries a parent published to them (DECISIONS #45)
 - Hebrew UI
 - Branded "סו-בב עולם!" (DECISIONS #25): stories and the podcast lead the tabs
 
 ### 2.10a Sharing - stories, podcast, likes, comments (docs/DESIGN-sharing.md, migrations 00043-00046)
 - **Guest list**: invite a whole pasted list (name + email per line) with one label; guests grouped by label; a ready WhatsApp message for collecting emails. Every guest sees the same content (DECISIONS #29)
-- **Stories** (`/stories`): title, body, photos, city/country, audience family / guests / public, optional "publish after". Parents publish; kids save drafts and send them for approval. A journal entry can become a draft story. Guests see a story's photos only if each is approved and shared; the publish sheet offers to do that in the same tap (DECISIONS #26)
+- **Stories = the journal** (`/stories`, DECISIONS #45): optional title, body, mood, photos, city/country, audience family / guests / public, optional "publish after". Parents publish; a kid's family entry saves at once, a kid's entry for friends is sent for approval. Guests see a story's photos only if each is approved and shared; the publish sheet offers to do that in the same tap (DECISIONS #26)
 - **Open blog** (`/s/<slug>`): a parent's own story only, copied photos, noindex, no comments, Open Graph for link previews (DECISIONS #27)
 - **Podcast** (`/podcast`): one take with pause/resume, up to 20 minutes, preview before saving, saved on the device and uploaded later when offline. Recording keeps the screen on; if the screen goes off anyway (iPhone), the part so far is kept, the take pauses, and resume continues it as one take (parts joined to WAV). Parents edit an episode: rename, mark a part by dragging on the waveform or by tapping start/end while listening (half-second nudges), keep or cut it, shorten every pause over 0.7 s to 0.5 s in one tap (on the device, no AI), add a new take or join another episode at the end, undo; saved as a new 16 kHz mono WAV file (00047), approval and sharing unchanged. Kid recordings are pending until a parent approves; sharing with guests is a separate step; never public (DECISIONS #28)
 - **Likes and comments**: four like kinds on stories and episodes for owners, kids and guests; comments from guests and parents only. Kids see likes with names and never comments; a parent can show one comment to the kids

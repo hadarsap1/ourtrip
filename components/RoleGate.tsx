@@ -13,7 +13,7 @@ const OWNER_ONLY = [
   "/ready", "/visas", "/options", "/recommend", "/memory-book", "/pocket",
 ];
 // what a guest can open at all (the guest home's tiles and tabs)
-const GUEST_ALLOWED = ["/", "/stories", "/podcast", "/photos", "/messages", "/map", "/journal", "/settings"];
+const GUEST_ALLOWED = ["/", "/stories", "/podcast", "/photos", "/messages", "/map", "/settings"];
 
 function blocked(path: string, role: string): boolean {
   const under = (p: string) => path === p || path.startsWith(p + "/");
