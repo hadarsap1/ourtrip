@@ -56,7 +56,7 @@ export function CaptureFab() {
         actions={[
           { key: "expense", label: strings.capture.expense, icon: <CoinIcon className="h-6 w-6" />, onSelect: () => setSheet("expense") },
           { key: "note", label: strings.capture.note, icon: <EditIcon className="h-6 w-6" />, toneClass: "bg-gold/10 text-gold", onSelect: () => setSheet("note") },
-          { key: "photo", label: strings.capture.photo, icon: <PhotosIcon className="h-6 w-6" />, toneClass: "bg-cat-shop/10 text-cat-shop", onSelect: () => router.push("/photos?add=1") },
+          { key: "photo", label: strings.capture.photo, icon: <PhotosIcon className="h-6 w-6" />, toneClass: "bg-cat-shop/10 text-cat-shop", onSelect: () => router.push("/stories?new=1") },
           { key: "scan", label: strings.capture.scan, icon: <CameraIcon className="h-6 w-6" />, toneClass: "bg-cat-flight/10 text-cat-flight", onSelect: () => router.push("/documents?scan=1") },
         ]}
       />

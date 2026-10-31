@@ -3,29 +3,35 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Toast } from "@/components/Toast";
-import { MapIcon, PlusIcon, PrinterIcon } from "@/components/icons";
+import { MapIcon, PhotosIcon, PlusIcon, PrinterIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
 import { StoryCard } from "@/components/stories/StoryCard";
 import { StoryComposer } from "@/components/stories/StoryComposer";
 import { ApproveStorySheet } from "@/components/stories/ApproveStorySheet";
+import { PhotoDayCard } from "@/components/stories/PhotoDayCard";
+import { PhotoView, type ViewedPhoto } from "@/components/photos/PhotoView";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import { getAutoLocation } from "@/lib/data/journal";
 import { deleteStory, listStories, type Story } from "@/lib/data/stories";
+import { listPhotos } from "@/lib/data/photos";
+import { listGuestPhotos } from "@/lib/data/guests";
 import { listComments, listReactions, pollFeedback } from "@/lib/data/feedback";
 import { shareText, shareUrl } from "@/lib/share";
-import { splitStories, storyHeadline } from "@/lib/stories";
+import { loosePhotoDays, mergeFeed, splitStories, storyHeadline } from "@/lib/stories";
 import { todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Comment, Member, Reaction, Trip } from "@/lib/types";
 
 /**
- * The journal ("יומן המסע", 00078): what used to be the journal and the
- * stories, one feed. The family writes here with one composer and one
- * question - who sees it; guests read what went out to them, under the map
- * of where we've been. The wall stays apart: it is the conversation.
+ * The updates ("עדכונים", 00078): what used to be the journal, the stories
+ * and the photos, one feed. The family writes here with one composer and one
+ * question - who sees it - and photos go in through the same composer.
+ * Photos that are in no update show as one card per day; the full grid
+ * (approvals, sharing, Google Photos) is one tap away. Guests read what went
+ * out to them, under the map of where we've been. The chat stays apart.
  */
 export function StoriesScreen() {
   const { member, memberLoading } = useMember();
@@ -36,10 +42,19 @@ export function StoriesScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [place, setPlace] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [composer, setComposer] = useState<{ story: Story | null } | null>(null);
+  // the capture button's photo option lands on ?new=1 with the composer open
+  const [composer, setComposer] = useState<{ story: Story | null } | null>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("new") === "1"
+      ? { story: null }
+      : null
+  );
   const [approving, setApproving] = useState<Story | null>(null);
   const [sharing, setSharing] = useState<{ text: string; url: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // photos the reader may see (RLS / guest-photos), and how many wait for a parent
+  const [photos, setPhotos] = useState<ViewedPhoto[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState(0);
+  const [viewing, setViewing] = useState<ViewedPhoto | null>(null);
   const scrolled = useRef(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,12 +79,31 @@ export function StoriesScreen() {
     []
   );
 
+  const loadPhotos = useCallback(
+    async (tripId: string) => {
+      if (role === "guest") {
+        // approved + shared + in the guest's groups only (rule 3), signed by the function
+        setPhotos(await listGuestPhotos());
+        return;
+      }
+      const all = await listPhotos(tripId);
+      setPhotos(all.filter((p) => p.status === "approved"));
+      setPendingPhotos(all.filter((p) => p.status === "pending").length);
+    },
+    [role]
+  );
+
   const refresh = useCallback(
     async (tripId: string) => {
-      setStories(await listStories(tripId, role));
+      const [list] = await Promise.all([
+        listStories(tripId, role),
+        // the feed still opens when the photos cannot load
+        loadPhotos(tripId).catch(() => {}),
+      ]);
+      setStories(list);
       await loadFeedback(tripId);
     },
-    [role, loadFeedback]
+    [role, loadFeedback, loadPhotos]
   );
 
   useEffect(() => {
@@ -136,6 +170,8 @@ export function StoriesScreen() {
   const writersToday = new Set(stories.filter((x) => x.entry_date === today).map((x) => x.author_id)).size;
   const family = members.filter((m) => m.role !== "guest" && !m.is_preview).length;
   const roleOf = (id: string) => members.find((m) => m.id === id)?.role;
+  const inUpdates = new Set(stories.flatMap((x) => x.photos.map((p) => p.photoId)));
+  const feed = mergeFeed(sections.published, loosePhotoDays(photos, inUpdates));
 
   const offerShare = (story: Story) => {
     const url = shareUrl(window.location.origin, {
@@ -191,17 +227,36 @@ export function StoriesScreen() {
       <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
         <header className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{strings.stories.title}</h1>
-          {isOwner && (
+          <div className="flex shrink-0 items-center gap-2">
             <Link
-              href="/memory-book"
-              aria-label={strings.stories.printBook}
-              title={strings.stories.printBook}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-sv-line text-sv-ink-soft"
+              href="/photos"
+              className="flex min-h-11 items-center gap-1.5 rounded-2xl border border-sv-line px-3 text-sm font-bold text-sv-ink"
             >
-              <PrinterIcon className="h-5 w-5" />
+              <PhotosIcon className="h-4 w-4" /> {strings.stories.allPhotos}
             </Link>
-          )}
+            {isOwner && (
+              <Link
+                href="/memory-book"
+                aria-label={strings.stories.printBook}
+                title={strings.stories.printBook}
+                className="grid h-11 w-11 place-items-center rounded-2xl border border-sv-line text-sv-ink-soft"
+              >
+                <PrinterIcon className="h-5 w-5" />
+              </Link>
+            )}
+          </div>
         </header>
+
+        {/* kids' photos waiting for a parent: approved in the full grid */}
+        {isOwner && pendingPhotos > 0 && (
+          <Link
+            href="/photos"
+            className="flex min-h-11 items-center justify-between rounded-[16px] bg-warning-soft px-4 text-sm font-bold text-warning"
+          >
+            {strings.stories.photosPending.replace("{n}", String(pendingPhotos))}
+            <span aria-hidden="true">←</span>
+          </Link>
+        )}
 
         {/* Guests: where we've been leads, instead of being a place of its own */}
         {isGuest && (
@@ -259,16 +314,24 @@ export function StoriesScreen() {
           </section>
         )}
 
-        {sections.published.length === 0 ? (
+        {feed.length === 0 ? (
           <p className="rounded-[20px] border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
             {role === "guest" ? strings.stories.emptyGuest : strings.stories.empty}
           </p>
         ) : (
-          <section className="space-y-5">{sections.published.map(card)}</section>
+          <section className="space-y-5">
+            {feed.map((item) =>
+              item.kind === "story" ? (
+                card(item.story)
+              ) : (
+                <PhotoDayCard key={`photos-${item.day.date}`} day={item.day} onOpen={setViewing} />
+              )
+            )}
+          </section>
         )}
       </div>
 
-      {composer && (
+      {composer && canWrite && (
         <StoryComposer
           trip={trip}
           member={member}
@@ -312,6 +375,20 @@ export function StoriesScreen() {
             if (published) offerShare({ ...story, status: "approved", visibility: "guests" });
           }}
           onToast={showToast}
+        />
+      )}
+
+      {viewing && (
+        <PhotoView
+          photo={viewing}
+          tripId={trip.id}
+          member={member}
+          members={members}
+          reactions={reactions}
+          comments={comments}
+          onChanged={() => void loadFeedback(trip.id)}
+          onToast={showToast}
+          onClose={() => setViewing(null)}
         />
       )}
 
