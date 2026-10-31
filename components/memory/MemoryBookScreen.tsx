@@ -112,13 +112,14 @@ export function MemoryBookScreen() {
                       {e.mood ? `${e.mood} ` : ""}
                       {formatDate(e.entry_date)}
                     </span>
-                    {e.location_name && (
+                    {e.place_label && (
                       <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
                           <PinIcon className="h-3 w-3" />
-                          {e.location_name}
+                          {e.place_label}
                         </span>
                     )}
                   </div>
+                  {e.title && <p className="font-bold text-ink">{e.title}</p>}
                   {e.body && (
                     <p className="whitespace-pre-wrap text-ink">{e.body}</p>
                   )}

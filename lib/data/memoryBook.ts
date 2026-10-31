@@ -1,8 +1,8 @@
-import { listJournal, type JournalEntry } from "@/lib/data/journal";
+import { listStories, type Story } from "@/lib/data/stories";
 import { listPhotos, type PhotoWithUrl } from "@/lib/data/photos";
 import type { Trip } from "@/lib/types";
 
-export type MemoryEntry = JournalEntry & { photos: PhotoWithUrl[] };
+export type MemoryEntry = Omit<Story, "photos"> & { photos: PhotoWithUrl[] };
 export type MemoryAlbumDay = { date: string; photos: PhotoWithUrl[] };
 
 export type MemoryBook = {
@@ -13,24 +13,27 @@ export type MemoryBook = {
 };
 
 /**
- * Assembles the printable memory book (B2): journal entries in chronological
- * order each with their approved photos, then an album of the remaining
+ * Assembles the printable memory book (B2): the journal's saved entries
+ * (posts, 00078) in chronological order each with their approved photos, then an album of the remaining
  * approved photos grouped by the day they were taken. Owner-only screen; only
  * approved photos are included (rejected/pending are never in the book).
  */
 export async function loadMemoryBook(trip: Trip): Promise<MemoryBook> {
   const [journal, photos] = await Promise.all([
-    listJournal(trip.id),
+    listStories(trip.id, "owner"),
     listPhotos(trip.id),
   ]);
 
   const approved = photos.filter((p) => p.status === "approved" && p.url);
   const linked = new Set<string>();
 
-  const entries: MemoryEntry[] = [...journal]
-    .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+  const entries: MemoryEntry[] = journal
+    .filter((e) => e.status === "approved")
+    .sort((a, b) => a.entry_date.localeCompare(b.entry_date) || a.created_at.localeCompare(b.created_at))
     .map((e) => {
-      const ps = approved.filter((p) => p.journal_entry_id === e.id);
+      const ps = e.photos
+        .map((link) => approved.find((p) => p.id === link.photoId))
+        .filter((p): p is PhotoWithUrl => Boolean(p));
       ps.forEach((p) => linked.add(p.id));
       return { ...e, photos: ps };
     });

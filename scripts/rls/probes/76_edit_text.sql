@@ -31,9 +31,10 @@ update photos set status = 'approved', shared_with_guests = true, caption = 'old
  where id = '00000000-0000-0000-0000-0000000007d1';
 insert into post_photos (post_id, photo_id, public_path) values
   ('00000000-0000-0000-0000-0000000007b2', '00000000-0000-0000-0000-0000000007d1', 'pub/approved.jpg');
-insert into journal_entries (id, trip_id, author_id, body) values
-  ('00000000-0000-0000-0000-0000000007e1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'kid diary'),
-  ('00000000-0000-0000-0000-0000000007e2', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1', 'parent diary');
+-- journal entries are family posts since 00078
+insert into posts (id, trip_id, author_id, body, status, visibility) values
+  ('00000000-0000-0000-0000-0000000007e1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2', 'kid diary', 'approved', 'family'),
+  ('00000000-0000-0000-0000-0000000007e2', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1', 'parent diary', 'approved', 'family');
 
 select rls.check('seed: both messages start approved',
   (select count(*) from messages where id in ('00000000-0000-0000-0000-0000000007a1', '00000000-0000-0000-0000-0000000007a2') and approved_at is not null) = 2);
@@ -64,10 +65,10 @@ select rls.check('kid: edits own approved story',
 update posts set body = 'hacked' where id = '00000000-0000-0000-0000-0000000007b2';
 
 update photos set caption = 'new words' where id = '00000000-0000-0000-0000-0000000007d1';
-update journal_entries set body = 'kid diary, edited' where id = '00000000-0000-0000-0000-0000000007e1';
-update journal_entries set body = 'hacked' where id = '00000000-0000-0000-0000-0000000007e2';
+update posts set body = 'kid diary, edited' where id = '00000000-0000-0000-0000-0000000007e1';
+update posts set body = 'hacked' where id = '00000000-0000-0000-0000-0000000007e2';
 select rls.check('kid: edits own journal entry',
-  (select body from journal_entries where id = '00000000-0000-0000-0000-0000000007e1') = 'kid diary, edited');
+  (select body from posts where id = '00000000-0000-0000-0000-0000000007e1') = 'kid diary, edited');
 
 do $$ begin
   update comments set body = 'hacked' where id = '00000000-0000-0000-0000-0000000007c1';
@@ -90,7 +91,7 @@ select rls.check('kid: cannot edit a parent''s story',
 select rls.check('kid edit: approved photo with new caption is back to pending (rule 3: hidden from guests)',
   (select status = 'pending' and caption = 'new words' from photos where id = '00000000-0000-0000-0000-0000000007d1'));
 select rls.check('kid: cannot edit a parent''s journal entry',
-  (select body from journal_entries where id = '00000000-0000-0000-0000-0000000007e2') = 'parent diary');
+  (select body from posts where id = '00000000-0000-0000-0000-0000000007e2') = 'parent diary');
 
 -- ---------- public blog stops showing the photo now that it is pending ----------
 set local role anon;
@@ -112,7 +113,7 @@ update comments set body = 'hacked' where id = '00000000-0000-0000-0000-00000000
 do $$ begin
   update posts set body = 'hacked' where id = '00000000-0000-0000-0000-0000000007b2';
   if found then raise exception 'FAIL  guest: changed a story'; end if;
-  update journal_entries set body = 'hacked';
+  update posts set body = 'hacked' where visibility = 'family';
   if found then raise exception 'FAIL  guest: changed a journal entry'; end if;
 end $$;
 reset role;
@@ -146,7 +147,7 @@ select rls.as_owner();
 update messages set body = 'parent fixed it', approved_at = now() where id = '00000000-0000-0000-0000-0000000007a1';
 update comments set body = 'parent fixed it' where id = '00000000-0000-0000-0000-0000000007c1';
 update posts set body = 'parent fixed it', status = 'approved' where id = '00000000-0000-0000-0000-0000000007b1';
-update journal_entries set body = 'parent fixed it' where id = '00000000-0000-0000-0000-0000000007e1';
+update posts set body = 'parent fixed it' where id = '00000000-0000-0000-0000-0000000007e1';
 reset role;
 select rls.check('parent: edits anyone''s message and re-approves it',
   (select body = 'parent fixed it' and approved_at is not null from messages where id = '00000000-0000-0000-0000-0000000007a1'));
@@ -155,7 +156,7 @@ select rls.check('parent: edits a guest''s comment',
 select rls.check('parent: edits a kid''s story and approves it again',
   (select body = 'parent fixed it' and status = 'approved' from posts where id = '00000000-0000-0000-0000-0000000007b1'));
 select rls.check('parent: edits a kid''s journal entry',
-  (select body from journal_entries where id = '00000000-0000-0000-0000-0000000007e1') = 'parent fixed it');
+  (select body from posts where id = '00000000-0000-0000-0000-0000000007e1') = 'parent fixed it');
 
 select rls.check('photo_may_be_public: anon can ask, guard functions cannot be called',
   has_function_privilege('anon', 'public.photo_may_be_public(uuid)', 'execute')

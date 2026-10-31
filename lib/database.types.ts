@@ -1058,57 +1058,6 @@ export type Database = {
           },
         ]
       }
-      journal_entries: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          entry_date: string
-          id: string
-          location_name: string | null
-          mood: string | null
-          trip_id: string
-          updated_at: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          entry_date?: string
-          id?: string
-          location_name?: string | null
-          mood?: string | null
-          trip_id: string
-          updated_at?: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          entry_date?: string
-          id?: string
-          location_name?: string | null
-          mood?: string | null
-          trip_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journal_entries_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "journal_entries_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       kid_device_registrations: {
         Row: {
           code_hash: string
@@ -1437,7 +1386,6 @@ export type Database = {
           created_at: string
           file_path: string
           id: string
-          journal_entry_id: string | null
           shared_with_guests: boolean
           status: Database["public"]["Enums"]["photo_status"]
           taken_on: string
@@ -1452,7 +1400,6 @@ export type Database = {
           created_at?: string
           file_path: string
           id?: string
-          journal_entry_id?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
@@ -1467,7 +1414,6 @@ export type Database = {
           created_at?: string
           file_path?: string
           id?: string
-          journal_entry_id?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
@@ -1481,13 +1427,6 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "photos_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
           {
@@ -1793,13 +1732,14 @@ export type Database = {
           created_at: string
           day_id: string | null
           id: string
-          journal_entry_id: string | null
+          entry_date: string
+          mood: string | null
           place_label: string | null
           public_slug: string | null
           publish_after: string | null
           published_at: string | null
           status: Database["public"]["Enums"]["post_status"]
-          title: string
+          title: string | null
           trip_id: string
           updated_at: string
           visibility: Database["public"]["Enums"]["post_visibility"]
@@ -1813,13 +1753,14 @@ export type Database = {
           created_at?: string
           day_id?: string | null
           id?: string
-          journal_entry_id?: string | null
+          entry_date?: string
+          mood?: string | null
           place_label?: string | null
           public_slug?: string | null
           publish_after?: string | null
           published_at?: string | null
           status?: Database["public"]["Enums"]["post_status"]
-          title: string
+          title?: string | null
           trip_id: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
@@ -1833,13 +1774,14 @@ export type Database = {
           created_at?: string
           day_id?: string | null
           id?: string
-          journal_entry_id?: string | null
+          entry_date?: string
+          mood?: string | null
           place_label?: string | null
           public_slug?: string | null
           publish_after?: string | null
           published_at?: string | null
           status?: Database["public"]["Enums"]["post_status"]
-          title?: string
+          title?: string | null
           trip_id?: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
@@ -1864,13 +1806,6 @@ export type Database = {
             columns: ["day_id"]
             isOneToOne: false
             referencedRelation: "itinerary_days"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
           {

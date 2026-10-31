@@ -20,7 +20,8 @@ function post(over: Partial<Post>): Post {
     day_id: null,
     place_label: null,
     country_code: null,
-    journal_entry_id: null,
+    entry_date: "2026-11-01",
+    mood: null,
     status: "draft",
     visibility: "family",
     audience: [],
@@ -40,13 +41,15 @@ describe("splitStories", () => {
       [
         post({ id: "old", status: "approved", published_at: "2026-11-01T00:00:00Z" }),
         post({ id: "new", status: "approved", published_at: "2026-11-05T00:00:00Z" }),
+        // written later about an earlier day: the day decides
+        post({ id: "back", status: "approved", entry_date: "2026-10-30", published_at: "2026-11-06T00:00:00Z" }),
         post({ id: "mine", status: "draft", author_id: "me" }),
         post({ id: "theirs", status: "draft", author_id: "someone" }),
         post({ id: "wait", status: "pending" }),
       ],
       "me"
     );
-    expect(sections.published.map((p) => p.id)).toEqual(["new", "old"]);
+    expect(sections.published.map((p) => p.id)).toEqual(["new", "old", "back"]);
     expect(sections.drafts.map((p) => p.id)).toEqual(["mine"]);
     expect(sections.pending.map((p) => p.id)).toEqual(["wait"]);
   });

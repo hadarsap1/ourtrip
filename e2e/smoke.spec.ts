@@ -14,7 +14,6 @@ const ROUTES = [
   "/emergency",
   "/phrasebook",
   "/recommend",
-  "/journal",
   "/kids",
   "/guests",
   "/pocket",

@@ -23,7 +23,6 @@ export const BACKUP_TABLES: TableSpec[] = [
   { name: "trip_budget", by: "trip" },
   { name: "expenses", by: "trip" },
   { name: "place_options", by: "trip" },
-  { name: "journal_entries", by: "trip" },
   { name: "checklists", by: "trip" },
   { name: "checklist_items", by: "checklist" },
   { name: "visa_requirements", by: "trip" },
@@ -32,6 +31,8 @@ export const BACKUP_TABLES: TableSpec[] = [
   { name: "routes", by: "trip" },
   { name: "phrasebook_entries", by: "trip" },
   { name: "destination_facts", by: "trip" },
+  // the journal: diary lines and stories in one table since 00078
+  { name: "posts", by: "trip" },
   { name: "messages", by: "trip" },
   { name: "photos", by: "trip" },
   { name: "pocket_money", by: "trip" },

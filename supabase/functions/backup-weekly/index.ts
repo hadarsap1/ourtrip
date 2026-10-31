@@ -75,7 +75,6 @@ const TABLES = [
   "documents",
   "document_pin",
   "document_passkeys",
-  "journal_entries",
   "photos",
   "google_photos",
   "messages",

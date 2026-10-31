@@ -77,8 +77,13 @@ const nextConfig: NextConfig = {
 
   // The guests' join link (00057): /j/<token> is what goes into WhatsApp,
   // short to read and type; the page itself lives at /join/<token>.
+  // The journal and the stories are one screen since 00078; old links and
+  // notifications to /journal land on it.
   async redirects() {
-    return [{ source: "/j/:token", destination: "/join/:token", permanent: false }];
+    return [
+      { source: "/j/:token", destination: "/join/:token", permanent: false },
+      { source: "/journal", destination: "/stories", permanent: false },
+    ];
   },
 
   async headers() {

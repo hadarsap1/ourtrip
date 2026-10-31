@@ -1,26 +1,17 @@
 import { getSupabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/format";
 import { readTodaySnapshot } from "@/lib/offline/caches";
-import type { Tables } from "@/lib/database.types";
+import type { Post } from "@/lib/types";
 
-export type JournalEntry = Tables<"journal_entries">;
+// Since 00078 the journal and the stories are one table, `posts`: a journal
+// entry is a family post. This file keeps the quick paths that write one -
+// the composer's offline fallback, the capture button, the offline queue -
+// and the place auto-tag; the feed itself lives in lib/data/stories.ts.
 
 function requireClient() {
   const supabase = getSupabase();
   if (!supabase) throw new Error("supabase not configured");
   return supabase;
-}
-
-/** RLS scopes the result: kids get their own entries, owners get all. */
-export async function listJournal(tripId: string): Promise<JournalEntry[]> {
-  const { data, error } = await requireClient()
-    .from("journal_entries")
-    .select("*")
-    .eq("trip_id", tripId)
-    .order("entry_date", { ascending: false })
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data;
 }
 
 /** Auto-tag location: today's itinerary day, falling back to the offline
@@ -41,6 +32,8 @@ export async function getAutoLocation(tripId: string): Promise<string | null> {
   return snapshot?.day?.location_name ?? null;
 }
 
+/** A family entry for the day it was written (posts_guard: no gate for the
+ *  family, for a kid too). */
 export async function createJournalEntry(input: {
   tripId: string;
   authorId: string;
@@ -49,16 +42,18 @@ export async function createJournalEntry(input: {
   locationName: string | null;
   /** Defaults to today; a replayed offline entry keeps the day it was written. */
   entryDate?: string;
-}): Promise<JournalEntry> {
+}): Promise<Post> {
   const { data, error } = await requireClient()
-    .from("journal_entries")
+    .from("posts")
     .insert({
       trip_id: input.tripId,
       author_id: input.authorId,
       body: input.body.trim(),
       mood: input.mood,
       entry_date: input.entryDate ?? todayISO(),
-      location_name: input.locationName,
+      place_label: input.locationName?.slice(0, 80) || null,
+      status: "approved",
+      visibility: "family",
     })
     .select()
     .single();
@@ -72,7 +67,7 @@ export async function createJournalEntry(input: {
  */
 export async function createJournalEntryOrQueue(
   input: Parameters<typeof createJournalEntry>[0]
-): Promise<JournalEntry | "queued"> {
+): Promise<Post | "queued"> {
   const entryDate = input.entryDate ?? todayISO();
   try {
     return await createJournalEntry({ ...input, entryDate });
@@ -90,24 +85,4 @@ export async function createJournalEntryOrQueue(
     });
     return "queued";
   }
-}
-
-/** The author (RLS: kid's own) or a parent (00076 header). */
-export async function updateJournalEntry(id: string, body: string): Promise<void> {
-  const { data, error } = await requireClient()
-    .from("journal_entries")
-    .update({ body })
-    .eq("id", id)
-    .select("id");
-  if (error) throw new Error(error.message);
-  // RLS filters a row it will not let you touch instead of failing
-  if (!data || data.length === 0) throw new Error("not allowed");
-}
-
-export async function deleteJournalEntry(id: string): Promise<void> {
-  const { error } = await requireClient()
-    .from("journal_entries")
-    .delete()
-    .eq("id", id);
-  if (error) throw new Error(error.message);
 }

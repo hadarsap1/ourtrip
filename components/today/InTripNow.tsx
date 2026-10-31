@@ -129,7 +129,7 @@ export function InTripNow({ items, day, now, clock }: { items: ItineraryItem[]; 
       )}
 
       {isEvening(now) && (
-        <Link href="/journal" className="flex items-center gap-3 rounded-[18px] bg-gold/10 px-3.5 py-3">
+        <Link href="/stories" className="flex items-center gap-3 rounded-[18px] bg-gold/10 px-3.5 py-3">
           <JournalIcon className="h-6 w-6 shrink-0 text-gold" />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-ink">{strings.todayV2.eveningTitle}</span>

@@ -184,18 +184,11 @@ create table documents (
 
 -- ============ KIDS & SHARING ============
 
-create table journal_entries (
-  id uuid primary key default gen_random_uuid(),
-  trip_id uuid not null references trips(id),
-  author_id uuid not null references members(id),
-  body text not null,
-  mood text, -- emoji
-  entry_date date not null default current_date,
-  location_name text,
-  shared_with_guests boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- The journal lives in `posts` since 00078 (DECISIONS #45): one table for
+-- the diary lines and the stories - title optional, mood, entry_date, place,
+-- audience (visibility family / guests / public) and gate (status). Photos
+-- attach through post_photos. journal_entries was copied in and renamed
+-- journal_entries_archive_00078 (no client access).
 
 create type photo_status as enum ('pending','approved','rejected');
 
@@ -207,7 +200,6 @@ create table photos (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references trips(id),
   uploaded_by uuid not null references members(id),
-  journal_entry_id uuid references journal_entries(id), -- optional: photo attached to a journal post
   file_path text not null,
   caption text,
   taken_on date not null default current_date,
@@ -375,12 +367,12 @@ create table visa_requirements (
 --
 -- owners: full access to all tables scoped to their trip.
 -- kids:   SELECT itinerary_days/items (read-only), weather-relevant data,
---         own journal_entries (ALL), photos: INSERT (forced pending via trigger) + SELECT family-visible,
+--         own posts (a family entry needs no parent; wider waits for one, 00078), photos: INSERT (forced pending via trigger) + SELECT family-visible,
 --         messages: SELECT + INSERT, message_reads: own rows, pocket_*: own rows,
 --         phrasebook/emergency: SELECT. NO access: documents, expenses, bookings, budget_categories.
 -- guests: (allowlist row must have revoked_at IS NULL)
 --         SELECT only where shared_with_guests = true (done itinerary items),
---         never the journal (family-only since 00048, DECISIONS #32),
+--         posts only once a parent published them to guests (00043/00078),
 --         photos where status = 'approved' AND shared_with_guests = true,
 --         messages SELECT + INSERT, message_reads: own rows.
 --         NO access to everything else.

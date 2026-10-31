@@ -13,7 +13,7 @@ import {
   BedIcon,
   CameraIcon,
   CoinIcon,
-  MapIcon,
+  JournalIcon,
   MessagesIcon,
   MicIcon,
   PhotosIcon,
@@ -23,7 +23,6 @@ import {
   RouteIcon,
   SparkleIcon,
   StarIcon,
-  StoryIcon,
   WeatherIcon,
 } from "@/components/icons";
 import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
@@ -300,18 +299,19 @@ export function TodayScreen() {
   // ---------- guest portal home ----------
   if (member?.role === "guest") {
     const tiles = [
-      { href: "/stories", Icon: StoryIcon, label: strings.guestHome.tileStories },
-      { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
+      // four doors (Hadar 31/10/2026): the map of where we've been is at the
+      // top of the journal, not a fifth place to look
+      { href: "/stories", Icon: JournalIcon, label: strings.guestHome.tileStories },
       { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
-      { href: "/map", Icon: MapIcon, label: strings.guestHome.tileMap },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall },
+      { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
     ];
     // The guest portal wears the "סו-בב עולם!" brand: the illustration from
     // the farewell invitation, parchment and ink (docs/DESIGN-sharing.md).
     return (
       <SovevScreen>
         <div className="mx-auto max-w-lg space-y-5 px-4 pt-6 pb-8 sm:max-w-2xl">
-          <SovevBrand size="lg" subtitle={strings.sovev.tagline} />
+          <SovevBrand size="lg" />
           {/* eslint-disable-next-line @next/next/no-img-element -- static brand illustration */}
           <img
             src="/sovev/scene.jpg"
@@ -363,7 +363,6 @@ export function TodayScreen() {
       { href: "/messages", Icon: MessagesIcon, label: strings.kidHome.tileWall, badge: unreadWall },
       { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
       { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
-      { href: "/stories", Icon: StoryIcon, label: strings.kidHome.tileStories },
       { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos },
       ...(FLAG_DEFAULTS.pocketMoney
         ? [{ href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket }]
@@ -451,7 +450,7 @@ export function TodayScreen() {
 
         {/* daily journal prompt */}
         <Link
-          href="/journal"
+          href="/stories"
           className="block rounded-[20px] bg-sun-tint p-4 text-sun-deep"
         >
           <p className="text-lg font-bold">{strings.kidHome.journalPrompt}</p>

@@ -46,7 +46,8 @@ export function StoryCard({
   const folds = needsFold(story.body);
   const author = members.find((m) => m.id === story.author_id);
   const published = story.status === "approved";
-  const date = (story.published_at ?? story.created_at).slice(0, 10);
+  // the day the entry is about (00078), not the day it went out
+  const date = story.entry_date;
   const isOwner = member.role === "owner";
   // a guest sees who wrote it; everyone in the family sees it too
   const showAudience = isOwner;
@@ -96,7 +97,16 @@ export function StoryCard({
           )}
         </div>
 
-        <h2 className="text-[19px] font-bold leading-7 text-ink">{story.title}</h2>
+        {(story.title || story.mood) && (
+          <div className="flex items-start justify-between gap-2">
+            {story.title && <h2 className="text-[19px] font-bold leading-7 text-ink">{story.title}</h2>}
+            {story.mood && (
+              <span className="ms-auto shrink-0 rounded-full bg-sun-tint px-2 py-0.5 text-[15px] leading-6">
+                {story.mood}
+              </span>
+            )}
+          </div>
+        )}
 
         {story.body && (
           <div>
