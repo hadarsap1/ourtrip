@@ -26,7 +26,7 @@ export const strings = {
     kids: "ילדים ומכשירים",
     guests: "אורחים",
     pocket: "דמי כיס",
-    messages: "הודעות",
+    messages: "צ'אט",
     memoryBook: "ספר זיכרונות",
     notifications: "התראות",
     options: "בנק אפשרויות",
@@ -37,7 +37,7 @@ export const strings = {
     login: "כניסה",
     join: "הצטרפות לטיול",
     kidLogin: "כניסת ילדים",
-    stories: "יומן המסע",
+    stories: "עדכונים",
     podcast: "הפודקאסט",
     publicStory: "סו-בב עולם!",
   },
@@ -421,7 +421,7 @@ export const strings = {
 
   backup: {
     title: "גיבוי הטיול",
-    hint: "קובץ אחד עם כל המסלול, ההזמנות, התקציב, היומן והרעיונות - לשמירה אצלכם. מסמכים, קודי PIN ומיילים לא נכללים.",
+    hint: "קובץ אחד עם כל המסלול, ההזמנות, התקציב, העדכונים והרעיונות - לשמירה אצלכם. מסמכים, קודי PIN ומיילים לא נכללים.",
     export: "ייצוא קובץ גיבוי",
     exporting: "מכין את הקובץ…",
     exported: "קובץ הגיבוי הורד",
@@ -461,8 +461,8 @@ export const strings = {
       routes: "מסלולים במפה",
       phrasebook_entries: "שיחון",
       destination_facts: "הידעת",
-      posts: "יומן",
-      messages: "הודעות",
+      posts: "עדכונים",
+      messages: "צ'אט",
       photos: "תמונות",
       pocket_money: "דמי כיס",
       pocket_expenses: "הוצאות דמי כיס",
@@ -626,7 +626,7 @@ export const strings = {
   // what is waiting for a parent, across screens (Hadar 20/10/2026)
   approvals: {
     title: "ממתינים לאישורך ({n})",
-    stories: "ביומן",
+    stories: "עדכונים",
     photos: "תמונות",
     episodes: "פרקי פודקאסט",
     guestRequests: "בקשות הצטרפות",
@@ -638,12 +638,12 @@ export const strings = {
     menuMap: "מפה",
     menuStats: "הטיול במספרים",
     menuPhrasebook: "שיחון",
-    menuJournal: "יומן המסע",
+    menuJournal: "עדכונים",
     menuPhotos: "תמונות",
     menuPocket: "דמי כיס",
     menuKids: "ילדים ומכשירים",
     menuGuests: "אורחים",
-    menuMessages: "הודעות",
+    menuMessages: "צ'אט",
     menuRecommend: "מה בסביבה",
     menuNotifications: "התראות",
     menuOptions: "בנק אפשרויות",
@@ -711,8 +711,8 @@ export const strings = {
     localTime: "כאן",
     israelTime: "בארץ",
     eveningTitle: "איך היה היום?",
-    eveningBody: "שתי שורות ביומן עכשיו, לפני שהיום מתערבב עם מחר",
-    eveningCta: "לכתוב ביומן",
+    eveningBody: "שתי שורות עכשיו, לפני שהיום מתערבב עם מחר",
+    eveningCta: "לכתוב עדכון",
     nothingLeft: "סיימנו את התוכנית להיום",
     iosHintTitle: "התראות באייפון דורשות התקנה",
     iosHintBody: "מוסיפים את האפליקציה למסך הבית - ההסבר כאן",
@@ -726,7 +726,7 @@ export const strings = {
     expenseTitle: "הוצאה חדשה",
     noteTitle: "פתק מהיום",
     notePlaceholder: "מה קרה? שתי מילים מספיקות",
-    noteSaved: "הפתק נשמר ביומן",
+    noteSaved: "הפתק נשמר בעדכונים",
     currency: "מטבע",
     category: "קטגוריה",
     noCategories: "אין עדיין קטגוריות - מוסיפים אותן במסך התקציב",
@@ -794,14 +794,14 @@ export const strings = {
 
   memoryBook: {
     title: "ספר זיכרונות",
-    subtitle: "יומן המסע והתמונות המאושרות - מוכן להדפסה או לשמירה כ-PDF",
+    subtitle: "העדכונים והתמונות המאושרות - מוכן להדפסה או לשמירה כ-PDF",
     print: "הדפסה / שמירה כ-PDF",
     hint: "בחלון ההדפסה בוחרים ״יעד: שמירה כ-PDF״ כדי לשמור את הספר במכשיר",
-    empty: "עוד אין תוכן לספר - כותבים ביומן ומאשרים תמונות",
+    empty: "עוד אין תוכן לספר - כותבים עדכונים ומאשרים תמונות",
     coverPrefix: "ספר הזיכרונות של",
-    journalTitle: "יומן המסע",
+    journalTitle: "עדכונים מהמסע",
     albumTitle: "אלבום התמונות",
-    stats: "רשומות יומן ותמונות",
+    stats: "עדכונים ותמונות",
     ownersOnly: "התכונה זמינה להורים בלבד",
     loading: "מכינים את הספר…",
   },
@@ -962,7 +962,7 @@ export const strings = {
     whatTitle: "מה נשלח",
     whatWeather: "התראת גשם ביום עם פעילות בחוץ",
     whatCheckin: "תזכורת צ'ק-אין 24 שעות לפני טיסה",
-    whatWall: "הודעה חדשה בקיר המשפחתי",
+    whatWall: "הודעה חדשה בצ'אט",
     whatPhoto: "תמונה חדשה שממתינה לאישור (להורים)",
     iosTitle: "כדי לקבל התראות ב-iPhone / iPad",
     iosStep1: "פותחים את האפליקציה ב-Safari",
@@ -1195,7 +1195,7 @@ export const strings = {
     nightsRemoveConfirm: "להוריד לילה מ{place}? היום {date} יימחק וכל הימים שאחריו יזוזו יום אחד אחורה.",
     nightsDone: "המסלול עודכן",
     nightsBookingsWarn: "המסלול עודכן. {n} הזמנות אחרי התאריך לא זזו - כדאי לבדוק אותן",
-    nightsDayNotEmpty: "ביום האחרון יש פעילויות, מסלול או יומן - מעבירים אותם קודם",
+    nightsDayNotEmpty: "ביום האחרון יש פעילויות, מסלול או עדכונים - מעבירים אותם קודם",
     nightsUnavailable: "שינוי לילות עוד לא הופעל בשרת",
     planFromBank: "תכנן מהבנק",
     moveItemShort: "העברה",
@@ -1516,7 +1516,7 @@ export const strings = {
   roleGate: {
     title: "המסך הזה שמור להורים",
     kidBody: "כאן אמא ואבא מתכננים ומנהלים את הטיול. כל מה שמחכה לך נמצא בדף הבית.",
-    guestBody: "היומן, התמונות והפודקאסט מחכים לכם בדף הבית.",
+    guestBody: "העדכונים, התמונות והפודקאסט מחכים לכם בדף הבית.",
     home: "לדף הבית",
   },
 
@@ -1532,28 +1532,28 @@ export const strings = {
 
   kidNav: {
     route: "המסלול",
-    journal: "יומן",
+    journal: "עדכונים",
     photos: "תמונות",
     pocket: "דמי כיס",
     phrasebook: "שיחון",
-    messages: "הודעות",
+    messages: "צ'אט",
   },
 
   guestNav: {
     // the guest home is a doorway, not "today" (Hadar 31/10/2026)
     home: "בית",
-    stories: "יומן",
+    stories: "עדכונים",
     podcast: "פודקאסט",
     photos: "תמונות",
-    messages: "הודעות",
+    messages: "צ'אט",
   },
 
   wall: {
     // one wall since 00049: parents, kids and guests; kids' messages wait for a parent
-    title: "הודעות",
-    ownerHint: "ההודעות משותפות עם החברים, המשפחה והילדים. הודעה של הילדים יוצאת אחרי שאחד מכם מאשר אותה.",
+    title: "צ'אט",
+    ownerHint: "הצ'אט משותף עם החברים, המשפחה והילדים. הודעה של הילדים יוצאת אחרי שאחד מכם מאשר אותה.",
     kidHint: "כאן כותבים לחברים ולמשפחה. אמא או אבא יאשרו את ההודעה לפני שהיא יוצאת.",
-    guestHint: "ההודעות משותפות עם המשפחה - גם הילדים קוראים כאן.",
+    guestHint: "הצ'אט משותף עם המשפחה - גם הילדים קוראים כאן.",
     placeholder: "כותבים משהו…",
     send: "שליחה",
     empty: "עוד אין הודעות - כתבו את הראשונה!",
@@ -1641,7 +1641,7 @@ export const strings = {
     joinShare: "שליחה בוואטסאפ",
     joinCopy: "העתקה",
     joinShareText:
-      "שלום! אנחנו יוצאים לטיול מסביב לעולם ומשתפים יומן, תמונות ופודקאסט של הילדים ב\"סו-בב עולם!\". רוצים לעקוב? נרשמים כאן 🌍\n{url}",
+      "שלום! אנחנו יוצאים לטיול מסביב לעולם ומשתפים עדכונים, תמונות ופודקאסט של הילדים ב\"סו-בב עולם!\". רוצים לעקוב? נרשמים כאן 🌍\n{url}",
     requestsTitle: "ממתינים לאישור ({n})",
     approve: "אישור",
     decline: "דחייה",
@@ -1674,16 +1674,16 @@ export const strings = {
   // the public page behind the join link
   join: {
     title: "רוצים לעקוב אחרי הטיול?",
-    body: "יומן, תמונות והפודקאסט של הילדים מהדרך. נרשמים פעם אחת, ואחרי שנאשר תקבלו גישה.",
+    body: "עדכונים, תמונות והפודקאסט של הילדים מהדרך. נרשמים פעם אחת, ואחרי שנאשר תקבלו גישה.",
     // for a parent who scanned the sticker and has no idea what this is (Hadar 20/10/2026).
     // The page is open to anyone with the link: names by Hadar's choice (so class
     // parents know whose sticker it is), but no places or dates.
     aboutIntro: "אנחנו משפחת ספיר ורדי: סיון, הדר, אלה ועומר. אנחנו יוצאים לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
     aboutItems: [
-      { icon: "📖", text: "יומן מהדרך - מה ראינו ומה עשינו, עם מפה של איפה היינו" },
+      { icon: "📖", text: "עדכונים מהדרך - מה ראינו ומה עשינו, עם מפה של איפה היינו" },
       { icon: "📷", text: "תמונות מהטיול" },
       { icon: "🎙️", text: "הפודקאסט של הילדים - פרקים קצרים מהדרך" },
-      { icon: "💬", text: "הודעות - אפשר לכתוב לילדים, והם קוראים" },
+      { icon: "💬", text: "צ'אט - אפשר לכתוב לילדים, והם קוראים" },
     ],
     aboutPrivacy: "רק מי שאישרנו רואה את התוכן. בלי פרסומות ובלי עלות.",
     google: "הצטרפות עם Google",
@@ -1735,11 +1735,11 @@ export const strings = {
     inCountry: "ב{country}",
     // where "ב" + the Intl name reads wrong: the article drops, a leading vav doubles
     inCountryExceptions: { PH: "בפיליפינים", VN: "בווייטנאם", AE: "באמירויות" } as Record<string, string>,
-    subtitle: "היומן, התמונות והפודקאסט של משפחת סו מהדרך",
-    tileStories: "יומן המסע",
+    subtitle: "העדכונים, התמונות והפודקאסט של משפחת סו מהדרך",
+    tileStories: "עדכונים",
     tilePodcast: "הפודקאסט",
     tilePhotos: "תמונות",
-    tileWall: "הודעות",
+    tileWall: "צ'אט",
   },
 
   kidLogin: {
@@ -1771,7 +1771,7 @@ export const strings = {
     whereToday: "איפה אנחנו היום?",
     noLocation: "יום חופשי!",
     journalPrompt: "מה היה הכי כיף היום?",
-    journalCta: "כותבים ביומן",
+    journalCta: "כותבים עדכון",
     tilePhotos: "התמונות שלנו",
     tilePocket: "דמי הכיס שלי",
     tilePhrasebook: "שיחון",
@@ -1780,7 +1780,7 @@ export const strings = {
     tilePodcast: "הפודקאסט שלנו",
     tileRoute: "לאן ממשיכים?",
     // the same wall as the bottom tab, first on the home (Hadar 20/10/2026)
-    tileWall: "הודעות מהחברים",
+    tileWall: "צ'אט עם החברים",
   },
 
   // the quick paths into the journal (00078: one feed with the stories)
@@ -2064,21 +2064,22 @@ export const strings = {
     whatsapp: "שליחה לווטסאפ",
     copyLink: "העתקת הקישור",
     copied: "הקישור הועתק",
-    storyText: "חדש ביומן של \"סו-בב עולם!\": {title}\n{url}",
+    storyText: "עדכון חדש ב\"סו-בב עולם!\": {title}\n{url}",
     episodeText: "פרק חדש בפודקאסט של \"סו-בב עולם!\": {title}\n{url}",
     publishedAsk: "פורסם! לספר לכולם?",
     pickGroup: "פותח את חלון השיתוף. בוחרים קבוצה: משפחה, כיתה או חברים",
   },
 
-  // the journal ("יומן המסע"): diary lines and stories in one feed (00078)
+  // the updates ("עדכונים", was the journal): diary lines and stories in one
+  // feed (00078); no "יומן" in any title (Hadar 31/10/2026)
   stories: {
-    title: "יומן המסע",
-    newStory: "כתיבה ביומן",
-    empty: "עוד אין כלום ביומן. מה היה הכי כיף היום?",
+    title: "עדכונים",
+    newStory: "עדכון חדש",
+    empty: "עוד אין עדכונים. מה היה הכי כיף היום?",
     emptyGuest: "עוד לא שיתפנו כלום. זה יופיע כאן כשנתחיל לכתוב מהדרך",
     pendingTitle: "ממתינים לאישור",
     draftsTitle: "טיוטות",
-    composerTitle: "כתיבה ביומן",
+    composerTitle: "עדכון חדש",
     editTitle: "עריכה",
     titleLabel: "כותרת (לא חובה)",
     bodyLabel: "מה רוצים לספר?",
@@ -2109,10 +2110,10 @@ export const strings = {
     publishAfter: "לפרסם רק אחרי שעזבנו",
     publishAfterLabel: "מתי לפרסם",
     sharePhotos: "לשתף גם את התמונות עם האורחים",
-    publish: "שמירה ביומן",
+    publish: "שמירה",
     publishShare: "פרסום לחברים",
     sendForApproval: "שליחה לאישור",
-    published: "נשמר ביומן",
+    published: "נשמר",
     sharedDone: "פורסם לחברים",
     sentForApproval: "נשלח! אמא או אבא יקראו ויאשרו",
     approve: "אישור ופרסום",

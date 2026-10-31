@@ -172,11 +172,11 @@ async function handleWallMessage(messageId: string): Promise<number> {
 
   const preview = msg.body.length > 80 ? `${msg.body.slice(0, 80)}…` : msg.body;
   return pushToMembers(recipients, {
-    title: pending ? "הודעה ממתינה לאישור שלכם ✋" : "הודעה חדשה בקיר 💬",
+    title: pending ? "הודעה ממתינה לאישור שלכם ✋" : "הודעה חדשה בצ'אט 💬",
     body: sender ? `${sender.display_name}: ${preview}` : preview,
     url: "/messages",
     tag: pending ? "wall-pending" : "wall",
-    many: pending ? "{n} הודעות ממתינות לאישור שלכם ✋" : "{n} הודעות חדשות בקיר 💬",
+    many: pending ? "{n} הודעות ממתינות לאישור שלכם ✋" : "{n} הודעות חדשות בצ'אט 💬",
   });
 }
 
@@ -421,7 +421,7 @@ async function sendEveningJournal(tripId: string, today: string): Promise<number
   const done = new Set((wrote ?? []).map((w) => w.author_id));
   return pushToMembers(
     family.filter((id) => !done.has(id)),
-    { title: "✍️ איך היה היום?", body: "שתי שורות ביומן, לפני שהיום מתערבב עם מחר", url: "/stories", tag: `journal-${today}` }
+    { title: "✍️ איך היה היום?", body: "שתי שורות עדכון, לפני שהיום מתערבב עם מחר", url: "/stories", tag: `journal-${today}` }
   );
 }
 
