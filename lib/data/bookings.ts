@@ -50,11 +50,24 @@ export async function updateBooking(
   id: string,
   patch: TablesUpdate<"bookings">
 ): Promise<void> {
-  const { error } = await requireClient()
+  const supabase = requireClient();
+  const { error } = await supabase
     .from("bookings")
     .update(patch)
     .eq("id", id);
   if (error) throw new Error(error.message);
+
+  // A cancelled booking leaves the day plan with it (Hadar 31/10: a cancelled
+  // hotel stayed in "today's plan" while "tonight" showed the new one). After
+  // the booking is saved, so a failure here never loses the plan entry of a
+  // booking that is still on.
+  if (patch.status === "cancelled") {
+    const { error: itemsError } = await supabase
+      .from("itinerary_items")
+      .delete()
+      .eq("booking_id", id);
+    if (itemsError) throw new Error(itemsError.message);
+  }
 }
 
 export async function deleteBooking(id: string): Promise<void> {
