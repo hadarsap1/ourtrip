@@ -356,10 +356,9 @@ function FamilyPhotosView() {
               <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
               <div className="space-y-1 p-2 text-xs">
                 {photo.caption && <PhotoCaption text={photo.caption} />}
-                {/* a kid edits their own text only before approval until 00076 is
-                    live in the database - it sends an approved photo whose text
-                    changed back to a parent. Lift `status !== "approved"` then. */}
-                {(isOwner || (photo.uploaded_by === member?.id && photo.status !== "approved")) && (
+                {/* the uploader or a parent; a kid's edit of an approved photo goes
+                    back to a parent for approval (photos_guard_update, 00076) */}
+                {(isOwner || photo.uploaded_by === member?.id) && (
                   <button
                     type="button"
                     onClick={() => setCaptionFor(photo)}
@@ -482,12 +481,16 @@ function FamilyPhotosView() {
         onSubmit={async (text) => {
           if (!captionFor) return;
           const id = captionFor.id;
+          const backToApproval =
+            member?.role === "kid" && captionFor.status === "approved" && (text.trim() || null) !== captionFor.caption;
           setCaptionFor(null);
           try {
             await updatePhotoCaption(id, text);
             const caption = text.trim() || null;
-            setPhotos((prev) => prev.map((x) => (x.id === id ? { ...x, caption } : x)));
-            showToast(strings.photos.textSaved);
+            setPhotos((prev) =>
+              prev.map((x) => (x.id === id ? { ...x, caption, ...(backToApproval ? { status: "pending" as const } : {}) } : x))
+            );
+            showToast(backToApproval ? strings.editText.backToApproval : strings.photos.textSaved);
           } catch {
             showToast(strings.common.error);
           }
