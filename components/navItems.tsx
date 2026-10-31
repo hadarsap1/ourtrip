@@ -15,7 +15,6 @@ import {
   MoreIcon,
   OptionsIcon,
   PersonIcon,
-  PhotosIcon,
   PhrasebookIcon,
   PlaneIcon,
   RouteIcon,
@@ -39,19 +38,18 @@ export const kidTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
   { href: "/itinerary", label: strings.kidNav.route, Icon: RouteIcon },
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },
-  { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
   { href: "/stories", label: strings.kidNav.journal, Icon: JournalIcon },
   { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
   ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon }] : []),
 ];
 
-// Guest portal ("סו-בב עולם!"): the journal (what the family shared) and the
-// podcast lead; the map of where we've been sits at the top of the journal.
+// Guest portal ("סו-בב עולם!"): the updates (what the family shared, photos
+// included) and the podcast lead; the map of where we've been sits at the top
+// of the updates, and all the photos are one tap from there.
 export const guestTabs: NavItem[] = [
   { href: "/", label: strings.guestNav.home, Icon: HomeIcon },
   { href: "/stories", label: strings.guestNav.stories, Icon: JournalIcon },
   { href: "/podcast", label: strings.guestNav.podcast, Icon: MicIcon },
-  { href: "/photos", label: strings.guestNav.photos, Icon: PhotosIcon },
   { href: "/messages", label: strings.guestNav.messages, Icon: MessagesIcon },
 ];
 
@@ -96,7 +94,6 @@ export const ownerRailGroups: NavGroup[] = [
     label: strings.more.groupMemories,
     items: [
       { href: "/stories", label: strings.more.menuJournal, Icon: JournalIcon },
-      { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
       { href: "/messages", label: strings.more.menuMessages, Icon: MessagesIcon },
       { href: "/podcast", label: strings.more.menuPodcast, Icon: MicIcon },
     ],

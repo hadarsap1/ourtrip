@@ -6,6 +6,8 @@ import {
   needsFold,
   splitStories,
   titleFromJournal,
+  loosePhotoDays,
+  mergeFeed,
   toLocalInput,
 } from "./stories";
 import type { Post } from "./types";
@@ -97,5 +99,51 @@ describe("local datetime input", () => {
     expect(toLocalInput(iso)).toBe("2026-11-20T18:30");
     expect(fromLocalInput("")).toBeNull();
     expect(toLocalInput(null)).toBe("");
+  });
+});
+
+describe("loosePhotoDays", () => {
+  it("groups photos not in an update by day, newest first", () => {
+    const days = loosePhotoDays(
+      [
+        { id: "a", taken_on: "2026-11-01" },
+        { id: "b", taken_on: "2026-11-03" },
+        { id: "c", taken_on: "2026-11-01" },
+        { id: "inside", taken_on: "2026-11-03" },
+      ],
+      new Set(["inside"])
+    );
+    expect(days.map((d) => [d.date, d.photos.map((p) => p.id)])).toEqual([
+      ["2026-11-03", ["b"]],
+      ["2026-11-01", ["a", "c"]],
+    ]);
+  });
+});
+
+describe("mergeFeed", () => {
+  const s = (id: string, entry_date: string) => ({ id, entry_date });
+  const day = (date: string) => ({ date, photos: [date] });
+  const ids = (items: ReturnType<typeof mergeFeed<{ id: string; entry_date: string }, string>>) =>
+    items.map((i) => (i.kind === "story" ? i.story.id : `photos ${i.day.date}`));
+
+  it("puts a day's photos after that day's updates, and photo-only days in date order", () => {
+    const items = mergeFeed(
+      [s("x", "2026-11-05"), s("y", "2026-11-03"), s("z", "2026-11-03"), s("w", "2026-11-01")],
+      [day("2026-11-06"), day("2026-11-03"), day("2026-11-02"), day("2026-10-30")]
+    );
+    expect(ids(items)).toEqual([
+      "photos 2026-11-06",
+      "x",
+      "y",
+      "z",
+      "photos 2026-11-03",
+      "photos 2026-11-02",
+      "w",
+      "photos 2026-10-30",
+    ]);
+  });
+
+  it("shows photos alone when there are no updates", () => {
+    expect(ids(mergeFeed([], [day("2026-11-02")]))).toEqual(["photos 2026-11-02"]);
   });
 });

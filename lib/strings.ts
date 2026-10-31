@@ -639,7 +639,6 @@ export const strings = {
     menuStats: "הטיול במספרים",
     menuPhrasebook: "שיחון",
     menuJournal: "עדכונים",
-    menuPhotos: "תמונות",
     menuPocket: "דמי כיס",
     menuKids: "ילדים ומכשירים",
     menuGuests: "אורחים",
@@ -1533,7 +1532,6 @@ export const strings = {
   kidNav: {
     route: "המסלול",
     journal: "עדכונים",
-    photos: "תמונות",
     pocket: "דמי כיס",
     phrasebook: "שיחון",
     messages: "צ'אט",
@@ -1544,7 +1542,6 @@ export const strings = {
     home: "בית",
     stories: "עדכונים",
     podcast: "פודקאסט",
-    photos: "תמונות",
     messages: "צ'אט",
   },
 
@@ -1738,7 +1735,6 @@ export const strings = {
     subtitle: "העדכונים, התמונות והפודקאסט של משפחת סו מהדרך",
     tileStories: "עדכונים",
     tilePodcast: "הפודקאסט",
-    tilePhotos: "תמונות",
     tileWall: "צ'אט",
   },
 
@@ -1772,7 +1768,6 @@ export const strings = {
     noLocation: "יום חופשי!",
     journalPrompt: "מה היה הכי כיף היום?",
     journalCta: "כותבים עדכון",
-    tilePhotos: "התמונות שלנו",
     tilePocket: "דמי הכיס שלי",
     tilePhrasebook: "שיחון",
     tileFacts: "הידעת?",
@@ -1795,7 +1790,9 @@ export const strings = {
   },
 
   photos: {
-    title: "תמונות",
+    // the full grid behind the updates (Hadar 31/10/2026)
+    title: "כל התמונות",
+    backToUpdates: "חזרה לעדכונים ←",
     upload: "העלאת תמונה",
     uploading: "מעלה…",
     uploaded: "התמונה הועלתה! היא תופיע אחרי שאמא או אבא יאשרו",
@@ -2136,6 +2133,12 @@ export const strings = {
     bodyRequired: "כותבים משהו קודם",
     printBook: "ספר זיכרונות להדפסה",
     // guests: the map of where we've been, at the top of the journal (Hadar 31/10/2026)
+    // photos with no update of their own, one card per day (Hadar 31/10/2026)
+    photosDay: "{n} תמונות מהיום",
+    photosDayOne: "תמונה מהיום",
+    allPhotos: "כל התמונות",
+    photosPending: "{n} תמונות ממתינות לאישור",
+    morePhotos: "+{n}",
     mapCard: "איפה היינו",
     mapCardHint: "כל המקומות שעברנו, על המפה",
   },

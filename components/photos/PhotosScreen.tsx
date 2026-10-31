@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
 import {
@@ -17,11 +18,10 @@ import {
   setPhotoAudience,
   setPhotoShared,
   updatePhotoCaption,
-  uploadPhoto,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
 import { formatDate } from "@/lib/format";
-import { CheckIcon, CloseIcon, MessagesIcon, PlusIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon, MessagesIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
@@ -30,9 +30,17 @@ import { GooglePhotosSection } from "./GooglePhotosSection";
 import { AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
-import { UploadSheet } from "./UploadSheet";
 import { PhotoView, type ViewedPhoto } from "./PhotoView";
 import { usePhotoFeedback } from "./usePhotoFeedback";
+
+/** The bottom bar has no photos tab: the way back is to the updates. */
+function BackToUpdates() {
+  return (
+    <Link href="/stories" className="flex min-h-11 shrink-0 items-center text-sm font-bold text-sea">
+      {strings.photos.backToUpdates}
+    </Link>
+  );
+}
 
 export function PhotosScreen() {
   const { member } = useMember();
@@ -101,7 +109,10 @@ function GuestPhotosView() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
+        <BackToUpdates />
+      </header>
       {isEmpty && (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
@@ -191,10 +202,6 @@ function FamilyPhotosView() {
   // guest groups (00063): a parent can limit a shared photo to some of them
   const [groups, setGroups] = useState<string[]>([]);
   const [audienceFor, setAudienceFor] = useState<PhotoWithUrl | null>(null);
-  // "העלאה חדשה" (the capture button's photo option lands here with ?add=1)
-  const [uploadOpen, setUploadOpen] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1"
-  );
   const [captionFor, setCaptionFor] = useState<PhotoWithUrl | null>(null);
   // a tapped photo, open with its likes and comments (00077)
   const [viewing, setViewing] = useState<PhotoWithUrl | null>(null);
@@ -245,21 +252,6 @@ function FamilyPhotosView() {
     };
   }, [trip, isOwnerRole]);
 
-  async function handleUpload(file: File, caption: string, audience: string[]) {
-    if (!trip || !member) throw new Error("not ready");
-    await uploadPhoto({
-      tripId: trip.id,
-      memberId: member.id,
-      isOwner: member.role === "owner",
-      file,
-      caption,
-      audience,
-    });
-    setUploadOpen(false);
-    showToast(member.role === "owner" ? strings.photos.uploadedOwner : strings.photos.uploaded);
-    await refresh(trip.id).catch(() => {});
-  }
-
   const run = useCallback(
     async (action: () => Promise<void>) => {
       if (!trip) return;
@@ -289,15 +281,11 @@ function FamilyPhotosView() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
+      {/* The full grid behind the updates (Hadar 31/10/2026): photos are added
+          from "עדכון חדש" there; here they are approved, shared and browsed. */}
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
-        <button
-          type="button"
-          onClick={() => setUploadOpen(true)}
-          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl bg-sea px-4 font-bold text-on-sea shadow hover:bg-sea-deep"
-        >
-          <PlusIcon className="h-4 w-4" /> {strings.photos.newUpload}
-        </button>
+        <BackToUpdates />
       </header>
 
       {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
@@ -470,7 +458,6 @@ function FamilyPhotosView() {
           onClose={() => setViewing(null)}
         />
       )}
-      {uploadOpen && <UploadSheet onClose={() => setUploadOpen(false)} onUpload={handleUpload} />}
       <CaptionSheet
         open={captionFor !== null}
         title={strings.photos.textTitle}

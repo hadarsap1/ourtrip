@@ -19,7 +19,6 @@ import {
   MicIcon,
   OptionsIcon,
   PersonIcon,
-  PhotosIcon,
   PhrasebookIcon,
   SparkleIcon,
   VisaIcon,
@@ -149,22 +148,17 @@ export function MoreScreen() {
       : []),
   ];
 
-  // One journal (00078): the diary and the stories are one feed, the memory
-  // book prints from inside it, and the wall stays the conversation.
+  // One place for the updates and the photos (00078, Hadar 31/10/2026): the
+  // memory book and the full photo grid open from inside it; the chat stays
+  // the conversation.
   const memories: Tile[] = [
     {
       href: "/stories",
       label: strings.more.menuJournal,
       Icon: JournalIcon,
       count: n(counts?.stories),
-      badge: pending?.stories,
-    },
-    {
-      href: "/photos",
-      label: strings.more.menuPhotos,
-      Icon: PhotosIcon,
-      count: n(counts?.photos),
-      badge: pending?.photos,
+      // the updates hold the photos too: one badge for both waiting lists
+      badge: (pending?.stories ?? 0) + (pending?.photos ?? 0),
     },
     {
       href: "/messages",

@@ -78,3 +78,57 @@ export function fromLocalInput(value: string): string | null {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
+
+// ---------- photos in the feed (Hadar 31/10/2026) ----------
+
+export type PhotoDay<P> = { date: string; photos: P[] };
+
+/**
+ * Photos that are not in any update the reader can see, one group per day,
+ * newest day first. A photo already shown inside an update is not repeated.
+ */
+export function loosePhotoDays<P extends { id: string; taken_on: string }>(
+  photos: P[],
+  inUpdates: ReadonlySet<string>
+): PhotoDay<P>[] {
+  const byDay = new Map<string, P[]>();
+  for (const photo of photos) {
+    if (inUpdates.has(photo.id)) continue;
+    const list = byDay.get(photo.taken_on) ?? [];
+    list.push(photo);
+    byDay.set(photo.taken_on, list);
+  }
+  return [...byDay.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([date, list]) => ({ date, photos: list }));
+}
+
+export type FeedItem<S, P> =
+  | { kind: "story"; story: S }
+  | { kind: "photos"; day: PhotoDay<P> };
+
+/**
+ * One feed: updates (already newest first) with each day's loose photos after
+ * that day's updates. A day with photos only gets a card of its own.
+ */
+export function mergeFeed<S extends { entry_date: string }, P>(
+  stories: S[],
+  days: PhotoDay<P>[]
+): FeedItem<S, P>[] {
+  const out: FeedItem<S, P>[] = [];
+  let d = 0;
+  stories.forEach((story, i) => {
+    // photo days newer than this update come first
+    while (d < days.length && days[d].date > story.entry_date) {
+      out.push({ kind: "photos", day: days[d++] });
+    }
+    out.push({ kind: "story", story });
+    // the same day's photos follow the day's last update
+    const lastOfDay = stories[i + 1]?.entry_date !== story.entry_date;
+    if (lastOfDay && d < days.length && days[d].date === story.entry_date) {
+      out.push({ kind: "photos", day: days[d++] });
+    }
+  });
+  while (d < days.length) out.push({ kind: "photos", day: days[d++] });
+  return out;
+}
