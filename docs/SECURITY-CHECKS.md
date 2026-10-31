@@ -2563,7 +2563,7 @@ and a kid edit only their own (`updatePhotoCaption`).
 | Check | Result |
 |---|---|
 | Kid edits the text of their own photo, but cannot change file, status or sharing | ✅ by existing policy - `photos_kid_update_own` + `photos_guard_update`, probe `52_security_pass.sql` |
-| Kid edits the text of an approved photo: guests must not see new words before a parent | ✅ by code until 00076 is live: the edit button is shown to a kid only on a photo not yet approved. With 00076 the database sends it back to pending (probe 76) |
+| Kid edits the text of an approved photo: guests must not see new words before a parent | ✅ PASS - the database sends it back to pending (00076, probe 76). 00076 + 00077 confirmed live 31/10 (policies, triggers and functions read back from production); the UI-only stopgap is removed |
 | Kid edits another member's photo text | ✅ by policy - `photos_kid_update_own` matches `uploaded_by` only, so 0 rows change |
 | Guest edits a photo's text | ✅ by policy - no update policy for guests on `photos` |
 | Guest sees the text of an unapproved or unshared photo | ✅ by policy - `guest-photos` reads rows with the guest's own JWT, so RLS returns the caption only for rows that pass rule 3 |
