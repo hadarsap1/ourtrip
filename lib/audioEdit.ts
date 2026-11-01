@@ -4,13 +4,17 @@
 //
 // Why WAV on save: the browser can decode every format it records, but it
 // cannot ENCODE compressed audio to a file without a muxing library
-// (CLAUDE.md rule #7: no dependency without a reason). 16 kHz mono 16-bit is
-// wideband-voice quality at ~1.9 MB a minute - a full 20-minute episode is
-// ~38 MB, inside the bucket's 50 MB limit (00047) - and WAV plays on every
+// (CLAUDE.md rule #7: no dependency without a reason). WAV plays on every
 // phone.
+//
+// 24 kHz, not 16 (01/11/2026, "the episodes are not clear"): 16 kHz drops
+// everything above 8 kHz, where ס ש צ ת פ live - higher still in a child's
+// voice - so words blurred. 24 kHz keeps them up to 12 kHz. Mono 16-bit at
+// 24 kHz is ~2.9 MB a minute: a full 20-minute episode is ~58 MB, inside the
+// audio bucket's 70 MB limit (00080).
 
 /** Sample rate an edited episode is decoded to, edited at and saved in. */
-export const EDIT_SAMPLE_RATE = 16_000;
+export const EDIT_SAMPLE_RATE = 24_000;
 
 export type Clip = { samples: Float32Array; sampleRate: number };
 
@@ -151,6 +155,32 @@ export function peaks(samples: Float32Array, buckets: number): number[] {
   return out;
 }
 
+/** Loudest sample a normalised episode reaches: -1 dBFS, headroom so nothing clips. */
+export const NORMALIZE_PEAK = 0.89;
+/** Never amplify more than this (+18 dB): an almost silent take stays quiet rather than turning into hiss. */
+export const NORMALIZE_MAX_GAIN = 8;
+
+/**
+ * Scales the clip so its loudest sample sits at NORMALIZE_PEAK - the same
+ * gain for the whole clip, so nothing is distorted and quiet and loud words
+ * keep their balance. A child who stood far from the microphone comes out at
+ * the level of every other episode. Returns the clip itself when there is
+ * nothing to change.
+ */
+export function normalizeLoudness(clip: Clip): Clip {
+  let peak = 0;
+  for (let i = 0; i < clip.samples.length; i++) {
+    const v = Math.abs(clip.samples[i]);
+    if (v > peak) peak = v;
+  }
+  if (peak === 0) return clip;
+  const gain = Math.min(NORMALIZE_MAX_GAIN, NORMALIZE_PEAK / peak);
+  if (Math.abs(gain - 1) < 0.01) return clip;
+  const out = new Float32Array(clip.samples.length);
+  for (let i = 0; i < out.length; i++) out[i] = clip.samples[i] * gain;
+  return { samples: out, sampleRate: clip.sampleRate };
+}
+
 /** 16-bit PCM WAV. */
 export function encodeWav(clip: Clip): Blob {
   const { samples, sampleRate } = clip;
@@ -179,7 +209,7 @@ export function encodeWav(clip: Clip): Blob {
   return new Blob([buffer], { type: "audio/wav" });
 }
 
-// In memory a minute of edit audio is ~3.8 MB (Float32 at 16 kHz). Undo keeps
+// In memory a minute of edit audio is ~5.8 MB (Float32 at 24 kHz). Undo keeps
 // whole copies, so a long episode gets fewer of them: about 100 MB in total
 // is a safe ceiling on a phone.
 const UNDO_SAMPLE_BUDGET = 24_000_000;
