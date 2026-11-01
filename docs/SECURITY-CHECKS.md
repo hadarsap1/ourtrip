@@ -2645,6 +2645,7 @@ about members reaches a guest beyond the names the parents chose to show.
 
 | Check | Result |
 |---|---|
-| Kid cannot change an episode's narrators | ⏳ live check after the migration |
+| Kid cannot change an episode's narrators | ✅ PASS - live, 01/11/2026: update as a kid JWT hit 0 rows, rolled back |
+| 00079 applied to production; both episodes now read אלה, עומר | ✅ done |
 | Guest reads narrators only on approved + shared episodes | ✅ PASS - column on `episodes`, read under `episodes_guest_select` (unchanged) |
 | More than 8 names or 240 characters is refused | ✅ PASS - check constraint in 00079 |
