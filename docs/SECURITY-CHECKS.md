@@ -2631,4 +2631,5 @@ dated there.
 | Guest gets no photo that is not approved + shared (unchanged query under caller JWT) | ✅ PASS - code review; the select is unchanged except for `trip_id` |
 | Guest gets a place only for a date of a photo already returned to them | ✅ PASS - code review; lookup is `in(trip_id) and in(date)` of the returned rows |
 | Place point is city level, not the hotel | ✅ PASS - lat/lng rounded to 2 decimals |
-| Live check as a guest after `supabase functions deploy guest-photos` | ⏳ pending deploy |
+| Deployed `guest-photos` v10 (01/11/2026), verify_jwt on; the one shared photo has a day with a place | ✅ deployed |
+| Live check as a guest ("view as guest" → תמונות shows the place) | ⏳ after merge |
