@@ -16,6 +16,7 @@ import {
   JournalIcon,
   MessagesIcon,
   MicIcon,
+  PhotosIcon,
   PhrasebookIcon,
   PinIcon,
   PlusIcon,
@@ -298,9 +299,10 @@ export function TodayScreen() {
   // ---------- guest portal home ----------
   if (member?.role === "guest") {
     const tiles = [
-      // three doors (Hadar 31/10/2026): the map of where we've been and the
-      // photos live inside the updates, not as places of their own
+      // the map of where we've been lives inside the updates (Hadar
+      // 31/10/2026); the photos are a door again, by place (01/11/2026)
       { href: "/stories", Icon: JournalIcon, label: strings.guestHome.tileStories },
+      { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall },
       { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
     ];
@@ -361,6 +363,7 @@ export function TodayScreen() {
       { href: "/messages", Icon: MessagesIcon, label: strings.kidHome.tileWall, badge: unreadWall },
       { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
       { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
+      { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos },
       ...(FLAG_DEFAULTS.pocketMoney
         ? [{ href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket }]
         : []),

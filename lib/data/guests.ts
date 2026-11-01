@@ -209,6 +209,12 @@ export type GuestPhoto = {
   caption: string | null;
   taken_on: string;
   url: string | null;
+  // where it was taken (guest-photos, 01/11/2026); absent from an older
+  // deployment of the function, so optional
+  place?: string | null;
+  country_code?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export async function listGuestPhotos(): Promise<GuestPhoto[]> {

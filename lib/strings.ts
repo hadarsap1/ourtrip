@@ -639,6 +639,7 @@ export const strings = {
     menuStats: "הטיול במספרים",
     menuPhrasebook: "שיחון",
     menuJournal: "עדכונים",
+    menuPhotos: "תמונות",
     menuPocket: "דמי כיס",
     menuKids: "ילדים ומכשירים",
     menuGuests: "אורחים",
@@ -1532,6 +1533,7 @@ export const strings = {
   kidNav: {
     route: "המסלול",
     journal: "עדכונים",
+    photos: "תמונות",
     pocket: "דמי כיס",
     phrasebook: "שיחון",
     messages: "צ'אט",
@@ -1542,6 +1544,7 @@ export const strings = {
     home: "בית",
     stories: "עדכונים",
     podcast: "פודקאסט",
+    photos: "תמונות",
     messages: "צ'אט",
   },
 
@@ -1735,6 +1738,7 @@ export const strings = {
     subtitle: "העדכונים, התמונות והפודקאסט של משפחת סו מהדרך",
     tileStories: "עדכונים",
     tilePodcast: "הפודקאסט",
+    tilePhotos: "תמונות",
     tileWall: "צ'אט",
   },
 
@@ -1768,6 +1772,7 @@ export const strings = {
     noLocation: "יום חופשי!",
     journalPrompt: "מה היה הכי כיף היום?",
     journalCta: "כותבים עדכון",
+    tilePhotos: "התמונות שלנו",
     tilePocket: "דמי הכיס שלי",
     tilePhrasebook: "שיחון",
     tileFacts: "הידעת?",
@@ -1790,9 +1795,16 @@ export const strings = {
   },
 
   photos: {
-    // the full grid behind the updates (Hadar 31/10/2026)
-    title: "כל התמונות",
-    backToUpdates: "חזרה לעדכונים ←",
+    // a place of its own again, by place (Hadar 01/11/2026)
+    title: "תמונות",
+    // one section per stretch of the trip: "האנוי · 26/10 - 29/10"
+    placeDates: "{from} - {to}",
+    noPlace: "בדרך",
+    count: "{n} תמונות",
+    countOne: "תמונה אחת",
+    mapLabel: "המקומות של התמונות על המפה",
+    mapPin: "{place}: {n} תמונות",
+    otherPhotos: "כל השאר",
     upload: "העלאת תמונה",
     uploading: "מעלה…",
     uploaded: "התמונה הועלתה! היא תופיע אחרי שאמא או אבא יאשרו",
@@ -2078,7 +2090,10 @@ export const strings = {
     draftsTitle: "טיוטות",
     composerTitle: "עדכון חדש",
     editTitle: "עריכה",
-    titleLabel: "כותרת (לא חובה)",
+    titleLabel: "כותרת",
+    // empty = the first line of the text is the headline (Hadar 01/11/2026)
+    titlePlaceholder: "למשל: זהו, יצאנו!",
+    titleHint: "אם משאירים ריק, השורה הראשונה תהיה הכותרת",
     bodyLabel: "מה רוצים לספר?",
     bodyPlaceholder: "שתי שורות מספיקות",
     placeLabel: "איפה (עיר ומדינה)",
@@ -2139,6 +2154,8 @@ export const strings = {
     allPhotos: "כל התמונות",
     photosPending: "{n} תמונות ממתינות לאישור",
     morePhotos: "+{n}",
+    // the photos of an update, swiped through (Hadar 01/11/2026)
+    photoOf: "תמונה {i} מתוך {n}",
     mapCard: "איפה היינו",
     mapCardHint: "כל המקומות שעברנו, על המפה",
   },

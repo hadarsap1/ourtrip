@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   audienceOptions,
+  cardHeadline,
   fromLocalInput,
   isScheduled,
   needsFold,
@@ -145,5 +146,29 @@ describe("mergeFeed", () => {
 
   it("shows photos alone when there are no updates", () => {
     expect(ids(mergeFeed([], [day("2026-11-02")]))).toEqual(["photos 2026-11-02"]);
+  });
+});
+
+describe("cardHeadline", () => {
+  it("the author's title wins and the text stays whole", () => {
+    expect(cardHeadline({ title: "זהו, יצאנו!", body: "שורה\nועוד" })).toEqual({
+      headline: "זהו, יצאנו!",
+      body: "שורה\nועוד",
+    });
+  });
+  it("no title: the first line moves up", () => {
+    expect(cardHeadline({ title: null, body: "האנוי משוגעת\nאופנועים בכל מקום" })).toEqual({
+      headline: "האנוי משוגעת",
+      body: "אופנועים בכל מקום",
+    });
+  });
+  it("a long first line is cut for the headline and the text stays whole", () => {
+    const body = "מילה ".repeat(30).trim();
+    const out = cardHeadline({ title: "  ", body });
+    expect(out.headline.endsWith("…")).toBe(true);
+    expect(out.body).toBe(body);
+  });
+  it("no text, no headline", () => {
+    expect(cardHeadline({ title: null, body: "" })).toEqual({ headline: "", body: "" });
   });
 });

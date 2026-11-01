@@ -3,6 +3,12 @@
 // allows (for guests that is exactly status='approved' AND
 // shared_with_guests=true) and returns short-lived signed URLs minted with
 // the service role. verify_jwt=true.
+//
+// Each photo also carries where it was taken (Hadar 01/11/2026: the photos
+// screen goes by place): the place name, country and city-level point of the
+// itinerary day it was taken on. Only for the days of photos the caller may
+// already see - a past day the family chose to share a photo from - never a
+// day ahead or anything else about the day (00009 still hides the plan).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -41,7 +47,7 @@ Deno.serve(async (req) => {
   // rows come through the caller's own JWT → RLS decides what exists
   const { data: photos, error } = await caller
     .from("photos")
-    .select("id, file_path, caption, taken_on")
+    .select("id, trip_id, file_path, caption, taken_on")
     .order("taken_on", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) return json({ ok: false, error: error.message }, 500);
@@ -57,6 +63,24 @@ Deno.serve(async (req) => {
   if (signError) return json({ ok: false, error: signError.message }, 500);
 
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+
+  // where: the day each photo was taken on. A failure here only drops the
+  // place; the photos still load.
+  const tripIds = [...new Set(photos.map((p) => p.trip_id))];
+  const dates = [...new Set(photos.map((p) => p.taken_on))];
+  const { data: days } = await service
+    .from("itinerary_days")
+    .select("trip_id, date, location_name, country_code, lat, lng")
+    .in("trip_id", tripIds)
+    .in("date", dates);
+  // ~1 km is the city, not the hotel
+  const round = (n: number | null) => (n === null ? null : Math.round(n * 100) / 100);
+  const dayOf = new Map(
+    (days ?? []).map((d) => [
+      `${d.trip_id}|${d.date}`,
+      { place: d.location_name, country_code: d.country_code, lat: round(d.lat), lng: round(d.lng) },
+    ])
+  );
   return json({
     ok: true,
     photos: photos.map((p) => ({
@@ -64,6 +88,12 @@ Deno.serve(async (req) => {
       caption: p.caption,
       taken_on: p.taken_on,
       url: urlByPath.get(p.file_path) ?? null,
+      ...(dayOf.get(`${p.trip_id}|${p.taken_on}`) ?? {
+        place: null,
+        country_code: null,
+        lat: null,
+        lng: null,
+      }),
     })),
   });
 });

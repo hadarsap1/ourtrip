@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
+import { listDays } from "@/lib/data/itinerary";
+import { groupByPlace, placeByDate, type PlaceGroup } from "@/lib/photoPlaces";
 import {
   listGuestGooglePhotos,
   listGuestPhotos,
@@ -20,25 +21,48 @@ import {
   updatePhotoCaption,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
-import { formatDate } from "@/lib/format";
 import { CheckIcon, CloseIcon, MessagesIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
-import type { Trip } from "@/lib/types";
+import type { ItineraryDay, Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
 import { AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
 import { PhotoView, type ViewedPhoto } from "./PhotoView";
 import { usePhotoFeedback } from "./usePhotoFeedback";
+import { PhotoPlacesMap } from "./PhotoPlacesMap";
+import { PlaceHeader } from "./PlaceHeader";
 
-/** The bottom bar has no photos tab: the way back is to the updates. */
-function BackToUpdates() {
+// Photos are a place of their own again, by place (Hadar 01/11/2026): a small
+// map of where they were taken, then one section per stretch of the trip,
+// newest first, photos in the order they were taken.
+
+const sectionId = (key: string) => `place-${encodeURIComponent(key)}`;
+
+function scrollToPlace(key: string) {
+  document.getElementById(sectionId(key))?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** The map, then a section per place; `tile` draws one photo. */
+function PlaceSections<P extends { id: string }>({
+  groups,
+  tile,
+}: {
+  groups: PlaceGroup<P>[];
+  tile: (photo: P) => React.ReactNode;
+}) {
   return (
-    <Link href="/stories" className="flex min-h-11 shrink-0 items-center text-sm font-bold text-sea">
-      {strings.photos.backToUpdates}
-    </Link>
+    <>
+      <PhotoPlacesMap groups={groups} onPick={scrollToPlace} />
+      {groups.map((group) => (
+        <section key={group.key} id={sectionId(group.key)} className="scroll-mt-4">
+          <PlaceHeader group={group} />
+          <ul className="grid grid-cols-2 gap-2">{group.photos.map(tile)}</ul>
+        </section>
+      ))}
+    </>
   );
 }
 
@@ -90,12 +114,14 @@ function GuestPhotosView() {
     );
   }
 
-  const byDay = new Map<string, GuestPhoto[]>();
-  for (const photo of photos) {
-    const list = byDay.get(photo.taken_on) ?? [];
-    list.push(photo);
-    byDay.set(photo.taken_on, list);
-  }
+  // the place comes with each photo from guest-photos (guests cannot read
+  // the itinerary days themselves, 00009)
+  const groups = groupByPlace(photos, (p) => ({
+    place: p.place ?? null,
+    country_code: p.country_code ?? null,
+    lat: p.lat ?? null,
+    lng: p.lng ?? null,
+  }));
 
   const byCountry = new Map<string, GuestGooglePhoto[]>();
   for (const photo of googlePhotos) {
@@ -111,7 +137,6 @@ function GuestPhotosView() {
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
-        <BackToUpdates />
       </header>
       {isEmpty && (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
@@ -119,28 +144,19 @@ function GuestPhotosView() {
         </p>
       )}
 
-      {[...byDay.entries()].map(([day, dayPhotos]) => (
-        <section key={day}>
-          <h2 className="mb-2 text-sm font-semibold text-ink-soft">
-            {formatDate(day)}
-          </h2>
-          <ul className="grid grid-cols-2 gap-2">
-            {dayPhotos.map((photo) => (
-              <li
-                key={photo.id}
-                className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
-              >
-                <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
-                {photo.caption && (
-                  <div className="p-2">
-                    <PhotoCaption text={photo.caption} />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <PlaceSections
+        groups={groups}
+        tile={(photo) => (
+          <li key={photo.id} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
+            <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
+            {photo.caption && (
+              <div className="p-2">
+                <PhotoCaption text={photo.caption} />
+              </div>
+            )}
+          </li>
+        )}
+      />
 
       {googlePhotos.length > 0 && (
         <div className="space-y-3 border-t border-line pt-4">
@@ -197,6 +213,8 @@ function FamilyPhotosView() {
   const { member } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [photos, setPhotos] = useState<PhotoWithUrl[]>([]);
+  // the itinerary days: a photo's place is the day it was taken on
+  const [days, setDays] = useState<ItineraryDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   // guest groups (00063): a parent can limit a shared photo to some of them
@@ -227,6 +245,10 @@ function FamilyPhotosView() {
         return;
       }
       setTrip(activeTrip);
+      // the places are a nicety: without them the photos still show, by day
+      void listDays(activeTrip.id)
+        .then((d) => !cancelled && setDays(d))
+        .catch(() => {});
       try {
         await refresh(activeTrip.id);
       } catch {
@@ -281,11 +303,10 @@ function FamilyPhotosView() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      {/* The full grid behind the updates (Hadar 31/10/2026): photos are added
-          from "עדכון חדש" there; here they are approved, shared and browsed. */}
+      {/* Photos are added from "עדכון חדש"; here they are approved, shared
+          and browsed by place (Hadar 01/11/2026). */}
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
-        <BackToUpdates />
       </header>
 
       {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
@@ -335,8 +356,9 @@ function FamilyPhotosView() {
           {strings.photos.empty}
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-2">
-          {visible.map((photo) => (
+        <PlaceSections
+          groups={groupByPlace(visible, placeByDate(days))}
+          tile={(photo) => (
             <li
               key={photo.id}
               className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
@@ -416,8 +438,8 @@ function FamilyPhotosView() {
                 )}
               </div>
             </li>
-          ))}
-        </ul>
+          )}
+        />
       )}
 
       {/* Google Photos: owner imports, family (owner + kids) views */}
