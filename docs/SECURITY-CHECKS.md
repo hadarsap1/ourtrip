@@ -2660,5 +2660,5 @@ client-side (microphone settings, sample rate, loudness).
 
 | Check | Result |
 |---|---|
-| Bucket private, 70 MB, accepts WAV | ✅ PASS - local, probe `80_audio_70mb.sql` (probe 47 relaxed to ≥ 50 MB); live-readonly probe updated, ⏳ live after 00080 is applied |
+| Bucket private, 70 MB, accepts WAV | ✅ PASS - local, probe `80_audio_70mb.sql` (probe 47 relaxed to ≥ 50 MB); live 01/11/2026 after applying 00080: `audio` private, 73400320, WAV allowed |
 | Kid / guest still cannot upload or replace audio | ✅ PASS - local, probes 44, 47, 49 all pass on the 80 migrations |
