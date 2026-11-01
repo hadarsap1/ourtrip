@@ -558,6 +558,7 @@ export type Database = {
           file_path: string
           id: string
           mime_type: string
+          narrators: string[]
           recorded_by: string
           shared_with_guests: boolean
           status: Database["public"]["Enums"]["photo_status"]
@@ -576,6 +577,7 @@ export type Database = {
           file_path: string
           id?: string
           mime_type?: string
+          narrators?: string[]
           recorded_by: string
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
@@ -594,6 +596,7 @@ export type Database = {
           file_path?: string
           id?: string
           mime_type?: string
+          narrators?: string[]
           recorded_by?: string
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]

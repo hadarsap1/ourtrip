@@ -16,6 +16,8 @@ export type QueuedRecording = {
   isOwner: boolean;
   title: string;
   description: string | null;
+  /** Who tells it (00079); absent on recordings queued before it. */
+  narrators?: string[];
   mime: string;
   durationSeconds: number;
   blob: Blob;

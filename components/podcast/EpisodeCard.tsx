@@ -4,6 +4,7 @@ import { EditIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { roundMinutes } from "@/lib/audio";
 import { formatDate } from "@/lib/format";
+import { formatNarrators } from "@/lib/narrators";
 import { strings } from "@/lib/strings";
 import type { Comment, Episode, Member, Reaction } from "@/lib/types";
 
@@ -43,7 +44,8 @@ export function EpisodeCard({
   onFeedbackChanged: () => void;
   onToast: (message: string) => void;
 }) {
-  const by = members.find((m) => m.id === episode.recorded_by)?.display_name;
+  // who tells it (00079), never whose phone recorded it
+  const by = formatNarrators(episode.narrators ?? []);
   const minutes = roundMinutes(episode.duration_seconds);
   const approved = episode.status === "approved";
 
@@ -68,7 +70,7 @@ export function EpisodeCard({
         )}
       </div>
       <h2 className="text-[19px] font-bold leading-7 text-ink">{episode.title}</h2>
-      {by && <p className="text-[13px] text-sv-ink-soft">{strings.podcast.recordedBy.replace("{name}", by)}</p>}
+      {by && <p className="text-[13px] text-sv-ink-soft">{strings.podcast.narrators.replace("{names}", by)}</p>}
       {episode.description && (
         <p className="whitespace-pre-wrap text-[15px] leading-[1.6] text-sv-ink">{episode.description}</p>
       )}

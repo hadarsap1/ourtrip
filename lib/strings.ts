@@ -2196,7 +2196,11 @@ export const strings = {
     shared: "משותף עם האורחים",
     familyOnly: "רק במשפחה",
     episodeNo: "פרק {n}",
-    recordedBy: "מספרים: {name}",
+    // who tells it, not whose phone recorded it (00079)
+    narrators: "מספרים: {names}",
+    narratorsLabel: "מי מספרים?",
+    narratorOther: "מישהו אחר? כותבים שם",
+    narratorAdd: "הוספה",
     minutes: "{n} דק׳",
     deleteConfirm: "למחוק את הפרק?",
     playError: "לא הצלחנו לנגן. מנסים שוב",

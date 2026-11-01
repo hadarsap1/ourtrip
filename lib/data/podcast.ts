@@ -49,6 +49,7 @@ export async function uploadEpisode(input: NewEpisode): Promise<Episode> {
       recorded_by: input.memberId,
       title: input.title.trim(),
       description: input.description?.trim() || null,
+      narrators: input.narrators ?? [],
       file_path: path,
       mime_type: mime,
       duration_seconds: Math.round(input.durationSeconds),
@@ -132,11 +133,15 @@ export async function deleteEpisode(episode: Episode): Promise<void> {
 
 export async function updateEpisodeDetails(
   id: string,
-  details: { title: string; description: string | null }
+  details: { title: string; description: string | null; narrators: string[] }
 ): Promise<void> {
   const { error } = await requireClient()
     .from("episodes")
-    .update({ title: details.title.trim(), description: details.description?.trim() || null })
+    .update({
+      title: details.title.trim(),
+      description: details.description?.trim() || null,
+      narrators: details.narrators,
+    })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }

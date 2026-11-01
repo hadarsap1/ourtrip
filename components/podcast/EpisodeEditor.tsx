@@ -1,5 +1,6 @@
 "use client";
 
+import { NarratorsField } from "./NarratorsField";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -38,6 +39,7 @@ const NUDGE_SECONDS = 0.5;
 export function EpisodeEditor({
   episode,
   url,
+  narratorChoices,
   others,
   urlOf,
   onClose,
@@ -45,6 +47,8 @@ export function EpisodeEditor({
   onToast,
 }: {
   episode: Episode;
+  /** "מי מספרים?" chips (00079). */
+  narratorChoices: string[];
   url: string | null;
   /** Other episodes that can be joined onto this one. */
   others: Episode[];
@@ -55,6 +59,7 @@ export function EpisodeEditor({
 }) {
   const [title, setTitle] = useState(episode.title);
   const [description, setDescription] = useState(episode.description ?? "");
+  const [narrators, setNarrators] = useState<string[]>(episode.narrators ?? []);
   const [clip, setClip] = useState<Clip | null>(null);
   // no signed URL at all = nothing to decode; details can still be edited
   const [failed, setFailed] = useState(!url);
@@ -260,8 +265,9 @@ export function EpisodeEditor({
     setBusy(true);
     stop();
     try {
-      if (title !== episode.title || description !== (episode.description ?? "")) {
-        await updateEpisodeDetails(episode.id, { title, description: description || null });
+      const narratorsChanged = narrators.join("\n") !== (episode.narrators ?? []).join("\n");
+      if (title !== episode.title || description !== (episode.description ?? "") || narratorsChanged) {
+        await updateEpisodeDetails(episode.id, { title, description: description || null, narrators });
       }
       if (edits > 0 && clip) {
         await replaceEpisodeAudio(episode, encodeWav(clip), durationOf(clip));
@@ -309,6 +315,7 @@ export function EpisodeEditor({
             className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
           />
         </div>
+        <NarratorsField id="edit-ep-narrators" choices={narratorChoices} value={narrators} onChange={setNarrators} />
 
         {failed ? (
           <p className="rounded-xl bg-warning-soft p-3 text-sm text-warning">{strings.podcastEdit.decodeFailed}</p>
