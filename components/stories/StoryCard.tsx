@@ -4,7 +4,8 @@ import { useState } from "react";
 import { EditIcon, PinIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { formatDate } from "@/lib/format";
-import { isScheduled, needsFold } from "@/lib/stories";
+import { cardHeadline, isScheduled, needsFold } from "@/lib/stories";
+import { PhotoCarousel } from "@/components/stories/PhotoCarousel";
 import { strings } from "@/lib/strings";
 import type { Story } from "@/lib/data/stories";
 import type { Comment, Member, Reaction } from "@/lib/types";
@@ -43,7 +44,9 @@ export function StoryCard({
   onToast: (message: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const folds = needsFold(story.body);
+  // no title: the first line is the headline (Hadar 01/11/2026)
+  const { headline, body } = cardHeadline(story);
+  const folds = needsFold(body);
   const author = members.find((m) => m.id === story.author_id);
   const published = story.status === "approved";
   // the day the entry is about (00078), not the day it went out
@@ -60,14 +63,7 @@ export function StoryCard({
       id={`story-${story.id}`}
       className="scroll-mt-4 overflow-hidden rounded-[20px] border border-sv-line bg-sv-card"
     >
-      {story.photos[0]?.url && (
-        // eslint-disable-next-line @next/next/no-img-element -- signed URL
-        <img
-          src={story.photos[0].url}
-          alt=""
-          className="aspect-[4/3] w-full border-b-2 border-sv-line object-cover"
-        />
-      )}
+      <PhotoCarousel photos={story.photos} />
       <div className="space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-sv-ink-soft">
           <span dir="ltr">{formatDate(date)}</span>
@@ -97,9 +93,9 @@ export function StoryCard({
           )}
         </div>
 
-        {(story.title || story.mood) && (
+        {(headline || story.mood) && (
           <div className="flex items-start justify-between gap-2">
-            {story.title && <h2 className="text-[19px] font-bold leading-7 text-ink">{story.title}</h2>}
+            {headline && <h2 className="text-[19px] font-bold leading-7 text-ink">{headline}</h2>}
             {story.mood && (
               <span className="ms-auto shrink-0 rounded-full bg-sun-tint px-2 py-0.5 text-[15px] leading-6">
                 {story.mood}
@@ -108,14 +104,14 @@ export function StoryCard({
           </div>
         )}
 
-        {story.body && (
+        {body && (
           <div>
             <p
               className={`whitespace-pre-wrap text-[16px] leading-[1.7] text-sv-ink [text-wrap:pretty] ${
                 folds && !open ? "line-clamp-6" : ""
               }`}
             >
-              {story.body}
+              {body}
             </p>
             {folds && (
               <button
@@ -127,19 +123,6 @@ export function StoryCard({
               </button>
             )}
           </div>
-        )}
-
-        {story.photos.length > 1 && (
-          <ul className="grid grid-cols-2 gap-2">
-            {story.photos.slice(1).map((p) =>
-              p.url ? (
-                <li key={p.photoId} className="overflow-hidden rounded-2xl border border-sv-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-                  <img src={p.url} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-                </li>
-              ) : null
-            )}
-          </ul>
         )}
 
         {published && (

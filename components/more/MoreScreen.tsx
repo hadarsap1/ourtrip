@@ -19,6 +19,7 @@ import {
   MicIcon,
   OptionsIcon,
   PersonIcon,
+  PhotosIcon,
   PhrasebookIcon,
   SparkleIcon,
   VisaIcon,
@@ -148,17 +149,22 @@ export function MoreScreen() {
       : []),
   ];
 
-  // One place for the updates and the photos (00078, Hadar 31/10/2026): the
-  // memory book and the full photo grid open from inside it; the chat stays
-  // the conversation.
+  // The updates (00078) and the photos, by place (Hadar 01/11/2026); the
+  // memory book opens from the updates; the chat stays the conversation.
   const memories: Tile[] = [
     {
       href: "/stories",
       label: strings.more.menuJournal,
       Icon: JournalIcon,
       count: n(counts?.stories),
-      // the updates hold the photos too: one badge for both waiting lists
-      badge: (pending?.stories ?? 0) + (pending?.photos ?? 0),
+      badge: pending?.stories,
+    },
+    {
+      href: "/photos",
+      label: strings.more.menuPhotos,
+      Icon: PhotosIcon,
+      count: n(counts?.photos),
+      badge: pending?.photos,
     },
     {
       href: "/messages",

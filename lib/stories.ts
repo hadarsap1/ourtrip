@@ -47,6 +47,26 @@ export function storyHeadline(post: Pick<Post, "title" | "body">): string {
   return post.title?.trim() || titleFromJournal(post.body) || "…";
 }
 
+/**
+ * What a card shows on top (Hadar 01/11/2026: a date alone does not tell the
+ * updates apart). The author's title when there is one; otherwise the text's
+ * first line becomes the headline. When that line fits whole, it moves up and
+ * the text goes on from the next line, so nothing is written twice.
+ */
+export function cardHeadline(
+  post: Pick<Post, "title" | "body">,
+  max = 60
+): { headline: string; body: string } {
+  const title = post.title?.trim();
+  if (title) return { headline: title, body: post.body };
+  const text = post.body.trim();
+  if (!text) return { headline: "", body: "" };
+  const [first, ...rest] = text.split(/\r?\n/);
+  const line = first.trim();
+  if (line && line.length <= max) return { headline: line, body: rest.join("\n").trim() };
+  return { headline: titleFromJournal(text, max), body: post.body };
+}
+
 /** Scheduled ("publish after we left") and not there yet. */
 export function isScheduled(post: Pick<Post, "publish_after">, now = new Date()): boolean {
   return post.publish_after !== null && new Date(post.publish_after) > now;

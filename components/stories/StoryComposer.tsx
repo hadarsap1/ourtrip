@@ -46,7 +46,8 @@ function audienceText(o: PostVisibility, kid: boolean): { label: string; hint: s
  *   guests  a parent publishes; a kid's entry is sent to a parent (pending)
  *   public  a parent's own entry only, and it needs a title (00046/00078)
  *
- * Title, place and the publishing details wait under "אפשרויות נוספות".
+ * The title is first (empty = the first line); place and the publishing
+ * details wait under "אפשרויות נוספות".
  */
 export function StoryComposer({
   trip,
@@ -193,6 +194,23 @@ export function StoryComposer({
   return (
     <Sheet open onClose={onClose} title={existing ? s.editTitle : s.composerTitle}>
       <div className="space-y-4">
+        {/* the headline that tells the updates apart in the feed (Hadar
+            01/11/2026); left empty, the first line of the text stands in */}
+        <div>
+          <label htmlFor="story-title" className="mb-1 block text-sm font-medium text-ink-soft">
+            {s.titleLabel}
+          </label>
+          <input
+            id="story-title"
+            type="text"
+            maxLength={120}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={s.titlePlaceholder}
+            className="w-full rounded-xl border border-line px-3 py-2.5 text-base font-semibold focus:border-sea focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-ink-soft">{audience === "public" ? s.publicNeedsTitle : s.titleHint}</p>
+        </div>
         <div>
           <label htmlFor="story-body" className="mb-1 block text-sm font-medium text-ink-soft">
             {existing ? s.bodyLabel : strings.journal.prompt}
@@ -299,22 +317,9 @@ export function StoryComposer({
           {isOwner && authorRole !== "owner" && <p className="text-xs text-ink-soft">{s.publicKidBlocked}</p>}
         </fieldset>
 
-        <details className="rounded-xl border border-line px-3 py-2" open={Boolean(existing?.title) || audience === "public"}>
+        <details className="rounded-xl border border-line px-3 py-2">
           <summary className="cursor-pointer py-1 text-sm font-semibold text-ink-soft">{s.more}</summary>
           <div className="space-y-3 pt-2">
-            <div>
-              <label htmlFor="story-title" className="mb-1 block text-sm font-medium text-ink-soft">
-                {s.titleLabel}
-              </label>
-              <input
-                id="story-title"
-                type="text"
-                maxLength={120}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-xl border border-line px-3 py-2.5 focus:border-sea focus:outline-none"
-              />
-            </div>
             <div>
               <label htmlFor="story-place" className="mb-1 block text-sm font-medium text-ink-soft">
                 {s.placeLabel}

@@ -2613,3 +2613,22 @@ already became a story: no duplicate).
 | The archive table has no client policy | ✅ PASS - probe 78 |
 | Anon reads no family entry | ✅ PASS - probe 78 |
 | Full RLS suite | ✅ PASS - 429/429, `scripts/rls/run.sh` |
+
+## 01/11/2026 - photos by place, headlines, carousel (DECISIONS #47)
+
+No migration and no policy change. Headline and carousel are display only.
+The photos screen groups by place: family members read `itinerary_days` with
+their own RLS (unchanged). Guests cannot read the days (00009), so
+`guest-photos` adds the place to each photo it returns: it still lists photos
+through the caller's JWT (rule 3: approved + shared, audience groups), and only
+then looks up, with the service role, the days of exactly those photos' trip
+and dates - name, country code and lat/lng rounded to 2 decimals (~1 km). No
+other day, no items, no notes, nothing ahead of today unless a shared photo is
+dated there.
+
+| Check | Result |
+|---|---|
+| Guest gets no photo that is not approved + shared (unchanged query under caller JWT) | ✅ PASS - code review; the select is unchanged except for `trip_id` |
+| Guest gets a place only for a date of a photo already returned to them | ✅ PASS - code review; lookup is `in(trip_id) and in(date)` of the returned rows |
+| Place point is city level, not the hotel | ✅ PASS - lat/lng rounded to 2 decimals |
+| Live check as a guest after `supabase functions deploy guest-photos` | ⏳ pending deploy |
