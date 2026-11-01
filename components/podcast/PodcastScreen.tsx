@@ -9,6 +9,7 @@ import { EpisodeCard } from "@/components/podcast/EpisodeCard";
 import { Recorder, type Take } from "@/components/podcast/Recorder";
 import { EpisodeEditor } from "@/components/podcast/EpisodeEditor";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
+import { narratorChoices } from "@/lib/narrators";
 import {
   countQueuedEpisodes,
   deleteEpisode,
@@ -150,7 +151,11 @@ export function PodcastScreen() {
   const waiting = episodes.filter((e) => e.status !== "approved");
   const live = episodes.filter((e) => e.status === "approved");
 
-  async function save(take: Take, title: string, description: string): Promise<boolean> {
+  // "מי מספרים?" (00079): the kids on by default, the parents one tap away
+  const choices = narratorChoices(members);
+  const narratorOptions = [...choices.kids, ...choices.parents];
+
+  async function save(take: Take, title: string, description: string, narrators: string[]): Promise<boolean> {
     if (!trip || !member || saving) return false;
     setSaving(true);
     try {
@@ -160,6 +165,7 @@ export function PodcastScreen() {
         isOwner,
         title,
         description: description || null,
+        narrators,
         mime: take.mime,
         durationSeconds: take.durationSeconds,
         blob: take.blob,
@@ -246,7 +252,12 @@ export function PodcastScreen() {
         {canRecord && (
           <section className="rounded-[20px] border border-sv-line bg-sv-card p-4">
             <h2 className="mb-3 text-base font-bold text-ink">{strings.podcast.newEpisode}</h2>
-            <Recorder busy={saving} onSave={save} />
+            <Recorder
+              busy={saving}
+              onSave={save}
+              narratorChoices={narratorOptions}
+              defaultNarrators={choices.kids}
+            />
             {queued > 0 && (
               <p className="mt-3 text-center text-[12px] font-semibold text-sv-clay" role="status">
                 {strings.podcast.queuedCount.replace("{n}", String(queued))}
@@ -277,6 +288,7 @@ export function PodcastScreen() {
       {editing && (
         <EpisodeEditor
           episode={editing}
+          narratorChoices={narratorOptions}
           url={urls.get(editing.id) ?? null}
           others={episodes}
           urlOf={(id) => urls.get(id) ?? null}

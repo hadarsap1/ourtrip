@@ -1,5 +1,6 @@
 "use client";
 
+import { NarratorsField } from "./NarratorsField";
 import { useEffect, useRef, useState } from "react";
 import { MicIcon, PauseIcon, PlayIcon, StopIcon } from "@/components/icons";
 import { formatClock, MAX_EPISODE_SECONDS, pickRecordingMime } from "@/lib/audio";
@@ -28,10 +29,15 @@ export function Recorder({
   busy,
   onSave,
   onAppend,
+  narratorChoices = [],
+  defaultNarrators = [],
 }: {
   busy: boolean;
   /** New episode: the review step asks for a title and saves. */
-  onSave?: (take: Take, title: string, description: string) => Promise<boolean>;
+  onSave?: (take: Take, title: string, description: string, narrators: string[]) => Promise<boolean>;
+  /** "מי מספרים?" chips (00079) and the ones on by default (the kids). */
+  narratorChoices?: string[];
+  defaultNarrators?: string[];
   /** Editor: the review step only offers to add this take to the episode. */
   onAppend?: (take: Take) => Promise<boolean>;
 }) {
@@ -43,6 +49,8 @@ export function Recorder({
   const [take, setTake] = useState<(Take & { url: string }) | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  // null = not touched yet: follows the default (members load after mount)
+  const [narrators, setNarrators] = useState<string[] | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -267,6 +275,7 @@ export function Recorder({
     setSeconds(0);
     setTitle("");
     setDescription("");
+    setNarrators(null);
     setPhase("idle");
   }
 
@@ -332,6 +341,12 @@ export function Recorder({
             className="w-full rounded-2xl border border-sv-line bg-sv-card px-3 py-2.5 text-sv-ink focus:border-sv-sage focus:outline-none"
           />
         </div>
+        <NarratorsField
+          id="ep-narrators"
+          choices={narratorChoices}
+          value={narrators ?? defaultNarrators}
+          onChange={setNarrators}
+        />
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -345,7 +360,7 @@ export function Recorder({
             type="button"
             disabled={busy || !title.trim()}
             onClick={() =>
-              void onSave(take, title, description).then((saved) => {
+              void onSave(take, title, description, narrators ?? defaultNarrators).then((saved) => {
                 if (saved) reset();
               })
             }

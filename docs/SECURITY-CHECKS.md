@@ -2633,3 +2633,18 @@ dated there.
 | Place point is city level, not the hotel | ✅ PASS - lat/lng rounded to 2 decimals |
 | Deployed `guest-photos` v10 (01/11/2026), verify_jwt on; the one shared photo has a day with a place | ✅ deployed |
 | Live check as a guest ("view as guest" → תמונות shows the place) | ⏳ after merge |
+
+## 01/11/2026 - podcast narrators (00079, DECISIONS #48)
+
+`episodes.narrators text[]` (names as shown, at most 8, 240 characters in
+all). No policy change: since 00049 only parents insert or update episodes
+(`episodes_owner_all`); kids read approved episodes and guests approved +
+shared ones, the column included, under the select policies that already
+decide which episodes they hear. A name is not a member id, so nothing new
+about members reaches a guest beyond the names the parents chose to show.
+
+| Check | Result |
+|---|---|
+| Kid cannot change an episode's narrators | ⏳ live check after the migration |
+| Guest reads narrators only on approved + shared episodes | ✅ PASS - column on `episodes`, read under `episodes_guest_select` (unchanged) |
+| More than 8 names or 240 characters is refused | ✅ PASS - check constraint in 00079 |
