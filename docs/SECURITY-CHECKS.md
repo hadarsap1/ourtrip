@@ -2649,3 +2649,16 @@ about members reaches a guest beyond the names the parents chose to show.
 | 00079 applied to production; both episodes now read אלה, עומר | ✅ done |
 | Guest reads narrators only on approved + shared episodes | ✅ PASS - column on `episodes`, read under `episodes_guest_select` (unchanged) |
 | More than 8 names or 240 characters is refused | ✅ PASS - check constraint in 00079 |
+
+## 01/11/2026 - podcast audio quality (00080, DECISIONS #49)
+
+The `audio` bucket's per-file limit goes from 50 to 70 MB so a 20-minute
+24 kHz WAV fits. Nothing else changes: the bucket stays private, the same
+audio types, no storage or table policy touched - uploading or replacing
+audio is still owners only (00044 / 00047 / 00049). The rest of the change is
+client-side (microphone settings, sample rate, loudness).
+
+| Check | Result |
+|---|---|
+| Bucket private, 70 MB, accepts WAV | ✅ PASS - local, probe `80_audio_70mb.sql` (probe 47 relaxed to ≥ 50 MB); live 01/11/2026 after applying 00080: `audio` private, 73400320, WAV allowed |
+| Kid / guest still cannot upload or replace audio | ✅ PASS - local, probes 44, 47, 49 all pass on the 80 migrations |

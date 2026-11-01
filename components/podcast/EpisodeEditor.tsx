@@ -12,6 +12,7 @@ import {
   durationOf,
   encodeWav,
   keepRange,
+  normalizeLoudness,
   peaks,
   shortenSilences,
   undoDepthFor,
@@ -270,7 +271,7 @@ export function EpisodeEditor({
         await updateEpisodeDetails(episode.id, { title, description: description || null, narrators });
       }
       if (edits > 0 && clip) {
-        await replaceEpisodeAudio(episode, encodeWav(clip), durationOf(clip));
+        await replaceEpisodeAudio(episode, encodeWav(normalizeLoudness(clip)), durationOf(clip));
       }
       if (merged.length && (await askConfirm(strings.podcastEdit.deleteMerged))) {
         for (const other of merged) await deleteEpisode(other);

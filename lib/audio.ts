@@ -3,8 +3,8 @@
 
 /**
  * Longest episode, recorded or edited. Raised from 7 to 20 minutes (13/10).
- * Sizes at that length: a recording ~10 MB (64 kbps), an edited episode
- * ~38 MB (16 kHz WAV) - both under the audio bucket's 50 MB limit (00047).
+ * Sizes at that length: a recording ~14 MB (96 kbps), an edited episode
+ * ~58 MB (24 kHz WAV) - both under the audio bucket's 70 MB limit (00080).
  */
 export const MAX_EPISODE_SECONDS = 20 * 60;
 

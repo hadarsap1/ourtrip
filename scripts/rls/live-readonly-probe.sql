@@ -143,8 +143,8 @@ select rls.check('anon: no photos, members, episodes, comments, likes',
   and (select count(*) from comments) = 0 and (select count(*) from reactions) = 0);
 reset role;
 
-select rls.check('buckets: audio private 50 MB with wav, public-stories public',
-  (select not public and file_size_limit = 52428800 and 'audio/wav' = any(allowed_mime_types) from storage.buckets where id = 'audio')
+select rls.check('buckets: audio private 70 MB with wav, public-stories public',
+  (select not public and file_size_limit = 73400320 and 'audio/wav' = any(allowed_mime_types) from storage.buckets where id = 'audio')
   and (select public from storage.buckets where id = 'public-stories'));
 
 do $$ declare r text; begin

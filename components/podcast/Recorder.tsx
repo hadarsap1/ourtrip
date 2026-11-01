@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { MicIcon, PauseIcon, PlayIcon, StopIcon } from "@/components/icons";
 import { formatClock, MAX_EPISODE_SECONDS, pickRecordingMime } from "@/lib/audio";
 import { decodeToClip } from "@/lib/audioDecode";
-import { appendClip, encodeWav } from "@/lib/audioEdit";
+import { appendClip, encodeWav, normalizeLoudness } from "@/lib/audioEdit";
 import { strings } from "@/lib/strings";
 
 type Phase = "idle" | "recording" | "paused" | "joining" | "review";
@@ -138,8 +138,15 @@ export function Recorder({
   async function openPart(): Promise<boolean> {
     let stream: MediaStream;
     try {
+      // The raw microphone, no call processing (01/11/2026): the family
+      // records on an iPhone with wireless lav mics that clean up the voice
+      // themselves. Echo cancellation (nothing plays while recording),
+      // noise suppression and auto gain stacked a phone-call filter on top -
+      // and on iOS they move the input to the voice-call path - so kids'
+      // words came out muffled and swallowed. Loudness is evened out when an
+      // episode is joined or edited instead (normalizeLoudness).
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
     } catch {
       setError(strings.podcast.micDenied);
@@ -149,8 +156,8 @@ export function Recorder({
     const mime = pickRecordingMime((m) => MediaRecorder.isTypeSupported(m));
     const recorder = new MediaRecorder(
       stream,
-      // voice: 64 kbps is plenty and keeps a 20-minute take around 10 MB
-      mime ? { mimeType: mime, audioBitsPerSecond: 64_000 } : { audioBitsPerSecond: 64_000 }
+      // voice: 96 kbps keeps the consonants crisp and a 20-minute take around 14 MB
+      mime ? { mimeType: mime, audioBitsPerSecond: 96_000 } : { audioBitsPerSecond: 96_000 }
     );
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
@@ -257,7 +264,7 @@ export function Recorder({
       try {
         let joined = await decodeToClip(await parts[0].arrayBuffer());
         for (const part of parts.slice(1)) joined = appendClip(joined, await decodeToClip(await part.arrayBuffer()), 0);
-        blob = encodeWav(joined);
+        blob = encodeWav(normalizeLoudness(joined));
         mime = "audio/wav";
       } catch {
         // keep the longest part rather than nothing

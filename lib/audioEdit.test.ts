@@ -3,14 +3,19 @@ import {
   appendClip,
   cutRange,
   durationOf,
+  EDIT_SAMPLE_RATE,
   encodeWav,
   keepRange,
+  normalizeLoudness,
+  NORMALIZE_MAX_GAIN,
+  NORMALIZE_PEAK,
   peaks,
   shortenSilences,
   toMono,
   undoDepthFor,
   type Clip,
 } from "./audioEdit";
+import { MAX_EPISODE_SECONDS } from "./audio";
 
 // 10 samples per second makes the arithmetic readable
 const clip = (values: number[]): Clip => ({ samples: Float32Array.from(values), sampleRate: 10 });
@@ -81,10 +86,42 @@ describe("encodeWav", () => {
   });
 });
 
+describe("EDIT_SAMPLE_RATE", () => {
+  it("keeps the consonants (up to 12 kHz) and a 20-minute WAV under the 70 MB bucket limit", () => {
+    expect(EDIT_SAMPLE_RATE / 2).toBeGreaterThanOrEqual(12_000);
+    const wavBytes = 44 + EDIT_SAMPLE_RATE * 2 * MAX_EPISODE_SECONDS;
+    expect(wavBytes).toBeLessThan(70 * 1024 * 1024);
+  });
+});
+
+describe("normalizeLoudness", () => {
+  const rate = 10;
+  it("raises a quiet take so its peak sits at -1 dBFS, keeping its shape", () => {
+    const out = normalizeLoudness({ samples: Float32Array.from([0.1, -0.2, 0.05]), sampleRate: rate });
+    expect(out.samples[1]).toBeCloseTo(-NORMALIZE_PEAK);
+    expect(out.samples[0]).toBeCloseTo(NORMALIZE_PEAK / 2);
+    expect(out.sampleRate).toBe(rate);
+  });
+  it("lowers a take that touches full scale", () => {
+    const out = normalizeLoudness({ samples: Float32Array.from([1, -0.5]), sampleRate: rate });
+    expect(out.samples[0]).toBeCloseTo(NORMALIZE_PEAK);
+  });
+  it("caps the gain so a near-silent take does not become hiss", () => {
+    const out = normalizeLoudness({ samples: Float32Array.from([0.001, -0.001]), sampleRate: rate });
+    expect(out.samples[0]).toBeCloseTo(0.001 * NORMALIZE_MAX_GAIN);
+  });
+  it("leaves silence and already-normal takes alone", () => {
+    const silent = { samples: new Float32Array(4), sampleRate: rate };
+    expect(normalizeLoudness(silent)).toBe(silent);
+    const normal = { samples: Float32Array.from([NORMALIZE_PEAK, 0]), sampleRate: rate };
+    expect(normalizeLoudness(normal)).toBe(normal);
+  });
+});
+
 describe("undoDepthFor", () => {
   it("keeps three steps for a short episode and one for a 20-minute one", () => {
-    expect(undoDepthFor(16000 * 60 * 3)).toBe(3);
-    expect(undoDepthFor(16000 * 60 * 20)).toBe(1);
+    expect(undoDepthFor(EDIT_SAMPLE_RATE * 60 * 3)).toBe(3);
+    expect(undoDepthFor(EDIT_SAMPLE_RATE * 60 * 20)).toBe(1);
     expect(undoDepthFor(0)).toBe(3);
   });
 });
