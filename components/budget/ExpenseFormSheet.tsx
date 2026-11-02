@@ -9,7 +9,8 @@ import {
   getRateToIls,
   updateExpense,
 } from "@/lib/data/expenses";
-import { formatMoney, todayISO } from "@/lib/format";
+import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
+import type { CashWithdrawalSplit } from "@/lib/budget";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory, Expense } from "@/lib/types";
@@ -24,6 +25,8 @@ export function ExpenseFormSheet({
   open,
   expense,
   categories,
+  withdrawals = [],
+  cashSplits = new Map(),
   localCurrency,
   onClose,
   onDone,
@@ -32,6 +35,9 @@ export function ExpenseFormSheet({
   open: boolean;
   expense: Expense | null;
   categories: BudgetCategory[];
+  /** Cash withdrawals of the trip, newest first (00082). */
+  withdrawals?: Expense[];
+  cashSplits?: Map<string, CashWithdrawalSplit>;
   /** Currency of the country we're in today, when we know it. */
   localCurrency?: string | null;
   onClose: () => void;
@@ -45,6 +51,8 @@ export function ExpenseFormSheet({
       key={expense?.id ?? "new"}
       expense={expense}
       categories={categories}
+      withdrawals={withdrawals}
+      cashSplits={cashSplits}
       localCurrency={localCurrency ?? null}
       onClose={onClose}
       onDone={onDone}
@@ -53,9 +61,14 @@ export function ExpenseFormSheet({
   );
 }
 
+/** "regular" | "withdrawal" | the id of the withdrawal it was paid from. */
+type Payment = string;
+
 function ExpenseForm({
   expense,
   categories,
+  withdrawals,
+  cashSplits,
   localCurrency,
   onClose,
   onDone,
@@ -63,6 +76,8 @@ function ExpenseForm({
 }: {
   expense: Expense | null;
   categories: BudgetCategory[];
+  withdrawals: Expense[];
+  cashSplits: Map<string, CashWithdrawalSplit>;
   localCurrency: string | null;
   onClose: () => void;
   onDone: (message: string) => void;
@@ -88,6 +103,26 @@ function ExpenseForm({
   const [description, setDescription] = useState(expense?.description ?? "");
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? todayISO());
   const [saving, setSaving] = useState(false);
+  const [payment, setPayment] = useState<Payment>(() =>
+    expense?.is_cash_withdrawal
+      ? "withdrawal"
+      : (expense?.paid_from_expense_id ?? "regular")
+  );
+  const isWithdrawal = payment === "withdrawal";
+  const paidFromId = payment !== "regular" && payment !== "withdrawal" ? payment : null;
+  // A withdrawal with purchases paid from it stays one (the DB refuses too):
+  // otherwise those purchases would quietly start counting twice.
+  const withdrawalLocked =
+    !!expense?.is_cash_withdrawal && (cashSplits.get(expense.id)?.count ?? 0) > 0;
+  // What is left of a withdrawal for this expense: an expense already paid
+  // from it does not use up its own room.
+  function leftFor(withdrawalId: string): number {
+    const split = cashSplits.get(withdrawalId);
+    if (!split) return 0;
+    if (expense?.paid_from_expense_id !== withdrawalId) return split.left;
+    return Math.max(0, split.withdrawn - (split.itemized - expense.amount_ils));
+  }
+  const withdrawalOptions = withdrawals.filter((w) => w.id !== expense?.id);
 
   function rememberCurrency(c: string) {
     try {
@@ -109,6 +144,8 @@ function ExpenseForm({
           currency,
           description,
           spentOn,
+          isCashWithdrawal: isWithdrawal,
+          paidFromExpenseId: paidFromId,
         });
         rememberCurrency(currency);
         onDone(
@@ -124,6 +161,8 @@ function ExpenseForm({
         currency,
         description: description.trim() || null,
         spent_on: spentOn,
+        is_cash_withdrawal: isWithdrawal,
+        paid_from_expense_id: paidFromId,
       });
       rememberCurrency(currency);
       onDone(strings.budget.expenseSaved);
@@ -183,6 +222,8 @@ function ExpenseForm({
   const rate = rateInfo?.currency === currency ? rateInfo.rate : null;
   const inIls =
     rate !== null && amountValid ? Number(amount) * rate : null;
+  const overWithdrawal =
+    paidFromId !== null && inIls !== null && inIls > leftFor(paidFromId) + 0.5;
 
   return (
     <Sheet
@@ -256,6 +297,45 @@ function ExpenseForm({
           {isNew && localCurrency && (
             <p className="mt-1 text-xs text-ink-soft">
               {strings.budget.localCurrencyHint}
+            </p>
+          )}
+        </div>
+
+        {/* cash: a withdrawal, or a purchase paid from one (00082). Before
+            the category, since on a new expense the category tap saves. */}
+        <div>
+          <label htmlFor="exp-payment" className={labelClass}>
+            {strings.budget.payment}
+          </label>
+          <select
+            id="exp-payment"
+            value={payment}
+            disabled={withdrawalLocked}
+            onChange={(e) => setPayment(e.target.value)}
+            className={`${inputClass} bg-surface disabled:opacity-60`}
+          >
+            <option value="regular">{strings.budget.paymentRegular}</option>
+            <option value="withdrawal">{strings.budget.paymentWithdrawal}</option>
+            {withdrawalOptions.map((w) => (
+              <option key={w.id} value={w.id}>
+                {strings.budget.paymentFromCash
+                  .replace("{date}", formatShortDate(w.spent_on))
+                  .replace("{left}", formatMoney(Math.round(leftFor(w.id)), "ILS"))}
+                {w.description ? ` · ${w.description}` : ""}
+              </option>
+            ))}
+          </select>
+          {(withdrawalLocked || overWithdrawal || payment !== "regular") && (
+            <p className={`mt-1 text-xs ${overWithdrawal ? "text-sun-deep" : "text-ink-soft"}`}>
+              {withdrawalLocked
+                ? strings.budget.paymentWithdrawalLocked
+                : overWithdrawal
+                  ? strings.budget.paymentOverWithdrawal
+                  : isWithdrawal
+                    ? strings.budget.paymentWithdrawalHint
+                    : paidFromId
+                      ? strings.budget.paymentFromCashHint
+                      : null}
             </p>
           )}
         </div>

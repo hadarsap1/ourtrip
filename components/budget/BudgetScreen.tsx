@@ -14,7 +14,13 @@ import {
   subscribeBudget,
 } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
-import { resolveBudgetTotals, resolveBudgetProgress } from "@/lib/budget";
+import {
+  cashWithdrawalSplits,
+  countedExpenses,
+  resolveBudgetTotals,
+  resolveBudgetProgress,
+  type CashWithdrawalSplit,
+} from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
@@ -36,6 +42,33 @@ function daysBetween(fromISO: string, toISO: string): number {
       new Date(`${fromISO}T12:00:00`).getTime()) /
       86_400_000
   );
+}
+
+/** Under a withdrawal: how much of it was itemized and what still counts.
+ *  Under a purchase paid from cash: that it came out of a withdrawal. */
+function CashNote({
+  expense,
+  split,
+}: {
+  expense: Expense;
+  split: CashWithdrawalSplit | undefined;
+}) {
+  const s = strings.budget;
+  if (expense.is_cash_withdrawal && split) {
+    return (
+      <span className="block text-[12px] text-sea-deep">
+        {split.count === 0
+          ? s.cashWithdrawalTag
+          : s.cashWithdrawalSplit
+              .replace("{itemized}", formatMoney(Math.round(split.itemized), "ILS"))
+              .replace("{left}", formatMoney(Math.round(split.left), "ILS"))}
+      </span>
+    );
+  }
+  if (expense.paid_from_expense_id) {
+    return <span className="block text-[12px] text-sea-deep">{s.paidFromCashTag}</span>;
+  }
+  return null;
 }
 
 export function BudgetScreen() {
@@ -165,11 +198,17 @@ export function BudgetScreen() {
   }
 
   // ---------- dashboard math ----------
-  const spent = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
+  // A cash withdrawal counts only what the purchases paid from it left of it
+  // (00082), so the suitcases bought from it are not counted twice. Every sum
+  // below runs on `counted`; the expense list shows what was entered.
+  const cashSplits = cashWithdrawalSplits(expenses);
+  const counted = countedExpenses(expenses);
+  const withdrawals = expenses.filter((e) => e.is_cash_withdrawal);
+  const spent = counted.reduce((sum, e) => sum + e.amount_ils, 0);
   const { planned, target, hasTarget, gap, overTarget, budgetForProgress } =
     resolveBudgetTotals(totalBudget, categories);
   const spentByCategory = new Map<string, number>();
-  for (const e of expenses) {
+  for (const e of counted) {
     spentByCategory.set(
       e.category_id,
       (spentByCategory.get(e.category_id) ?? 0) + e.amount_ils
@@ -182,7 +221,7 @@ export function BudgetScreen() {
   // projection. So it is tracked separately and excluded from the pace math,
   // while still counting toward the totals.
   const preTripSpent = trip?.start_date
-    ? expenses
+    ? counted
         .filter((e) => e.spent_on < trip.start_date!)
         .reduce((sum, e) => sum + e.amount_ils, 0)
     : 0;
@@ -247,7 +286,7 @@ export function BudgetScreen() {
       {v2 && (
         <BudgetV2
           categories={categories}
-          expenses={expenses}
+          expenses={counted}
           days={days}
           budgetForProgress={budgetForProgress}
           remaining={remaining}
@@ -521,6 +560,7 @@ export function BudgetScreen() {
                         <TicketIcon className="h-3 w-3 shrink-0 text-sea" />
                       )}
                     </span>
+                    <CashNote expense={expense} split={cashSplits.get(expense.id)} />
                   </span>
                   <span className="shrink-0 text-end">
                     <span
@@ -568,6 +608,8 @@ export function BudgetScreen() {
         open={expenseForm !== null}
         expense={expenseForm?.expense ?? null}
         categories={categories}
+        withdrawals={withdrawals}
+        cashSplits={cashSplits}
         localCurrency={localCurrency}
         onClose={() => setExpenseForm(null)}
         onDone={(message) => {

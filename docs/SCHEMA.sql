@@ -163,6 +163,9 @@ create table expenses (
   description text,
   spent_on date not null default current_date,
   booking_id uuid references bookings(id),
+  -- 00082: an ATM withdrawal, and purchases paid from one (counted once)
+  is_cash_withdrawal boolean not null default false,
+  paid_from_expense_id uuid references expenses(id) on delete set null,
   created_by uuid not null references members(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
