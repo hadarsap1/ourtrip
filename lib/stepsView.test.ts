@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barScale, stepsOn, totalBetween, weekBars } from "./stepsView";
+import { barScale, familyKm, stepsOn, stepsToKm, totalBetween, weekBars } from "./stepsView";
 
 const rows = [
   { member_id: "a", date: "2026-11-10", steps: 12000 },
@@ -26,5 +26,23 @@ describe("steps view (Phase 2)", () => {
   it("totals a stay per member", () => {
     expect(totalBetween(rows, "a", "2026-11-05", "2026-11-10")).toBe(33000);
     expect(totalBetween(rows, "b", "2026-11-01", "2026-11-04")).toBe(0);
+  });
+
+  it("turns steps into km walked at 0.75 m a step", () => {
+    expect(stepsToKm(10_000)).toBe(7.5);
+    expect(stepsToKm(0)).toBe(0);
+    expect(stepsToKm(1_234)).toBe(0.9);
+  });
+
+  it("averages family km over the parents who reported, null when none did", () => {
+    const r = [
+      { member_id: "a", date: "2026-11-01", steps: 10_000 },
+      { member_id: "a", date: "2026-11-02", steps: 10_000 },
+      { member_id: "b", date: "2026-11-02", steps: 6_000 },
+      { member_id: "b", date: "2026-10-20", steps: 50_000 },
+    ];
+    expect(familyKm(r, ["a", "b"], "2026-10-31", "2026-11-02")).toBe(9.8); // (20000 + 6000) / 2 * 0.75 m
+    expect(familyKm(r, ["a", "c"], "2026-10-31", "2026-11-02")).toBe(15); // c never reported: not counted as zero
+    expect(familyKm(r, ["c"], "2026-10-31", "2026-11-02")).toBeNull();
   });
 });
