@@ -2725,4 +2725,5 @@ JSON backups (rows only, never the photos).
 | Revoked guest, outsider, anon read nothing | ✅ PASS - local, probe 83 |
 | Deleting the expense removes its receipt rows (the client removes the photos) | ✅ PASS - local, probe 83 |
 | Full probe suite on 83 migrations | ✅ PASS - local, 464 checks |
-| 00083 applied to production | ⏳ pending |
+| 00083 applied to production | ✅ done 02/11/2026 (SQL editor, by Hadar) |
+| Live: table with RLS on, `expense_receipts_owner_all` the only policy (USING/WITH CHECK as written), FKs incl. expense cascade, unique file_path, indexes, in the realtime publication; bucket private, 10 MB, images only; the four storage policies owner-only | ✅ PASS - live catalog check 02/11/2026 |
