@@ -2702,4 +2702,5 @@ from one; nothing is paid from itself.
 | A withdrawal with purchases cannot be unmarked; a purchase cannot become a withdrawal | ✅ PASS - local, probe 82 |
 | Kid / guest read no withdrawals or purchases, their updates change nothing, guest cannot add a purchase | ✅ PASS - local, probe 82 |
 | Deleting a withdrawal keeps its purchase, unlinked | ✅ PASS - local, probe 82 |
-| 00082 applied to production | ⏳ pending |
+| 00082 applied to production | ✅ done 02/11/2026 (SQL editor, by Hadar) |
+| Live: both columns, both checks, the self FK (`on delete set null`), the partial index and the enabled `expenses_cash_guard` trigger exist; the function is invoker with pinned search_path and no execute for anon/authenticated/public; `expenses_owner_all` is still the only policy on `expenses` | ✅ PASS - live catalog check 02/11/2026 |
