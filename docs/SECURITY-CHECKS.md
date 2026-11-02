@@ -2681,4 +2681,5 @@ policies (00077), unchanged. Added to the weekly backup list.
 | Guest's update/delete of a parent's mark changes nothing | ✅ PASS - local, probe 81 |
 | Outsider and anon read nothing | ✅ PASS - local, probe 81 |
 | Photo card counts comments of the update it is in only through `post_photos` under the caller's RLS (a row only when both the update and the photo are visible) | ✅ PASS - code review; family screen only |
-| 00081 applied to production | ⏳ not applied yet - the Supabase connection failed in this session |
+| 00081 applied to production | ✅ done 02/11/2026 |
+| Live: a real guest JWT sees 0 of a parent's marks, writes their own, is refused writing one for the parent | ✅ PASS - live 02/11/2026, rolled back |
