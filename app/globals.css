@@ -179,6 +179,9 @@ body {
   }
   /* On screen the body is one viewport tall and <main> scrolls inside it;
      on paper both have to grow so every page prints. */
+  html {
+    overflow: visible !important;
+  }
   body {
     background: #fff;
     height: auto !important;
