@@ -4,6 +4,7 @@
 // without a context provider around the tree.
 
 import { getOfflineDB } from "./db";
+import { networkDown, subscribeNetwork } from "./network";
 
 export type OfflineStatus = {
   online: boolean;
@@ -59,10 +60,13 @@ export function markSynced(at: Date = new Date()): void {
 function start() {
   if (started || typeof window === "undefined") return;
   started = true;
-  snapshot = { online: navigator.onLine, lastSyncAt: readLastSync(), pending: 0 };
-  const onNet = () => emit({ online: navigator.onLine });
+  // "online" means requests actually get through: the phone can say it is
+  // connected while every request fails (see networkDown).
+  snapshot = { online: !networkDown(), lastSyncAt: readLastSync(), pending: 0 };
+  const onNet = () => emit({ online: !networkDown() });
   window.addEventListener("online", onNet);
   window.addEventListener("offline", onNet);
+  subscribeNetwork(onNet);
   void refreshPendingCount();
 }
 

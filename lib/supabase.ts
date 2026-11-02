@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
-import { markReachable, markUnreachable, offlineNow } from "./offline/network";
+import { markNetworkFailed as flagNetworkFailed, markReachable, markUnreachable, networkDown, offlineNow } from "./offline/network";
 
 // Browser-side Supabase client. Returns null when env vars are missing so the
 // shell still renders during local development before the project is wired up.
@@ -31,11 +31,47 @@ function aborted(reason: string): DOMException {
   return new DOMException(reason, "AbortError");
 }
 
+// While the line is down, check it every PROBE_MS with a tiny request, so the
+// offline banner goes away once requests get through again even on a screen
+// that is not loading anything (the next real response clears it too).
+export const PROBE_MS = 15_000;
+let probeTimer: ReturnType<typeof setInterval> | null = null;
+
+function startProbe(): void {
+  if (probeTimer || typeof window === "undefined") return;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return;
+  probeTimer = setInterval(() => {
+    if (!networkDown()) {
+      if (probeTimer) clearInterval(probeTimer);
+      probeTimer = null;
+      return;
+    }
+    void guardedFetch(`${url}/auth/v1/health`, { headers: { apikey: anonKey } }).catch(() => {});
+  }, PROBE_MS);
+}
+
+function markNetworkFailed(): void {
+  flagNetworkFailed();
+  startProbe();
+}
+
 export function guardedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   if (offlineNow()) return Promise.reject(aborted("offline"));
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   const ms = requestLimitFor(url);
-  if (ms === null) return fetch(input, init);
+  if (ms === null)
+    return fetch(input, init).then(
+      (res) => {
+        markReachable();
+        return res;
+      },
+      (err: unknown) => {
+        if (err instanceof TypeError) markNetworkFailed();
+        throw err;
+      }
+    );
   const controller = new AbortController();
   const outer = init?.signal;
   if (outer) {
@@ -57,10 +93,14 @@ export function guardedFetch(input: RequestInfo | URL, init?: RequestInit): Prom
       clearTimeout(timer);
       if (timedOut) {
         markUnreachable();
+        startProbe();
         throw aborted("timeout");
       }
       // A plain network failure ("Failed to fetch"): same - fail once, fast.
-      if (err instanceof TypeError) throw aborted(err.message);
+      if (err instanceof TypeError) {
+        markNetworkFailed();
+        throw aborted(err.message);
+      }
       throw err;
     }
   );

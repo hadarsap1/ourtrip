@@ -22,6 +22,8 @@ import { CarIcon, CloseIcon, PinIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { Sheet } from "@/components/Sheet";
 import { strings } from "@/lib/strings";
+import { failureText } from "@/lib/failureText";
+import { LoadFailed } from "@/components/LoadFailed";
 import type { MapPin } from "@/lib/types";
 
 type Phase = "idle" | "connecting" | "picking" | "importing";
@@ -36,6 +38,8 @@ export function GooglePhotosSection({
   const [photos, setPhotos] = useState<GooglePhotoWithUrl[]>([]);
   const [pins, setPins] = useState<MapPin[]>([]);
   const [loading, setLoading] = useState(true);
+  // the list did not load: say so, never "nothing imported yet"
+  const [loadFailed, setLoadFailed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [country, setCountry] = useState("");
   const [area, setArea] = useState("");
@@ -72,7 +76,7 @@ export function GooglePhotosSection({
           setPins(pn);
         }
       } catch {
-        /* offline / empty */
+        if (!cancelled) setLoadFailed(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -80,6 +84,20 @@ export function GooglePhotosSection({
     return () => {
       cancelled = true;
     };
+  }, [tripId, isOwner]);
+
+  const retryLoad = useCallback(async () => {
+    try {
+      const [ph, pn] = await Promise.all([
+        listGooglePhotos(tripId),
+        isOwner ? listPins(tripId) : Promise.resolve([] as MapPin[]),
+      ]);
+      setPhotos(ph);
+      setPins(pn);
+      setLoadFailed(false);
+    } catch {
+      // still failing: the card stays, and retries again when the line is back
+    }
   }, [tripId, isOwner]);
 
   const busy = phase !== "idle";
@@ -117,7 +135,7 @@ export function GooglePhotosSection({
       pickerWindow.current?.close();
       pickerWindow.current = null;
       setPickerUri(null);
-      showToast(strings.common.error);
+      showToast(failureText());
     } finally {
       setPhase("idle");
     }
@@ -138,7 +156,7 @@ export function GooglePhotosSection({
       await setGooglePhotoShared(photo.id, shared);
     } catch {
       patchPhoto(photo.id, { shared_with_guests: !shared });
-      showToast(strings.common.error);
+      showToast(failureText());
     }
   }
 
@@ -150,7 +168,7 @@ export function GooglePhotosSection({
       await setGooglePhotoPin(photo.id, pinId);
     } catch {
       patchPhoto(photo.id, { map_pin_id: photo.map_pin_id });
-      showToast(strings.common.error);
+      showToast(failureText());
     }
   }
 
@@ -161,7 +179,7 @@ export function GooglePhotosSection({
       await deleteGooglePhoto(photo);
       await refresh();
     } catch {
-      showToast(strings.common.error);
+      showToast(failureText());
     }
   }
 
@@ -190,6 +208,8 @@ export function GooglePhotosSection({
 
       {loading ? (
         <p className="text-center text-sm text-ink-soft">{strings.common.loading}</p>
+      ) : loadFailed ? (
+        <LoadFailed onRetry={retryLoad} />
       ) : groups.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
           {strings.googlePhotos.empty}
