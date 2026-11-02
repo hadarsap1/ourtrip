@@ -2067,6 +2067,10 @@ export const strings = {
     syncing: "מסנכרן שינויים…",
     lastSynced: "סונכרן לאחרונה {when}",
     pending: "{n} שינויים ממתינים",
+    // a screen whose list did not load: never show "nothing here yet" then
+    loadFailed: "לא הצלחנו לטעון את המסך",
+    loadFailedOffline: "אין חיבור כרגע, לכן לא הצלחנו לטעון. ננסה שוב כשהחיבור יחזור",
+    actionFailedOffline: "אין חיבור כרגע - נסו שוב כשהחיבור יחזור",
   },
 
   // The /offline route: the service worker serves it when a screen that was

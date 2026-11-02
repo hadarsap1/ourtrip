@@ -65,6 +65,17 @@ describe("guardedFetch", () => {
     expect(Date.now() - t0).toBeLessThan(500);
   });
 
+  it("a network failure marks the line down, and the next response clears it", async () => {
+    const { networkDown } = await import("./offline/network");
+    vi.stubGlobal("navigator", { onLine: true });
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Load failed"); }));
+    await expect(guardedFetch(REST)).rejects.toMatchObject({ name: "AbortError" });
+    expect(networkDown()).toBe(true);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("[]")));
+    await guardedFetch(REST);
+    expect(networkDown()).toBe(false);
+  });
+
   it("passes a response through", async () => {
     vi.stubGlobal("navigator", { onLine: true });
     vi.stubGlobal("fetch", vi.fn(async () => new Response("[]")));

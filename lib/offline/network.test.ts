@@ -38,3 +38,20 @@ describe("dead line", () => {
     expect(offlineNow()).toBe(false);
   });
 });
+
+describe("line down (requests fail while the phone says it is online)", () => {
+  it("shows as down after a network failure without blocking the next request, and clears on a response", async () => {
+    const { markNetworkFailed, networkDown, subscribeNetwork } = await import("./network");
+    const seen = vi.fn();
+    const off = subscribeNetwork(seen);
+    expect(networkDown()).toBe(false);
+    markNetworkFailed();
+    expect(networkDown()).toBe(true);
+    // display only: requests still go out
+    expect(offlineNow()).toBe(false);
+    markReachable();
+    expect(networkDown()).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(2);
+    off();
+  });
+});

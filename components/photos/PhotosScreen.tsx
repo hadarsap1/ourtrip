@@ -26,6 +26,8 @@ import { CheckIcon, CloseIcon } from "@/components/icons";
 import { FeedbackCount } from "@/components/feedback/FeedbackCount";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { failureText } from "@/lib/failureText";
+import { LoadFailed } from "@/components/LoadFailed";
 import { useMember } from "@/lib/useMember";
 import type { ItineraryDay, Trip } from "@/lib/types";
 import { GooglePhotosSection } from "./GooglePhotosSection";
@@ -218,6 +220,8 @@ function FamilyPhotosView() {
   // the itinerary days: a photo's place is the day it was taken on
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [loading, setLoading] = useState(true);
+  // the list did not load: say so, never "no photos yet"
+  const [loadFailed, setLoadFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // guest groups (00063): a parent can limit a shared photo to some of them
   const [groups, setGroups] = useState<string[]>([]);
@@ -254,7 +258,7 @@ function FamilyPhotosView() {
       try {
         await refresh(activeTrip.id);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled) setLoadFailed(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -262,7 +266,20 @@ function FamilyPhotosView() {
     return () => {
       cancelled = true;
     };
-  }, [refresh, showToast]);
+  }, [refresh]);
+
+  const retryLoad = useCallback(async () => {
+    if (!trip) return;
+    try {
+      await refresh(trip.id);
+      setLoadFailed(false);
+      void listDays(trip.id)
+        .then(setDays)
+        .catch(() => {});
+    } catch {
+      // still failing: the card stays, and retries again when the line is back
+    }
+  }, [trip, refresh]);
 
   const isOwnerRole = member?.role === "owner";
   useEffect(() => {
@@ -283,7 +300,7 @@ function FamilyPhotosView() {
         await action();
         await refresh(trip.id);
       } catch {
-        showToast(strings.common.error);
+        showToast(failureText());
       }
     },
     [trip, refresh, showToast]
@@ -353,7 +370,9 @@ function FamilyPhotosView() {
         </section>
       )}
 
-      {visible.length === 0 && pending.length === 0 ? (
+      {loadFailed ? (
+        <LoadFailed onRetry={retryLoad} />
+      ) : visible.length === 0 && pending.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>

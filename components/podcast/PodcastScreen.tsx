@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
+import { LoadFailed } from "@/components/LoadFailed";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
@@ -24,6 +25,7 @@ import { listComments, listReactions, pollFeedback } from "@/lib/data/feedback";
 import { episodeNumbers } from "@/lib/audio";
 import { shareText, shareUrl } from "@/lib/share";
 import { strings } from "@/lib/strings";
+import { failureText } from "@/lib/failureText";
 import { useMember } from "@/lib/useMember";
 import type { Comment, Episode, Member, Reaction, Trip } from "@/lib/types";
 
@@ -37,6 +39,8 @@ export function PodcastScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [queued, setQueued] = useState(0);
   const [loading, setLoading] = useState(true);
+  // the list did not load: say so, never "no episodes yet"
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState<{ text: string; url: string } | null>(null);
   const [editing, setEditing] = useState<Episode | null>(null);
@@ -105,7 +109,7 @@ export function PodcastScreen() {
         const [tripMembers] = await Promise.all([listMembers(activeTrip.id), refresh(activeTrip.id)]);
         if (!cancelled) setMembers(tripMembers);
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled) setLoadFailed(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -120,7 +124,18 @@ export function PodcastScreen() {
       unsubscribe();
       window.removeEventListener("online", onOnline);
     };
-  }, [member, memberLoading, refresh, flush, loadFeedback, showToast]);
+  }, [member, memberLoading, refresh, flush, loadFeedback]);
+
+  const retryLoad = useCallback(async () => {
+    if (!trip) return;
+    try {
+      const [tripMembers] = await Promise.all([listMembers(trip.id), refresh(trip.id)]);
+      setMembers(tripMembers);
+      setLoadFailed(false);
+    } catch {
+      // still failing: the card stays, and retries again when the line is back
+    }
+  }, [trip, refresh]);
 
   useEffect(() => {
     if (loading || scrolled.current) return;
@@ -179,7 +194,7 @@ export function PodcastScreen() {
       }
       return true;
     } catch {
-      showToast(strings.common.error);
+      showToast(failureText());
       return false;
     } finally {
       setSaving(false);
@@ -189,7 +204,7 @@ export function PodcastScreen() {
   const act = (fn: () => Promise<void>) => () =>
     void fn()
       .then(() => refresh(trip.id))
-      .catch(() => showToast(strings.common.error));
+      .catch(() => showToast(failureText()));
 
   const offerShare = (episode: Episode) => {
     const url = shareUrl(window.location.origin, { kind: "episode", id: episode.id });
@@ -266,13 +281,16 @@ export function PodcastScreen() {
           </section>
         )}
 
-        {waiting.length > 0 && (
+        {loadFailed && <LoadFailed onRetry={retryLoad} />}
+
+        {!loadFailed && waiting.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-base font-bold text-sv-clay">{strings.podcast.pendingTitle}</h2>
             {waiting.map(card)}
           </section>
         )}
 
+        {!loadFailed && (
         <section className="space-y-3">
           <h2 className="text-base font-bold text-ink">{strings.podcast.episodesTitle}</h2>
           {live.length === 0 ? (
@@ -283,6 +301,7 @@ export function PodcastScreen() {
             live.map(card)
           )}
         </section>
+        )}
       </div>
 
       {editing && (
