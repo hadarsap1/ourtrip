@@ -12,6 +12,7 @@ import { PreviewBanner } from "@/components/PreviewBanner";
 import { OfflineSync } from "@/components/OfflineSync";
 import { RegisterSW } from "@/components/RegisterSW";
 import { ThemeSync } from "@/components/ThemeSync";
+import { ViewportPin } from "@/components/ViewportPin";
 import { CaptureFab } from "@/components/capture/CaptureFab";
 import { sovevFont } from "@/components/sovev/font";
 import { strings } from "@/lib/strings";
@@ -57,7 +58,7 @@ export default function RootLayout({
   return (
     // data-theme is set by the head script before hydration, hence
     // suppressHydrationWarning on <html> only.
-    <html lang="he" dir="rtl" className={`${heebo.variable} ${sovevFont.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${sovevFont.variable} h-full overflow-hidden antialiased`} suppressHydrationWarning>
       <head>
         {/* Runs before first paint: picks light/dark from the saved choice or the
             OS, so a dark-mode phone never flashes cream on open (F7). */}
@@ -69,7 +70,9 @@ export default function RootLayout({
           the only scroller. With the document scrolling and the bottom bar
           position:fixed, iOS WebKit could leave the visual viewport offset
           after its toolbars or keyboard moved, so the bar floated up and a
-          screen of blank paper opened below it. */}
+          screen of blank paper opened below it. Focusing a text field can still
+          scroll the window on iOS; ViewportPin scrolls it back once the
+          keyboard closes. */}
       <body className="flex h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)] text-ink">
         <PreviewBanner />
         <SimDateBanner />
@@ -87,6 +90,7 @@ export default function RootLayout({
         <OfflineSync />
         <RegisterSW />
         <ThemeSync />
+        <ViewportPin />
         <CaptureFab />
       </body>
     </html>
