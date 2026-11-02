@@ -22,6 +22,7 @@ export const BACKUP_TABLES: TableSpec[] = [
   { name: "budget_categories", by: "trip" },
   { name: "trip_budget", by: "trip" },
   { name: "expenses", by: "trip" },
+  { name: "expense_receipts", by: "trip" },
   { name: "place_options", by: "trip" },
   { name: "checklists", by: "trip" },
   { name: "checklist_items", by: "checklist" },

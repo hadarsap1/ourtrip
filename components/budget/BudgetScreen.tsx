@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
-import { TicketIcon } from "@/components/icons";
+import { CameraIcon, TicketIcon } from "@/components/icons";
 import { getActiveTrip } from "@/lib/data/trip";
 import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
@@ -13,6 +13,7 @@ import {
   listExpenses,
   subscribeBudget,
 } from "@/lib/data/expenses";
+import { listReceipts } from "@/lib/data/receipts";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import {
   cashWithdrawalSplits,
@@ -25,7 +26,7 @@ import { strings } from "@/lib/strings";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { tripPosition } from "@/lib/tripDay";
-import type { BudgetCategory, Expense, Trip } from "@/lib/types";
+import type { BudgetCategory, Expense, ExpenseReceipt, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
@@ -75,6 +76,7 @@ export function BudgetScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [receipts, setReceipts] = useState<ExpenseReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -100,16 +102,19 @@ export function BudgetScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [cats, exps, total] = await Promise.all([
+    const [cats, exps, total, recs] = await Promise.all([
       listCategories(tripId),
       listExpenses(tripId),
       // not fatal: with no total the screen derives one from the categories
       getTripTotalBudget(tripId).catch(() => null),
+      // not fatal either: the budget works without its receipt photos
+      listReceipts(tripId).catch(() => [] as ExpenseReceipt[]),
     ]);
     setCategories(cats);
     setExpenses(exps);
     setTotalBudget(total);
-    void writeQuery(queryKeys.budget(tripId), { cats, exps, total });
+    setReceipts(recs);
+    void writeQuery(queryKeys.budget(tripId), { cats, exps, total, recs });
   }, []);
 
   useEffect(() => {
@@ -140,13 +145,17 @@ export function BudgetScreen() {
           .catch(() => {});
       }
       // Cache-first (F9): last good data paints at once, the network refresh follows.
-      const cached = await readQuery<{ cats: typeof categories; exps: typeof expenses; total?: number | null }>(
-        queryKeys.budget(activeTrip.id)
-      );
+      const cached = await readQuery<{
+        cats: typeof categories;
+        exps: typeof expenses;
+        total?: number | null;
+        recs?: ExpenseReceipt[];
+      }>(queryKeys.budget(activeTrip.id));
       if (cached && !cancelled) {
         setCategories(cached.data.cats);
         setExpenses(cached.data.exps);
         setTotalBudget(cached.data.total ?? null);
+        setReceipts(cached.data.recs ?? []);
         setLoading(false);
       }
       try {
@@ -204,6 +213,10 @@ export function BudgetScreen() {
   const cashSplits = cashWithdrawalSplits(expenses);
   const counted = countedExpenses(expenses);
   const withdrawals = expenses.filter((e) => e.is_cash_withdrawal);
+  const receiptsByExpense = new Map<string, ExpenseReceipt[]>();
+  for (const r of receipts) {
+    receiptsByExpense.set(r.expense_id, [...(receiptsByExpense.get(r.expense_id) ?? []), r]);
+  }
   const spent = counted.reduce((sum, e) => sum + e.amount_ils, 0);
   const { planned, target, hasTarget, gap, overTarget, budgetForProgress } =
     resolveBudgetTotals(totalBudget, categories);
@@ -559,6 +572,12 @@ export function BudgetScreen() {
                       {expense.booking_id && (
                         <TicketIcon className="h-3 w-3 shrink-0 text-sea" />
                       )}
+                      {receiptsByExpense.has(expense.id) && (
+                        <CameraIcon
+                          className="h-3 w-3 shrink-0 text-sea"
+                          aria-label={strings.budget.receiptHasTag}
+                        />
+                      )}
                     </span>
                     <CashNote expense={expense} split={cashSplits.get(expense.id)} />
                   </span>
@@ -610,8 +629,15 @@ export function BudgetScreen() {
         categories={categories}
         withdrawals={withdrawals}
         cashSplits={cashSplits}
+        receipts={
+          expenseForm?.expense ? (receiptsByExpense.get(expenseForm.expense.id) ?? []) : []
+        }
         localCurrency={localCurrency}
         onClose={() => setExpenseForm(null)}
+        onReceiptsChanged={(message) => {
+          refreshNow();
+          showToast(message);
+        }}
         onDone={(message) => {
           setExpenseForm(null);
           refreshNow();

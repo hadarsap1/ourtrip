@@ -729,6 +729,61 @@ export type Database = {
           },
         ]
       }
+      expense_receipts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expense_id: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expense_id: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_receipts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_receipts_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_receipts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_seen: {
         Row: {
           member_id: string

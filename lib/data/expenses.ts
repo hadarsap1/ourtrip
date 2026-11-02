@@ -238,6 +238,10 @@ export async function listExpenses(tripId: string): Promise<Expense[]> {
 /** Fast entry: converts at the spent_on day's rate. Throws "fx" when the
  *  currency can't be converted (UI shows a specific Hebrew message). */
 export async function createExpense(input: {
+  /** Client-chosen id (00083): receipts taken with a new expense need it
+   *  before the expense is saved, even when it is saved from the offline
+   *  queue. With an id, a replay that already went through is not an error. */
+  id?: string;
   categoryId: string;
   amount: number;
   currency: string;
@@ -260,6 +264,7 @@ export async function createExpense(input: {
   if (rate == null) throw new Error("fx");
 
   const { error } = await supabase.from("expenses").insert({
+    ...(input.id ? { id: input.id } : {}),
     trip_id: trip.id,
     category_id: input.categoryId,
     amount: input.amount,
@@ -271,7 +276,7 @@ export async function createExpense(input: {
     paid_from_expense_id: input.isCashWithdrawal ? null : (input.paidFromExpenseId ?? null),
     created_by: member.id,
   });
-  if (error) throw new Error(error.message);
+  if (error && !(input.id && error.code === "23505")) throw new Error(error.message);
 }
 
 /** Bulk quick-add: saves many free-text lines in one go, each converted at the
@@ -342,6 +347,7 @@ export function isConnectivityError(e: unknown): boolean {
  * (validation, RLS, FX provider outage) still throw.
  */
 export async function createExpenseOrQueue(input: {
+  id?: string;
   categoryId: string;
   amount: number;
   currency: string;
@@ -358,6 +364,7 @@ export async function createExpenseOrQueue(input: {
     if (isConnectivityError(e) || (offline && e instanceof Error && e.message === "fx")) {
       const { enqueueExpense } = await import("@/lib/offline/queue");
       await enqueueExpense({
+        id: input.id,
         categoryId: input.categoryId,
         amount: input.amount,
         currency: input.currency,
@@ -397,8 +404,22 @@ export async function updateExpense(
 }
 
 export async function deleteExpense(id: string): Promise<void> {
-  const { error } = await requireClient().from("expenses").delete().eq("id", id);
+  const supabase = requireClient();
+  // Read the receipts before the expense goes: their rows cascade on the
+  // delete, and after it nothing says which objects in the bucket were its.
+  const { data: receipts } = await supabase
+    .from("expense_receipts")
+    .select("file_path")
+    .eq("expense_id", id);
+  const { error } = await supabase.from("expenses").delete().eq("id", id);
   if (error) throw new Error(error.message);
+  if (receipts?.length) {
+    const { RECEIPTS_BUCKET } = await import("@/lib/data/receipts");
+    await supabase.storage
+      .from(RECEIPTS_BUCKET)
+      .remove(receipts.map((r) => r.file_path))
+      .catch(() => {});
+  }
 }
 
 /** Which bookings already have an expense in the budget, so a booking card
@@ -458,8 +479,8 @@ export function notifyExpensesChanged(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EXPENSES_CHANGED_EVENT));
 }
 
-/** Refires onChange for any change to expenses, categories or the total
- *  (00073). Returns unsubscribe. */
+/** Refires onChange for any change to expenses, categories, the total
+ *  (00073) or receipts (00083). Returns unsubscribe. */
 export function subscribeBudget(onChange: () => void): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
@@ -468,6 +489,7 @@ export function subscribeBudget(onChange: () => void): () => void {
     .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "budget_categories" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "trip_budget" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "expense_receipts" }, onChange)
     .subscribe();
   return () => {
     void supabase.removeChannel(channel);

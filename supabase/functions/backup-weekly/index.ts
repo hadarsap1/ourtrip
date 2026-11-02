@@ -72,6 +72,7 @@ const TABLES = [
   "booking_files",
   "budget_categories",
   "expenses",
+  "expense_receipts",
   "documents",
   "document_pin",
   "document_passkeys",

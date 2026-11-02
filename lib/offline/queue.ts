@@ -1,7 +1,8 @@
 // Pending-writes queue: writes made offline are stored here and replayed in
 // order on reconnect (last-write-wins conflict policy, DECISIONS #10).
 //
-// v2 (Phase 1, F10): expenses, journal entries and day notes; transient
+// v2 (Phase 1, F10): expenses, journal entries and day notes (and, since
+// 00083, receipt photos); transient
 // failures back off (30s → 1h) instead of hammering a flaky connection;
 // permanent failures move to `failed_writes` instead of being deleted, so the
 // family can see and re-enter them. Day notes are field edits and replay with
@@ -13,6 +14,7 @@ import {
   type ExpensePayload,
   type JournalPayload,
   type PendingWrite,
+  type ReceiptPayload,
 } from "./db";
 import { isDue, MAX_ATTEMPTS, nextAttemptDelay, resolveFieldConflict } from "./queuePolicy";
 
@@ -32,6 +34,10 @@ export function enqueueJournal(payload: JournalPayload): Promise<void> {
   return enqueue({ kind: "journal", payload, createdAt: new Date().toISOString() });
 }
 
+export function enqueueReceipt(payload: ReceiptPayload): Promise<void> {
+  return enqueue({ kind: "receipt", payload, createdAt: new Date().toISOString() });
+}
+
 export function enqueueDayNote(payload: DayNotePayload): Promise<void> {
   return enqueue({ kind: "note", payload, createdAt: new Date().toISOString() });
 }
@@ -44,6 +50,13 @@ async function apply(entry: PendingWrite): Promise<"done" | "conflict"> {
       // dynamic import breaks the module cycle (expenses → queue → expenses)
       const { createExpense } = await import("@/lib/data/expenses");
       await createExpense(entry.payload);
+      return "done";
+    }
+    case "receipt": {
+      // after its expense: the queue replays in order, and a receipt whose
+      // expense failed for good fails on the foreign key and is kept aside
+      const { uploadReceipt } = await import("@/lib/data/receipts");
+      await uploadReceipt(entry.payload);
       return "done";
     }
     case "journal": {
@@ -96,8 +109,20 @@ async function replayOnce(force: boolean): Promise<ReplayResult> {
   let dropped = 0;
   let conflicts = 0;
 
+  // Expenses still waiting in the queue after this pass. A receipt of one of
+  // them waits too: uploaded first it would fail on the foreign key and be
+  // set aside for good, though its expense is only backing off.
+  const waitingExpenses = new Set<string>();
+  const holdExpense = (entry: PendingWrite) => {
+    if (entry.kind === "expense" && entry.payload.id) waitingExpenses.add(entry.payload.id);
+  };
+
   for (const entry of entries) {
-    if (!isDue(entry, now, force)) continue;
+    if (entry.kind === "receipt" && waitingExpenses.has(entry.payload.expenseId)) continue;
+    if (!isDue(entry, now, force)) {
+      holdExpense(entry);
+      continue;
+    }
     try {
       const outcome = await apply(entry);
       await db.delete("pending_writes", entry.id!);
@@ -107,6 +132,7 @@ async function replayOnce(force: boolean): Promise<ReplayResult> {
       const reason = e instanceof Error ? e.message : String(e);
       const attempts = (entry.attempts ?? 0) + 1;
       if (isConnectivityError(e) && attempts < MAX_ATTEMPTS) {
+        holdExpense(entry);
         await db.put("pending_writes", {
           ...entry,
           attempts,
