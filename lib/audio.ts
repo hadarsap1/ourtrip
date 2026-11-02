@@ -19,6 +19,20 @@ const CANDIDATES = [
   "audio/ogg;codecs=opus",
 ];
 
+/**
+ * Microphone settings for a take (01/11/2026, DECISIONS #49). With external
+ * mics (the family's wireless lav mics, the default) the raw input: the mics
+ * clean up the voice themselves, and phone-call processing on top muffled it.
+ * With the phone's own microphone the call processing comes back - noise
+ * suppression for the street, auto gain for a child standing far away; echo
+ * cancellation stays off, nothing plays while recording.
+ */
+export function micConstraints(externalMics: boolean): MediaTrackConstraints {
+  return externalMics
+    ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    : { echoCancellation: false, noiseSuppression: true, autoGainControl: true };
+}
+
 /** The first format this browser can record, or null if it records none. */
 export function pickRecordingMime(isTypeSupported: (mime: string) => boolean): string | null {
   for (const mime of CANDIDATES) {

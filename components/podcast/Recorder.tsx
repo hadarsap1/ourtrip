@@ -3,7 +3,7 @@
 import { NarratorsField } from "./NarratorsField";
 import { useEffect, useRef, useState } from "react";
 import { MicIcon, PauseIcon, PlayIcon, StopIcon } from "@/components/icons";
-import { formatClock, MAX_EPISODE_SECONDS, pickRecordingMime } from "@/lib/audio";
+import { formatClock, MAX_EPISODE_SECONDS, micConstraints, pickRecordingMime } from "@/lib/audio";
 import { decodeToClip } from "@/lib/audioDecode";
 import { appendClip, encodeWav, normalizeLoudness } from "@/lib/audioEdit";
 import { strings } from "@/lib/strings";
@@ -51,6 +51,11 @@ export function Recorder({
   const [description, setDescription] = useState("");
   // null = not touched yet: follows the default (members load after mount)
   const [narrators, setNarrators] = useState<string[] | null>(null);
+
+  // recording with the family's external mics (default) or the phone's own;
+  // chosen before a take, and every part of the take (resume) keeps it
+  const [externalMics, setExternalMics] = useState(true);
+  const externalMicsRef = useRef(true);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -138,16 +143,8 @@ export function Recorder({
   async function openPart(): Promise<boolean> {
     let stream: MediaStream;
     try {
-      // The raw microphone, no call processing (01/11/2026): the family
-      // records on an iPhone with wireless lav mics that clean up the voice
-      // themselves. Echo cancellation (nothing plays while recording),
-      // noise suppression and auto gain stacked a phone-call filter on top -
-      // and on iOS they move the input to the voice-call path - so kids'
-      // words came out muffled and swallowed. Loudness is evened out when an
-      // episode is joined or edited instead (normalizeLoudness).
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-      });
+      // raw with external mics, call processing with the phone's own (micConstraints)
+      stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(externalMicsRef.current) });
     } catch {
       setError(strings.podcast.micDenied);
       return false;
@@ -399,6 +396,34 @@ export function Recorder({
               ? strings.podcast.joining
               : strings.podcast.maxNote.replace("{n}", String(MAX_EPISODE_SECONDS / 60))}
       </p>
+
+      {phase === "idle" && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={externalMics}
+          onClick={() => {
+            externalMicsRef.current = !externalMics;
+            setExternalMics(!externalMics);
+          }}
+          className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-start text-sm font-semibold ${externalMics ? "border-sv-sage bg-sv-card text-sv-ink" : "border-sv-line bg-sv-card text-sv-ink"}`}
+        >
+          <span>
+            {strings.podcast.externalMics}
+            <span className="block text-[12px] font-normal text-sv-ink-soft">
+              {externalMics ? strings.podcast.externalMicsOn : strings.podcast.externalMicsOff}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className={`h-6 w-10 shrink-0 rounded-full p-0.5 transition-colors ${externalMics ? "bg-sv-sage" : "bg-sv-line"}`}
+          >
+            <span
+              className={`block h-5 w-5 rounded-full bg-sv-card shadow transition-transform ${externalMics ? "-translate-x-4" : ""}`}
+            />
+          </span>
+        </button>
+      )}
 
       {phase === "idle" ? (
         <button

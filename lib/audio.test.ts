@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseMime, episodeNumbers, extensionFor, formatClock, pickRecordingMime, roundMinutes } from "./audio";
+import { baseMime, episodeNumbers, extensionFor, formatClock, micConstraints, pickRecordingMime, roundMinutes } from "./audio";
 
 describe("pickRecordingMime", () => {
   it("prefers AAC/MP4 when the browser can record it", () => {
@@ -53,5 +53,14 @@ describe("episodeNumbers", () => {
     expect(numbers.get("a")).toBe(1);
     expect(numbers.get("b")).toBe(2);
     expect(numbers.has("p")).toBe(false);
+  });
+});
+
+describe("micConstraints", () => {
+  it("records raw with external mics", () => {
+    expect(micConstraints(true)).toEqual({ echoCancellation: false, noiseSuppression: false, autoGainControl: false });
+  });
+  it("brings back noise suppression and auto gain for the phone's own mic, never echo cancellation", () => {
+    expect(micConstraints(false)).toEqual({ echoCancellation: false, noiseSuppression: true, autoGainControl: true });
   });
 });
