@@ -2,29 +2,30 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { getActiveTrip } from "@/lib/data/trip";
-import { listDays, listItems } from "@/lib/data/itinerary";
+import { listDays } from "@/lib/data/itinerary";
 import { listParents, listSteps, type Parent } from "@/lib/data/steps";
 import { findCountry, flagEmoji } from "@/lib/countries";
 import { countryHex } from "@/lib/mapV2";
 import { isEnabled } from "@/lib/flags";
 import { queryKeys, readQuery } from "@/lib/offline/queryCache";
 import { passportStamps, stampTilt, tripStats } from "@/lib/tripStats";
-import { totalBetween, type StepRow } from "@/lib/stepsView";
+import { familyKm, stepsToKm, totalBetween, type StepRow } from "@/lib/stepsView";
 import { formatShortDate, todayISO } from "@/lib/format";
 import { useMember } from "@/lib/useMember";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { strings } from "@/lib/strings";
-import type { ItineraryDay, ItineraryItem, Trip } from "@/lib/types";
+import type { ItineraryDay, Trip } from "@/lib/types";
 
 const t = strings.stats;
 const noop = () => () => {};
-const fmt = (n: number) => n.toLocaleString("he-IL");
+const fmt = (n: number) => n.toLocaleString("he-IL", { maximumFractionDigits: 1 });
 
 /**
- * Stats & stamps (2.6): the trip in numbers (countries, days, km on the plan,
- * nights per country, parents' steps when that is on) and a passport page with
- * one stamp per country - earned on arrival - for the kids. Reads what each
- * role may already read: itinerary days/items (kids too); steps only for owners.
+ * Stats & stamps (2.6): the trip in numbers (countries, days, km on foot from
+ * the parents' steps, nights per country, steps) and a passport page with one
+ * stamp per country - earned on arrival - for the kids. Reads what each role
+ * may already read: itinerary days (kids too); steps and km only for owners
+ * (daily_steps RLS, 00042), so kids and guests never get the km tile.
  */
 export function StatsScreen() {
   const on = useSyncExternalStore(noop, () => isEnabled("statsStamps"), () => false);
@@ -32,7 +33,6 @@ export function StatsScreen() {
   const { member } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<ItineraryDay[] | null>(null);
-  const [items, setItems] = useState<ItineraryItem[]>([]);
   const [stepData, setStepData] = useState<{ parents: Parent[]; rows: StepRow[] } | null>(null);
   const owner = member?.role === "owner";
 
@@ -42,17 +42,12 @@ export function StatsScreen() {
       const tr = await getActiveTrip();
       if (!alive || !tr) return setDays([]);
       setTrip(tr);
-      const hit = await readQuery<{ days: ItineraryDay[]; items: ItineraryItem[] }>(queryKeys.itinerary(tr.id));
-      if (alive && hit) {
-        setDays(hit.data.days);
-        setItems(hit.data.items ?? []);
-      }
+      const hit = await readQuery<{ days: ItineraryDay[] }>(queryKeys.itinerary(tr.id));
+      if (alive && hit) setDays(hit.data.days);
       try {
         const d = await listDays(tr.id);
-        const it = await listItems(d.map((x) => x.id));
         if (!alive) return;
         setDays(d);
-        setItems(it);
       } catch {
         if (alive && !hit) setDays([]);
       }
@@ -80,7 +75,14 @@ export function StatsScreen() {
   if (days === null) return <ScreenSkeleton variant="cards" />;
 
   const today = todayISO();
-  const s = tripStats(days, items, today);
+  const s = tripStats(days, today);
+  const showSteps = !!(stepData && trip?.start_date);
+  const km = showSteps ? familyKm(stepData!.rows, stepData!.parents.map((p) => p.id), trip!.start_date!, today) : null;
+  const tiles = [
+    { label: t.countries, value: fmt(s.countriesVisited), sub: t.ofTotal.replace("{n}", fmt(s.countriesTotal)) },
+    { label: t.days, value: fmt(s.daysDone), sub: t.ofTotal.replace("{n}", fmt(s.daysTotal)) },
+    ...(showSteps ? [{ label: t.km, value: km === null ? "-" : fmt(km), sub: km === null ? t.kmNone : t.kmSub }] : []),
+  ];
   const stamps = passportStamps(days, today);
   const name = (code: string) => findCountry(code)?.he ?? code;
 
@@ -91,20 +93,16 @@ export function StatsScreen() {
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">{t.empty}</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-2.5">
-            {[
-              { label: t.countries, value: s.countriesVisited, total: s.countriesTotal },
-              { label: t.days, value: s.daysDone, total: s.daysTotal },
-              { label: t.km, value: s.kmSoFar, total: s.kmPlanned },
-            ].map((k) => (
+          <div className={`grid gap-2.5 ${tiles.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+            {tiles.map((k) => (
               <div key={k.label} className="rounded-2xl border border-line bg-surface px-3 py-2.5">
                 <p className="text-[12px] font-bold text-ink-soft">{k.label}</p>
-                <p className="mt-0.5 text-[22px] font-extrabold leading-7 tabular-nums text-ink">{fmt(k.value)}</p>
-                <p className="text-[12px] text-ink-soft">{t.ofTotal.replace("{n}", fmt(k.total))}</p>
+                <p className="mt-0.5 text-[22px] font-extrabold leading-7 tabular-nums text-ink">{k.value}</p>
+                <p className="text-[12px] text-ink-soft">{k.sub}</p>
               </div>
             ))}
           </div>
-          <p className="-mt-2 text-[12px] text-ink-soft">{t.kmHint}</p>
+          {showSteps && <p className="-mt-2 text-[12px] text-ink-soft">{t.kmHint}</p>}
 
           {s.nightsByCountry.length > 0 && (
             <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
@@ -124,16 +122,20 @@ export function StatsScreen() {
             </section>
           )}
 
-          {stepData && trip?.start_date && (
+          {showSteps && (
             <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
               <h2 className="text-xs font-bold text-ink">{t.stepsTitle}</h2>
               <ul className="mt-1.5 grid grid-cols-2 gap-2">
-                {stepData.parents.map((p) => (
-                  <li key={p.id}>
-                    <p className="text-[12px] text-ink-soft">{p.name}</p>
-                    <p className="text-lg font-extrabold tabular-nums text-ink">{fmt(totalBetween(stepData.rows, p.id, trip.start_date!, today))}</p>
-                  </li>
-                ))}
+                {stepData!.parents.map((p) => {
+                  const total = totalBetween(stepData!.rows, p.id, trip!.start_date!, today);
+                  return (
+                    <li key={p.id}>
+                      <p className="text-[12px] text-ink-soft">{p.name}</p>
+                      <p className="text-lg font-extrabold tabular-nums text-ink">{fmt(total)}</p>
+                      <p className="text-[12px] tabular-nums text-ink-soft">{t.kmOf.replace("{n}", fmt(stepsToKm(total)))}</p>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}

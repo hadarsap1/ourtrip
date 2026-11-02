@@ -27,3 +27,26 @@ export function totalBetween(rows: StepRow[], memberId: string, from: string, to
 export function barScale(bars: { steps: Record<string, number> }[]): number {
   return Math.max(10_000, ...bars.flatMap((b) => Object.values(b.steps)));
 }
+
+/**
+ * Average adult stride, metres. Walking km are an estimate from steps only
+ * (no GPS), so one fixed stride is honest enough and keeps it simple.
+ */
+export const STRIDE_M = 0.75;
+
+/** Steps to km walked, one decimal. */
+export function stepsToKm(steps: number): number {
+  return Math.round((steps * STRIDE_M) / 100) / 10;
+}
+
+/**
+ * The family's km on foot from `from` to `to`: the average over parents who
+ * reported at least once in that range (the kids walk with them), or null when
+ * no one reported.
+ */
+export function familyKm(rows: StepRow[], memberIds: string[], from: string, to: string): number | null {
+  const reporting = memberIds.filter((m) => rows.some((r) => r.member_id === m && r.date >= from && r.date <= to));
+  if (reporting.length === 0) return null;
+  const avg = reporting.reduce((s, m) => s + totalBetween(rows, m, from, to), 0) / reporting.length;
+  return stepsToKm(avg);
+}
