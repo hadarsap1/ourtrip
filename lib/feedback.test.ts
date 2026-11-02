@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { namesSummary, tallyReactions } from "./feedback";
-import type { Reaction } from "./types";
+import { feedbackCounts, namesSummary, newBaseline, newFeedback, tallyReactions } from "./feedback";
+import type { Comment, Reaction } from "./types";
 
 const r = (over: Partial<Reaction>): Reaction => ({
   id: "r",
@@ -52,5 +52,65 @@ describe("photo targets (00077)", () => {
     ];
     const { tallies } = tallyReactions(rows, { photoId: "ph1" }, null);
     expect(tallies.find((t) => t.kind === "heart")?.count).toBe(1);
+  });
+});
+
+const c = (over: Partial<Comment>): Comment =>
+  ({
+    id: "c",
+    trip_id: "t",
+    author_id: "savta",
+    post_id: null,
+    episode_id: null,
+    photo_id: "ph1",
+    body: "יפה",
+    created_at: "2026-11-02T10:00:00Z",
+    shown_to_kids_at: null,
+    shown_by: null,
+    ...over,
+  }) as Comment;
+
+describe("newFeedback", () => {
+  const target = { photoId: "ph1" };
+  const comments = [
+    c({ id: "old", created_at: "2026-11-01T08:00:00Z" }),
+    c({ id: "fresh" }),
+    c({ id: "mine", author_id: "me" }),
+    c({ id: "elsewhere", photo_id: "ph2" }),
+  ];
+  const reactions = [
+    r({ id: "1", post_id: null, photo_id: "ph1", member_id: "savta", created_at: "2026-11-02T09:00:00Z" }),
+    r({ id: "2", post_id: null, photo_id: "ph1", member_id: "me", created_at: "2026-11-02T09:00:00Z" }),
+    r({ id: "3", post_id: null, photo_id: "ph1", member_id: "dana", created_at: "2026-10-30T09:00:00Z" }),
+  ];
+
+  it("counts only what someone else wrote after I looked", () => {
+    const got = newFeedback(target, comments, reactions, "me", "2026-11-01T12:00:00Z");
+    expect([...got.commentIds]).toEqual(["fresh"]);
+    expect(got.likes).toBe(1);
+  });
+
+  it("is empty while the seen marks are not known yet", () => {
+    const got = newFeedback(target, comments, reactions, "me", null);
+    expect(got.commentIds.size).toBe(0);
+    expect(got.likes).toBe(0);
+  });
+
+  it("with no mark, looks back a week", () => {
+    const now = Date.parse("2026-11-02T12:00:00Z");
+    const got = newFeedback(target, comments, reactions, "me", newBaseline(now));
+    expect([...got.commentIds].sort()).toEqual(["fresh", "old"]);
+    expect(got.likes).toBe(2);
+  });
+});
+
+describe("feedbackCounts", () => {
+  it("counts one target's comments and likes", () => {
+    const got = feedbackCounts(
+      { photoId: "ph1" },
+      [c({ id: "a" }), c({ id: "b", photo_id: "ph2" })],
+      [r({ post_id: null, photo_id: "ph1" }), r({ post_id: "p1" })]
+    );
+    expect(got).toEqual({ comments: 1, likes: 1 });
   });
 });

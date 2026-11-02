@@ -324,7 +324,14 @@ export function StoriesScreen() {
               item.kind === "story" ? (
                 card(item.story)
               ) : (
-                <PhotoDayCard key={`photos-${item.day.date}`} day={item.day} onOpen={setViewing} />
+                <PhotoDayCard
+                  key={`photos-${item.day.date}`}
+                  day={item.day}
+                  memberId={member.id}
+                  comments={comments}
+                  reactions={reactions}
+                  onOpen={setViewing}
+                />
               )
             )}
           </section>

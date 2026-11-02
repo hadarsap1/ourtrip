@@ -102,6 +102,7 @@ const TABLES = [
   "episodes",
   "comments",
   "reactions",
+  "feedback_seen",
   "daily_steps",
   "step_tokens",
   "ai_usage",

@@ -3,11 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { EditIcon } from "@/components/icons";
+import { FeedbackCount } from "@/components/feedback/FeedbackCount";
+import { feedbackCounts, newFeedback } from "@/lib/feedback";
+import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { formatDate } from "@/lib/format";
 import { cardHeadline, needsFold } from "@/lib/stories";
 import { strings } from "@/lib/strings";
 import type { ViewedPhoto } from "@/components/photos/PhotoView";
 import type { PhotoDay } from "@/lib/stories";
+import type { Comment, Reaction } from "@/lib/types";
 
 const SHOWN = 6;
 
@@ -20,14 +24,24 @@ const SHOWN = 6;
  * 01/11/2026: "it is not clear there is text with the photo"). One photo:
  * its text under it, the first line as the headline, like an update. Several:
  * each one with text carries a small text mark.
+ *
+ * Each photo shows its likes and comments, and "new" for what came since I
+ * last opened it (Hadar 02/11/2026: "otherwise I open them one by one").
  */
 export function PhotoDayCard({
   day,
+  memberId,
+  comments,
+  reactions,
   onOpen,
 }: {
   day: PhotoDay<ViewedPhoto>;
+  memberId: string;
+  comments: Comment[];
+  reactions: Reaction[];
   onOpen: (photo: ViewedPhoto) => void;
 }) {
+  const { since } = useFeedbackSeen();
   const shown = day.photos.slice(0, SHOWN);
   const hidden = day.photos.length - shown.length;
   const single = day.photos.length === 1 ? day.photos[0] : null;
@@ -45,6 +59,9 @@ export function PhotoDayCard({
       <ul className={`grid gap-1 px-1 pb-1 ${shown.length === 1 ? "grid-cols-1" : shown.length === 2 || shown.length === 4 ? "grid-cols-2" : "grid-cols-3"}`}>
         {shown.map((photo, i) => {
           const last = i === shown.length - 1 && hidden > 0;
+          const target = { photoId: photo.id };
+          const counts = feedbackCounts(target, comments, reactions);
+          const fresh = newFeedback(target, comments, reactions, memberId, since(photo.id));
           return (
             <li key={photo.id} className="relative overflow-hidden rounded-[14px] bg-paper-deep">
               {last ? (
@@ -62,6 +79,14 @@ export function PhotoDayCard({
                   className="block w-full"
                 >
                   <Thumb photo={photo} single={shown.length === 1} />
+                  <span className="absolute top-1.5 start-1.5">
+                    <FeedbackCount
+                      overlay
+                      comments={counts.comments}
+                      likes={counts.likes}
+                      isNew={fresh.commentIds.size + fresh.likes > 0}
+                    />
+                  </span>
                   {!single && photo.caption?.trim() && (
                     <span
                       aria-hidden

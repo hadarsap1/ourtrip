@@ -102,6 +102,12 @@ export const MessagesIcon = (p: IconProps) => (
   </Glyph>
 );
 
+export const HeartIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
+  </Glyph>
+);
+
 export const MemoryBookIcon = (p: IconProps) => (
   <Glyph {...p}>
     <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3h11A1.5 1.5 0 0 1 19 4.5V21l-7-3.2L5 21z" />

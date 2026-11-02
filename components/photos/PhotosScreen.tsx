@@ -21,7 +21,9 @@ import {
   updatePhotoCaption,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
-import { CheckIcon, CloseIcon, MessagesIcon } from "@/components/icons";
+import Link from "next/link";
+import { CheckIcon, CloseIcon } from "@/components/icons";
+import { FeedbackCount } from "@/components/feedback/FeedbackCount";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
@@ -31,7 +33,7 @@ import { AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
 import { PhotoView, type ViewedPhoto } from "./PhotoView";
-import { usePhotoFeedback } from "./usePhotoFeedback";
+import { usePhotoFeedback, type FeedbackBadge } from "./usePhotoFeedback";
 import { PhotoPlacesMap } from "./PhotoPlacesMap";
 import { PlaceHeader } from "./PlaceHeader";
 
@@ -148,7 +150,7 @@ function GuestPhotosView() {
         groups={groups}
         tile={(photo) => (
           <li key={photo.id} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
-            <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
+            <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
             {photo.caption && (
               <div className="p-2">
                 <PhotoCaption text={photo.caption} />
@@ -234,7 +236,7 @@ function FamilyPhotosView() {
   const refresh = useCallback(async (tripId: string) => {
     setPhotos(await listPhotos(tripId));
   }, []);
-  const feedback = usePhotoFeedback(trip?.id ?? null);
+  const feedback = usePhotoFeedback(trip?.id ?? null, true);
 
   useEffect(() => {
     let cancelled = false;
@@ -363,8 +365,9 @@ function FamilyPhotosView() {
               key={photo.id}
               className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
             >
-              <PhotoTile photo={photo} comments={feedback.commentCount(photo.id)} onOpen={() => setViewing(photo)} />
+              <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
               <div className="space-y-1 p-2 text-xs">
+                <StoryFeedbackLink badge={feedback.storyBadge(photo.id)} />
                 {photo.caption && <PhotoCaption text={photo.caption} />}
                 {/* the uploader or a parent; a kid's edit of an approved photo goes
                     back to a parent for approval (photos_guard_update, 00076) */}
@@ -510,14 +513,15 @@ function FamilyPhotosView() {
   );
 }
 
-/** A photo in the grid: tap to open it with its likes and comments (00077). */
+/** A photo in the grid: tap to open it with its likes and comments (00077),
+ *  counted over the picture with "new" for what came since I last looked. */
 function PhotoTile({
   photo,
-  comments,
+  badge,
   onOpen,
 }: {
   photo: { url: string | null; caption: string | null };
-  comments: number;
+  badge: FeedbackBadge;
   onOpen: () => void;
 }) {
   if (!photo.url) return null;
@@ -525,12 +529,29 @@ function PhotoTile({
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
       {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
       <img src={photo.url} alt={photo.caption ?? ""} className="aspect-square w-full object-cover" />
-      {comments > 0 && (
-        <span className="absolute bottom-1.5 start-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white">
-          <MessagesIcon className="h-3.5 w-3.5" />
-          {comments}
-        </span>
-      )}
+      <span className="absolute top-1.5 start-1.5">
+        <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />
+      </span>
     </button>
+  );
+}
+
+/** The photo is in an update and people wrote there: how much, and a tap to
+ *  read it on the update. */
+function StoryFeedbackLink({ badge }: { badge: (FeedbackBadge & { postId: string }) | null }) {
+  if (!badge) return null;
+  return (
+    <Link
+      href={`/stories#feedback-${badge.postId}`}
+      aria-label={strings.feedback.onStoryLabel}
+      className="block w-fit rounded-full bg-sv-paper px-2 py-1"
+    >
+      <FeedbackCount
+        comments={badge.comments}
+        likes={badge.likes}
+        isNew={badge.isNew}
+        suffix={strings.feedback.onStory}
+      />
+    </Link>
   );
 }

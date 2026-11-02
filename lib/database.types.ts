@@ -716,6 +716,32 @@ export type Database = {
           },
         ]
       }
+      feedback_seen: {
+        Row: {
+          member_id: string
+          seen_at: string
+          target_id: string
+        }
+        Insert: {
+          member_id: string
+          seen_at?: string
+          target_id: string
+        }
+        Update: {
+          member_id?: string
+          seen_at?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_seen_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           currency: string

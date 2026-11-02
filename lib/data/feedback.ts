@@ -124,3 +124,38 @@ export function pollFeedback(reload: () => void): () => void {
     document.removeEventListener("visibilitychange", onVisible);
   };
 }
+
+// ---------- seen marks (00081) ----------
+
+/** When I last looked at each target's likes and comments. RLS returns my
+ *  own rows only. */
+export async function listSeen(): Promise<Map<string, string>> {
+  const { data, error } = await requireClient().from("feedback_seen").select("target_id, seen_at");
+  if (error) throw new Error(error.message);
+  return new Map(data.map((row) => [row.target_id, row.seen_at]));
+}
+
+export async function markSeen(memberId: string, targetIds: string[], at: string): Promise<void> {
+  if (targetIds.length === 0) return;
+  const { error } = await requireClient()
+    .from("feedback_seen")
+    .upsert(targetIds.map((target_id) => ({ member_id: memberId, target_id, seen_at: at })));
+  if (error) throw new Error(error.message);
+}
+
+/** Which updates each photo is in, so a photo's card can count the comments
+ *  written on its update too. RLS: a row only when the caller may see both. */
+export async function listPhotoStories(tripId: string): Promise<Map<string, string[]>> {
+  const { data, error } = await requireClient()
+    .from("post_photos")
+    .select("post_id, photo_id, posts!inner(trip_id)")
+    .eq("posts.trip_id", tripId);
+  if (error) throw new Error(error.message);
+  const byPhoto = new Map<string, string[]>();
+  for (const row of data) {
+    const list = byPhoto.get(row.photo_id) ?? [];
+    list.push(row.post_id);
+    byPhoto.set(row.photo_id, list);
+  }
+  return byPhoto;
+}
