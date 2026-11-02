@@ -2,6 +2,9 @@
 
 import { EditIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { NewFeedbackChip } from "@/components/feedback/FeedbackCount";
+import { newFeedback } from "@/lib/feedback";
+import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { roundMinutes } from "@/lib/audio";
 import { formatDate } from "@/lib/format";
 import { formatNarrators } from "@/lib/narrators";
@@ -48,6 +51,9 @@ export function EpisodeCard({
   const by = formatNarrators(episode.narrators ?? []);
   const minutes = roundMinutes(episode.duration_seconds);
   const approved = episode.status === "approved";
+  // new likes and comments since I last looked (00081)
+  const { since } = useFeedbackSeen();
+  const fresh = newFeedback({ episodeId: episode.id }, comments, reactions, member.id, since(episode.id));
 
   return (
     <article
@@ -55,6 +61,9 @@ export function EpisodeCard({
       className="scroll-mt-4 space-y-3 rounded-[20px] border border-sv-line bg-sv-card p-4"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-sv-ink-soft">
+        {approved && (
+          <NewFeedbackChip comments={fresh.commentIds.size} likes={fresh.likes} scrollTo={`feedback-${episode.id}`} />
+        )}
         {number !== null && (
           <span className="font-bold text-sv-clay">{strings.podcast.episodeNo.replace("{n}", String(number))}</span>
         )}

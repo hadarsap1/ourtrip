@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { EditIcon, PinIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { NewFeedbackChip } from "@/components/feedback/FeedbackCount";
+import { newFeedback } from "@/lib/feedback";
+import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { formatDate } from "@/lib/format";
 import { cardHeadline, isScheduled, needsFold } from "@/lib/stories";
 import { PhotoCarousel } from "@/components/stories/PhotoCarousel";
@@ -57,6 +60,10 @@ export function StoryCard({
   // a story for some groups says so to everyone who sees it, like the wall
   // (00063); a family story's groups are only a kid's suggestion - not shown
   const groupsOnly = published && story.visibility === "guests" && story.audience.length > 0;
+  // new likes and comments since I last looked (00081); the comments are at
+  // the bottom of a long card, so the top says so
+  const { since } = useFeedbackSeen();
+  const fresh = newFeedback({ postId: story.id }, comments, reactions, member.id, since(story.id));
 
   return (
     <article
@@ -66,6 +73,9 @@ export function StoryCard({
       <PhotoCarousel photos={story.photos} />
       <div className="space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-sv-ink-soft">
+          {published && (
+            <NewFeedbackChip comments={fresh.commentIds.size} likes={fresh.likes} scrollTo={`feedback-${story.id}`} />
+          )}
           <span dir="ltr">{formatDate(date)}</span>
           {story.place_label && (
             <span className="flex items-center gap-1">

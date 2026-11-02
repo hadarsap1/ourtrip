@@ -2268,6 +2268,16 @@ export const strings = {
     commentsHint: "גם הילדים קוראים את התגובות",
     commentsGoTo: "התגובה תגיע רק ל: {to}",
     deleteConfirm: "למחוק את התגובה?",
+    // what is new since I last looked (00081)
+    newTag: "חדש",
+    newSummary: "חדש: {what}",
+    commentOne: "תגובה אחת",
+    commentsN: "{n} תגובות",
+    likeOne: "לייק אחד",
+    likesN: "{n} לייקים",
+    countsLabel: "{comments} תגובות, {likes} לייקים",
+    onStory: "בעדכון",
+    onStoryLabel: "התגובות על העדכון שהתמונה בו",
   },
 
   publicStory: {

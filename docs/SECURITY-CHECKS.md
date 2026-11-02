@@ -2662,3 +2662,24 @@ client-side (microphone settings, sample rate, loudness).
 |---|---|
 | Bucket private, 70 MB, accepts WAV | ✅ PASS - local, probe `80_audio_70mb.sql` (probe 47 relaxed to ≥ 50 MB); live 01/11/2026 after applying 00080: `audio` private, 73400320, WAV allowed |
 | Kid / guest still cannot upload or replace audio | ✅ PASS - local, probes 44, 47, 49 all pass on the 80 migrations |
+
+## 02/11/2026 - what is new on the cards (00081, DECISIONS #51)
+
+`feedback_seen (member_id, target_id, seen_at)`: when a member last looked at
+a story's, episode's or photo's likes and comments. One policy,
+`feedback_seen_own`, for all commands: `member_id = current_member_id()` in
+both `using` and `with check`, so every role reads and writes only its own
+rows. A row holds a target id the member already had and a time - no content.
+`target_id` has no foreign key (a stale mark is harmless). The counts and
+comments on the cards come from `comments` / `reactions` under their existing
+policies (00077), unchanged. Added to the weekly backup list.
+
+| Check | Result |
+|---|---|
+| Guest / kid / parent read only their own marks | ✅ PASS - local, probe `81_feedback_seen.sql` |
+| Guest cannot insert a mark for someone else, nor move theirs to someone else | ✅ PASS - local, probe 81 |
+| Guest's update/delete of a parent's mark changes nothing | ✅ PASS - local, probe 81 |
+| Outsider and anon read nothing | ✅ PASS - local, probe 81 |
+| Photo card counts comments of the update it is in only through `post_photos` under the caller's RLS (a row only when both the update and the photo are visible) | ✅ PASS - code review; family screen only |
+| 00081 applied to production | ✅ done 02/11/2026 |
+| Live: a real guest JWT sees 0 of a parent's marks, writes their own, is refused writing one for the parent | ✅ PASS - live 02/11/2026, rolled back |

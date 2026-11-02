@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EditIcon, TrashIcon } from "@/components/icons";
 import { EditTextSheet } from "@/components/EditTextSheet";
 import { KidTag } from "@/components/KidTag";
+import { NewDot } from "@/components/feedback/FeedbackCount";
 import { askConfirm } from "@/components/ConfirmSheet";
 import {
   addComment,
@@ -12,7 +13,15 @@ import {
   removeReaction,
   updateComment,
 } from "@/lib/data/feedback";
-import { matchesTarget, namesSummary, tallyReactions, targetKey, type FeedbackTarget } from "@/lib/feedback";
+import {
+  matchesTarget,
+  namesSummary,
+  newFeedback,
+  tallyReactions,
+  targetKey,
+  type FeedbackTarget,
+} from "@/lib/feedback";
+import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { formatShortDate } from "@/lib/format";
 import { nameWithKidTag } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
@@ -99,7 +108,43 @@ export function FeedbackBar({
   // kids read the comments, without replying (00050)
   const showComments = canComment || mine.length > 0;
   const isOwner = member.role === "owner";
-  const inputId = `comment-${targetKey(target)}`;
+  const key = targetKey(target);
+  const inputId = `comment-${key}`;
+
+  // What is new to me (00081). `opened` is the mark as it was when these
+  // comments first showed, so a new comment stays marked while I read; the
+  // live mark moves on once they have been on screen for a moment.
+  const { since, markSeen } = useFeedbackSeen();
+  const live = since(key);
+  const [opened, setOpened] = useState(live);
+  if (opened === null && live !== null) setOpened(live);
+  const highlighted = newFeedback(target, comments, reactions, member.id, opened).commentIds;
+  const fresh = newFeedback(target, comments, reactions, member.id, live);
+  const freshCount = fresh.commentIds.size + fresh.likes;
+  const newest = [...mine.map((c) => c.created_at), ...reactions.filter((r) => matchesTarget(r, target)).map((r) => r.created_at)]
+    .sort()
+    .at(-1);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [onScreen, setOnScreen] = useState(false);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        // a long list never shows a quarter of itself on a phone: a third of
+        // the screen's height of it counts too
+        setOnScreen(entry.intersectionRatio >= 0.25 || entry.intersectionRect.height > window.innerHeight / 3),
+      { threshold: [0, 0.25, 0.5] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!onScreen || freshCount === 0) return;
+    const timer = setTimeout(() => markSeen([key], newest), 1500);
+    return () => clearTimeout(timer);
+  }, [onScreen, freshCount, key, newest, markSeen]);
 
   async function toggle(kind: ReactionKind, mineId: string | null) {
     if (busy) return;
@@ -132,7 +177,7 @@ export function FeedbackBar({
   }
 
   return (
-    <div className="space-y-2.5">
+    <div ref={rootRef} id={`feedback-${key}`} className="scroll-mt-24 space-y-2.5">
       <div className="flex flex-wrap gap-1.5">
         {tallies.map((t) => (
           <button
@@ -166,13 +211,21 @@ export function FeedbackBar({
             <ul className="space-y-2">
               {mine.map((c) => {
                 return (
-                  <li key={c.id} className="rounded-2xl bg-sv-paper px-3 py-2">
+                  <li
+                    key={c.id}
+                    className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}
+                  >
                     <p className="text-[12px] font-bold text-sv-ink">
                       {nameOf(c.author_id)}
                       {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
                       <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
                         {formatShortDate(c.created_at.slice(0, 10))}
                       </span>
+                      {highlighted.has(c.id) && (
+                        <span className="ms-1.5 align-middle">
+                          <NewDot />
+                        </span>
+                      )}
                     </p>
                     <p className="whitespace-pre-wrap break-words text-[14px] text-sv-ink">{c.body}</p>
                     {(isOwner || c.author_id === member.id) && (
