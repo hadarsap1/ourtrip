@@ -653,6 +653,8 @@ export type Database = {
           currency: string
           description: string | null
           id: string
+          is_cash_withdrawal: boolean
+          paid_from_expense_id: string | null
           spent_on: string
           trip_id: string
           updated_at: string
@@ -667,6 +669,8 @@ export type Database = {
           currency: string
           description?: string | null
           id?: string
+          is_cash_withdrawal?: boolean
+          paid_from_expense_id?: string | null
           spent_on?: string
           trip_id: string
           updated_at?: string
@@ -681,6 +685,8 @@ export type Database = {
           currency?: string
           description?: string | null
           id?: string
+          is_cash_withdrawal?: boolean
+          paid_from_expense_id?: string | null
           spent_on?: string
           trip_id?: string
           updated_at?: string
@@ -705,6 +711,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_paid_from_expense_id_fkey"
+            columns: ["paid_from_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
           {

@@ -243,6 +243,10 @@ export async function createExpense(input: {
   currency: string;
   description?: string | null;
   spentOn?: string;
+  /** 00082: this expense is an ATM withdrawal of day-to-day cash. */
+  isCashWithdrawal?: boolean;
+  /** 00082: paid from this withdrawal, so the withdrawal counts that much less. */
+  paidFromExpenseId?: string | null;
 }): Promise<void> {
   const supabase = requireClient();
   const [trip, member] = await Promise.all([
@@ -263,6 +267,8 @@ export async function createExpense(input: {
     amount_ils: Math.round(input.amount * rate * 100) / 100,
     description: input.description?.trim() || null,
     spent_on: spentOn,
+    is_cash_withdrawal: input.isCashWithdrawal ?? false,
+    paid_from_expense_id: input.isCashWithdrawal ? null : (input.paidFromExpenseId ?? null),
     created_by: member.id,
   });
   if (error) throw new Error(error.message);
@@ -341,6 +347,8 @@ export async function createExpenseOrQueue(input: {
   currency: string;
   description?: string | null;
   spentOn?: string;
+  isCashWithdrawal?: boolean;
+  paidFromExpenseId?: string | null;
 }): Promise<"saved" | "queued"> {
   try {
     await createExpense(input);
@@ -355,6 +363,8 @@ export async function createExpenseOrQueue(input: {
         currency: input.currency,
         description: input.description?.trim() || null,
         spentOn: input.spentOn ?? todayISO(),
+        isCashWithdrawal: input.isCashWithdrawal ?? false,
+        paidFromExpenseId: input.paidFromExpenseId ?? null,
       });
       return "queued";
     }
@@ -365,7 +375,10 @@ export async function createExpenseOrQueue(input: {
 /** Re-converts when amount/currency/date changed. */
 export async function updateExpense(
   id: string,
-  patch: Pick<TablesUpdate<"expenses">, "category_id" | "description"> & {
+  patch: Pick<
+    TablesUpdate<"expenses">,
+    "category_id" | "description" | "is_cash_withdrawal" | "paid_from_expense_id"
+  > & {
     amount: number;
     currency: string;
     spent_on: string;

@@ -54,6 +54,9 @@ export type ExpensePayload = {
   currency: string;
   description: string | null;
   spentOn: string;
+  /** 00082; absent on entries queued before cash withdrawals existed. */
+  isCashWithdrawal?: boolean;
+  paidFromExpenseId?: string | null;
 };
 
 export type JournalPayload = {

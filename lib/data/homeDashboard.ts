@@ -10,7 +10,7 @@
 // So this adds the three things that are real: what still has to be booked,
 // where the money stands, and the shape of the trip itself.
 
-import { resolveBudgetTotals, type BudgetTotals } from "@/lib/budget";
+import { countedExpenses, resolveBudgetTotals, type BudgetTotals } from "@/lib/budget";
 import { listDestinations, type Destination } from "@/lib/data/facts";
 import { listDayIdsWithItems } from "@/lib/data/itinerary";
 import { getSupabase } from "@/lib/supabase";
@@ -109,7 +109,10 @@ export async function loadHomeSummary(
     await Promise.all([
       client.from("trip_budget").select("total_budget").eq("trip_id", tripId).maybeSingle(),
       client.from("budget_categories").select("planned_amount").eq("trip_id", tripId),
-      client.from("expenses").select("amount_ils, spent_on").eq("trip_id", tripId),
+      client
+        .from("expenses")
+        .select("id, amount_ils, spent_on, is_cash_withdrawal, paid_from_expense_id")
+        .eq("trip_id", tripId),
       // The oldest list is the one the trip was planned around; a list made
       // later is usually a side list (packing, shopping) and not the deadline
       // one the home screen should lead with. checklists has no created_at
@@ -129,10 +132,12 @@ export async function loadHomeSummary(
         .eq("trip_id", tripId),
     ]);
 
+  // a withdrawal counts only what its itemized purchases left of it (00082)
+  const counted = countedExpenses(expenses.data ?? []);
   const budget: BudgetSummary = {
     ...resolveBudgetTotals(trip.data?.total_budget ?? null, categories.data ?? []),
-    spent: (expenses.data ?? []).reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
-    spentToday: (expenses.data ?? [])
+    spent: counted.reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
+    spentToday: counted
       .filter((e) => e.spent_on === todayISO)
       .reduce((sum, e) => sum + (e.amount_ils ?? 0), 0),
   };

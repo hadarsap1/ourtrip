@@ -2683,3 +2683,23 @@ policies (00077), unchanged. Added to the weekly backup list.
 | Photo card counts comments of the update it is in only through `post_photos` under the caller's RLS (a row only when both the update and the photo are visible) | ✅ PASS - code review; family screen only |
 | 00081 applied to production | ✅ done 02/11/2026 |
 | Live: a real guest JWT sees 0 of a parent's marks, writes their own, is refused writing one for the parent | ✅ PASS - live 02/11/2026, rolled back |
+
+## 02/11/2026 - cash withdrawals (00082, DECISIONS #52)
+
+Two columns on `expenses`: `is_cash_withdrawal` and `paid_from_expense_id`
+(self-reference, `on delete set null`). No new policy: `expenses_owner_all`
+(00001) still covers every command, so kids and guests read and write none of
+it. `expenses_cash_guard` (before insert/update, security invoker, pinned
+search_path, execute revoked from public/anon/authenticated) refuses a link to
+anything but a withdrawal of the same trip, and refuses unmarking a withdrawal
+that still has purchases. Check constraints: a withdrawal is not itself paid
+from one; nothing is paid from itself.
+
+| Check | Result |
+|---|---|
+| Owner links a purchase to a withdrawal | ✅ PASS - local, probe `82_cash_withdrawals.sql` |
+| Link to a non-withdrawal or to another trip's withdrawal is refused | ✅ PASS - local, probe 82 |
+| A withdrawal with purchases cannot be unmarked; a purchase cannot become a withdrawal | ✅ PASS - local, probe 82 |
+| Kid / guest read no withdrawals or purchases, their updates change nothing, guest cannot add a purchase | ✅ PASS - local, probe 82 |
+| Deleting a withdrawal keeps its purchase, unlinked | ✅ PASS - local, probe 82 |
+| 00082 applied to production | ⏳ pending |

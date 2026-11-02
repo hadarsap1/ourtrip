@@ -1,7 +1,7 @@
 import { getSupabase } from "@/lib/supabase";
 import { getTripTotalBudget, listCategories, listExpenses } from "@/lib/data/expenses";
 import { getActiveTrip } from "@/lib/data/trip";
-import { resolveBudgetTotals } from "@/lib/budget";
+import { countedExpenses, resolveBudgetTotals } from "@/lib/budget";
 import { todayISO } from "@/lib/format";
 import { tripPosition, type TripPosition } from "@/lib/tripDay";
 import type { PhotoWithUrl } from "@/lib/data/photos";
@@ -42,8 +42,10 @@ export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
       listPhotosForDate(trip.id, date).catch(() => []),
     ]);
 
-    const spentTotal = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
-    const spentToday = expenses
+    // a withdrawal counts only what its itemized purchases left of it (00082)
+    const counted = countedExpenses(expenses);
+    const spentTotal = counted.reduce((sum, e) => sum + e.amount_ils, 0);
+    const spentToday = counted
       .filter((e) => e.spent_on === date)
       .reduce((sum, e) => sum + e.amount_ils, 0);
 
