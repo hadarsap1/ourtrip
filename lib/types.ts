@@ -18,6 +18,7 @@ export type Booking = Tables<"bookings">;
 export type BookingFile = Tables<"booking_files">;
 export type BudgetCategory = Tables<"budget_categories">;
 export type Expense = Tables<"expenses">;
+export type ExpenseReceipt = Tables<"expense_receipts">;
 export type Document = Tables<"documents">;
 export type EmergencyInfo = Tables<"emergency_info">;
 export type MapPin = Tables<"map_pins">;

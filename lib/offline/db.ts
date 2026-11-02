@@ -49,6 +49,8 @@ type QueueMeta = {
 };
 
 export type ExpensePayload = {
+  /** 00083: client-chosen, so receipts queued with it can point at it. */
+  id?: string;
   categoryId: string;
   amount: number;
   currency: string;
@@ -57,6 +59,16 @@ export type ExpensePayload = {
   /** 00082; absent on entries queued before cash withdrawals existed. */
   isCashWithdrawal?: boolean;
   paidFromExpenseId?: string | null;
+};
+
+/** A receipt photo taken offline (00083). The photo itself is kept here, as
+ *  a Blob, until it is uploaded. */
+export type ReceiptPayload = {
+  id: string;
+  tripId: string;
+  expenseId: string;
+  blob: Blob;
+  mime: string;
 };
 
 export type JournalPayload = {
@@ -79,7 +91,8 @@ export type DayNotePayload = {
 export type PendingWrite =
   | (QueueMeta & { kind: "expense"; payload: ExpensePayload })
   | (QueueMeta & { kind: "journal"; payload: JournalPayload })
-  | (QueueMeta & { kind: "note"; payload: DayNotePayload });
+  | (QueueMeta & { kind: "note"; payload: DayNotePayload })
+  | (QueueMeta & { kind: "receipt"; payload: ReceiptPayload });
 
 /** A write that can never succeed as-is, kept so nothing vanishes silently. */
 export type FailedWrite = PendingWrite & { failedAt: string; reason: string };

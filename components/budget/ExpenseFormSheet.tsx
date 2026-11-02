@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { CURRENCIES } from "@/lib/currencies";
 import {
@@ -11,9 +11,11 @@ import {
 } from "@/lib/data/expenses";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import type { CashWithdrawalSplit } from "@/lib/budget";
+import { addReceiptOrQueue } from "@/lib/data/receipts";
+import { ReceiptsField, type PendingReceipt } from "./ReceiptsField";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
-import type { BudgetCategory, Expense } from "@/lib/types";
+import type { BudgetCategory, Expense, ExpenseReceipt } from "@/lib/types";
 
 const LAST_CURRENCY_KEY = "ourtrip-last-currency";
 
@@ -27,10 +29,12 @@ export function ExpenseFormSheet({
   categories,
   withdrawals = [],
   cashSplits = new Map(),
+  receipts = [],
   localCurrency,
   onClose,
   onDone,
   onError,
+  onReceiptsChanged,
 }: {
   open: boolean;
   expense: Expense | null;
@@ -38,11 +42,15 @@ export function ExpenseFormSheet({
   /** Cash withdrawals of the trip, newest first (00082). */
   withdrawals?: Expense[];
   cashSplits?: Map<string, CashWithdrawalSplit>;
+  /** Receipt photos of this expense (00083). */
+  receipts?: ExpenseReceipt[];
   /** Currency of the country we're in today, when we know it. */
   localCurrency?: string | null;
   onClose: () => void;
   onDone: (message: string) => void;
   onError: (message: string) => void;
+  /** A receipt was added to or removed from a saved expense; the form stays open. */
+  onReceiptsChanged?: (message: string) => void;
 }) {
   if (!open) return null;
   // key remounts the form per expense, so state initializes from props cleanly
@@ -53,10 +61,12 @@ export function ExpenseFormSheet({
       categories={categories}
       withdrawals={withdrawals}
       cashSplits={cashSplits}
+      receipts={receipts}
       localCurrency={localCurrency ?? null}
       onClose={onClose}
       onDone={onDone}
       onError={onError}
+      onReceiptsChanged={onReceiptsChanged ?? onError}
     />
   );
 }
@@ -69,15 +79,19 @@ function ExpenseForm({
   categories,
   withdrawals,
   cashSplits,
+  receipts,
   localCurrency,
   onClose,
   onDone,
   onError,
+  onReceiptsChanged,
 }: {
   expense: Expense | null;
   categories: BudgetCategory[];
   withdrawals: Expense[];
   cashSplits: Map<string, CashWithdrawalSplit>;
+  receipts: ExpenseReceipt[];
+  onReceiptsChanged: (message: string) => void;
   localCurrency: string | null;
   onClose: () => void;
   onDone: (message: string) => void;
@@ -103,6 +117,19 @@ function ExpenseForm({
   const [description, setDescription] = useState(expense?.description ?? "");
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? todayISO());
   const [saving, setSaving] = useState(false);
+  // photos taken on a new expense, saved with it
+  const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
+  const pendingRef = useRef(pendingReceipts);
+  useEffect(() => {
+    pendingRef.current = pendingReceipts;
+  }, [pendingReceipts]);
+  // the preview URLs hold the photos in memory until revoked
+  useEffect(
+    () => () => {
+      for (const p of pendingRef.current) URL.revokeObjectURL(p.url);
+    },
+    []
+  );
   const [payment, setPayment] = useState<Payment>(() =>
     expense?.is_cash_withdrawal
       ? "withdrawal"
@@ -138,7 +165,11 @@ function ExpenseForm({
     setSaving(true);
     try {
       if (isNew) {
+        // the id is chosen here so receipts can point at the expense even
+        // when both wait in the offline queue
+        const id = crypto.randomUUID();
         const result = await createExpenseOrQueue({
+          id,
           categoryId: catId,
           amount: value,
           currency,
@@ -148,10 +179,30 @@ function ExpenseForm({
           paidFromExpenseId: paidFromId,
         });
         rememberCurrency(currency);
+        let receiptsQueued = result === "queued" && pendingReceipts.length > 0;
+        let receiptFailed = false;
+        for (const p of pendingReceipts) {
+          try {
+            const r = await addReceiptOrQueue({
+              expenseId: id,
+              blob: p.blob,
+              mime: p.mime,
+              // a queued expense does not exist yet: its receipts wait behind it
+              forceQueue: result === "queued",
+            });
+            if (r === "queued") receiptsQueued = true;
+          } catch {
+            receiptFailed = true;
+          }
+        }
         onDone(
-          result === "queued"
-            ? strings.budget.expenseQueued
-            : strings.budget.expenseSaved
+          receiptFailed
+            ? strings.budget.receiptFailed
+            : receiptsQueued
+              ? strings.budget.receiptsQueued
+              : result === "queued"
+                ? strings.budget.expenseQueued
+                : strings.budget.expenseSaved
         );
         return;
       }
@@ -339,6 +390,16 @@ function ExpenseForm({
             </p>
           )}
         </div>
+
+        {/* receipts - before the category, which saves a new expense */}
+        <ReceiptsField
+          expenseId={expense?.id ?? null}
+          receipts={receipts}
+          pending={pendingReceipts}
+          onPendingChange={setPendingReceipts}
+          onChanged={onReceiptsChanged}
+          onMessage={onError}
+        />
 
         {/* 3. category - on a new expense, tapping saves immediately */}
         <div>

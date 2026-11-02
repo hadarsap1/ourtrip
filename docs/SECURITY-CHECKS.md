@@ -2704,3 +2704,26 @@ from one; nothing is paid from itself.
 | Deleting a withdrawal keeps its purchase, unlinked | ✅ PASS - local, probe 82 |
 | 00082 applied to production | ✅ done 02/11/2026 (SQL editor, by Hadar) |
 | Live: both columns, both checks, the self FK (`on delete set null`), the partial index and the enabled `expenses_cash_guard` trigger exist; the function is invoker with pinned search_path and no execute for anon/authenticated/public; `expenses_owner_all` is still the only policy on `expenses` | ✅ PASS - live catalog check 02/11/2026 |
+
+## 02/11/2026 - receipt photos (00083, DECISIONS #53)
+
+New table `expense_receipts` and private bucket `expense-receipts` (10 MB,
+images only). Table: one policy, `expense_receipts_owner_all` - USING
+`trip_id = (select member_trip_as('owner'))`, WITH CHECK `is_owner_of(trip_id)`
+and the expense is of the same trip. Bucket: four owner-only policies on
+storage.objects (`current_member_role() = 'owner'`), the same as
+booking-files (00003). Photos open through 10-minute signed URLs. Added to
+the realtime publication (SELECT policy gates events) and to the weekly and
+JSON backups (rows only, never the photos).
+
+| Check | Result |
+|---|---|
+| Bucket is private | ✅ PASS - local, probe `83_expense_receipts.sql` |
+| Owner reads their receipt row and photo | ✅ PASS - local, probe 83 |
+| Owner cannot attach to another trip's expense, nor write into a trip they do not own | ✅ PASS - local, probe 83 |
+| Kid / guest read no rows and no photos; cannot add, change or delete either | ✅ PASS - local, probe 83 |
+| Revoked guest, outsider, anon read nothing | ✅ PASS - local, probe 83 |
+| Deleting the expense removes its receipt rows (the client removes the photos) | ✅ PASS - local, probe 83 |
+| Full probe suite on 83 migrations | ✅ PASS - local, 464 checks |
+| 00083 applied to production | ✅ done 02/11/2026 (SQL editor, by Hadar) |
+| Live: table with RLS on, `expense_receipts_owner_all` the only policy (USING/WITH CHECK as written), FKs incl. expense cascade, unique file_path, indexes, in the realtime publication; bucket private, 10 MB, images only; the four storage policies owner-only | ✅ PASS - live catalog check 02/11/2026 |

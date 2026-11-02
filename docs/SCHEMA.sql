@@ -171,6 +171,18 @@ create table expenses (
   updated_at timestamptz not null default now()
 );
 
+-- 00083: receipt photos, any number per expense (bucket expense-receipts)
+create table expense_receipts (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id),
+  expense_id uuid not null references expenses(id) on delete cascade,
+  file_path text not null unique,
+  mime_type text,
+  size_bytes bigint,
+  created_by uuid references members(id),
+  created_at timestamptz not null default now()
+);
+
 -- ============ DOCUMENTS (OWNERS ONLY) ============
 
 create table documents (
