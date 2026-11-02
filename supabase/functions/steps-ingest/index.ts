@@ -1,6 +1,7 @@
 // Steps counter ingest (Phase 2). Called once a day by an Apple Shortcuts
 // personal automation on a parent's iPhone: Health → today's step count →
-// POST {"token", "steps", "date"} here. Setup guide: docs/STEPS-SHORTCUT.md.
+// POST {"token", "steps", "date", "prev"?} here (prev = up to 3 earlier days,
+// nearest first, so a missed evening is backfilled by the next run). Setup guide: docs/STEPS-SHORTCUT.md.
 //
 // Deployed verify_jwt=false: the phone holds no Supabase key or session. It
 // holds a per-phone token instead (step_tokens, SHA-256 hash only), created and
@@ -58,13 +59,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const now = new Date().toISOString();
   await service.from("step_tokens").update({ last_used_at: now }).eq("id", tok.id);
-  const { error: upsertError } = await service
-    .from("daily_steps")
-    .upsert({ member_id: tok.member_id, date: parsed.date, steps: parsed.steps, updated_at: now });
+  const rows = [{ date: parsed.date, steps: parsed.steps }, ...(parsed.prev ?? [])].map((r) => ({
+    member_id: tok.member_id,
+    date: r.date,
+    steps: r.steps,
+    updated_at: now,
+  }));
+  const { error: upsertError } = await service.from("daily_steps").upsert(rows);
   if (upsertError) {
     console.error("steps-ingest: daily_steps write failed");
     return json({ ok: false, error: "not_configured" }, 503);
   }
   console.log("steps-ingest: ok");
-  return json({ ok: true, date: parsed.date, steps: parsed.steps });
+  return json({ ok: true, date: parsed.date, steps: parsed.steps, backfilled: parsed.prev?.map((r) => r.date) ?? [] });
 });

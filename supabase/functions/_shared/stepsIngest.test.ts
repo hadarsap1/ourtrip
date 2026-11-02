@@ -37,4 +37,23 @@ describe("steps ingest validation (Phase 2)", () => {
     expect(tooSoon("2026-11-10T13:59:50Z", now)).toBe(true);
     expect(tooSoon("2026-11-10T13:59:30Z", now)).toBe(false);
   });
+
+  it("backfills up to 3 earlier days from prev, nearest first, leniently", () => {
+    expect(parseIngest({ token, steps: 100, date: "2026-11-10", prev: [9000, "8,500", 7000] }, now)).toMatchObject({
+      prev: [
+        { date: "2026-11-09", steps: 9000 },
+        { date: "2026-11-08", steps: 8500 },
+        { date: "2026-11-07", steps: 7000 },
+      ],
+    });
+    // Shortcuts text, one number per line; zeros and junk skipped; a 4th day ignored.
+    expect(parseIngest({ token, steps: 1, prev: "9000\n0\nabc\n6000" }, now)).toMatchObject({ prev: [{ date: "2026-11-09", steps: 9000 }] });
+    // A day outside the window (4 days back) is dropped, today's report still accepted.
+    // An empty line (no samples that day) keeps its place, so later days do not shift.
+    expect(parseIngest({ token, steps: 1, prev: "9000\n\n6000" }, now)).toMatchObject({
+      prev: [{ date: "2026-11-09", steps: 9000 }, { date: "2026-11-07", steps: 6000 }],
+    });
+    expect(parseIngest({ token, steps: 1, date: "2026-11-08", prev: [1, 2, 3] }, now)).toMatchObject({ prev: [{ date: "2026-11-07", steps: 1 }] });
+    expect(parseIngest({ token, steps: 1 }, now)).not.toHaveProperty("prev");
+  });
 });

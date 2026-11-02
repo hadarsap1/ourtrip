@@ -10,7 +10,14 @@ export const MAX_STEPS = 200_000;
 export const MIN_INTERVAL_MS = 20_000; // one phone may not post more than every 20 s
 const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
-export type IngestInput = { token: string; steps: number; date: string };
+export type IngestInput = {
+  token: string;
+  steps: number;
+  date: string;
+  /** Backfill: earlier days' totals from the same phone, nearest first. */
+  prev?: { date: string; steps: number }[];
+};
+export const MAX_PREV = 3;
 export type IngestError = "bad_request" | "bad_token" | "bad_steps" | "bad_date";
 
 const DAY_MS = 86_400_000;
@@ -46,7 +53,28 @@ export function parseIngest(body: unknown, now = new Date()): IngestInput | { er
   if (steps === null) return { error: "bad_steps" };
   const date = parseDate(b.date, now);
   if (date === null) return { error: "bad_date" };
-  return { token: b.token.trim(), steps, date };
+  const prev = parsePrev(b.prev, date, now);
+  return prev.length ? { token: b.token.trim(), steps, date, prev } : { token: b.token.trim(), steps, date };
+}
+
+/**
+ * Optional backfill so a missed evening heals itself: `prev` holds the totals
+ * of the days before `date`, nearest first (yesterday, the day before, ...),
+ * as an array or as text with one number per line (Shortcuts "Combine Text"
+ * with New Lines; an empty line keeps its day's place). Lenient on purpose: a bad or zero entry, or a day outside
+ * the date window, is skipped rather than failing today's report, and zeros
+ * never overwrite a real count.
+ */
+function parsePrev(v: unknown, date: string, now: Date): { date: string; steps: number }[] {
+  const list = Array.isArray(v) ? v : typeof v === "string" ? v.split(/\r?\n|;/).map((x) => x.trim()) : [];
+  const base = Date.parse(`${date}T00:00:00Z`);
+  const out: { date: string; steps: number }[] = [];
+  list.slice(0, MAX_PREV).forEach((raw, i) => {
+    const steps = parseSteps(raw);
+    const d = new Date(base - (i + 1) * DAY_MS).toISOString().slice(0, 10);
+    if (steps && parseDate(d, now) === d) out.push({ date: d, steps });
+  });
+  return out;
 }
 
 export async function hashToken(token: string): Promise<string> {
