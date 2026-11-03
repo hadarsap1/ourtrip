@@ -35,6 +35,17 @@ import type { Member, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
   const { member, memberLoading, memberFailed } = useMember();
+
+  // The composer is sticky at the bottom of <main>, and a sticky element stops
+  // at the scroller's padding: main's bottom room (kept for the last card on
+  // other screens) left the composer floating 80px above the bottom bar, over
+  // the messages. Here the composer is the last thing, so no room is needed.
+  useEffect(() => {
+    document.body.dataset.chat = "1";
+    return () => {
+      delete document.body.dataset.chat;
+    };
+  }, []);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<WallMessage[]>([]);

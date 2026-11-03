@@ -266,6 +266,12 @@ h1:not([data-plain]) {
   }
 }
 
+/* A screen whose composer is sticky at the bottom of <main> (the chat):
+   no bottom room, or the composer floats above the bar (MessagesScreen). */
+body[data-chat] main {
+  padding-bottom: 0;
+}
+
 /* Truncated user content in an RTL layout (QA 24/09, ported from #73). Hotel
    names, places and titles are often Latin ("Old Quarter Family Hotel"), and
    inside an RTL line an LTR run overflows to the left, so the ellipsis ate its
