@@ -27,6 +27,7 @@ import {
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { useMember } from "@/lib/useMember";
+import { useNewFeedback } from "@/lib/useNewFeedback";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { strings } from "@/lib/strings";
@@ -39,6 +40,9 @@ type Tile = {
   count: number | null;
   tone?: "sea" | "sun";
   badge?: number;
+  /** A new like or comment from someone else (00081): a dot, unless the
+   *  number badge is already there. */
+  dot?: boolean;
 };
 
 type AdminRow = {
@@ -74,6 +78,13 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
                   {tile.badge > 9 ? "9+" : tile.badge}
                 </span>
               )}
+              {tile.dot && !(tile.badge != null && tile.badge > 0) && (
+                <span
+                  className="absolute -end-1 -top-1 h-3 w-3 rounded-full border-2 border-surface bg-rose-500"
+                  role="status"
+                  aria-label={strings.more.newFeedback}
+                />
+              )}
             </span>
             <span className="text-[13.5px] font-bold text-ink">
               {tile.label}
@@ -100,6 +111,8 @@ export function MoreScreen() {
   const pending = usePendingApprovals(member?.role === "owner" ? member.trip_id : null);
   // new chat messages from the kids, the guests or the other parent
   const unreadWall = useUnreadWall();
+  // new likes and comments from others on updates, photos and episodes
+  const fresh = useNewFeedback(member?.role === "owner" ? member.trip_id : null);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +174,7 @@ export function MoreScreen() {
       Icon: JournalIcon,
       count: n(counts?.stories),
       badge: pending?.stories,
+      dot: fresh.stories > 0,
     },
     {
       href: "/photos",
@@ -168,6 +182,7 @@ export function MoreScreen() {
       Icon: PhotosIcon,
       count: n(counts?.photos),
       badge: pending?.photos,
+      dot: fresh.photos > 0,
     },
     {
       href: "/messages",
@@ -182,6 +197,7 @@ export function MoreScreen() {
       Icon: MicIcon,
       count: n(counts?.episodes),
       badge: pending?.episodes,
+      dot: fresh.episodes > 0,
     },
   ];
 

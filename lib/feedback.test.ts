@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedbackCounts, namesSummary, newBaseline, newFeedback, tallyReactions } from "./feedback";
+import { feedbackCounts, namesSummary, newBaseline, newFeedback, newFeedbackByKind, tallyReactions } from "./feedback";
 import type { Comment, Reaction } from "./types";
 
 const r = (over: Partial<Reaction>): Reaction => ({
@@ -112,5 +112,39 @@ describe("feedbackCounts", () => {
       [r({ post_id: null, photo_id: "ph1" }), r({ post_id: "p1" })]
     );
     expect(got).toEqual({ comments: 1, likes: 1 });
+  });
+});
+
+describe("newFeedbackByKind", () => {
+  const stamp = (target: "post_id" | "photo_id" | "episode_id", id: string, at: string) => ({
+    post_id: null,
+    photo_id: null,
+    episode_id: null,
+    [target]: id,
+    created_at: at,
+  });
+  const seen: Record<string, string> = { p1: "2026-11-02T00:00:00Z" };
+  const since = (id: string) => seen[id] ?? "2026-11-01T00:00:00Z";
+
+  it("counts each target once, by kind, only after its seen mark", () => {
+    const got = newFeedbackByKind(
+      [
+        stamp("post_id", "p1", "2026-11-01T12:00:00Z"), // before p1's mark
+        stamp("post_id", "p2", "2026-11-03T00:00:00Z"),
+        stamp("post_id", "p2", "2026-11-03T01:00:00Z"),
+        stamp("photo_id", "ph1", "2026-11-03T00:00:00Z"),
+        stamp("episode_id", "e1", "2026-10-30T00:00:00Z"), // before the baseline
+      ],
+      since
+    );
+    expect(got).toEqual({ stories: 1, photos: 1, episodes: 0 });
+  });
+
+  it("is nothing while the seen marks are unknown", () => {
+    expect(newFeedbackByKind([stamp("post_id", "p2", "2026-11-03T00:00:00Z")], () => null)).toEqual({
+      stories: 0,
+      photos: 0,
+      episodes: 0,
+    });
   });
 });

@@ -7,6 +7,7 @@ import { totalPending } from "@/lib/approvals";
 import { strings } from "@/lib/strings";
 import { useIsKidDevice } from "@/lib/useKidDevice";
 import { useMember } from "@/lib/useMember";
+import { useNewFeedback } from "@/lib/useNewFeedback";
 import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 
@@ -16,10 +17,17 @@ export function BottomNav() {
   const isKid = useIsKidDevice();
   const role = member?.role ?? (isKid ? "kid" : "owner");
   const unread = useUnreadWall();
-  // A parent's chat sits behind "עוד", as do the approval queues: one dot on
-  // that tab says something new is waiting inside (Hadar 04/11/2026).
-  const pending = usePendingApprovals(role === "owner" && member ? member.trip_id : null, pathname);
-  const moreHasNews = role === "owner" && (unread > 0 || (pending ? totalPending(pending) > 0 : false));
+  // A parent's chat sits behind "עוד", as do the approval queues and the
+  // likes and comments: one dot on that tab says something new is waiting
+  // inside (Hadar 04/11/2026).
+  const ownerTrip = role === "owner" && member ? member.trip_id : null;
+  const pending = usePendingApprovals(ownerTrip, pathname);
+  const fresh = useNewFeedback(ownerTrip, pathname);
+  const moreHasNews =
+    role === "owner" &&
+    (unread > 0 ||
+      (pending ? totalPending(pending) > 0 : false) ||
+      fresh.stories + fresh.photos + fresh.episodes > 0);
 
   if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
 

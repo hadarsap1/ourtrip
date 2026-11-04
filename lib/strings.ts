@@ -690,6 +690,7 @@ export const strings = {
     devicesState: "‏{n} טאבלטים",
     guestsState: "‏{n} מאושרים",
     notificationsState: "התראות ותזכורות",
+    newFeedback: "תגובה חדשה",
     pocketState: "דמי כיס לילדים",
     visasState: "דרישות כניסה לכל מדינה",
   },
