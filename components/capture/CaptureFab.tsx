@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Fab } from "@/components/ui/Fab";
 import { Sheet } from "@/components/Sheet";
@@ -11,12 +11,15 @@ import { isEnabled } from "@/lib/flags";
 import { getActiveTrip } from "@/lib/data/trip";
 import { createJournalEntryOrQueue, getAutoLocation } from "@/lib/data/journal";
 import { useMember } from "@/lib/useMember";
+import { uploadPhoto } from "@/lib/data/photos";
+import { failureText } from "@/lib/failureText";
 import { strings } from "@/lib/strings";
 
 // Screens where a capture button would be in the way or wrong. The wall and
 // the journal have their own composer, right where the
-// button floats (UX pass 14/10).
-const HIDDEN_ON = ["/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
+// button floats (UX pass 14/10). Photos has its own button that opens the
+// picker straight away (Hadar 04/11/2026).
+const HIDDEN_ON = ["/photos", "/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
 const noop = () => () => {};
 
 /**
@@ -30,6 +33,8 @@ export function CaptureFab() {
   const enabled = useSyncExternalStore(noop, () => isEnabled("captureFab"), () => false);
   const [sheet, setSheet] = useState<"expense" | "note" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const visible = enabled && member?.role === "owner" && !HIDDEN_ON.some((p) => pathname?.startsWith(p));
 
@@ -50,15 +55,51 @@ export function CaptureFab() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // "תמונה" opens the picker and the photos go straight to the photos grid,
+  // in no update (Hadar 04/11/2026, #54). A parent's photo is approved but
+  // not shared until they share it (rule 3, #5).
+  async function uploadPicked(files: File[]) {
+    if (!member || uploading || files.length === 0) return;
+    setUploading(true);
+    setToast(strings.photos.uploading);
+    try {
+      const trip = await getActiveTrip();
+      if (!trip) throw new Error("no trip");
+      for (const file of files) {
+        await uploadPhoto({ tripId: trip.id, memberId: member.id, isOwner: member.role === "owner", file });
+      }
+      flash(strings.photos.uploadedOwner);
+    } catch {
+      flash(failureText());
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <>
       <Fab
         actions={[
           { key: "expense", label: strings.capture.expense, icon: <CoinIcon className="h-6 w-6" />, onSelect: () => setSheet("expense") },
           { key: "note", label: strings.capture.note, icon: <EditIcon className="h-6 w-6" />, toneClass: "bg-gold/10 text-gold", onSelect: () => setSheet("note") },
-          { key: "photo", label: strings.capture.photo, icon: <PhotosIcon className="h-6 w-6" />, toneClass: "bg-cat-shop/10 text-cat-shop", onSelect: () => router.push("/stories?new=1") },
+          { key: "photo", label: strings.capture.photo, icon: <PhotosIcon className="h-6 w-6" />, toneClass: "bg-cat-shop/10 text-cat-shop", onSelect: () => photoInput.current?.click() },
           { key: "scan", label: strings.capture.scan, icon: <CameraIcon className="h-6 w-6" />, toneClass: "bg-cat-flight/10 text-cat-flight", onSelect: () => router.push("/documents?scan=1") },
         ]}
+      />
+      {/* clicked from the menu tap itself, so iOS opens the picker */}
+      <input
+        ref={photoInput}
+        type="file"
+        accept="image/*"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          void uploadPicked(files);
+        }}
       />
       <QuickExpenseSheet
         open={sheet === "expense"}

@@ -19,6 +19,7 @@ import {
   setPhotoAudience,
   setPhotoShared,
   updatePhotoCaption,
+  uploadPhoto,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
 import Link from "next/link";
@@ -38,6 +39,7 @@ import { PhotoView, type ViewedPhoto } from "./PhotoView";
 import { usePhotoFeedback, type FeedbackBadge } from "./usePhotoFeedback";
 import { PhotoPlacesMap } from "./PhotoPlacesMap";
 import { PlaceHeader } from "./PlaceHeader";
+import { FabPicker } from "@/components/ui/Fab";
 
 // Photos are a place of their own again, by place (Hadar 01/11/2026): a small
 // map of where they were taken, then one section per stretch of the trip,
@@ -281,6 +283,29 @@ function FamilyPhotosView() {
     }
   }, [trip, refresh]);
 
+  // the + opens the picker straight away; photos go to the grid, in no update
+  // (Hadar 04/11/2026, amends #46). A parent's photo is approved but not
+  // shared - sharing stays its own step (rule 3, DECISIONS #5).
+  const [uploading, setUploading] = useState(false);
+  const uploadFiles = useCallback(
+    async (files: File[]) => {
+      if (!trip || !member || uploading) return;
+      setUploading(true);
+      try {
+        for (const file of files) {
+          await uploadPhoto({ tripId: trip.id, memberId: member.id, isOwner: member.role === "owner", file });
+        }
+        showToast(strings.photos.uploadedOwner);
+      } catch {
+        showToast(failureText());
+      } finally {
+        setUploading(false);
+        await refresh(trip.id).catch(() => {});
+      }
+    },
+    [trip, member, uploading, refresh, showToast]
+  );
+
   const isOwnerRole = member?.role === "owner";
   useEffect(() => {
     if (!trip || !isOwnerRole) return;
@@ -322,8 +347,8 @@ function FamilyPhotosView() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      {/* Photos are added from "עדכון חדש"; here they are approved, shared
-          and browsed by place (Hadar 01/11/2026). */}
+      {/* Photos are added here with the + (straight to the picker) or with an
+          update; here they are approved, shared and browsed by place. */}
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
       </header>
@@ -527,6 +552,9 @@ function FamilyPhotosView() {
           }
         }}
       />
+      {isOwnerRole && trip && (
+        <FabPicker label={strings.photos.upload} accept="image/*" multiple busy={uploading} onFiles={(files) => void uploadFiles(files)} />
+      )}
       <Toast message={toast} />
     </div>
   );

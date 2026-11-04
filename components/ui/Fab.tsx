@@ -10,6 +10,9 @@ export type FabAction = { key: string; label: string; icon: ReactNode; onSelect:
  * panel of up to four actions, so any capture is two taps from anywhere.
  * Escape or the scrim closes it.
  */
+const FAB_CLASS =
+  "fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] start-1/2 z-50 flex h-14 w-14 translate-x-1/2 items-center justify-center rounded-full bg-sea text-on-sea shadow-[var(--e2)] lg:hidden";
+
 export function Fab({ actions }: { actions: FabAction[] }) {
   const [open, setOpen] = useState(false);
 
@@ -48,12 +51,63 @@ export function Fab({ actions }: { actions: FabAction[] }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] start-1/2 z-50 flex h-14 w-14 translate-x-1/2 items-center justify-center rounded-full bg-sea text-on-sea shadow-[var(--e2)] lg:hidden"
+        className={FAB_CLASS}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className={`h-7 w-7 motion-safe:transition-transform motion-safe:duration-[350ms] ${open ? "rotate-45" : ""}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />
         </svg>
       </button>
     </>
+  );
+}
+
+/**
+ * The same button where a screen has one obvious thing to add: one tap opens
+ * the phone's file picker, no menu (photos, Hadar 04/11/2026). A label around
+ * the input, so iOS opens the picker from the tap itself.
+ */
+export function FabPicker({
+  label,
+  accept,
+  multiple,
+  busy,
+  onFiles,
+}: {
+  label: string;
+  accept: string;
+  multiple?: boolean;
+  busy?: boolean;
+  onFiles: (files: File[]) => void;
+}) {
+  // room at the bottom of the scroller, like the capture button (globals.css)
+  useEffect(() => {
+    document.body.dataset.fab = "1";
+    return () => {
+      delete document.body.dataset.fab;
+    };
+  }, []);
+
+  return (
+    <label aria-label={busy ? undefined : label} aria-busy={busy} className={`${FAB_CLASS} ${busy ? "opacity-70" : "cursor-pointer"}`}>
+      <input
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        disabled={busy}
+        className="sr-only"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (files.length > 0) onFiles(files);
+        }}
+      />
+      {busy ? (
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-on-sea border-t-transparent" aria-label={strings.photos.uploading} />
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      )}
+    </label>
   );
 }
