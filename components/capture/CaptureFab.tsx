@@ -15,8 +15,9 @@ import { strings } from "@/lib/strings";
 
 // Screens where a capture button would be in the way or wrong. The wall and
 // the journal have their own composer, right where the
-// button floats (UX pass 14/10).
-const HIDDEN_ON = ["/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
+// button floats (UX pass 14/10). Photos has its own button that opens the
+// picker straight away (Hadar 04/11/2026).
+const HIDDEN_ON = ["/photos", "/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
 const noop = () => () => {};
 
 /**
