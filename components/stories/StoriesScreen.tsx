@@ -42,7 +42,7 @@ export function StoriesScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [place, setPlace] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // the capture button's photo option lands on ?new=1 with the composer open
+  // ?new=1 lands with the composer open
   const [composer, setComposer] = useState<{ story: Story | null } | null>(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("new") === "1"
       ? { story: null }
