@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNavItemActive, tabsForRole } from "@/components/navItems";
+import { totalPending } from "@/lib/approvals";
 import { strings } from "@/lib/strings";
 import { useIsKidDevice } from "@/lib/useKidDevice";
 import { useMember } from "@/lib/useMember";
+import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 
 export function BottomNav() {
@@ -14,6 +16,10 @@ export function BottomNav() {
   const isKid = useIsKidDevice();
   const role = member?.role ?? (isKid ? "kid" : "owner");
   const unread = useUnreadWall();
+  // A parent's chat sits behind "עוד", as do the approval queues: one dot on
+  // that tab says something new is waiting inside (Hadar 04/11/2026).
+  const pending = usePendingApprovals(role === "owner" && member ? member.trip_id : null, pathname);
+  const moreHasNews = role === "owner" && (unread > 0 || (pending ? totalPending(pending) > 0 : false));
 
   if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
 
@@ -45,6 +51,13 @@ export function BottomNav() {
                     <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
                       {unread > 9 ? "9+" : unread}
                     </span>
+                  )}
+                  {tab.href === "/more" && moreHasNews && (
+                    <span
+                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-rose-500"
+                      role="status"
+                      aria-label={strings.nav.moreHasNews}
+                    />
                   )}
                 </span>
                 <span

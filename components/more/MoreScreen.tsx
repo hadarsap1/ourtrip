@@ -27,6 +27,7 @@ import {
 import { countryName } from "@/lib/data/emergency";
 import { loadMoreCounts, type MoreCounts } from "@/lib/data/moreCounts";
 import { useMember } from "@/lib/useMember";
+import { useUnreadWall } from "@/lib/useUnreadWall";
 import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { strings } from "@/lib/strings";
 
@@ -97,6 +98,8 @@ export function MoreScreen() {
   const { member } = useMember();
   // what waits for approval - a parent's queue only (join requests are owner-only)
   const pending = usePendingApprovals(member?.role === "owner" ? member.trip_id : null);
+  // new chat messages from the kids, the guests or the other parent
+  const unreadWall = useUnreadWall();
 
   useEffect(() => {
     let cancelled = false;
@@ -171,6 +174,7 @@ export function MoreScreen() {
       label: strings.more.menuMessages,
       Icon: MessagesIcon,
       count: n(counts?.messages),
+      badge: unreadWall,
     },
     {
       href: "/podcast",

@@ -46,6 +46,7 @@ export const strings = {
     // Two navigation landmarks now exist - the bottom bar on mobile and the
     // side rail from lg up. They need distinct accessible names.
     bottomBarLabel: "ניווט ראשי",
+    moreHasNews: "יש חדש בעוד",
     railLabel: "ניווט צדדי",
     today: "היום",
     itinerary: "מסלול",
