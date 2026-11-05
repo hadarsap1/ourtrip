@@ -2766,4 +2766,5 @@ update policy on photos.
 | Kid cannot move a parent's photo | ✅ PASS - local, probe 84 |
 | Guest moves no photo | ✅ PASS - local, probe 84 |
 | Full probe suite on 84 migrations | ✅ 328 PASS; 1 FAIL in probe 69 (`guest: no day today -> null`), also failing on main without 00084 - time-of-day dependent, unrelated |
-| 00084 applied to production | pending |
+| 00084 applied to production | ✅ done 05/11/2026 (MCP); before it, the live function matched 00076 |
+| Live: `photos_guard_update` pins `taken_on`, security definer with pinned search_path, no execute for anon/authenticated; `photos_before_update` enabled; photos policies unchanged (`photos_owner_all`, `photos_kid_*`, `photos_guest_select`) | ✅ PASS - live catalog check 05/11/2026 |
