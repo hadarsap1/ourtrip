@@ -2746,4 +2746,5 @@ guest.
 | Email not on the allowlist, or revoked, or not a guest member | 409 `not an active guest`, no link, nothing written (code read) |
 | Owner/kid email | 400 as before (code read) |
 | Older deployed function ignores `login` | falls back to a re-invite of an active guest: same row, revoked_at already null, labels kept |
-| Live call against production | pending - the function needs a redeploy |
+| guest-invite v12 deployed to production | ✅ done 05/11/2026 (MCP, verify_jwt on as before); live source matches the repo |
+| Live call against production | pending - an owner tap on the guest card after the app deploy |
