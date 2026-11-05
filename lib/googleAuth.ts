@@ -92,3 +92,39 @@ export function requestGoogleToken(scope: string): Promise<string> {
     client.requestAccessToken();
   });
 }
+
+// ---------------------------------------------------------------------------
+// Sign-in with an ID token (the app's own Google login).
+//
+// signInWithOAuth bounces through <project>.supabase.co, so Google's consent
+// screen and its "you signed in to ..." email name the Supabase domain. With
+// the GIS button the exchange happens on the app's own origin and the ID token
+// is handed to supabase.auth.signInWithIdToken. The Google client id must be
+// listed under Supabase Auth > Providers > Google > Client IDs, or Supabase
+// rejects the token's audience - callers fall back to the redirect flow then.
+
+type IdCredential = { credential?: string };
+type GisId = {
+  initialize: (cfg: {
+    client_id: string;
+    callback: (resp: IdCredential) => void;
+    nonce?: string;
+    ux_mode?: "popup" | "redirect";
+    auto_select?: boolean;
+    use_fedcm_for_button?: boolean;
+  }) => void;
+  renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+};
+
+export function gisId(): GisId | undefined {
+  return (globalThis as unknown as { google?: { accounts?: { id?: GisId } } }).google?.accounts?.id;
+}
+
+/** A raw nonce for Supabase and its SHA-256 hex for Google's ID token. */
+export async function makeNonce(): Promise<{ raw: string; hashed: string }> {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const raw = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  const hashed = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+  return { raw, hashed };
+}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { getSupabase } from "@/lib/supabase";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { requestGuestLoginLink } from "@/lib/data/guests";
 import { strings } from "@/lib/strings";
 
@@ -11,19 +11,6 @@ export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const supabase = getSupabase();
-
-  async function signIn() {
-    if (!supabase) {
-      setError(strings.auth.missingEnv);
-      return;
-    }
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (err) setError(err.message);
-  }
 
   // guests who joined with an email have no Google way in (00075)
   async function sendLink() {
@@ -52,13 +39,11 @@ export function LoginScreen() {
         <h1 className="relative z-10 mt-3 text-4xl">{strings.appName}</h1>
         <p className="relative z-10 mt-1 text-white/80">{strings.appDescription}</p>
       </div>
-      <button
-        type="button"
-        onClick={signIn}
+      <GoogleSignInButton
+        label={strings.auth.signIn}
         className="rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-on-sea shadow-sm active:bg-sea-deep"
-      >
-        {strings.auth.signIn}
-      </button>
+        onError={(m) => setError(m === "missing_env" ? strings.auth.missingEnv : m)}
+      />
       <p className="my-5 flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
         {strings.auth.or}
       </p>

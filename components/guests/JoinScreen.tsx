@@ -14,6 +14,7 @@ import {
 } from "@/lib/guestJoin";
 import { normalizeKidNames } from "@/lib/kidTag";
 import { KidNamesField } from "@/components/guests/KidNamesField";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { strings } from "@/lib/strings";
 
 type Phase =
@@ -77,19 +78,12 @@ export function JoinScreen({ token }: { token: string }) {
     })();
   }, [load]);
 
-  async function withGoogle() {
-    const supabase = getSupabase();
-    if (!supabase) return;
+  // Before Google signs them in: the token and kids' names ride to the root
+  // (the auth gate sees the remembered token and returns here).
+  function prepareGoogle() {
     setError(null);
     rememberJoinToken(token);
     rememberJoinKids(normalizeKidNames(kidNames));
-    // Back to the root (the redirect the auth settings allow); the auth gate
-    // sees the remembered token and returns here.
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (err) setError(strings.join.error);
   }
 
   async function run(fn: () => Promise<void>) {
@@ -210,9 +204,12 @@ export function JoinScreen({ token }: { token: string }) {
           {/* above both ways in, so it counts for Google and for the typed form */}
           <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
           <div className="space-y-1">
-            <button type="button" className={buttonPrimary} onClick={() => void withGoogle()}>
-              {strings.join.google}
-            </button>
+            <GoogleSignInButton
+              label={strings.join.google}
+              className={buttonPrimary}
+              prepare={prepareGoogle}
+              onError={() => setError(strings.join.error)}
+            />
             <p className="text-center text-xs text-ink-soft">{strings.join.googleHint}</p>
           </div>
           <p className="flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
