@@ -15,7 +15,7 @@ import { PhotoView, type ViewedPhoto } from "@/components/photos/PhotoView";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import { getAutoLocation } from "@/lib/data/journal";
 import { deleteStory, listStories, type Story } from "@/lib/data/stories";
-import { listPhotos } from "@/lib/data/photos";
+import { listPhotos, setPhotoDate } from "@/lib/data/photos";
 import { listGuestPhotos } from "@/lib/data/guests";
 import { listComments, listReactions, pollFeedback } from "@/lib/data/feedback";
 import { shareText, shareUrl } from "@/lib/share";
@@ -396,6 +396,22 @@ export function StoriesScreen() {
           onChanged={() => void loadFeedback(trip.id)}
           onToast={showToast}
           onClose={() => setViewing(null)}
+          onChangeDate={
+            isOwner
+              ? async (date) => {
+                  const id = viewing.id;
+                  try {
+                    await setPhotoDate(id, date);
+                    setViewing((v) => (v && v.id === id ? { ...v, taken_on: date } : v));
+                    showToast(strings.photos.dateSaved);
+                    void loadPhotos(trip.id).catch(() => {});
+                  } catch {
+                    showToast(strings.common.error);
+                    throw new Error("photo date failed");
+                  }
+                }
+              : undefined
+          }
         />
       )}
 

@@ -2748,3 +2748,22 @@ guest.
 | Older deployed function ignores `login` | falls back to a re-invite of an active guest: same row, revoked_at already null, labels kept |
 | guest-invite v12 deployed to production | ✅ done 05/11/2026 (MCP, verify_jwt on as before); live source matches the repo |
 | Live call against production | pending - an owner tap on the guest card after the app deploy |
+
+## 05/11/2026 - a photo's day is the owners' to change (00084)
+
+A photo's place on the photos screen comes from its day (`taken_on`), which
+was always the upload day. Now the day comes from the photo's EXIF when it
+has one, and parents can move a photo to another day from the photo card.
+No new policy: owners update photos through the existing owner policy; the
+kid update policy (`photos_kid_update_own`) is unchanged, and
+`photos_guard_update` now also pins `taken_on` for kids. Guests have no
+update policy on photos.
+
+| Check | Result |
+|---|---|
+| Owner moves their own photo and a kid's photo to another day | ✅ PASS - local, probe `84_photo_date_owner_only.sql` |
+| Kid updating their own photo keeps its day; the caption in the same update still saves | ✅ PASS - local, probe 84 |
+| Kid cannot move a parent's photo | ✅ PASS - local, probe 84 |
+| Guest moves no photo | ✅ PASS - local, probe 84 |
+| Full probe suite on 84 migrations | ✅ 328 PASS; 1 FAIL in probe 69 (`guest: no day today -> null`), also failing on main without 00084 - time-of-day dependent, unrelated |
+| 00084 applied to production | pending |

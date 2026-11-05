@@ -1855,6 +1855,11 @@ export const strings = {
     newUpload: "העלאה חדשה",
     open: "פתיחת התמונה עם התגובות",
     by: "הועלתה על ידי {name}",
+    // a photo's day, and so its place (00084): parents move it
+    takenOn: "צולמה ב-{date}",
+    changeDate: "שינוי יום",
+    dateHint: "התמונה תעבור ליום הזה, ולמקום שבו הייתם באותו יום במסלול",
+    dateSaved: "היום של התמונה עודכן",
     pickFrom: "מאיפה התמונה?",
     fromGallery: "מהגלריה",
     takePhoto: "צילום",
