@@ -18,7 +18,9 @@ export async function inviteGuest(
   email: string,
   displayName: string,
   /** Groups to add; the guest's existing groups are kept. */
-  labels: string[] = []
+  labels: string[] = [],
+  /** Sign-in link for a guest already in: nothing on the list changes. */
+  loginOnly = false
 ): Promise<{ link: string; emailed: boolean }> {
   const { data, error } = await requireClient().functions.invoke(
     "guest-invite",
@@ -28,6 +30,7 @@ export async function inviteGuest(
         display_name: displayName,
         redirect_to: window.location.origin,
         ...(labels.length === 0 ? {} : { labels }),
+        ...(loginOnly ? { login: true } : {}),
       },
     }
   );
@@ -42,6 +45,15 @@ export async function inviteGuest(
   }
   if (!data?.ok) throw new Error(data?.error ?? "invite failed");
   return { link: data.link as string, emailed: Boolean(data.emailed) };
+}
+
+/** Owner, from the guest card: a fresh sign-in link for an active guest who
+ *  lost their way back in. Emailed when it can be, else returned to share. */
+export function sendGuestLoginLink(
+  email: string,
+  displayName: string
+): Promise<{ link: string; emailed: boolean }> {
+  return inviteGuest(email, displayName, [], true);
 }
 
 /** Login screen: ask for a fresh sign-in link (guest-login-link, 00075).

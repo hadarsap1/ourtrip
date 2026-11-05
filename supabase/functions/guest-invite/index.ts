@@ -5,6 +5,10 @@
 // built-in SMTP is rate-limited); otherwise the link is returned to the
 // owner UI for manual sharing (WhatsApp etc.) - the feature degrades,
 // never blocks.
+//
+// login: true is the guest card's "send a sign-in link" for a guest who is
+// already in and lost their way back: the guest must be on the allowlist and
+// not revoked, nothing is written, and the email says sign-in, not invitation.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -58,6 +62,8 @@ Deno.serve(async (req) => {
     labels?: unknown;
     /** pre-00061 clients: one group */
     label?: string | null;
+    /** sign-in link for a guest already in; no allowlist or member writes */
+    login?: boolean;
   };
   try {
     body = await req.json();
@@ -66,6 +72,7 @@ Deno.serve(async (req) => {
   }
 
   const email = (body.email ?? "").trim().toLowerCase();
+  const loginOnly = body.login === true;
   const displayName = (body.display_name ?? "").trim();
   // Optional groups (family / a class / friends) - addressing only, no policy
   // reads them (migrations 00043, 00061). They are added to the groups the
@@ -120,38 +127,51 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "email belongs to a family member" }, 400);
   }
 
-  let labels: string[] | undefined;
-  if (addLabels.length > 0) {
-    const { data: existing } = await service
+  if (loginOnly) {
+    // only a guest who is already in: on the list, not removed, a guest member
+    const { data: row } = await service
       .from("guests_allowlist")
-      .select("labels")
+      .select("revoked_at")
       .eq("trip_id", trip.id)
       .eq("email", email)
       .maybeSingle();
-    labels = [...new Set([...((existing?.labels as string[] | undefined) ?? []), ...addLabels])].slice(0, 10);
-  }
+    if (!row || row.revoked_at !== null || !existingMember) {
+      return json({ ok: false, error: "not an active guest" }, 409);
+    }
+  } else {
+    let labels: string[] | undefined;
+    if (addLabels.length > 0) {
+      const { data: existing } = await service
+        .from("guests_allowlist")
+        .select("labels")
+        .eq("trip_id", trip.id)
+        .eq("email", email)
+        .maybeSingle();
+      labels = [...new Set([...((existing?.labels as string[] | undefined) ?? []), ...addLabels])].slice(0, 10);
+    }
 
-  // allowlist upsert: re-inviting clears a previous revocation
-  const { error: allowlistError } = await service.from("guests_allowlist").upsert(
-    {
-      trip_id: trip.id,
-      email,
-      invited_by: callerId,
-      revoked_at: null,
-      ...(labels === undefined ? {} : { labels }),
-    },
-    { onConflict: "trip_id,email" }
-  );
-  if (allowlistError) return json({ ok: false, error: allowlistError.message }, 500);
+    // allowlist upsert: re-inviting clears a previous revocation
+    const { error: allowlistError } = await service.from("guests_allowlist").upsert(
+      {
+        trip_id: trip.id,
+        email,
+        invited_by: callerId,
+        revoked_at: null,
+        ...(labels === undefined ? {} : { labels }),
+      },
+      { onConflict: "trip_id,email" }
+    );
+    if (allowlistError) return json({ ok: false, error: allowlistError.message }, 500);
 
-  if (!existingMember) {
-    const { error } = await service.from("members").insert({
-      trip_id: trip.id,
-      email,
-      display_name: displayName,
-      role: "guest",
-    });
-    if (error) return json({ ok: false, error: error.message }, 500);
+    if (!existingMember) {
+      const { error } = await service.from("members").insert({
+        trip_id: trip.id,
+        email,
+        display_name: displayName,
+        role: "guest",
+      });
+      if (error) return json({ ok: false, error: error.message }, 500);
+    }
   }
 
   // auth user must exist before a magiclink can be generated
@@ -187,11 +207,13 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: Deno.env.get("RESEND_FROM") ?? "OurTrip <onboarding@resend.dev>",
           to: [email],
-          subject: "הוזמנתם לעקוב אחרי סו-בב עולם! 🌍",
+          subject: loginOnly ? "קישור כניסה ל-סו-בב עולם! 🌍" : "הוזמנתם לעקוב אחרי סו-בב עולם! 🌍",
           html:
             `<div dir="rtl" style="font-family:sans-serif;background:#F7EBD6;color:#3A2C24;padding:24px;border-radius:16px">` +
             `<h2 style="margin:0 0 8px">שלום ${escapeHtml(displayName)}!</h2>` +
-            `<p>הוזמנתם ל"סו-בב עולם!" - הסיפורים, התמונות והפודקאסט של משפחת סו מהדרך.</p>` +
+            (loginOnly
+              ? `<p>הנה קישור כניסה חדש ל"סו-בב עולם!". לוחצים, ואתם בפנים.</p>`
+              : `<p>הוזמנתם ל"סו-בב עולם!" - הסיפורים, התמונות והפודקאסט של משפחת סו מהדרך.</p>`) +
             `<p><a href="${link}" style="background:#4E6B45;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold">כניסה</a></p>` +
             `<p style="color:#6B5A4E;font-size:12px">הקישור אישי - לא להעביר הלאה. נכנסים פעם אחת, והטלפון זוכר.</p>` +
             `</div>`,

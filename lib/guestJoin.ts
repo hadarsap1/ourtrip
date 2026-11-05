@@ -25,15 +25,21 @@ export type ApprovedGuest = { name: string; email: string; link: string; viaGoog
  * (they sign in with Google - nothing to expire); a typed address gets its
  * personal sign-in link, which expires, so the message says to tap it now.
  */
-export function approvedShareText(guest: ApprovedGuest, origin: string): string {
+export function approvedShareText(
+  guest: ApprovedGuest,
+  origin: string,
+  /** a sign-in link for a guest already in, not an approval */
+  login = false
+): string {
   const name = guest.name.trim();
   if (guest.viaGoogle) {
-    return strings.guests.approvedGoogleText
+    return (login ? strings.guests.loginGoogleText : strings.guests.approvedGoogleText)
       .replace("{name}", name)
       .replace("{email}", guest.email)
       .replace("{url}", `${origin.replace(/\/+$/, "")}/`);
   }
-  return strings.guests.approvedLinkText.replace("{name}", name).replace("{url}", guest.link);
+  return (login ? strings.guests.loginLinkText : strings.guests.approvedLinkText)
+    .replace("{name}", name).replace("{url}", guest.link);
 }
 
 /** What guest_join_info returned, narrowed; anything unexpected is invalid. */

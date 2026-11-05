@@ -2727,3 +2727,24 @@ JSON backups (rows only, never the photos).
 | Full probe suite on 83 migrations | ✅ PASS - local, 464 checks |
 | 00083 applied to production | ✅ done 02/11/2026 (SQL editor, by Hadar) |
 | Live: table with RLS on, `expense_receipts_owner_all` the only policy (USING/WITH CHECK as written), FKs incl. expense cascade, unique file_path, indexes, in the realtime publication; bucket private, 10 MB, images only; the four storage policies owner-only | ✅ PASS - live catalog check 02/11/2026 |
+
+## 05/11/2026 - sign-in link for an active guest (guest-invite `login`)
+
+No schema change, no new policy. The guest card gets "send a sign-in link"
+for a guest who is already in and lost the way back. It calls guest-invite
+with `login: true`: the same owner gate (`current_member_role() = 'owner'`,
+checked in the function with the caller's JWT), the same refusal of an
+owner/kid email, and then a check that the email is on the active trip's
+allowlist, not revoked, and is a guest member. In this mode nothing is
+written (no allowlist upsert, no member insert), so it cannot add a guest or
+bring back a removed one; "הזמנה מחדש" stays the only way back for a removed
+guest.
+
+| Check | Result |
+|---|---|
+| Non-owner (kid, guest, anon) calling with `login: true` | 403 by the existing owner gate (code read, unchanged path) |
+| Email not on the allowlist, or revoked, or not a guest member | 409 `not an active guest`, no link, nothing written (code read) |
+| Owner/kid email | 400 as before (code read) |
+| Older deployed function ignores `login` | falls back to a re-invite of an active guest: same row, revoked_at already null, labels kept |
+| guest-invite v12 deployed to production | ✅ done 05/11/2026 (MCP, verify_jwt on as before); live source matches the repo |
+| Live call against production | pending - an owner tap on the guest card after the app deploy |
