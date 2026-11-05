@@ -8,6 +8,7 @@ import {
   declineJoinRequest,
   getJoinToken,
   inviteGuest,
+  sendGuestLoginLink,
   inviteMany,
   listAllowlist,
   listJoinRequests,
@@ -67,6 +68,8 @@ export function GuestsAdminScreen() {
   // sign-in links guest-invite could not email (no RESEND_API_KEY, or Resend
   // failed): the parent sends them, or the approved guest never hears a thing
   const [unsent, setUnsent] = useState<ApprovedGuest[] | null>(null);
+  // the unsent links are sign-in links for guests already in, not approvals
+  const [unsentLogin, setUnsentLogin] = useState(false);
   const { member } = useMember();
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -410,7 +413,17 @@ export function GuestsAdminScreen() {
           }}
         />
       )}
-      {unsent && <UnsentLinksSheet links={unsent} onClose={() => setUnsent(null)} onToast={showToast} />}
+      {unsent && (
+        <UnsentLinksSheet
+          links={unsent}
+          login={unsentLogin}
+          onClose={() => {
+            setUnsent(null);
+            setUnsentLogin(false);
+          }}
+          onToast={showToast}
+        />
+      )}
       {detailFor && (
         <GuestSheet
           row={detailFor}
@@ -434,6 +447,21 @@ export function GuestsAdminScreen() {
               if (emailed) showToast(strings.guests.emailed);
               else setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
               if (trip) await refresh(trip.id);
+            } catch {
+              showToast(strings.common.error);
+            }
+          }}
+          onSendLoginLink={async () => {
+            const row = detailFor;
+            const name = memberOf(row.email)?.display_name ?? row.email;
+            setDetailFor(null);
+            try {
+              const { link, emailed } = await sendGuestLoginLink(row.email, name);
+              if (emailed) showToast(strings.guests.loginLinkEmailed);
+              else {
+                setUnsentLogin(true);
+                setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
+              }
             } catch {
               showToast(strings.common.error);
             }
@@ -843,17 +871,19 @@ function BulkInviteSheet({
 /** Approved, but the sign-in email did not go out: one WhatsApp per person. */
 function UnsentLinksSheet({
   links,
+  login = false,
   onClose,
   onToast,
 }: {
   links: ApprovedGuest[];
+  login?: boolean;
   onClose: () => void;
   onToast: (message: string) => void;
 }) {
   return (
-    <Sheet open onClose={onClose} title={strings.guests.unsentTitle}>
+    <Sheet open onClose={onClose} title={login ? strings.guests.loginUnsentTitle : strings.guests.unsentTitle}>
       <div className="space-y-4">
-        <p className="text-sm text-ink-soft">{strings.guests.unsentBody}</p>
+        <p className="text-sm text-ink-soft">{login ? strings.guests.loginUnsentBody : strings.guests.unsentBody}</p>
         <ul className="space-y-2">
           {links.map((guest) => (
             <li
@@ -866,7 +896,7 @@ function UnsentLinksSheet({
               </span>
               <button
                 type="button"
-                onClick={() => void shareToWhatsApp(approvedShareText(guest, window.location.origin))}
+                onClick={() => void shareToWhatsApp(approvedShareText(guest, window.location.origin, login))}
                 className="flex shrink-0 items-center gap-1.5 rounded-xl bg-sea px-3 py-2 text-sm font-semibold text-on-sea"
               >
                 <ShareIcon className="h-4 w-4" /> {strings.guests.joinShare}
@@ -909,6 +939,7 @@ function GuestSheet({
   onEditLabels,
   onEditKids,
   onReinvite,
+  onSendLoginLink,
   onRevoke,
 }: {
   row: GuestAllowlistRow;
@@ -917,6 +948,7 @@ function GuestSheet({
   onEditLabels: () => void;
   onEditKids: (guest: Member) => void;
   onReinvite: () => void;
+  onSendLoginLink: () => void;
   onRevoke: () => void;
 }) {
   const revoked = row.revoked_at !== null;
@@ -983,6 +1015,16 @@ function GuestSheet({
             className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
           >
             {strings.guests.reinvite}
+          </button>
+        )}
+        {/* already in, lost the way back: no re-registering (guest-invite login) */}
+        {!revoked && (
+          <button
+            type="button"
+            onClick={onSendLoginLink}
+            className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
+          >
+            <MailIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.guests.sendLoginLink}
           </button>
         )}
         {!revoked && (

@@ -1643,6 +1643,8 @@ export const strings = {
     revoke: "הסרת גישה",
     revokeConfirm: "להסיר את הגישה של האורח/ת? אפשר להזמין שוב בכל שלב",
     reinvite: "הזמנה מחדש",
+    sendLoginLink: "שליחת קישור כניסה",
+    loginLinkEmailed: "קישור הכניסה נשלח במייל",
     // phase 0: lists and labels (DESIGN-sharing §3)
     bulkInvite: "הזמנת רשימה",
     bulkHint: "שורה לכל אחד: שם ומייל. אפשר להדביק ישר מקבוצת ההורים",
@@ -1688,6 +1690,13 @@ export const strings = {
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nנכנסים כאן עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה קישור הכניסה האישי שלך. הוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+    // guest card "send a sign-in link", when the email did not go out
+    loginUnsentTitle: "קישור הכניסה מוכן",
+    loginUnsentBody: "המייל לא נשלח. שלחו את הקישור בוואטסאפ.",
+    loginGoogleText:
+      "היי {name}! נכנסים ל\"סו-בב עולם!\" 🌍 עם חשבון ה-Google שלך ({email}):\n{url}",
+    loginLinkText:
+      "היי {name}! הנה קישור כניסה חדש ל\"סו-בב עולם!\" 🌍\nהוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
     viaGoogleShort: "Google",
     declined: "הבקשה נדחתה",
     declineConfirm: "לדחות את הבקשה? הפונה לא יקבל הודעה על כך",
