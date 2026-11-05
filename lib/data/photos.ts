@@ -1,5 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/images";
+import { photoTakenOn } from "@/lib/exifDate";
 import { todayISO } from "@/lib/format";
 import type { Tables } from "@/lib/database.types";
 
@@ -52,7 +53,9 @@ export async function uploadPhoto(input: {
   audience?: string[];
 }): Promise<Photo> {
   const supabase = requireClient();
-  const blob = await compressImage(input.file);
+  // the day it was taken, not the day it was uploaded; the canvas drops EXIF
+  const [blob, shotOn] = await Promise.all([compressImage(input.file), photoTakenOn(input.file)]);
+  const today = todayISO();
   const path = `${input.tripId}/${crypto.randomUUID()}.jpg`;
 
   const { error: uploadError } = await supabase.storage
@@ -67,7 +70,7 @@ export async function uploadPhoto(input: {
       uploaded_by: input.memberId,
       file_path: path,
       caption: input.caption?.trim() || null,
-      taken_on: todayISO(),
+      taken_on: shotOn && shotOn <= today ? shotOn : today,
       audience: input.audience ?? [],
       ...(input.isOwner
         ? { status: "approved" as const, approved_by: input.memberId }
@@ -104,6 +107,14 @@ async function withdrawPublicCopies(photoId: string): Promise<void> {
     .eq("photo_id", photoId)
     .not("public_path", "is", null);
   if (unlinkError) throw new Error(unlinkError.message);
+}
+
+/** Move a photo to another day, and so to that day's place (Hadar
+ *  05/11/2026). Owners only: photos_guard_update pins it for kids (00084). */
+export async function setPhotoDate(id: string, date: string): Promise<void> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("bad date");
+  const { error } = await requireClient().from("photos").update({ taken_on: date }).eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 /** Free text, no length limit. RLS: owner any photo, kid only their own

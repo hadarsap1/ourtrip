@@ -20,6 +20,7 @@ import {
   setPhotoShared,
   updatePhotoCaption,
   uploadPhoto,
+  setPhotoDate,
   type PhotoWithUrl,
 } from "@/lib/data/photos";
 import Link from "next/link";
@@ -525,6 +526,22 @@ function FamilyPhotosView() {
           onChanged={() => void feedback.reload()}
           onToast={showToast}
           onClose={() => setViewing(null)}
+          onChangeDate={
+            isOwner
+              ? async (date) => {
+                  const id = viewing.id;
+                  try {
+                    await setPhotoDate(id, date);
+                    setPhotos((prev) => prev.map((x) => (x.id === id ? { ...x, taken_on: date } : x)));
+                    setViewing((v) => (v && v.id === id ? { ...v, taken_on: date } : v));
+                    showToast(strings.photos.dateSaved);
+                  } catch {
+                    showToast(strings.common.error);
+                    throw new Error("photo date failed");
+                  }
+                }
+              : undefined
+          }
         />
       )}
       <CaptionSheet
