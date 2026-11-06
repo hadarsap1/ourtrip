@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import {
   BellIcon,
+  BulbIcon,
   BudgetIcon,
   ChecklistIcon,
   CoinIcon,
@@ -41,7 +42,7 @@ export const kidTabs: NavItem[] = [
   { href: "/messages", label: strings.kidNav.messages, Icon: MessagesIcon },
   { href: "/photos", label: strings.kidNav.photos, Icon: PhotosIcon },
   { href: "/stories", label: strings.kidNav.journal, Icon: JournalIcon },
-  { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
+  { href: "/facts", label: strings.facts.navLabel, Icon: BulbIcon },
   ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.kidNav.pocket, Icon: CoinIcon }] : []),
 ];
 
@@ -60,7 +61,10 @@ export const ownerTabs: NavItem[] = [
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
   { href: "/itinerary", label: strings.nav.itinerary, Icon: RouteIcon },
   { href: "/budget", label: strings.nav.budget, Icon: BudgetIcon },
-  { href: "/documents", label: strings.nav.documents, Icon: DocumentIcon },
+  // Photos replaced documents on the bar (UX pass 06/11/2026): on the road the
+  // photos are opened and approved every day, the vault a few times a trip. The
+  // vault is one tap away on "עוד" and still works offline.
+  { href: "/photos", label: strings.nav.photos, Icon: PhotosIcon },
   { href: "/more", label: strings.nav.more, Icon: MoreIcon },
 ];
 
@@ -81,30 +85,29 @@ export type NavGroup = { label: string; items: NavItem[] };
  */
 export const ownerRailGroups: NavGroup[] = [
   {
-    label: strings.more.groupExplore,
+    label: strings.more.groupOnTheRoad,
     items: [
       { href: "/recommend", label: strings.more.menuRecommend, Icon: SparkleIcon },
       { href: "/map", label: strings.more.menuMap, Icon: MapIcon },
       { href: "/phrasebook", label: strings.more.menuPhrasebook, Icon: PhrasebookIcon },
-      { href: "/options", label: strings.more.menuOptions, Icon: OptionsIcon },
-      // Owner-facing too: FactsScreen is where the AI facts are generated,
-      // checked and deleted before the kids read them, and it had no entry
-      // point for an owner on either layout - only the kid home tiles.
-      { href: "/facts", label: strings.facts.navLabel, Icon: SparkleIcon },
+      { href: "/documents", label: strings.nav.documents, Icon: DocumentIcon },
     ],
   },
   {
     label: strings.more.groupMemories,
     items: [
       { href: "/stories", label: strings.more.menuJournal, Icon: JournalIcon },
-      { href: "/photos", label: strings.more.menuPhotos, Icon: PhotosIcon },
       { href: "/messages", label: strings.more.menuMessages, Icon: MessagesIcon },
       { href: "/podcast", label: strings.more.menuPodcast, Icon: MicIcon },
+      // Owner-facing too: FactsScreen is where the AI facts are generated,
+      // checked and deleted before the kids read them.
+      { href: "/facts", label: strings.facts.navLabel, Icon: BulbIcon },
     ],
   },
   {
     label: strings.more.groupFamily,
     items: [
+      { href: "/options", label: strings.more.menuOptions, Icon: OptionsIcon },
       { href: "/checklists", label: strings.more.menuChecklists, Icon: ChecklistIcon },
       ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon }] : []),
       { href: "/kids", label: strings.more.menuKids, Icon: PersonIcon },

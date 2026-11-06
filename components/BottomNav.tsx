@@ -23,11 +23,15 @@ export function BottomNav() {
   const ownerTrip = role === "owner" && member ? member.trip_id : null;
   const pending = usePendingApprovals(ownerTrip, pathname);
   const fresh = useNewFeedback(ownerTrip, pathname);
+  // Photos have a tab of their own (UX pass 06/11/2026): their queue and
+  // their new likes show there, and "עוד" carries only what lives inside it.
+  const photosWaiting = role === "owner" && pending ? pending.photos : 0;
+  const photosHasNews = role === "owner" && photosWaiting === 0 && fresh.photos > 0;
   const moreHasNews =
     role === "owner" &&
     (unread > 0 ||
-      (pending ? totalPending(pending) > 0 : false) ||
-      fresh.stories + fresh.photos + fresh.episodes > 0);
+      (pending ? totalPending(pending) - pending.photos > 0 : false) ||
+      fresh.stories + fresh.episodes > 0);
 
   if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
 
@@ -59,6 +63,22 @@ export function BottomNav() {
                     <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
                       {unread > 9 ? "9+" : unread}
                     </span>
+                  )}
+                  {tab.href === "/photos" && photosWaiting > 0 && (
+                    <span
+                      className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white"
+                      role="status"
+                      aria-label={strings.nav.photosWaiting.replace("{n}", String(photosWaiting))}
+                    >
+                      {photosWaiting > 9 ? "9+" : photosWaiting}
+                    </span>
+                  )}
+                  {tab.href === "/photos" && photosHasNews && (
+                    <span
+                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-rose-500"
+                      role="status"
+                      aria-label={strings.more.newFeedback}
+                    />
                   )}
                   {tab.href === "/more" && moreHasNews && (
                     <span
