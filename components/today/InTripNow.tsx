@@ -111,7 +111,7 @@ export function InTripNow({ items, day, now, clock }: { items: ItineraryItem[]; 
                 <bdi className="shrink-0 text-base font-extrabold tabular-nums text-sea">
                   {upcoming.item.start_time ? formatTime(upcoming.item.start_time) : ""}
                 </bdi>
-                <span className="min-w-0 truncate text-base font-bold text-ink">{upcoming.item.title}</span>
+                <span dir="auto" className="min-w-0 truncate text-base font-bold text-ink">{upcoming.item.title}</span>
               </p>
               {upcoming.item.location_name && <p className="mt-0.5 truncate text-xs text-ink-soft">{upcoming.item.location_name}</p>}
             </div>

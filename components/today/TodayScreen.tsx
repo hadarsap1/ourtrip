@@ -22,7 +22,6 @@ import {
   PhotosIcon,
   PhrasebookIcon,
   PinIcon,
-  PlusIcon,
   RainDropIcon,
   RouteIcon,
   StarIcon,
@@ -558,15 +557,9 @@ export function TodayScreen() {
             <p className="mt-1 text-xs text-white/75">{dayLine}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            {/* Straight into the expense form: "?add=1" opens it on arrival,
-                so an expense is one tap from home, not two. */}
-            <Link
-              href="/budget?add=1"
-              className="flex min-h-[44px] items-center gap-1 rounded-xl border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-bold text-white active:bg-white/20"
-            >
-              <PlusIcon className="h-3.5 w-3.5" />
-              {strings.today.addExpenseShort}
-            </Link>
+            {/* SOS only (Hadar 06/11/2026): the capture button at the bottom
+                already adds an expense in two taps from every screen, so a
+                second "+ הוצאה" here was the same action twice. */}
             <Link
               href="/emergency"
               aria-label={strings.emergency.title}
@@ -652,7 +645,7 @@ export function TodayScreen() {
                         ? formatTime(upcoming.item.start_time)
                         : ""}
                     </span>
-                    <span className="min-w-0 truncate text-base font-bold text-ink">
+                    <span dir="auto" className="min-w-0 truncate text-base font-bold text-ink">
                       {upcoming.item.title}
                     </span>
                   </p>
@@ -686,7 +679,10 @@ export function TodayScreen() {
                   <p className="mt-1 truncate text-xs text-ink-soft">
                     {describeWeather(weather.weatherCode).label}
                     {weather.precipitationChance > 0 && (
-                      <span dir="ltr"> · {weather.precipitationChance}%</span>
+                      <>
+                        {" · "}
+                        <span dir="ltr">{weather.precipitationChance}%</span>
+                      </>
                     )}
                   </p>
                 </Tile>
@@ -697,7 +693,7 @@ export function TodayScreen() {
                   <>
                     <p className="flex items-center gap-2">
                       <BedIcon className="h-[21px] w-[21px] shrink-0 text-sea" />
-                      <span className="min-w-0 truncate text-sm font-bold text-ink">
+                      <span dir="auto" className="min-w-0 truncate text-sm font-bold text-ink">
                         {lodging.title}
                       </span>
                     </p>
@@ -822,7 +818,7 @@ export function TodayScreen() {
                           key={booking.id}
                           className="flex items-baseline justify-between gap-2 border-t border-line px-3.5 py-2.5"
                         >
-                          <span className="min-w-0 truncate text-sm font-medium text-ink">
+                          <span dir="auto" className="min-w-0 truncate text-sm font-medium text-ink">
                             {booking.title}
                           </span>
                           <span
