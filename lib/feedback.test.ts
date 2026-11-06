@@ -24,8 +24,8 @@ describe("tallyReactions", () => {
       r({ id: "5", member_id: "x", post_id: null, episode_id: "p1" }),
     ];
     const { tallies, memberIds } = tallyReactions(reactions, { postId: "p1" }, "me");
-    expect(tallies.find((t) => t.kind === "heart")).toEqual({ kind: "heart", count: 2, mineId: "2" });
-    expect(tallies.find((t) => t.kind === "star")).toEqual({ kind: "star", count: 1, mineId: null });
+    expect(tallies.find((t) => t.kind === "heart")).toEqual({ kind: "heart", count: 2, mineId: "2", memberIds: ["savta", "me"] });
+    expect(tallies.find((t) => t.kind === "star")).toEqual({ kind: "star", count: 1, mineId: null, memberIds: ["savta"] });
     expect(memberIds).toEqual(["savta", "me"]);
   });
 
