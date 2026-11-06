@@ -45,7 +45,7 @@ export function EditTextSheet({
           maxLength={maxLength}
           dir="auto"
           rows={6}
-          className="block min-h-[9rem] w-full resize-y rounded-xl border border-line bg-surface p-3 text-[16px] leading-[1.6] text-ink focus:border-sea focus:outline-none"
+          className="block min-h-[9rem] w-full resize-y rounded-xl border border-line bg-surface p-3 text-base leading-[1.6] text-ink focus:border-sea focus:outline-none"
         />
         {error && (
           <p className="text-sm text-alert" role="alert">

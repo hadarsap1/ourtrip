@@ -55,16 +55,16 @@ export function PreviewCard() {
     setChosen((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <h2 className="text-sm font-bold text-ink">{t.title}</h2>
-      <p className="mt-1 text-[12px] text-ink-soft">{t.hint}</p>
+      <p className="mt-1 text-xs text-ink-soft">{t.hint}</p>
 
       {picking ? (
         <div className="mt-3 space-y-2">
           <p className="text-sm font-semibold text-ink">{t.groupsTitle}</p>
-          <p className="text-[12px] text-ink-soft">{t.groupsHint}</p>
+          <p className="text-xs text-ink-soft">{t.groupsHint}</p>
           {groups.length === 0 ? (
-            <p className="text-[12px] text-ink-soft">{t.noGroups}</p>
+            <p className="text-xs text-ink-soft">{t.noGroups}</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {groups.map((g) => (

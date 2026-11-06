@@ -26,8 +26,8 @@ export function TranslateBox({
   const s = strings.phrasebook;
   return (
     <section className="rounded-2xl border border-line bg-surface p-3.5">
-      <h2 className="text-[13.5px] font-bold text-ink">{s.translateTitle}</h2>
-      <p className="mt-0.5 text-[12px] text-ink-soft">{s.translateHint}</p>
+      <h2 className="text-sm font-bold text-ink">{s.translateTitle}</h2>
+      <p className="mt-0.5 text-xs text-ink-soft">{s.translateHint}</p>
 
       <div className="mt-2 flex gap-2">
         <input
@@ -54,7 +54,7 @@ export function TranslateBox({
 
       {translation && (
         <div className="mt-3 rounded-xl bg-paper-deep p-3">
-          <p className="text-[12px] font-bold text-ink-soft">
+          <p className="text-xs font-bold text-ink-soft">
             {s.translateResult}
           </p>
           {/* dir="auto" so Japanese, Georgian and Vietnamese each lay out
@@ -63,14 +63,14 @@ export function TranslateBox({
             {translation.phrase_local}
           </p>
           {translation.phonetic_he && (
-            <p className="mt-0.5 text-[12.5px] text-ink-soft">
+            <p className="mt-0.5 text-xs text-ink-soft">
               {s.phonetic}: {translation.phonetic_he}
             </p>
           )}
           <button
             type="button"
             onClick={() => onShow(translation)}
-            className="mt-2 text-[12.5px] font-bold text-sea"
+            className="mt-2 text-xs font-bold text-sea"
           >
             {s.translateShow} ←
           </button>

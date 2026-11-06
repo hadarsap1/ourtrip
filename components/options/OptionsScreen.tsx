@@ -384,7 +384,7 @@ export function OptionsScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
       <header>
-        <h1 className="text-2xl font-bold">{s.title}</h1>
+        <h1 className="ot-title">{s.title}</h1>
         <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>
       </header>
 
@@ -576,7 +576,7 @@ export function OptionsScreen() {
                                 )}
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
                                   <span
-                                    className={`rounded-full px-2 py-0.5 text-[12px] font-medium ${STATUS_CLASS[status]}`}
+                                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[status]}`}
                                   >
                                     {s.status[status]}
                                   </span>
@@ -628,7 +628,7 @@ export function OptionsScreen() {
                                 <button
                                   type="button"
                                   onClick={() => void remove(o.id)}
-                                  className="text-rose-600"
+                                  className="text-alert"
                                 >
                                   {strings.common.delete}
                                 </button>

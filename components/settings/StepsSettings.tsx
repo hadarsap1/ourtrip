@@ -54,19 +54,19 @@ export function StepsSettings() {
   }
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <h2 className="text-sm font-bold text-ink">{t.settingsTitle}</h2>
-      <p className="mt-1 text-[12px] text-ink-soft">{t.settingsHint}</p>
+      <p className="mt-1 text-xs text-ink-soft">{t.settingsHint}</p>
 
       {fresh ? (
         <div className="mt-3 space-y-2 rounded-xl bg-warning-soft p-3">
-          <p className="text-[13px] font-semibold text-ink">{t.tokenOnce}</p>
-          <code className="block break-all rounded-lg bg-surface p-2 text-[13px] text-ink" dir="ltr">{fresh}</code>
+          <p className="text-sm font-semibold text-ink">{t.tokenOnce}</p>
+          <code className="block break-all rounded-lg bg-surface p-2 text-sm text-ink" dir="ltr">{fresh}</code>
           <button type="button" onClick={() => void copy("token", fresh)} className="w-full rounded-lg bg-sea text-sm font-bold text-on-sea">
             {copied === "token" ? t.copied : t.copyToken}
           </button>
-          <p className="text-[12px] font-semibold text-ink">{t.urlLabel}</p>
-          <code className="block break-all rounded-lg bg-surface p-2 text-[12px] text-ink" dir="ltr">{stepsIngestUrl()}</code>
+          <p className="text-xs font-semibold text-ink">{t.urlLabel}</p>
+          <code className="block break-all rounded-lg bg-surface p-2 text-xs text-ink" dir="ltr">{stepsIngestUrl()}</code>
           <button type="button" onClick={() => void copy("url", stepsIngestUrl())} className="w-full rounded-lg border border-line bg-surface text-sm font-bold text-ink">
             {copied === "url" ? t.copied : t.copyUrl}
           </button>
@@ -96,23 +96,23 @@ export function StepsSettings() {
 
       <details className="mt-3 rounded-xl bg-paper-deep px-3 py-1">
         <summary className="flex min-h-[44px] cursor-pointer items-center text-sm font-bold text-sea">{t.guide}</summary>
-        <ol className="list-decimal space-y-1.5 ps-5 pb-2 text-[13px] text-ink">
+        <ol className="list-decimal space-y-1.5 ps-5 pb-2 text-sm text-ink">
           {t.guideSteps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
-        <p className="pb-2 text-[12px] font-semibold text-ink-soft">{t.guideNote}</p>
+        <p className="pb-2 text-xs font-semibold text-ink-soft">{t.guideNote}</p>
       </details>
 
       {tokens.length > 0 && (
         <div className="mt-3">
-          <p className="mb-1 text-[12px] font-semibold text-ink-soft">{t.tokens}</p>
+          <p className="mb-1 text-xs font-semibold text-ink-soft">{t.tokens}</p>
           <ul className="divide-y divide-line">
             {tokens.map((tok) => (
               <li key={tok.id} className="flex items-center justify-between gap-2 py-1.5">
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold text-ink">{tok.label ?? "-"}</span>
-                  <span className="block text-[12px] text-ink-soft">
+                  <span className="block text-xs text-ink-soft">
                     {tok.revoked_at ? t.revoked : tok.last_used_at ? t.lastUsed.replace("{when}", when(tok.last_used_at)) : t.neverUsed}
                   </span>
                 </span>
@@ -124,7 +124,7 @@ export function StepsSettings() {
                       await revokeStepToken(tok.id).catch(() => {});
                       setTokens(await listStepTokens().catch(() => tokens));
                     }}
-                    className="shrink-0 rounded-lg border border-line px-3 text-[13px] font-semibold text-danger"
+                    className="shrink-0 rounded-lg border border-line px-3 text-sm font-semibold text-danger"
                   >
                     {t.revoke}
                   </button>

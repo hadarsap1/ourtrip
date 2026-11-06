@@ -126,7 +126,7 @@ export function PhotoView({
           </form>
         )}
         {photo.caption && (
-          <p dir="auto" className="whitespace-pre-wrap break-words text-[15px] leading-[1.7] text-ink">
+          <p dir="auto" className="whitespace-pre-wrap break-words text-base leading-[1.7] text-ink">
             {photo.caption}
           </p>
         )}

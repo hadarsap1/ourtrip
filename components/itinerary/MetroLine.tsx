@@ -57,9 +57,9 @@ export function MetroLine({ legs, onOpen }: { legs: MetroLeg[]; onOpen: (key: st
                   className={`z-10 rounded-full border-[3px] bg-surface ${current ? "h-5 w-5" : s.newCountry ? "h-4 w-4" : "h-3 w-3"}`}
                   style={{ borderColor: s.color, background: current ? s.color : undefined, opacity: s.phase === "past" ? 0.6 : 1 }}
                 />
-                <span className={`line-clamp-2 text-[12px] leading-4 ${current ? "font-extrabold text-ink" : "font-semibold text-ink"}`}>{s.label}</span>
-                <bdi className="text-[12px] leading-4 text-ink-soft">{formatShortDate(s.from)}</bdi>
-                {current && <span className="rounded-full bg-sea px-1.5 text-[12px] font-bold text-on-sea">{t.here}</span>}
+                <span className={`line-clamp-2 text-xs leading-4 ${current ? "font-extrabold text-ink" : "font-semibold text-ink"}`}>{s.label}</span>
+                <bdi className="text-xs leading-4 text-ink-soft">{formatShortDate(s.from)}</bdi>
+                {current && <span className="rounded-full bg-sea px-1.5 text-xs font-bold text-on-sea">{t.here}</span>}
               </button>
             </li>
           );

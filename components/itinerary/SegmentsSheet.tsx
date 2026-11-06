@@ -163,7 +163,7 @@ export function SegmentsSheet({
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
-                    <span className="rounded-full bg-paper-deep px-2.5 py-1 text-[12px] font-bold text-ink-soft">
+                    <span className="rounded-full bg-paper-deep px-2.5 py-1 text-xs font-bold text-ink-soft">
                       {dayLabel(item.days.length)}
                     </span>
                     <ChevronForwardIcon className="h-3.5 w-3.5 text-ink-faint" />
@@ -196,7 +196,7 @@ export function SegmentsSheet({
       </button>
 
       {/* The one number that says whether the route is finished. */}
-      <div className="mb-4 rounded-[14px] border border-line bg-paper-deep px-3.5 py-2.5">
+      <div className="mb-4 rounded-xl border border-line bg-paper-deep px-3.5 py-2.5">
         <p className="text-sm font-bold text-ink">
           {s.assigned
             .replace("{n}", String(Math.min(used, capacity)))
@@ -208,7 +208,7 @@ export function SegmentsSheet({
           </p>
         )}
         {used > capacity && (
-          <p className="mt-0.5 text-xs font-semibold text-rose-600">
+          <p className="mt-0.5 text-xs font-semibold text-alert">
             {s.overflow.replace("{n}", String(used - capacity))}
           </p>
         )}
@@ -227,10 +227,10 @@ export function SegmentsSheet({
               return (
                 <li
                   key={leg.area}
-                  className="rounded-[14px] border border-line bg-surface p-3"
+                  className="rounded-xl border border-line bg-surface p-3"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sea text-[12px] font-bold text-on-sea">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sea text-xs font-bold text-on-sea">
                       {index + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-semibold text-ink">
@@ -241,7 +241,7 @@ export function SegmentsSheet({
                       onClick={() => setChosen((p) => moveLeg(p, index, -1))}
                       disabled={index === 0}
                       aria-label={s.moveUp}
-                      className="grid h-11 w-11 place-items-center rounded-[11px] text-ink-soft disabled:opacity-30"
+                      className="grid h-11 w-11 place-items-center rounded-xl text-ink-soft disabled:opacity-30"
                     >
                       <ChevronForwardIcon className="h-3.5 w-3.5 rotate-90" />
                     </button>
@@ -250,7 +250,7 @@ export function SegmentsSheet({
                       onClick={() => setChosen((p) => moveLeg(p, index, 1))}
                       disabled={index === chosen.length - 1}
                       aria-label={s.moveDown}
-                      className="grid h-11 w-11 place-items-center rounded-[11px] text-ink-soft disabled:opacity-30"
+                      className="grid h-11 w-11 place-items-center rounded-xl text-ink-soft disabled:opacity-30"
                     >
                       <ChevronForwardIcon className="h-3.5 w-3.5 -rotate-90" />
                     </button>
@@ -269,7 +269,7 @@ export function SegmentsSheet({
                         type="button"
                         onClick={() => setDays(index, leg.days - 1)}
                         aria-label={s.oneLess}
-                        className="grid h-11 w-11 place-items-center rounded-[11px] bg-paper-deep text-lg font-bold text-ink-soft active:bg-line"
+                        className="grid h-11 w-11 place-items-center rounded-xl bg-paper-deep text-lg font-bold text-ink-soft active:bg-line"
                       >
                         −
                       </button>
@@ -281,7 +281,7 @@ export function SegmentsSheet({
                         onClick={() => setDays(index, leg.days + 1)}
                         disabled={used >= capacity}
                         aria-label={s.oneMore}
-                        className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-on-sea active:bg-sea-deep disabled:opacity-30"
+                        className="grid h-11 w-11 place-items-center rounded-xl bg-sea text-on-sea active:bg-sea-deep disabled:opacity-30"
                       >
                         <PlusIcon className="h-4 w-4" />
                       </button>
@@ -302,7 +302,7 @@ export function SegmentsSheet({
         {/* Say that the list is cut, and by what. A filter nobody can see is a
             list that looks like it is missing towns. */}
         {hidden.length > 0 && !showAll && (
-          <p className="mb-2 text-[12px] text-ink-faint">
+          <p className="mb-2 text-xs text-ink-faint">
             {s.regionFiltered.replace("{n}", String(hidden.length))}
           </p>
         )}
@@ -331,14 +331,14 @@ export function SegmentsSheet({
                         {choice.area}
                       </span>
                       {choice.lat === null && (
-                        <span className="block text-[12px] text-ink-faint">
+                        <span className="block text-xs text-ink-faint">
                           {s.noCoords}
                         </span>
                       )}
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <span className="rounded-full bg-sea-tint px-2.5 py-1 text-[12px] font-bold text-sea-deep">
+                    <span className="rounded-full bg-sea-tint px-2.5 py-1 text-xs font-bold text-sea-deep">
                       {optionLabel(choice.options)}
                     </span>
                     <PlusIcon className="h-4 w-4 text-ink-faint" />

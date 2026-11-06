@@ -217,7 +217,7 @@ function EmergencyEditForm({
             type="button"
             onClick={handleDelete}
             disabled={saving}
-            className="w-full rounded-xl border border-rose-200 py-3 font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+            className="w-full rounded-xl border border-alert/30 py-3 font-semibold text-alert hover:bg-alert-tint disabled:opacity-60"
           >
             {strings.emergency.deleteCountry}
           </button>

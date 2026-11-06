@@ -244,7 +244,7 @@ export function TripMap({
       {unavailable ? (
         <div className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
           <p className="text-sm font-semibold text-ink-soft">{s.mapUnavailable}</p>
-          <p className="mt-1 text-[12px] text-ink-faint">{s.mapUnavailableHint}</p>
+          <p className="mt-1 text-xs text-ink-faint">{s.mapUnavailableHint}</p>
         </div>
       ) : (
         <div
@@ -254,7 +254,7 @@ export function TripMap({
       )}
 
       {!unavailable && (
-        <p className="px-1 text-[12px] text-ink-soft">
+        <p className="px-1 text-xs text-ink-soft">
           {s.mapPlacedCount
             .replace("{placed}", String(placed.length))
             .replace("{total}", String(legs.length))}
@@ -263,7 +263,7 @@ export function TripMap({
 
       {!unavailable && placed.length > 0 && (
         <section className="rounded-2xl border border-line bg-surface p-3">
-          <h3 className="mb-2 text-[12.5px] font-extrabold text-ink">
+          <h3 className="mb-2 text-xs font-extrabold text-ink">
             {s.mapLegend}
           </h3>
           <ul className="flex flex-wrap gap-1.5">
@@ -272,7 +272,7 @@ export function TripMap({
                 <button
                   type="button"
                   onClick={() => onOpenLeg(leg.key)}
-                  className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1 text-[12px] active:bg-paper-deep"
+                  className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1 text-xs active:bg-paper-deep"
                 >
                   <span
                     aria-hidden="true"
@@ -299,10 +299,10 @@ export function TripMap({
           them is a tap away from being on the map. */}
       {(unplaced.length > 0 || unavailable) && (
         <section className="rounded-2xl border border-line bg-surface p-3">
-          <h3 className="text-[12.5px] font-extrabold text-ink">
+          <h3 className="text-xs font-extrabold text-ink">
             {s.mapMissingTitle}
           </h3>
-          <p className="mt-0.5 text-[12px] text-ink-soft">
+          <p className="mt-0.5 text-xs text-ink-soft">
             {unavailable ? s.mapSearchUnavailable : s.mapMissingHint}
           </p>
           <ul className="mt-2 space-y-1.5">
@@ -311,17 +311,17 @@ export function TripMap({
                 key={leg.key}
                 className="flex items-center gap-2 rounded-lg bg-paper px-2.5 py-1.5"
               >
-                <span className="w-5 shrink-0 text-[12px] font-bold text-ink-faint tabular-nums">
+                <span className="w-5 shrink-0 text-xs font-bold text-ink-faint tabular-nums">
                   {number}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-semibold text-ink">
+                  <span className="block truncate text-xs font-semibold text-ink">
                     {leg.stretch.locationName ??
                       (leg.stretch.countryCode
                         ? countryName(leg.stretch.countryCode)
                         : "")}
                   </span>
-                  <span className="block text-[12px] text-ink-soft" dir="ltr">
+                  <span className="block text-xs text-ink-soft" dir="ltr">
                     {formatShortDate(leg.stretch.from)} -{" "}
                     {formatShortDate(leg.stretch.to)}
                   </span>
@@ -332,7 +332,7 @@ export function TripMap({
                   <button
                     type="button"
                     onClick={() => onSetLocation(leg)}
-                    className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-[12px] font-bold text-sea-deep active:bg-sea-tint/70"
+                    className="shrink-0 rounded-lg bg-sea-tint px-2.5 py-1.5 text-xs font-bold text-sea-deep active:bg-sea-tint/70"
                   >
                     {s.mapSetLocation}
                   </button>

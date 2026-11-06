@@ -52,8 +52,8 @@ export function PhotoDayCard({
       : strings.stories.photosDay.replace("{n}", String(day.photos.length));
 
   return (
-    <article className="overflow-hidden rounded-[20px] border border-sv-line bg-sv-card">
-      <div className="flex items-baseline justify-between gap-2 px-4 pt-3.5 pb-2.5 text-[12px] text-sv-ink-soft">
+    <article className="overflow-hidden rounded-card border border-sv-line bg-sv-card">
+      <div className="flex items-baseline justify-between gap-2 px-4 pt-3.5 pb-2.5 text-xs text-sv-ink-soft">
         <span className="font-bold text-ink">{label}</span>
         <span dir="ltr">{formatDate(day.date)}</span>
       </div>
@@ -64,7 +64,7 @@ export function PhotoDayCard({
           const counts = feedbackCounts(target, comments, reactions);
           const fresh = newFeedback(target, comments, reactions, memberId, since(photo.id));
           return (
-            <li key={photo.id} className="relative overflow-hidden rounded-[14px] bg-paper-deep">
+            <li key={photo.id} className="relative overflow-hidden rounded-xl bg-paper-deep">
               {last ? (
                 <Link href="/photos" className="block" aria-label={strings.stories.allPhotos}>
                   <Thumb photo={photo} single={shown.length === 1} />
@@ -127,12 +127,12 @@ function CardText({ text }: { text: string }) {
   const folds = needsFold(body);
   return (
     <div className="space-y-1.5 px-4 pt-2 pb-4">
-      {headline && <h2 className="text-[19px] font-bold leading-7 text-ink">{headline}</h2>}
+      {headline && <h2 className="text-lg font-bold text-ink">{headline}</h2>}
       {body && (
         <div>
           <p
             dir="auto"
-            className={`whitespace-pre-wrap text-[16px] leading-[1.7] text-sv-ink [text-wrap:pretty] ${
+            className={`whitespace-pre-wrap text-base leading-[1.7] text-sv-ink [text-wrap:pretty] ${
               folds && !open ? "line-clamp-6" : ""
             }`}
           >

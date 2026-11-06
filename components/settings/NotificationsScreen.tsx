@@ -1,5 +1,6 @@
 "use client";
 
+import { Banner } from "@/components/ui/Banner";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import {
@@ -64,13 +65,13 @@ export function NotificationsScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
       <header>
-        <h1 className="text-2xl font-bold">{s.title}</h1>
+        <h1 className="ot-title">{s.title}</h1>
         <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>
       </header>
 
       {/* what we send */}
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <h2 className="mb-2 text-sm font-semibold text-ink">{s.whatTitle}</h2>
+        <h2 className="mb-2 text-sm font-bold text-ink">{s.whatTitle}</h2>
         <ul className="space-y-1.5 text-sm text-ink-soft">
           <li className="flex items-center gap-2">
             <RainIcon className="h-4 w-4 shrink-0 text-sea" />
@@ -94,9 +95,9 @@ export function NotificationsScreen() {
       {/* control - iOS-before-install always shows the install steps first,
           since Web Push can't work until the PWA is on the home screen */}
       {iosNeedsInstall ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <h2 className="mb-3 font-semibold text-amber-800">{s.iosTitle}</h2>
-          <ol className="space-y-2 text-sm text-amber-900">
+        <section className="rounded-2xl border border-sun/30 bg-sun-tint p-4">
+          <h2 className="mb-3 font-semibold text-sun-deep">{s.iosTitle}</h2>
+          <ol className="space-y-2 text-sm text-sun-deep">
             <li className="flex gap-2"><span className="font-bold">1.</span>{s.iosStep1}</li>
             <li className="flex gap-2"><span className="font-bold">2.</span>{s.iosStep2}</li>
             <li className="flex gap-2"><span className="font-bold">3.</span>{s.iosStep3}</li>
@@ -108,9 +109,7 @@ export function NotificationsScreen() {
           {s.unsupported}
         </p>
       ) : state === "denied" ? (
-        <p className="rounded-2xl bg-rose-50 p-4 text-center text-sm text-rose-600">
-          {s.denied}
-        </p>
+        <Banner tone="danger">{s.denied}</Banner>
       ) : state === "subscribed" ? (
         <div className="space-y-3">
           <p className="rounded-2xl bg-sea-tint p-4 text-center text-sm font-medium text-sea">

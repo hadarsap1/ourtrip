@@ -86,7 +86,7 @@ export function ImportItinerarySheet({
           <p className="text-sm text-ink-soft">{s.importParsing}</p>
         )}
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p className="text-sm text-alert">{error}</p>}
 
         {preview && (
           <div className="space-y-3">

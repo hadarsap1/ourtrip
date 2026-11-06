@@ -63,7 +63,7 @@ export function BudgetV2({
   return (
     <div className="space-y-3">
       {/* hero: what is left for the whole trip */}
-      <section className="rounded-[20px] border border-line bg-surface px-4 py-3.5 shadow-[var(--e1)]">
+      <section className="rounded-card border border-line bg-surface px-4 py-3.5 shadow-[var(--e1)]">
         <p className="ot-kicker">{over ? t.overTrip : t.leftTrip}</p>
         {budgetForProgress > 0 ? (
           <p className={`mt-1 text-[40px] font-extrabold leading-[46px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
@@ -74,8 +74,8 @@ export function BudgetV2({
         )}
         <div className="mt-3 flex items-end justify-between gap-3 border-t border-line pt-3">
           <div>
-            <p className="text-[12px] text-ink-soft">{t.spentTotal}</p>
-            <p className="text-[17px] font-extrabold tabular-nums text-ink">
+            <p className="text-xs text-ink-soft">{t.spentTotal}</p>
+            <p className="text-lg font-extrabold tabular-nums text-ink">
               <bdi>{ils(spentTotal)}</bdi>
             </p>
           </div>
@@ -83,7 +83,7 @@ export function BudgetV2({
             <svg viewBox="0 0 120 32" width={120} height={32} role="img" aria-label={t.last14} className="text-sea">
               <polyline points={sparkPoints(series, 120, 32)} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
             </svg>
-            <figcaption className="text-[12px] text-ink-soft">
+            <figcaption className="text-xs text-ink-soft">
               {t.last14} · <bdi>{t.spentTodayLabel.replace("{amount}", ils(spentToday))}</bdi>
             </figcaption>
           </figure>
@@ -111,17 +111,17 @@ export function BudgetV2({
                 <button
                   type="button"
                   onClick={() => onEditCategory(c)}
-                  className="flex w-full items-center gap-2.5 rounded-[18px] border border-line bg-surface p-3 text-start"
+                  className="flex w-full items-center gap-2.5 rounded-card border border-line bg-surface p-3 text-start"
                 >
                   <Ring value={spent} max={c.planned_amount || Math.max(spent, 1)} size={52} stroke={6} colorVar={overCat ? "var(--warning)" : "var(--brand)"}>
-                    <span className="text-[12px] font-bold tabular-nums">{pct === null ? "-" : `${pct}%`}</span>
+                    <span className="text-xs font-bold tabular-nums">{pct === null ? "-" : `${pct}%`}</span>
                   </Ring>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-ink">{c.label_he}</span>
-                    <span className="block text-[12px] tabular-nums text-ink-soft">
+                    <span className="block text-xs tabular-nums text-ink-soft">
                       <bdi>{ils(spent)}</bdi>
                     </span>
-                    <span className="block text-[12px] text-ink-soft">
+                    <span className="block text-xs text-ink-soft">
                       {c.planned_amount > 0 ? <bdi>{t.ofPlanned.replace("{amount}", ils(c.planned_amount))}</bdi> : t.noPlan}
                     </span>
                   </span>
@@ -132,14 +132,14 @@ export function BudgetV2({
         </ul>
       ) : (
         <div className="space-y-2.5">
-          <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+          <ul className="overflow-hidden rounded-card border border-line bg-surface">
             {byCountry.countries.map((c) => (
               <li key={c.code} className="flex items-center justify-between gap-3 border-t border-line px-3.5 py-2.5 first:border-t-0">
                 <span className="flex min-w-0 items-center gap-2">
                   <span aria-hidden="true" className="text-lg">{flagEmoji(c.code)}</span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-ink">{findCountry(c.code)?.he ?? c.code}</span>
-                    <span className="block text-[12px] text-ink-soft">
+                    <span className="block text-xs text-ink-soft">
                       {c.daysSoFar > 0 ? t.daysSoFar.replace("{n}", String(c.daysSoFar)).replace("{total}", String(c.daysPlanned)) : t.notYet}
                     </span>
                   </span>
@@ -147,14 +147,14 @@ export function BudgetV2({
                 <span className="shrink-0 text-end">
                   <span className="block text-sm font-bold tabular-nums text-ink"><bdi>{ils(c.spent)}</bdi></span>
                   {c.perDay !== null && (
-                    <span className="block text-[12px] tabular-nums text-ink-soft"><bdi>{t.perDay.replace("{amount}", ils(c.perDay))}</bdi></span>
+                    <span className="block text-xs tabular-nums text-ink-soft"><bdi>{t.perDay.replace("{amount}", ils(c.perDay))}</bdi></span>
                   )}
                 </span>
               </li>
             ))}
             {byCountry.unassigned > 0 && (
               <li className="flex items-center justify-between gap-3 border-t border-line bg-paper-deep px-3.5 py-2.5">
-                <span className="text-[12px] font-semibold text-ink-soft">{t.unassigned}</span>
+                <span className="text-xs font-semibold text-ink-soft">{t.unassigned}</span>
                 <span className="text-sm font-bold tabular-nums text-ink"><bdi>{ils(byCountry.unassigned)}</bdi></span>
               </li>
             )}
@@ -165,7 +165,7 @@ export function BudgetV2({
               <h2 className="mb-1.5 px-0.5 text-xs font-bold text-ink">{t.summariesTitle}</h2>
               <ul className="space-y-2">
                 {summaries.map((v) => (
-                  <li key={`${v.code}-${v.from}`} className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+                  <li key={`${v.code}-${v.from}`} className="rounded-card border border-line bg-surface px-3.5 py-3">
                     <p className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-sm font-bold text-ink">
                         <span aria-hidden="true">{flagEmoji(v.code)}</span>
@@ -173,13 +173,13 @@ export function BudgetV2({
                       </span>
                       <span className="text-sm font-extrabold tabular-nums text-ink"><bdi>{ils(v.spent)}</bdi></span>
                     </p>
-                    <p className="mt-0.5 flex flex-wrap justify-between gap-x-3 text-[12px] text-ink-soft">
+                    <p className="mt-0.5 flex flex-wrap justify-between gap-x-3 text-xs text-ink-soft">
                       <span>
                         <bdi>{t.summaryNights.replace("{n}", String(v.nights)).replace("{from}", formatShortDate(v.from)).replace("{to}", formatShortDate(v.to))}</bdi>
                       </span>
                       <span><bdi>{t.perDay.replace("{amount}", ils(v.perDay))}</bdi></span>
                     </p>
-                    {v.topCategoryId && <p className="mt-0.5 text-[12px] text-ink-soft">{t.summaryTop.replace("{category}", catLabel(v.topCategoryId))}</p>}
+                    {v.topCategoryId && <p className="mt-0.5 text-xs text-ink-soft">{t.summaryTop.replace("{category}", catLabel(v.topCategoryId))}</p>}
                   </li>
                 ))}
               </ul>
@@ -188,7 +188,7 @@ export function BudgetV2({
         </div>
       )}
 
-      <p className="text-center text-[12px] text-ink-soft">{stamp ? t.ratesUpdated.replace("{when}", stamp) : t.ratesNever}</p>
+      <p className="text-center text-xs text-ink-soft">{stamp ? t.ratesUpdated.replace("{when}", stamp) : t.ratesNever}</p>
     </div>
   );
 }

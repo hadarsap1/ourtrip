@@ -59,9 +59,9 @@ export function EpisodeCard({
   return (
     <article
       id={`episode-${episode.id}`}
-      className="scroll-mt-4 space-y-3 rounded-[20px] border border-sv-line bg-sv-card p-4"
+      className="scroll-mt-4 space-y-3 rounded-card border border-sv-line bg-sv-card p-4"
     >
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-sv-ink-soft">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sv-ink-soft">
         {approved && (
           <NewFeedbackChip comments={fresh.commentIds.size} likes={fresh.likes} scrollTo={`feedback-${episode.id}`} />
         )}
@@ -79,17 +79,17 @@ export function EpisodeCard({
           <span className="rounded-full bg-alert-tint px-2 py-0.5 font-bold text-alert">{strings.podcast.rejected}</span>
         )}
       </div>
-      <h2 className="text-[19px] font-bold leading-7 text-ink">{episode.title}</h2>
-      {by && <p className="text-[13px] text-sv-ink-soft">{strings.podcast.narrators.replace("{names}", by)}</p>}
+      <h2 className="text-lg font-bold text-ink">{episode.title}</h2>
+      {by && <p className="text-sm text-sv-ink-soft">{strings.podcast.narrators.replace("{names}", by)}</p>}
       {episode.description && (
-        <p className="whitespace-pre-wrap text-[15px] leading-[1.6] text-sv-ink">{episode.description}</p>
+        <p className="whitespace-pre-wrap text-base leading-[1.6] text-sv-ink">{episode.description}</p>
       )}
       {url ? (
         <audio controls preload="none" src={url} className="w-full">
           <track kind="captions" />
         </audio>
       ) : (
-        <p className="text-[12px] text-sv-ink-soft">{strings.podcast.playError}</p>
+        <p className="text-xs text-sv-ink-soft">{strings.podcast.playError}</p>
       )}
 
       {onApprove && onReject && (

@@ -68,7 +68,7 @@ export function InTripNow({ items, day, now, clock }: { items: ItineraryItem[]; 
   return (
     <div className="space-y-2.5">
       {home && (
-        <p className="flex justify-center gap-3 text-[12px] font-semibold text-ink-soft">
+        <p className="flex justify-center gap-3 text-xs font-semibold text-ink-soft">
           <span>
             {strings.todayV2.localTime} <bdi className="tabular-nums text-ink">{hhmm(now)}</bdi>
           </span>
@@ -80,19 +80,19 @@ export function InTripNow({ items, day, now, clock }: { items: ItineraryItem[]; 
       )}
 
       {showNow && (
-        <section className="rounded-[18px] border-[1.5px] border-sea bg-sea-tint px-3.5 py-3">
+        <section className="rounded-card border-[1.5px] border-sea bg-sea-tint px-3.5 py-3">
           <div className="flex items-baseline justify-between gap-2">
             <p className="ot-kicker text-sea-deep">{strings.todayV2.nowTitle}</p>
             {showNow.end_time && (
-              <span className="text-[12px] font-semibold text-sea-deep">
+              <span className="text-xs font-semibold text-sea-deep">
                 {strings.todayV2.until.replace("{time}", formatTime(showNow.end_time))}
               </span>
             )}
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-[17px] font-bold text-ink">{showNow.title}</p>
-              {showNow.location_name && <p className="truncate text-[12px] text-ink-soft">{showNow.location_name}</p>}
+              <p className="truncate text-lg font-bold text-ink">{showNow.title}</p>
+              {showNow.location_name && <p className="truncate text-xs text-ink-soft">{showNow.location_name}</p>}
             </div>
             {at(showNow) && <NavigateLink to={at(showNow) as LatLng} />}
           </div>
@@ -100,42 +100,42 @@ export function InTripNow({ items, day, now, clock }: { items: ItineraryItem[]; 
       )}
 
       {upcoming ? (
-        <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3 shadow-[var(--e1)]">
+        <section className="rounded-card border border-line bg-surface px-3.5 py-3 shadow-[var(--e1)]">
           <div className="flex items-baseline justify-between gap-2">
             <p className="ot-kicker">{strings.todayV2.nextTitle}</p>
-            <span className="text-[12px] font-medium text-ink-soft">{countdown(upcoming.minutesUntil)}</span>
+            <span className="text-xs font-medium text-ink-soft">{countdown(upcoming.minutesUntil)}</span>
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="flex items-baseline gap-2.5">
-                <bdi className="shrink-0 text-[15px] font-extrabold tabular-nums text-sea">
+                <bdi className="shrink-0 text-base font-extrabold tabular-nums text-sea">
                   {upcoming.item.start_time ? formatTime(upcoming.item.start_time) : ""}
                 </bdi>
-                <span className="min-w-0 truncate text-[16.5px] font-bold text-ink">{upcoming.item.title}</span>
+                <span dir="auto" className="min-w-0 truncate text-base font-bold text-ink">{upcoming.item.title}</span>
               </p>
-              {upcoming.item.location_name && <p className="mt-0.5 truncate text-[12px] text-ink-soft">{upcoming.item.location_name}</p>}
+              {upcoming.item.location_name && <p className="mt-0.5 truncate text-xs text-ink-soft">{upcoming.item.location_name}</p>}
             </div>
             {target && <NavigateLink to={target} />}
           </div>
           {leaveBy !== null && (
-            <p className={`mt-2 rounded-lg px-2.5 py-1.5 text-[12px] font-bold ${leaveNow ? "bg-warning-soft text-warning" : "bg-paper-deep text-ink"}`}>
+            <p className={`mt-2 rounded-lg px-2.5 py-1.5 text-xs font-bold ${leaveNow ? "bg-warning-soft text-warning" : "bg-paper-deep text-ink"}`}>
               {leaveNow ? strings.todayV2.leaveNow : strings.todayV2.leaveBy.replace("{time}", hhmm(leaveBy))}
               <span className="font-medium text-ink-soft"> · {strings.todayV2.leaveByHint}</span>
             </p>
           )}
         </section>
       ) : (
-        items.length > 0 && <p className="rounded-[18px] bg-paper-deep px-3.5 py-3 text-center text-sm font-semibold text-ink-soft">{strings.todayV2.nothingLeft}</p>
+        items.length > 0 && <p className="rounded-card bg-paper-deep px-3.5 py-3 text-center text-sm font-semibold text-ink-soft">{strings.todayV2.nothingLeft}</p>
       )}
 
       {isEvening(now) && (
-        <Link href="/stories" className="flex items-center gap-3 rounded-[18px] bg-gold/10 px-3.5 py-3">
+        <Link href="/stories" className="flex items-center gap-3 rounded-card bg-gold/10 px-3.5 py-3">
           <JournalIcon className="h-6 w-6 shrink-0 text-gold" />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-ink">{strings.todayV2.eveningTitle}</span>
-            <span className="block text-[12px] text-ink-soft">{strings.todayV2.eveningBody}</span>
+            <span className="block text-xs text-ink-soft">{strings.todayV2.eveningBody}</span>
           </span>
-          <span className="shrink-0 text-[12px] font-bold text-gold">{strings.todayV2.eveningCta}</span>
+          <span className="shrink-0 text-xs font-bold text-gold">{strings.todayV2.eveningCta}</span>
         </Link>
       )}
     </div>

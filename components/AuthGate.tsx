@@ -156,7 +156,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (state === "rejected") {
     return (
       <div className="mx-auto max-w-lg px-4 pt-16 text-center">
-        <h1 className="mb-2 text-2xl font-bold">
+        <h1 className="ot-title mb-2">
           {strings.auth.notAllowedTitle}
         </h1>
         <p className="text-ink-soft">{strings.auth.notAllowedBody}</p>

@@ -58,7 +58,7 @@ export default async function PublicStoryPage({ params }: Props) {
       <article className="mx-auto max-w-2xl space-y-5 px-4 pt-6 pb-16">
         <SovevBrand />
         {!story ? (
-          <div className="space-y-2 rounded-[22px] border-2 border-dashed border-sv-line p-8 text-center">
+          <div className="space-y-2 rounded-card border-2 border-dashed border-sv-line p-8 text-center">
             <h1 className="sovev-display text-2xl font-extrabold">{strings.publicStory.notFound}</h1>
             <p className="text-sv-ink-soft">{strings.publicStory.notFoundBody}</p>
           </div>
@@ -69,18 +69,18 @@ export default async function PublicStoryPage({ params }: Props) {
               <img
                 src={story.photoUrls[0]}
                 alt=""
-                className="aspect-[4/3] w-full rounded-[22px] border-2 border-sv-ink object-cover"
+                className="aspect-[4/3] w-full rounded-card border-2 border-sv-ink object-cover"
               />
             )}
             <header className="space-y-1">
-              <p className="text-[13px] text-sv-ink-soft">
+              <p className="text-sm text-sv-ink-soft">
                 {story.publishedAt && <span dir="ltr">{formatDate(story.publishedAt.slice(0, 10))}</span>}
                 {story.placeLabel && <span> · {story.placeLabel}</span>}
               </p>
               <h1 className="sovev-display text-[32px] font-extrabold leading-[42px]">{story.title}</h1>
             </header>
             {story.body && (
-              <div className="whitespace-pre-wrap text-[17px] leading-[1.8] [text-wrap:pretty]">{story.body}</div>
+              <div className="whitespace-pre-wrap text-lg leading-[1.8] [text-wrap:pretty]">{story.body}</div>
             )}
             {story.photoUrls.length > 1 && (
               <ul className="grid grid-cols-2 gap-2">

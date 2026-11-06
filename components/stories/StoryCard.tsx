@@ -69,11 +69,11 @@ export function StoryCard({
   return (
     <article
       id={`story-${story.id}`}
-      className="scroll-mt-4 overflow-hidden rounded-[20px] border border-sv-line bg-sv-card"
+      className="scroll-mt-4 overflow-hidden rounded-card border border-sv-line bg-sv-card"
     >
       <PhotoCarousel photos={story.photos} />
       <div className="space-y-3 p-4">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-sv-ink-soft">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sv-ink-soft">
           {published && (
             <NewFeedbackChip comments={fresh.commentIds.size} likes={fresh.likes} scrollTo={`feedback-${story.id}`} />
           )}
@@ -106,9 +106,9 @@ export function StoryCard({
 
         {(headline || story.mood) && (
           <div className="flex items-start justify-between gap-2">
-            {headline && <h2 className="text-[19px] font-bold leading-7 text-ink">{headline}</h2>}
+            {headline && <h2 className="text-lg font-bold text-ink">{headline}</h2>}
             {story.mood && (
-              <span className="ms-auto shrink-0 rounded-full bg-sun-tint px-2 py-0.5 text-[15px] leading-6">
+              <span className="ms-auto shrink-0 rounded-full bg-sun-tint px-2 py-0.5 text-base leading-6">
                 {story.mood}
               </span>
             )}
@@ -118,7 +118,7 @@ export function StoryCard({
         {body && (
           <div>
             <p
-              className={`whitespace-pre-wrap text-[16px] leading-[1.7] text-sv-ink [text-wrap:pretty] ${
+              className={`whitespace-pre-wrap text-base leading-[1.7] text-sv-ink [text-wrap:pretty] ${
                 folds && !open ? "line-clamp-6" : ""
               }`}
             >

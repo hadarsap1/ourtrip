@@ -88,7 +88,7 @@ export function StatsScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8 sm:max-w-2xl">
-      <h1 className="text-[22px] font-extrabold text-ink">{t.title}</h1>
+      <h1 className="ot-title">{t.title}</h1>
       {days.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">{t.empty}</p>
       ) : (
@@ -96,16 +96,16 @@ export function StatsScreen() {
           <div className={`grid gap-2.5 ${tiles.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
             {tiles.map((k) => (
               <div key={k.label} className="rounded-2xl border border-line bg-surface px-3 py-2.5">
-                <p className="text-[12px] font-bold text-ink-soft">{k.label}</p>
+                <p className="text-xs font-bold text-ink-soft">{k.label}</p>
                 <p className="mt-0.5 text-[22px] font-extrabold leading-7 tabular-nums text-ink">{k.value}</p>
-                <p className="text-[12px] text-ink-soft">{k.sub}</p>
+                <p className="text-xs text-ink-soft">{k.sub}</p>
               </div>
             ))}
           </div>
-          {showSteps && <p className="-mt-2 text-[12px] text-ink-soft">{t.kmHint}</p>}
+          {showSteps && <p className="-mt-2 text-xs text-ink-soft">{t.kmHint}</p>}
 
           {s.nightsByCountry.length > 0 && (
-            <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+            <section className="rounded-card border border-line bg-surface px-3.5 py-3">
               <h2 className="text-xs font-bold text-ink">{t.nightsTitle}</h2>
               <ul className="mt-2 space-y-1.5">
                 {s.nightsByCountry.map((c) => (
@@ -115,7 +115,7 @@ export function StatsScreen() {
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-paper-deep">
                       <span className="block h-full rounded-full" style={{ width: `${(c.nights / Math.max(1, s.daysDone)) * 100}%`, background: countryHex(c.code) }} />
                     </span>
-                    <span className="w-16 shrink-0 text-end text-[12px] tabular-nums text-ink-soft">{t.nights.replace("{n}", String(c.nights))}</span>
+                    <span className="w-16 shrink-0 text-end text-xs tabular-nums text-ink-soft">{t.nights.replace("{n}", String(c.nights))}</span>
                   </li>
                 ))}
               </ul>
@@ -123,16 +123,16 @@ export function StatsScreen() {
           )}
 
           {showSteps && (
-            <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+            <section className="rounded-card border border-line bg-surface px-3.5 py-3">
               <h2 className="text-xs font-bold text-ink">{t.stepsTitle}</h2>
               <ul className="mt-1.5 grid grid-cols-2 gap-2">
                 {stepData!.parents.map((p) => {
                   const total = totalBetween(stepData!.rows, p.id, trip!.start_date!, today);
                   return (
                     <li key={p.id}>
-                      <p className="text-[12px] text-ink-soft">{p.name}</p>
+                      <p className="text-xs text-ink-soft">{p.name}</p>
                       <p className="text-lg font-extrabold tabular-nums text-ink">{fmt(total)}</p>
-                      <p className="text-[12px] tabular-nums text-ink-soft">{t.kmOf.replace("{n}", fmt(stepsToKm(total)))}</p>
+                      <p className="text-xs tabular-nums text-ink-soft">{t.kmOf.replace("{n}", fmt(stepsToKm(total)))}</p>
                     </li>
                   );
                 })}
@@ -142,7 +142,7 @@ export function StatsScreen() {
 
           <section>
             <h2 className="mb-2 text-sm font-bold text-ink">{t.passport}</h2>
-            <ul className="grid grid-cols-3 gap-3 rounded-[18px] border border-line bg-paper-deep p-3">
+            <ul className="grid grid-cols-3 gap-3 rounded-card border border-line bg-paper-deep p-3">
               {stamps.map((st) => {
                 const hex = countryHex(st.code);
                 return (
@@ -153,8 +153,8 @@ export function StatsScreen() {
                       style={{ borderColor: hex, color: hex, transform: `rotate(${stampTilt(st.code)}deg)`, boxShadow: st.earned ? `inset 0 0 0 3px var(--surface), inset 0 0 0 5px ${hex}` : undefined }}
                     >
                       <span aria-hidden="true" className="text-2xl leading-7">{flagEmoji(st.code)}</span>
-                      <span className="text-[12px] font-extrabold uppercase leading-4">{name(st.code)}</span>
-                      <bdi className="text-[12px] font-bold leading-4">{st.earned ? formatShortDate(st.firstDate) : t.stampSoon}</bdi>
+                      <span className="text-xs font-extrabold uppercase leading-4">{name(st.code)}</span>
+                      <bdi className="text-xs font-bold leading-4">{st.earned ? formatShortDate(st.firstDate) : t.stampSoon}</bdi>
                     </figure>
                   </li>
                 );

@@ -96,7 +96,7 @@ export function PasteImportSheet({
     <Sheet open={open} onClose={onClose} title={draft ? t.reviewTitle : t.title}>
       {!draft ? (
         <div className="space-y-3">
-          <p className="text-[13px] text-ink-soft">{t.hint}</p>
+          <p className="text-sm text-ink-soft">{t.hint}</p>
           <label className="block">
             <span className="sr-only">{t.title}</span>
             <textarea
@@ -121,12 +121,12 @@ export function PasteImportSheet({
       ) : (
         <div className="space-y-3">
           {Object.values(draft.confidence).some((c) => c !== undefined && c < 0.7) && (
-            <p className="rounded-xl bg-warning-soft px-3 py-2 text-[13px] font-semibold text-warning">{t.lowConfidenceHint}</p>
+            <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm font-semibold text-warning">{t.lowConfidenceHint}</p>
           )}
           <label className="block">
-            <span className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
+            <span className="mb-1 flex items-center gap-2 text-sm font-semibold text-ink">
               {t.fields.type}
-              {isLowConfidence(draft, "type") && <span className="rounded bg-warning px-1.5 text-[12px] text-surface">{t.lowConfidence}</span>}
+              {isLowConfidence(draft, "type") && <span className="rounded bg-warning px-1.5 text-xs text-surface">{t.lowConfidence}</span>}
             </span>
             <select value={draft.type} onChange={(e) => set("type", e.target.value as PasteBooking["type"])} className={`${field} ${flag("type")}`}>
               {PASTE_TYPES.map((ty) => (
@@ -137,9 +137,9 @@ export function PasteImportSheet({
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
+            <span className="mb-1 flex items-center gap-2 text-sm font-semibold text-ink">
               {t.fields.cost}
-              {isLowConfidence(draft, "cost") && <span className="rounded bg-warning px-1.5 text-[12px] text-surface">{t.lowConfidence}</span>}
+              {isLowConfidence(draft, "cost") && <span className="rounded bg-warning px-1.5 text-xs text-surface">{t.lowConfidence}</span>}
             </span>
             <input
               type="number"
@@ -152,9 +152,9 @@ export function PasteImportSheet({
           </label>
           {TEXT_FIELDS.map(({ key, input }) => (
             <label key={key} className="block">
-              <span className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
+              <span className="mb-1 flex items-center gap-2 text-sm font-semibold text-ink">
                 {t.fields[key]}
-                {isLowConfidence(draft, key) && <span className="rounded bg-warning px-1.5 text-[12px] text-surface">{t.lowConfidence}</span>}
+                {isLowConfidence(draft, key) && <span className="rounded bg-warning px-1.5 text-xs text-surface">{t.lowConfidence}</span>}
               </span>
               <input
                 type={input}
@@ -165,9 +165,9 @@ export function PasteImportSheet({
               />
             </label>
           ))}
-          {draft.notes && <p className="rounded-xl bg-paper-deep px-3 py-2 text-[13px] text-ink">{draft.notes}</p>}
+          {draft.notes && <p className="rounded-xl bg-paper-deep px-3 py-2 text-sm text-ink">{draft.notes}</p>}
           {error && <p role="alert" className="rounded-xl bg-warning-soft px-3 py-2 text-sm font-semibold text-warning">{error}</p>}
-          {remaining !== null && <p className="text-[12px] text-ink-soft">{t.remaining.replace("{n}", String(remaining))}</p>}
+          {remaining !== null && <p className="text-xs text-ink-soft">{t.remaining.replace("{n}", String(remaining))}</p>}
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"

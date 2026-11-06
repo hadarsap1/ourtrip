@@ -52,7 +52,7 @@ export function KidFactCard({ tripId }: { tripId: string }) {
   return (
     <Link
       href="/facts"
-      className="block rounded-[20px] border border-line bg-surface p-4 active:bg-sea-tint/40"
+      className="block rounded-card border border-line bg-surface p-4 active:bg-sea-tint/40"
     >
       <p className="flex items-center gap-2 text-sm font-bold text-sea">
         <span className="text-xl leading-none" aria-hidden="true">
@@ -60,7 +60,7 @@ export function KidFactCard({ tripId }: { tripId: string }) {
         </span>
         {s.kidCardTitle}
       </p>
-      <p className="mt-1.5 text-[15.5px] leading-relaxed text-ink">
+      <p className="mt-1.5 text-base leading-relaxed text-ink">
         {fact.fact}
       </p>
       <p className="mt-1.5 text-sm font-bold text-sea">{s.kidCardMore} ←</p>

@@ -193,7 +193,7 @@ export function RecommendScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-5 px-4 pt-8 pb-8">
       <header>
-        <h1 className="text-2xl font-bold">{s.title}</h1>
+        <h1 className="ot-title">{s.title}</h1>
         <p className="mt-1 text-sm text-ink-soft">{s.subtitle}</p>
       </header>
 
@@ -332,7 +332,7 @@ export function RecommendScreen() {
 
       {/* maybe-list */}
       <section>
-        <h2 className="mb-2 mt-2 text-sm font-semibold text-ink">
+        <h2 className="mb-2 mt-2 text-sm font-bold text-ink">
           <StarIcon className="inline-block h-4 w-4 align-text-bottom" /> {s.maybeListTitle}
         </h2>
         {saved.length === 0 ? (
@@ -381,7 +381,7 @@ export function RecommendScreen() {
                   <button
                     type="button"
                     onClick={() => onRemoveSaved(r.id)}
-                    className="text-xs text-rose-500"
+                    className="text-xs text-alert"
                   >
                     {s.remove}
                   </button>

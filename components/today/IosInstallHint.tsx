@@ -31,11 +31,11 @@ export function IosInstallHint() {
   if (!visible || dismissed) return null;
   const t = strings.todayV2;
   return (
-    <div className="flex items-center gap-3 rounded-[18px] border border-info/30 bg-info-soft px-3.5 py-2.5">
+    <div className="flex items-center gap-3 rounded-card border border-info/30 bg-info-soft px-3.5 py-2.5">
       <BellIcon className="h-5 w-5 shrink-0 text-info" />
       <Link href="/notifications" className="min-w-0 flex-1">
         <span className="block text-sm font-bold text-ink">{t.iosHintTitle}</span>
-        <span className="block text-[12px] text-ink-soft">{t.iosHintBody}</span>
+        <span className="block text-xs text-ink-soft">{t.iosHintBody}</span>
       </Link>
       <button
         type="button"

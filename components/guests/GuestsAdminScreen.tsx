@@ -217,7 +217,7 @@ export function GuestsAdminScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.guests.title}</h1>
+      <h1 className="ot-title">{strings.guests.title}</h1>
 
       {link && (
         <section className="space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-sm">

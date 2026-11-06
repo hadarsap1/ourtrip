@@ -475,7 +475,7 @@ export function MapScreen() {
       {/* custom pins list */}
       {customPins.length > 0 && (
         <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
-          <h2 className="mb-1 px-1 text-sm font-semibold text-ink-soft">
+          <h2 className="ot-kicker mb-1 px-1">
             {strings.map.addPin}
           </h2>
           <ul className="divide-y divide-line">
@@ -499,7 +499,7 @@ export function MapScreen() {
                       if (!(await askConfirm(strings.map.deletePinConfirm))) return;
                       void run(() => deletePin(pin));
                     }}
-                    className="rounded-lg bg-rose-50 px-2 py-1.5 text-rose-600"
+                    className="rounded-lg bg-alert-tint px-2 py-1.5 text-alert"
                   >
                     {strings.common.delete}
                   </button>
@@ -513,7 +513,7 @@ export function MapScreen() {
       {/* saved routes list */}
       {routes.length > 0 && (
         <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
-          <h2 className="mb-1 px-1 text-sm font-semibold text-ink-soft">
+          <h2 className="ot-kicker mb-1 px-1">
             {strings.map.routes}
           </h2>
           <ul className="divide-y divide-line">
@@ -533,7 +533,7 @@ export function MapScreen() {
                     if (!(await askConfirm(strings.map.deleteRouteConfirm))) return;
                     void run(() => deleteRoute(route.id));
                   }}
-                  className="shrink-0 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-600"
+                  className="shrink-0 rounded-lg bg-alert-tint px-2 py-1.5 text-xs font-semibold text-alert"
                 >
                   {strings.common.delete}
                 </button>
@@ -617,7 +617,7 @@ export function MapScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.map.title}</h1>
+      <h1 className="ot-title">{strings.map.title}</h1>
 
       {/* day filter */}
       {days.length > 0 && (

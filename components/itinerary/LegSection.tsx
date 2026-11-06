@@ -82,7 +82,7 @@ export function LegSection({
 
   return (
     <section
-      className={`rounded-[18px] border border-s-4 bg-surface ${COUNTRY_EDGE[stretch.countryCode ?? ""] ?? "border-s-line"} ${
+      className={`rounded-card border border-s-4 bg-surface ${COUNTRY_EDGE[stretch.countryCode ?? ""] ?? "border-s-line"} ${
         phase === "current" ? "border-sea" : "border-line"
       } ${phase === "past" ? "opacity-70" : ""}`}
     >
@@ -98,27 +98,27 @@ export function LegSection({
         <div className="flex items-start justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             {stretch.countryCode && (
-              <span className="flex items-center gap-1 rounded bg-sea-tint px-1.5 py-px text-[12px] font-bold text-sea-deep">
+              <span className="flex items-center gap-1 rounded bg-sea-tint px-1.5 py-px text-xs font-bold text-sea-deep">
                 {v2 && <span aria-hidden="true">{flagEmoji(stretch.countryCode)}</span>}
                 {stretch.countryCode}
               </span>
             )}
-            <span className="truncate text-[14.5px] font-extrabold text-ink">
+            <span className="truncate text-sm font-extrabold text-ink">
               {label}
             </span>
             {phase === "current" && (
-              <span className="rounded-full bg-sea px-2 py-0.5 text-[12px] font-bold text-on-sea">
+              <span className="rounded-full bg-sea px-2 py-0.5 text-xs font-bold text-on-sea">
                 {strings.itinerary.legHere}
               </span>
             )}
             {phase === "past" && (
-              <span className="rounded-full bg-paper-deep px-2 py-0.5 text-[12px] font-bold text-ink-soft">
+              <span className="rounded-full bg-paper-deep px-2 py-0.5 text-xs font-bold text-ink-soft">
                 {strings.itinerary.legDone}
               </span>
             )}
           </span>
           <span className="flex shrink-0 items-center gap-1.5 text-ink-soft">
-            <span className="text-[12px] font-semibold" dir="ltr">
+            <span className="text-xs font-semibold" dir="ltr">
               {formatShortDate(stretch.from)}
               {stretch.to !== stretch.from && ` - ${formatShortDate(stretch.to)}`}
             </span>
@@ -144,7 +144,7 @@ export function LegSection({
               }}
             />
           </span>
-          <span className="shrink-0 text-[12px] font-semibold text-ink-soft">
+          <span className="shrink-0 text-xs font-semibold text-ink-soft">
             {leg.dayCount === 1
               ? strings.itinerary.legDaysOne
               : strings.itinerary.legDays.replace("{n}", String(leg.dayCount))}
@@ -153,7 +153,7 @@ export function LegSection({
 
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[12px] font-semibold ${
+            className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${
               leg.daysPlanned === 0
                 ? "bg-paper-deep text-ink-soft"
                 : "bg-sea-tint text-sea-deep"
@@ -162,7 +162,7 @@ export function LegSection({
             {plannedLabel}
           </span>
           {leg.bookings > 0 && (
-            <span className="flex items-center gap-1 rounded-md bg-paper-deep px-1.5 py-0.5 text-[12px] font-semibold text-ink">
+            <span className="flex items-center gap-1 rounded-md bg-paper-deep px-1.5 py-0.5 text-xs font-semibold text-ink">
               <CalendarIcon className="h-3 w-3" />
               {leg.bookings === 1
                 ? strings.itinerary.legBookingsOne
@@ -173,7 +173,7 @@ export function LegSection({
               does not need a chip to say so; one that does not is the single
               most useful thing this row can tell you. */}
           {!leg.hasStay && (
-            <span className="flex items-center gap-1 rounded-md bg-sun-tint px-1.5 py-0.5 text-[12px] font-semibold text-sun-deep">
+            <span className="flex items-center gap-1 rounded-md bg-sun-tint px-1.5 py-0.5 text-xs font-semibold text-sun-deep">
               <BedIcon className="h-3 w-3" />
               {strings.itinerary.legNoStay}
             </span>
@@ -185,7 +185,7 @@ export function LegSection({
         <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2">
           <span className="min-w-0">
             <span className="block text-sm font-bold text-ink">{strings.itinerary.nights}</span>
-            <span className="block text-[12px] text-ink-soft">{strings.itinerary.nightsHint}</span>
+            <span className="block text-xs text-ink-soft">{strings.itinerary.nightsHint}</span>
           </span>
           <Stepper
             label={strings.itinerary.nights}
@@ -203,7 +203,7 @@ export function LegSection({
           <button
             type="button"
             onClick={onOpenIdeas}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sea/40 bg-sea-tint/40 py-1.5 text-[12px] font-bold text-sea-deep active:bg-sea-tint"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sea/40 bg-sea-tint/40 py-1.5 text-xs font-bold text-sea-deep active:bg-sea-tint"
           >
             <SparkleIcon className="h-3.5 w-3.5" />
             {leg.ideaScope === "area"
@@ -288,14 +288,14 @@ function EmptyDayRow({
       {/* DD/MM, not the day number alone: a leg runs 38 days here and crosses
           the turn of a month, where a bare "04" under a "30" says nothing. */}
       <span
-        className={`w-10 shrink-0 text-[12.5px] font-bold tabular-nums ${
+        className={`w-10 shrink-0 text-xs font-bold tabular-nums ${
           isToday ? "text-sea-deep" : "text-ink"
         }`}
         dir="ltr"
       >
         {formatShortDate(day.date)}
       </span>
-      <span className="w-5 shrink-0 text-[12px] text-ink-soft">
+      <span className="w-5 shrink-0 text-xs text-ink-soft">
         {formatWeekdayNarrow(day.date)}
       </span>
       <span className="h-px flex-1 border-t border-dashed border-line" />
@@ -309,7 +309,7 @@ function EmptyDayRow({
       <button
         type="button"
         onClick={onPlan}
-        className="flex shrink-0 items-center gap-1 rounded-lg bg-sea-tint px-3 text-[13px] font-bold text-sea-deep"
+        className="flex shrink-0 items-center gap-1 rounded-lg bg-sea-tint px-3 text-sm font-bold text-sea-deep"
       >
         <SparkleIcon className="h-3.5 w-3.5" />
         {strings.planMyDay.open}
@@ -361,14 +361,14 @@ function EmptyRun({
           <span className="text-sm font-bold text-ink">
             {strings.itinerary.emptyRun.replace("{n}", String(days.length))}
           </span>
-          <span className="text-[12px] text-ink-soft" dir="ltr">
+          <span className="text-xs text-ink-soft" dir="ltr">
             {formatShortDate(from)} - {formatShortDate(to)}
           </span>
         </span>
         <button
           type="button"
           onClick={onPlan}
-          className="flex items-center gap-1 rounded-lg bg-sea-tint px-3 text-[13px] font-bold text-sea-deep"
+          className="flex items-center gap-1 rounded-lg bg-sea-tint px-3 text-sm font-bold text-sea-deep"
         >
           <SparkleIcon className="h-3.5 w-3.5" />
           {strings.itinerary.planFromBank}

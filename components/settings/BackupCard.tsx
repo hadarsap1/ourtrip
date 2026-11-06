@@ -81,16 +81,16 @@ export function BackupCard() {
   const diffs = result?.rows.filter((r) => r.wouldRestore || r.changed || r.onlyNow) ?? [];
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <h2 className="text-sm font-bold text-ink">{t.title}</h2>
-      <p className="mt-1 text-[12px] text-ink-soft">{t.hint}</p>
+      <p className="mt-1 text-xs text-ink-soft">{t.hint}</p>
       <button type="button" onClick={() => void exportNow()} disabled={busy !== null} className="mt-3 w-full rounded-xl bg-sea text-sm font-bold text-on-sea disabled:opacity-60">
         {busy === "export" ? t.exporting : t.export}
       </button>
 
       <div className="mt-3 border-t border-line pt-3">
-        <p className="text-[13px] font-semibold text-ink">{t.dryRun}</p>
-        <p className="text-[12px] text-ink-soft">{t.dryRunHint}</p>
+        <p className="text-sm font-semibold text-ink">{t.dryRun}</p>
+        <p className="text-xs text-ink-soft">{t.dryRunHint}</p>
         <label className="mt-2 flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-sm font-bold text-ink">
           {busy === "check" ? t.checking : t.pick}
           <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" onChange={(e) => e.target.files?.[0] && void check(e.target.files[0])} />
@@ -101,12 +101,12 @@ export function BackupCard() {
 
       {result && (
         <div className="mt-3">
-          <p className="text-[13px] font-bold text-ink">{t.resultTitle.replace("{date}", formatDate(result.date))}</p>
-          {result.otherTrip && <p className="mt-1 rounded-lg bg-warning-soft px-2 py-1 text-[12px] font-semibold text-warning">{t.otherTrip}</p>}
+          <p className="text-sm font-bold text-ink">{t.resultTitle.replace("{date}", formatDate(result.date))}</p>
+          {result.otherTrip && <p className="mt-1 rounded-lg bg-warning-soft px-2 py-1 text-xs font-semibold text-warning">{t.otherTrip}</p>}
           {diffs.length === 0 ? (
-            <p className="mt-1 text-[13px] text-ink-soft">{t.noDiff}</p>
+            <p className="mt-1 text-sm text-ink-soft">{t.noDiff}</p>
           ) : (
-            <table className="mt-2 w-full text-[12px]">
+            <table className="mt-2 w-full text-xs">
               <thead>
                 <tr className="text-ink-soft">
                   <th className="py-1 text-start font-semibold">{t.colTable}</th>

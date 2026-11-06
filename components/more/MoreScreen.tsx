@@ -62,11 +62,11 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
         <li key={tile.href}>
           <Link
             href={tile.href}
-            className="flex h-full flex-col gap-[7px] rounded-[17px] border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
+            className="flex h-full flex-col gap-[7px] rounded-card border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
           >
             <span className="relative w-fit">
               <span
-                className={`grid h-8 w-8 place-items-center rounded-[10px] ${
+                className={`grid h-8 w-8 place-items-center rounded-xl ${
                   tile.tone === "sun"
                     ? "bg-sun-tint text-sun-deep"
                     : "bg-sea-tint text-sea-deep"
@@ -75,22 +75,22 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
                 <tile.Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </span>
               {tile.badge != null && tile.badge > 0 && (
-                <span className="absolute -end-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
+                <span className="absolute -end-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-extrabold text-on-alert">
                   {tile.badge > 9 ? "9+" : tile.badge}
                 </span>
               )}
               {tile.dot && !(tile.badge != null && tile.badge > 0) && (
                 <span
-                  className="absolute -end-1 -top-1 h-3 w-3 rounded-full border-2 border-surface bg-rose-500"
+                  className="absolute -end-1 -top-1 h-3 w-3 rounded-full border-2 border-surface bg-alert"
                   role="status"
                   aria-label={strings.more.newFeedback}
                 />
               )}
             </span>
-            <span className="text-[13.5px] font-bold text-ink">
+            <span className="text-sm font-bold text-ink">
               {tile.label}
               {tile.count !== null && tile.count > 0 && (
-                <span className="ms-1 text-[12px] font-medium text-ink-faint">
+                <span className="ms-1 text-xs font-medium text-ink-faint">
                   · {tile.count}
                 </span>
               )}
@@ -261,7 +261,7 @@ export function MoreScreen() {
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col gap-4 px-4 pt-6 pb-4 sm:max-w-2xl lg:max-w-4xl">
       <header className="flex items-center justify-between gap-2">
-        <h1 className="text-[22px] font-extrabold text-ink">{strings.nav.more}</h1>
+        <h1 className="ot-title">{strings.nav.more}</h1>
         {/* Theme, steps, backup live in Settings - More stays a menu. */}
         <Link
           href="/settings"
@@ -285,7 +285,7 @@ export function MoreScreen() {
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupFamily}</p>
-        <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+        <ul className="overflow-hidden rounded-card border border-line bg-surface">
           {admin.map((row, i) => (
             <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
               <Link
@@ -296,18 +296,18 @@ export function MoreScreen() {
                   className="h-[18px] w-[18px] shrink-0 text-sea"
                   strokeWidth={1.7}
                 />
-                <span className="flex-1 text-[13.5px] font-medium text-ink">
+                <span className="flex-1 text-sm font-medium text-ink">
                   {row.label}
                 </span>
                 {/* both: "10 approved" next to "2 waiting" - with only the
                     badge, the approved count vanished whenever someone asked */}
                 {row.state && (
-                  <span className="shrink-0 text-[12px] text-ink-soft">
+                  <span className="shrink-0 text-xs text-ink-soft">
                     {row.state}
                   </span>
                 )}
                 {row.badge ? (
-                  <span className="shrink-0 rounded-full bg-rose-500 px-2 py-0.5 text-[12px] font-extrabold text-white">
+                  <span className="shrink-0 rounded-full bg-alert px-2 py-0.5 text-xs font-extrabold text-on-alert">
                     {strings.approvals.waiting.replace("{n}", String(row.badge))}
                   </span>
                 ) : null}
@@ -323,10 +323,10 @@ export function MoreScreen() {
           comes from today's itinerary day, never a configured destination. */}
       <Link
         href="/emergency"
-        className="mt-auto flex items-center gap-2.5 rounded-[18px] border border-alert/20 bg-alert-tint px-3.5 py-3 text-alert"
+        className="mt-auto flex items-center gap-2.5 rounded-card border border-alert/20 bg-alert-tint px-3.5 py-3 text-alert"
       >
         <span
-          className="shrink-0 rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]"
+          className="shrink-0 rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-xs font-extrabold tracking-[0.06em]"
           aria-hidden="true"
         >
           {strings.emergency.sos}
@@ -336,7 +336,7 @@ export function MoreScreen() {
             {strings.more.menuEmergency}
             {counts?.countryCode && ` · ${countryName(counts.countryCode)}`}
           </span>
-          <span className="block text-[12px] text-alert/80">
+          <span className="block text-xs text-alert/80">
             {strings.more.emergencyMeta}
           </span>
         </span>

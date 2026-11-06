@@ -143,7 +143,7 @@ function GuestPhotosView() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
+        <h1 className="ot-title">{strings.photos.title}</h1>
       </header>
       {isEmpty && (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
@@ -351,13 +351,13 @@ function FamilyPhotosView() {
       {/* Photos are added here with the + (straight to the picker) or with an
           update; here they are approved, shared and browsed by place. */}
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{strings.photos.title}</h1>
+        <h1 className="ot-title">{strings.photos.title}</h1>
       </header>
 
       {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
       {isOwner && pending.length > 0 && (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
-          <h2 className="mb-2 px-1 text-sm font-bold text-amber-800">
+        <section className="rounded-2xl border border-sun/30 bg-sun-tint p-3 shadow-sm">
+          <h2 className="mb-2 px-1 text-sm font-bold text-sun-deep">
             {strings.photos.approvalQueue} ({pending.length})
           </h2>
           <ul className="space-y-3">
@@ -384,7 +384,7 @@ function FamilyPhotosView() {
                   <button
                     type="button"
                     onClick={() => member && void run(() => rejectPhoto(photo.id, member.id))}
-                    className="flex-1 rounded-lg bg-rose-100 py-2 text-sm font-bold text-rose-600"
+                    className="flex-1 rounded-lg bg-alert-tint py-2 text-sm font-bold text-alert"
                   >
                     <CloseIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
                     {strings.photos.reject}
@@ -426,12 +426,12 @@ function FamilyPhotosView() {
                   </button>
                 )}
                 {photo.status === "pending" && (
-                  <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">
+                  <span className="inline-block rounded-full bg-sun-tint px-2 py-0.5 font-semibold text-sun-deep">
                     {strings.photos.pending}
                   </span>
                 )}
                 {photo.status === "rejected" && (
-                  <span className="inline-block rounded-full bg-rose-100 px-2 py-0.5 font-semibold text-rose-600">
+                  <span className="inline-block rounded-full bg-alert-tint px-2 py-0.5 font-semibold text-alert">
                     {strings.photos.rejected}
                   </span>
                 )}
@@ -479,7 +479,7 @@ function FamilyPhotosView() {
                       if (!(await askConfirm(strings.photos.deleteConfirm))) return;
                       void run(() => deletePhoto(photo));
                     }}
-                    className="font-semibold text-rose-500"
+                    className="font-semibold text-alert"
                   >
                     {strings.common.delete}
                   </button>

@@ -24,7 +24,7 @@ export function SovevBrand({
 }) {
   const badge = size === "lg" ? 72 : size === "md" ? 48 : 32;
   const word =
-    size === "lg" ? "text-[40px] leading-[48px]" : size === "md" ? "text-[26px] leading-[34px]" : "text-[20px] leading-[28px]";
+    size === "lg" ? "text-[40px] leading-[48px]" : size === "md" ? "text-[26px] leading-[34px]" : "text-xl leading-[28px]";
   return (
     <div className="flex items-center gap-3">
       {/* decorative: the wordmark beside it carries the name */}
@@ -39,7 +39,7 @@ export function SovevBrand({
       />
       <div className="min-w-0">
         <p className={`sovev-display font-extrabold text-sv-ink ${word}`}>{strings.sovev.name}</p>
-        {subtitle && <p className="text-[14px] font-medium leading-5 text-sv-ink-soft">{subtitle}</p>}
+        {subtitle && <p className="text-sm font-medium leading-5 text-sv-ink-soft">{subtitle}</p>}
       </div>
     </div>
   );

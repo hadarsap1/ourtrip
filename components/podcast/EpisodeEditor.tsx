@@ -1,5 +1,6 @@
 "use client";
 
+import { Banner } from "@/components/ui/Banner";
 import { NarratorsField } from "./NarratorsField";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
@@ -319,7 +320,7 @@ export function EpisodeEditor({
         <NarratorsField id="edit-ep-narrators" choices={narratorChoices} value={narrators} onChange={setNarrators} />
 
         {failed ? (
-          <p className="rounded-xl bg-warning-soft p-3 text-sm text-warning">{strings.podcastEdit.decodeFailed}</p>
+          <Banner tone="warning">{strings.podcastEdit.decodeFailed}</Banner>
         ) : !clip ? (
           <p className="text-center text-sm text-ink-soft" role="status">
             {strings.podcastEdit.loading}
@@ -354,7 +355,7 @@ export function EpisodeEditor({
                 />
               )}
             </div>
-            <p className="text-center text-[12px] text-ink-soft">{strings.podcastEdit.waveHint}</p>
+            <p className="text-center text-xs text-ink-soft">{strings.podcastEdit.waveHint}</p>
 
             <div className="grid grid-cols-2 gap-2">
               <button

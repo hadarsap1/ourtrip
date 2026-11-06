@@ -192,7 +192,7 @@ export function MessagesScreen() {
   if (memberFailed) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
-        <h1 className="mb-3 text-2xl font-bold">{strings.wall.title}</h1>
+        <h1 className="ot-title mb-3">{strings.wall.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.memberFailed}</p>
         <button
           type="button"
@@ -208,7 +208,7 @@ export function MessagesScreen() {
   if (!member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
-        <h1 className="mb-3 text-2xl font-bold">{strings.wall.title}</h1>
+        <h1 className="ot-title mb-3">{strings.wall.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
         <Link href="/login" className="inline-flex min-h-[44px] items-center font-semibold text-sea underline">
           {strings.common.signInAgain}
@@ -378,7 +378,7 @@ export function MessagesScreen() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pt-4">
-      <h1 className="mb-3 text-2xl font-bold">
+      <h1 className="ot-title mb-3">
         <MessagesIcon className="inline-block h-5 w-5 align-text-bottom text-sea" />{" "}
         {strings.wall.title}
       </h1>

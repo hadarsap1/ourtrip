@@ -28,7 +28,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
   if (!member || !blocked(pathname, member.role)) return <>{children}</>;
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-16 text-center">
-      <h1 className="text-2xl font-bold">{strings.roleGate.title}</h1>
+      <h1 className="ot-title">{strings.roleGate.title}</h1>
       <p className="text-ink-soft">{member.role === "kid" ? strings.roleGate.kidBody : strings.roleGate.guestBody}</p>
       <Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-sea px-5 font-bold text-on-sea">
         {strings.roleGate.home}

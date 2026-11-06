@@ -63,7 +63,7 @@ export function FeedbackCount({
 /** The small "חדש" tag. */
 export function NewDot() {
   return (
-    <span className="rounded-full bg-sv-clay-fill px-1.5 py-px text-[11px] font-bold leading-4 text-white">
+    <span className="rounded-full bg-sv-clay-fill px-1.5 py-px text-xs font-bold leading-4 text-white">
       {s.newTag}
     </span>
   );
@@ -88,7 +88,7 @@ export function NewFeedbackChip({
     <button
       type="button"
       onClick={() => document.getElementById(scrollTo)?.scrollIntoView({ behavior: "smooth", block: "center" })}
-      className="rounded-full bg-sv-clay-fill px-2.5 py-0.5 text-[12px] font-bold text-white"
+      className="rounded-full bg-sv-clay-fill px-2.5 py-0.5 text-xs font-bold text-white"
     >
       {s.newSummary.replace("{what}", newWords(comments, likes))}
     </button>

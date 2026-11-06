@@ -167,7 +167,7 @@ export function ChecklistsScreen() {
                 setOpenListId(null);
                 void run(() => deleteChecklist(openList.id));
               }}
-              className="text-sm font-semibold text-rose-500"
+              className="text-sm font-semibold text-alert"
             >
               {strings.common.delete}
             </button>
@@ -175,10 +175,10 @@ export function ChecklistsScreen() {
         </div>
 
         <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold">
+          <h1 className="ot-title">
             {openList.title}
             {openList.is_template && (
-              <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
+              <span className="ms-2 rounded bg-sun-tint px-1.5 py-0.5 text-xs font-semibold text-sun-deep">
                 {strings.checklists.templates}
               </span>
             )}
@@ -220,7 +220,7 @@ export function ChecklistsScreen() {
                         {item.label}
                       </span>
                       {assignee && (
-                        <span className="shrink-0 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                        <span className="shrink-0 rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold text-info">
                           {assignee}
                         </span>
                       )}
@@ -301,10 +301,10 @@ export function ChecklistsScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.checklists.title}</h1>
+      <h1 className="ot-title">{strings.checklists.title}</h1>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-ink-soft">
+        <h2 className="ot-kicker mb-2">
           {strings.checklists.lists}
         </h2>
         {regularLists.length === 0 ? (
@@ -336,7 +336,7 @@ export function ChecklistsScreen() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-ink-soft">
+        <h2 className="ot-kicker mb-2">
           {strings.checklists.templates}
         </h2>
         {templates.length === 0 ? (

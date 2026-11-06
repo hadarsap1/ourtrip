@@ -175,12 +175,12 @@ export function FactsScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8 sm:max-w-2xl">
       <header>
-        <h1 className="text-2xl font-bold">{s.title}</h1>
+        <h1 className="ot-title">{s.title}</h1>
         <p className="mt-0.5 text-sm text-ink-soft">{s.subtitle}</p>
       </header>
 
       {fromCache && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">
+        <p className="rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun-deep">
           {strings.offline.fromCache}
         </p>
       )}
@@ -246,7 +246,7 @@ export function FactsScreen() {
                 </span>
                 <div className="min-w-0 flex-1">
                   {/* Kids read this, so it is set larger than body copy. */}
-                  <p className="text-[15.5px] leading-relaxed text-ink">
+                  <p className="text-base leading-relaxed text-ink">
                     {fact.fact}
                   </p>
                   {isOwner && (

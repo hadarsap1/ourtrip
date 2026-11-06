@@ -66,14 +66,14 @@ export function ConfirmHost() {
       onClose={() => answer(false)}
       title={strings.common.confirmTitle}
     >
-      <p className="mb-5 text-[15px] leading-relaxed text-ink">
+      <p className="mb-5 text-base leading-relaxed text-ink">
         {current?.question}
       </p>
       <div className="flex gap-3">
         <button
           type="button"
           onClick={() => answer(true)}
-          className="min-h-[48px] flex-1 rounded-xl bg-rose-600 px-4 font-bold text-white active:bg-rose-700"
+          className="min-h-[48px] flex-1 rounded-xl bg-alert px-4 font-bold text-on-alert active:bg-alert/90"
         >
           {strings.common.confirmYes}
         </button>

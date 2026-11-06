@@ -60,13 +60,13 @@ export function BottomNav() {
                 <span className="relative">
                   <tab.Icon className="h-[23px] w-[23px]" strokeWidth={1.7} />
                   {tab.href === "/messages" && unread > 0 && (
-                    <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
+                    <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-bold text-on-alert">
                       {unread > 9 ? "9+" : unread}
                     </span>
                   )}
                   {tab.href === "/photos" && photosWaiting > 0 && (
                     <span
-                      className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white"
+                      className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-bold text-on-alert"
                       role="status"
                       aria-label={strings.nav.photosWaiting.replace("{n}", String(photosWaiting))}
                     >
@@ -75,21 +75,21 @@ export function BottomNav() {
                   )}
                   {tab.href === "/photos" && photosHasNews && (
                     <span
-                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-rose-500"
+                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-alert"
                       role="status"
                       aria-label={strings.more.newFeedback}
                     />
                   )}
                   {tab.href === "/more" && moreHasNews && (
                     <span
-                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-rose-500"
+                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-alert"
                       role="status"
                       aria-label={strings.nav.moreHasNews}
                     />
                   )}
                 </span>
                 <span
-                  className={`text-[12px] leading-none tracking-[0.01em] ${
+                  className={`text-xs leading-none tracking-[0.01em] ${
                     active ? "font-bold" : "font-medium"
                   }`}
                 >

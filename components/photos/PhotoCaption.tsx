@@ -15,7 +15,7 @@ export function PhotoCaption({ text }: { text: string }) {
     <div>
       <p
         dir="auto"
-        className={`whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-ink ${
+        className={`whitespace-pre-wrap break-words text-sm leading-[1.6] text-ink ${
           folds && !open ? "line-clamp-3" : ""
         }`}
       >
@@ -106,7 +106,7 @@ function CaptionForm({
         aria-label={strings.photos.textTitle}
         dir="auto"
         rows={6}
-        className="block min-h-[9rem] w-full resize-y rounded-xl border border-line bg-surface p-3 text-[16px] leading-[1.6] text-ink"
+        className="block min-h-[9rem] w-full resize-y rounded-xl border border-line bg-surface p-3 text-base leading-[1.6] text-ink"
       />
       {children}
       <div className="flex gap-2">

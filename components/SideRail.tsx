@@ -29,7 +29,7 @@ function RailRow({
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-[11px] rounded-[13px] px-3 transition-colors ${
+      className={`flex items-center gap-[11px] rounded-xl px-3 transition-colors ${
         compact ? "py-[9px]" : "py-2.5"
       } ${
         active
@@ -40,7 +40,7 @@ function RailRow({
       <span className="relative shrink-0">
         <item.Icon className="h-5 w-5" strokeWidth={1.7} />
         {badge > 0 && (
-          <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold text-white">
+          <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-bold text-on-alert">
             {badge > 9 ? "9+" : badge}
           </span>
         )}
@@ -133,15 +133,15 @@ export function SideRail() {
       {isOwner && (
         <Link
           href="/emergency"
-          className="flex shrink-0 items-center gap-2.5 rounded-[13px] bg-alert-tint px-3 py-[11px] text-alert"
+          className="flex shrink-0 items-center gap-2.5 rounded-xl bg-alert-tint px-3 py-[11px] text-alert"
         >
           <span
-            className="rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]"
+            className="rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-xs font-extrabold tracking-[0.06em]"
             aria-hidden="true"
           >
             {strings.emergency.sos}
           </span>
-          <span className="text-[13.5px] font-bold">
+          <span className="text-sm font-bold">
             {strings.more.menuEmergency}
           </span>
         </Link>

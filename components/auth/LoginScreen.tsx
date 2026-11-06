@@ -101,7 +101,7 @@ export function LoginScreen() {
         </form>
       )}
       {error && (
-        <p className="mt-5 text-center text-sm text-rose-600">{error}</p>
+        <p className="mt-5 text-center text-sm text-alert">{error}</p>
       )}
       <Link
         href="/kid-login"

@@ -15,7 +15,7 @@ export function GuestFamilyClock({ now, countryCode }: { now: Date; countryCode:
   const time = familyClock(now, countryCode);
   if (!time || !countryCode) return null;
   return (
-    <p className="flex items-baseline justify-center gap-2 rounded-[18px] border border-sv-line bg-sv-card px-4 py-2.5 text-sm text-sv-ink-soft">
+    <p className="flex items-baseline justify-center gap-2 rounded-card border border-sv-line bg-sv-card px-4 py-2.5 text-sm text-sv-ink-soft">
       <span>{strings.guestHome.familyTime.replace("{where}", inCountry(countryCode))}</span>
       <bdi className="text-xl font-extrabold tabular-nums text-sv-ink">{time}</bdi>
     </p>
