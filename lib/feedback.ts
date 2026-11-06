@@ -27,6 +27,9 @@ export type ReactionTally = {
   count: number;
   /** My own like of this kind, so tapping again removes it. */
   mineId: string | null;
+  /** who gave this kind, in the order they did - one person can give two
+   *  kinds, so a single list of people came out shorter than the count */
+  memberIds: string[];
 };
 
 export function tallyReactions(reactions: Reaction[], target: FeedbackTarget, memberId: string | null): {
@@ -40,6 +43,7 @@ export function tallyReactions(reactions: Reaction[], target: FeedbackTarget, me
       kind,
       count: ofKind.length,
       mineId: ofKind.find((r) => r.member_id === memberId)?.id ?? null,
+      memberIds: ofKind.map((r) => r.member_id),
     };
   });
   // each person once, in the order they first reacted

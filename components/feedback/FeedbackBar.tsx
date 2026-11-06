@@ -99,14 +99,22 @@ export function FeedbackBar({
   const memberOf = (id: string) => members.find((m) => m.id === id);
   const nameOf = (id: string) => (id === member.id ? strings.wall.me : (memberOf(id)?.display_name ?? ""));
 
-  const { tallies, memberIds } = tallyReactions(reactions, target, member.id);
-  // "ועוד 1" hid who liked it with no way to see them (Hadar 06/11/2026):
-  // a tap on it lists everyone
+  const { tallies } = tallyReactions(reactions, target, member.id);
+  // Names per reaction, not one list of people: someone who gave a heart and
+  // a "wow" counted twice in the buttons and once in the names (Hadar
+  // 06/11/2026). Three per kind, "ועוד N" opens them all.
   const [allNames, setAllNames] = useState(false);
-  const who = namesSummary(
-    memberIds.map((id) => (id === member.id ? nameOf(id) : nameWithKidTag(nameOf(id), memberOf(id)?.kid_names))),
-    allNames ? Infinity : 3
-  );
+  const whoByKind = tallies
+    .filter((t) => t.count > 0)
+    .map((t) => ({
+      kind: t.kind,
+      ...namesSummary(
+        t.memberIds.map((id) =>
+          id === member.id ? nameOf(id) : nameWithKidTag(nameOf(id), memberOf(id)?.kid_names)
+        ),
+        allNames ? Infinity : 3
+      ),
+    }));
   const mine = comments.filter((c) => matchesTarget(c, target));
   const canComment = member.role === "guest" || member.role === "owner";
   // kids read the comments, without replying (00050)
@@ -201,22 +209,31 @@ export function FeedbackBar({
           </button>
         ))}
       </div>
-      {who.shown && (
-        <p className="text-[12px] text-sv-ink-soft">
-          {who.shown}
-          {who.more > 0 && (
-            <>
-              {" "}
-              <button
-                type="button"
-                onClick={() => setAllNames(true)}
-                className="font-semibold text-sv-ink underline underline-offset-2"
-              >
-                {strings.feedback.andMoreN.replace("{n}", String(who.more))}
-              </button>
-            </>
-          )}
-        </p>
+      {whoByKind.length > 0 && (
+        <ul className="space-y-1 text-[12px] text-sv-ink-soft">
+          {whoByKind.map((w) => (
+            <li key={w.kind} className="flex items-start gap-1.5">
+              <span className="mt-px shrink-0 [&>svg]:h-3.5 [&>svg]:w-3.5" role="img" aria-label={LABELS[w.kind]}>
+                <ReactionIcon kind={w.kind} filled={false} />
+              </span>
+              <span>
+                {w.shown}
+                {w.more > 0 && (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={() => setAllNames(true)}
+                      className="font-semibold text-sv-ink underline underline-offset-2"
+                    >
+                      {strings.feedback.andMoreN.replace("{n}", String(w.more))}
+                    </button>
+                  </>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {showComments && (
