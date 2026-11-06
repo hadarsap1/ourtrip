@@ -80,7 +80,20 @@ export function BudgetScreen() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [expenseForm, setExpenseForm] = useState<{ expense: Expense | null } | null>(null);
+  // "/budget?add=1" (the "+ הוצאה" on the home screen) lands on an open
+  // expense form, read once like the stories' "?new=1"; the parameter is then
+  // dropped so a reload or back does not reopen it.
+  const [expenseForm, setExpenseForm] = useState<{ expense: Expense | null } | null>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1"
+      ? { expense: null }
+      : null
+  );
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("add") !== "1") return;
+    url.searchParams.delete("add");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
   // null = closed; { category: null } = creating a new one.
   const [categoryForm, setCategoryForm] = useState<{
     category: BudgetCategory | null;
@@ -601,8 +614,10 @@ export function BudgetScreen() {
         )}
       </section>
 
-      {/* The action the screen exists for sits last and within thumb reach. */}
-      <div className="mt-auto grid grid-cols-2 gap-2.5 pt-1">
+      {/* The action the screen exists for, pinned within thumb reach: as the
+          last block it sat below every expense of the trip, off screen after
+          the first week (UX pass 06/11/2026). */}
+      <div className="sticky bottom-0 z-10 -mx-4 mt-auto grid grid-cols-2 gap-2.5 border-t border-line bg-paper px-4 pt-2.5 pb-2.5">
         <button
           type="button"
           onClick={() => setExpenseForm({ expense: null })}

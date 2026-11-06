@@ -47,11 +47,13 @@ export const strings = {
     // side rail from lg up. They need distinct accessible names.
     bottomBarLabel: "ניווט ראשי",
     moreHasNews: "יש חדש בעוד",
+    photosWaiting: "{n} תמונות ממתינות לאישור",
     railLabel: "ניווט צדדי",
     today: "היום",
     itinerary: "מסלול",
     budget: "תקציב",
     documents: "מסמכים",
+    photos: "תמונות",
     more: "עוד",
   },
 
@@ -60,7 +62,6 @@ export const strings = {
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
     noDay: "אין יום מתוכנן במסלול להיום",
     bookingsToday: "הזמנות להיום",
-    quickExpense: "הוספת הוצאה",
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
@@ -657,12 +658,20 @@ export const strings = {
 
   // what is waiting for a parent, across screens (Hadar 20/10/2026)
   approvals: {
-    title: "ממתינים לאישורך ({n})",
     stories: "עדכונים",
     photos: "תמונות",
     episodes: "פרקי פודקאסט",
     guestRequests: "בקשות הצטרפות",
     waiting: "‏{n} ממתינים",
+  },
+  // Home: one card for everything waiting for a parent (UX pass 06/11/2026)
+  attention: {
+    title: "מחכה לך",
+    chat: "הודעות חדשות בצ'אט",
+    feedbackStories: "תגובות חדשות לעדכונים",
+    feedbackPhotos: "תגובות חדשות לתמונות",
+    feedbackEpisodes: "תגובות חדשות לפודקאסט",
+    waitingLabel: "ממתין לאישור",
   },
   more: {
     menuChecklists: "רשימות",
@@ -681,9 +690,10 @@ export const strings = {
     menuOptions: "בנק אפשרויות",
     menuVisas: "ויזות ואישורי כניסה",
     menuPodcast: "הפודקאסט",
-    groupExplore: "בסביבה",
+    groupOnTheRoad: "בדרך",
     groupMemories: "זיכרונות",
-    groupFamily: "משפחה וניהול",
+    groupFamily: "תכנון וניהול",
+    optionsState: "{n} אפשרויות",
     // redesign 3b
     emergencyMeta: "‏112 · שגרירות · ביטוח",
     checklistState: "{done} מתוך {total}",
@@ -1782,6 +1792,12 @@ export const strings = {
     tilePodcast: "הפודקאסט",
     tilePhotos: "תמונות",
     tileWall: "צ'אט",
+    // the newest update, on the guest home (UX pass 06/11/2026)
+    latestTitle: "העדכון האחרון",
+    latestNew: "חדש",
+    latestRead: "לקריאה",
+    latestNoTitle: "עדכון מהדרך",
+    latestEmpty: "עוד לא שיתפנו עדכון. כשנכתוב מהדרך, הוא יופיע כאן",
   },
 
   kidLogin: {

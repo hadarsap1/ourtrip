@@ -5,6 +5,8 @@ import { useEffect, useState, useSyncExternalStore, type ComponentType } from "r
 import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import {
   BellIcon,
+  BulbIcon,
+  DocumentIcon,
   ChecklistIcon,
   PlaneIcon,
   ChevronForwardIcon,
@@ -19,7 +21,6 @@ import {
   MicIcon,
   OptionsIcon,
   PersonIcon,
-  PhotosIcon,
   PhrasebookIcon,
   SparkleIcon,
   VisaIcon,
@@ -126,7 +127,10 @@ export function MoreScreen() {
 
   const n = (value: number | undefined) => (counts ? (value ?? 0) : null);
 
-  const explore: Tile[] = [
+  // Grouped by when you reach for them (UX pass 06/11/2026): "בדרך" is what
+  // you need out on the street, the memories are what you share. Photos left
+  // this screen for the bottom bar; the documents vault took their place here.
+  const onTheRoad: Tile[] = [
     {
       href: "/recommend",
       label: strings.more.menuRecommend,
@@ -147,26 +151,17 @@ export function MoreScreen() {
       count: n(counts?.phrases),
     },
     {
-      href: "/options",
-      label: strings.more.menuOptions,
-      Icon: OptionsIcon,
-      count: n(counts?.options),
-    },
-    {
-      href: "/facts",
-      // No counter: moreCounts does not tally destination_facts, and a tile
-      // showing 0 would read as "broken" rather than "none written yet".
-      label: strings.facts.navLabel,
-      Icon: SparkleIcon,
+      href: "/documents",
+      // No counter: moreCounts does not read the vault, and kids and guests
+      // are refused it by RLS anyway - this screen is a parent's.
+      label: strings.nav.documents,
+      Icon: DocumentIcon,
       count: null,
     },
-    ...(statsOn
-      ? [{ href: "/stats", label: strings.more.menuStats, Icon: GlobeIcon, count: null } satisfies Tile]
-      : []),
   ];
 
-  // The updates (00078) and the photos, by place (Hadar 01/11/2026); the
-  // memory book opens from the updates; the chat stays the conversation.
+  // The updates (00078), the chat and the podcast; the memory book opens from
+  // the updates. The facts and the numbers are the trip told back to you.
   const memories: Tile[] = [
     {
       href: "/stories",
@@ -175,14 +170,6 @@ export function MoreScreen() {
       count: n(counts?.stories),
       badge: pending?.stories,
       dot: fresh.stories > 0,
-    },
-    {
-      href: "/photos",
-      label: strings.more.menuPhotos,
-      Icon: PhotosIcon,
-      count: n(counts?.photos),
-      badge: pending?.photos,
-      dot: fresh.photos > 0,
     },
     {
       href: "/messages",
@@ -199,11 +186,28 @@ export function MoreScreen() {
       badge: pending?.episodes,
       dot: fresh.episodes > 0,
     },
+    {
+      href: "/facts",
+      // No counter: moreCounts does not tally destination_facts, and a tile
+      // showing 0 would read as "broken" rather than "none written yet".
+      label: strings.facts.navLabel,
+      Icon: BulbIcon,
+      count: null,
+    },
+    ...(statsOn
+      ? [{ href: "/stats", label: strings.more.menuStats, Icon: GlobeIcon, count: null } satisfies Tile]
+      : []),
   ];
 
   // These are settings, not destinations, so they get a list rather than tiles
   // - and each says what state it is in.
   const admin: AdminRow[] = [
+    {
+      href: "/options",
+      label: strings.more.menuOptions,
+      Icon: OptionsIcon,
+      state: counts ? strings.more.optionsState.replace("{n}", String(counts.options)) : null,
+    },
     {
       href: "/checklists",
       label: strings.more.menuChecklists,
@@ -270,8 +274,8 @@ export function MoreScreen() {
 
 
       <section>
-        <p className="ot-kicker mb-2 px-0.5">{strings.more.groupExplore}</p>
-        <TileGrid tiles={explore} />
+        <p className="ot-kicker mb-2 px-0.5">{strings.more.groupOnTheRoad}</p>
+        <TileGrid tiles={onTheRoad} />
       </section>
 
       <section>

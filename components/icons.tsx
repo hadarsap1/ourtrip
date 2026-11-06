@@ -124,10 +124,21 @@ export const SparkleIcon = (p: IconProps) => (
   </Glyph>
 );
 
+// Two scripts, not a speech bubble: the bubble read as the chat icon on "עוד"
+// (UX pass 06/11/2026).
 export const PhrasebookIcon = (p: IconProps) => (
   <Glyph {...p}>
-    <path d="M3.5 6.5A2.5 2.5 0 0 1 6 4h12a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 18 16H9l-5.5 4z" />
-    <path d="M7.5 8h9M7.5 11.5h5.5" />
+    <path d="M3 5h11M8 3v2M5 9c1.6 2.7 3.6 4.4 6 5.5" />
+    <path d="M12 5c-.8 4.2-3.6 7.6-8 9.5" />
+    <path d="M13 21l4-9 4 9M14.4 18h5.2" />
+  </Glyph>
+);
+
+/** "הידעת" - its own glyph; it used to share the sparkle with "מה בסביבה". */
+export const BulbIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M9.5 18h5M10.5 21h3" />
+    <path d="M12 3a6 6 0 0 0-3.8 10.6c.6.6 1.1 1.4 1.1 2.4h5.4c0-1 .5-1.8 1.1-2.4A6 6 0 0 0 12 3z" />
   </Glyph>
 );
 

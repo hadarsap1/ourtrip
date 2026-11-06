@@ -45,7 +45,7 @@ test.describe("app shell", () => {
     // this addresses the bottom bar by name.
     const nav = page.getByRole("navigation", { name: "ניווט ראשי" });
     await expect(nav).toBeVisible();
-    for (const label of ["היום", "מסלול", "תקציב", "מסמכים", "עוד"]) {
+    for (const label of ["היום", "מסלול", "תקציב", "תמונות", "עוד"]) {
       await expect(nav.getByText(label, { exact: true })).toBeVisible();
     }
   });

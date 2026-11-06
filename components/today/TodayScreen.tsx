@@ -7,10 +7,12 @@ import { PendingApprovalsCard } from "./PendingApprovalsCard";
 import { InTripNow } from "./InTripNow";
 import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
+import { GuestLatestUpdate } from "./GuestLatestUpdate";
 import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
   BedIcon,
+  BulbIcon,
   CameraIcon,
   CoinIcon,
   JournalIcon,
@@ -21,7 +23,6 @@ import {
   PinIcon,
   PlusIcon,
   RouteIcon,
-  SparkleIcon,
   StarIcon,
   WeatherIcon,
 } from "@/components/icons";
@@ -49,6 +50,9 @@ import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 import type { Booking, ItineraryItem, Trip } from "@/lib/types";
+
+/** 17:00 local: from here, with nothing left on the plan, the home is "evening". */
+const EVENING_FROM_MINUTES = 17 * 60;
 
 /** Tonight's bed: the lodging booking covering today, if there is one. */
 function tonightsLodging(bookings: Booking[]): Booking | null {
@@ -303,7 +307,7 @@ export function TodayScreen() {
       // 31/10/2026); the photos are a door again, by place (01/11/2026)
       { href: "/stories", Icon: JournalIcon, label: strings.guestHome.tileStories },
       { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
-      { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall },
+      { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall, badge: unreadWall },
       { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
     ];
     // The guest portal wears the "סו-בב עולם!" brand: the illustration from
@@ -316,13 +320,15 @@ export function TodayScreen() {
           <img
             src="/sovev/scene.jpg"
             alt=""
-            className="aspect-[5/3] w-full rounded-[20px] border-2 border-sv-ink object-cover"
+            className="aspect-[2/1] w-full rounded-[20px] border-2 border-sv-ink object-cover"
           />
           <div>
             <h1 className="sovev-display text-2xl font-extrabold text-sv-ink">{strings.guestHome.welcome}</h1>
             <p className="text-sm text-sv-ink-soft">{strings.guestHome.subtitle}</p>
           </div>
           <GuestFamilyClock now={clock} countryCode={nowCountry} />
+          {/* what the family wrote last, before the doors (UX pass 06/11/2026) */}
+          {tripId && <GuestLatestUpdate tripId={tripId} role={member.role} />}
           <div className="grid grid-cols-2 gap-2.5">
             {tiles.map((tile) => (
               <Link
@@ -330,8 +336,13 @@ export function TodayScreen() {
                 href={tile.href}
                 className="flex flex-col items-center gap-2.5 rounded-[18px] border border-sv-line bg-sv-card p-5 active:bg-sv-sage-soft"
               >
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
+                <span className="relative grid h-11 w-11 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
                   <tile.Icon className="h-6 w-6" />
+                  {tile.badge ? (
+                    <span className="absolute -end-2 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-extrabold text-white">
+                      {tile.badge > 9 ? "9+" : tile.badge}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="text-center font-bold text-ink">{tile.label}</span>
               </Link>
@@ -374,7 +385,7 @@ export function TodayScreen() {
       },
       {
         href: "/facts",
-        Icon: SparkleIcon,
+        Icon: BulbIcon,
         label: strings.kidHome.tileFacts,
       },
       ...(isEnabled("statsStamps")
@@ -507,6 +518,11 @@ export function TodayScreen() {
   const position = dashboard?.position ?? null;
   const v2 = isEnabled("todayV2");
   const upcoming = nextUp(activeItems, now);
+  // Once the day's plan is behind you and it is evening, what matters is
+  // tonight's bed, what the day cost and its photos - so on a phone those come
+  // first and the finished agenda drops below (UX pass 06/11/2026). The desktop
+  // grid keeps its three columns.
+  const evening = !upcoming && now >= EVENING_FROM_MINUTES;
   const lodging = data ? tonightsLodging(data.bookings) : null;
   const remaining = dashboard ? dashboard.budget - dashboard.spentTotal : null;
   // Built from what actually loaded: with no snapshot there is no date to
@@ -540,8 +556,10 @@ export function TodayScreen() {
             <p className="mt-1 text-[12px] text-on-sea/70">{dayLine}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            {/* Straight into the expense form: "?add=1" opens it on arrival,
+                so an expense is one tap from home, not two. */}
             <Link
-              href="/budget"
+              href="/budget?add=1"
               className="flex min-h-[44px] items-center gap-1 rounded-[10px] border border-on-sea/30 bg-on-sea/10 px-3 py-1.5 text-[12px] font-bold text-on-sea active:bg-on-sea/20"
             >
               <PlusIcon className="h-3.5 w-3.5" />
@@ -558,7 +576,7 @@ export function TodayScreen() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-lg px-4 pt-3 sm:max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_282px_282px] lg:items-start lg:gap-4 lg:px-9 lg:pt-6">
+      <div className="mx-auto flex max-w-lg flex-col px-4 pt-3 sm:max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_282px_282px] lg:items-start lg:gap-4 lg:px-9 lg:pt-6">
         {v2 && (
           <div className="mb-2.5 lg:col-span-3">
             <IosInstallHint />
@@ -595,7 +613,7 @@ export function TodayScreen() {
         ) : (
           <>
             {/* column 1: what's happening */}
-            <div className="space-y-2.5 lg:space-y-3">
+            <div className={`space-y-2.5 lg:space-y-3 ${evening ? "max-lg:order-3 max-lg:mt-2.5" : ""}`}>
               {/* rain alert: >50% chance + outdoor items today (Sprint 5) */}
               {weather &&
                 weather.precipitationChance > 50 &&
@@ -646,7 +664,7 @@ export function TodayScreen() {
             </div>
 
             {/* column 2: the four tiles */}
-            <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:mt-0 lg:grid-cols-1 lg:gap-3">
+            <div className={`mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:mt-0 lg:grid-cols-1 lg:gap-3 ${evening ? "max-lg:order-1" : ""}`}>
               {weather && (
                 <Tile label={strings.today.tileWeather}>
                   <p className="flex items-center gap-2">
@@ -729,7 +747,7 @@ export function TodayScreen() {
             </div>
 
             {/* column 3: memories and the map */}
-            <div className="mt-2.5 space-y-2.5 lg:mt-0 lg:space-y-3">
+            <div className={`mt-2.5 space-y-2.5 empty:hidden lg:mt-0 lg:space-y-3 ${evening ? "max-lg:order-2" : ""}`}>
               {dashboard && dashboard.photos.length > 0 && (
                 <section>
                   <div className="mb-1.5 flex items-baseline justify-between px-0.5">
@@ -831,21 +849,6 @@ export function TodayScreen() {
           </>
         )}
 
-        {/* Quick action (SPEC 2.1). Outside the conditional on purpose: before
-            the trip starts - and on any day with no itinerary row - there is no
-            `data.day`, and burying this in the populated branch left the empty
-            state with no way to add an expense.
-
-            There was a second button beside it linking to the itinerary. The
-            bottom bar already has that tab on every screen, so it was a wider
-            copy of a link one tap away, and it cost half the row. */}
-        <Link
-          href="/budget"
-          className="mt-2.5 block rounded-2xl bg-sea py-3 text-center text-sm font-bold text-on-sea active:bg-sea-deep lg:col-span-3 lg:mt-1"
-          style={{ boxShadow: "0 10px 22px -14px rgba(78,107,69,.7)" }}
-        >
-          {strings.today.quickExpense}
-        </Link>
       </div>
     </div>
   );

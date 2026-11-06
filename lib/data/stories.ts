@@ -63,6 +63,41 @@ export async function listStories(tripId: string, role: MemberRole | undefined):
   }));
 }
 
+/**
+ * The newest update this member may read, with its first photo - for the
+ * guest home (UX pass 06/11/2026). Reads only what RLS returns: for a guest,
+ * approved stories in their groups, and post_photos rows whose photo is
+ * approved AND shared (rule 3); the photo is signed by guest-photos, which
+ * looks it up again with the caller's JWT. null when there is none yet.
+ */
+export async function latestStory(
+  tripId: string,
+  role: MemberRole | undefined
+): Promise<{ story: Post; photoUrl: string | null } | null> {
+  const supabase = requireClient();
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("trip_id", tripId)
+    .eq("status", "approved")
+    .order("entry_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  const story = posts[0];
+  if (!story) return null;
+  const { data: links } = await supabase
+    .from("post_photos")
+    .select("photo_id")
+    .eq("post_id", story.id)
+    .order("position")
+    .limit(1);
+  const photoId = links?.[0]?.photo_id ?? null;
+  if (!photoId) return { story, photoUrl: null };
+  const urls = await photoUrls(role, [photoId]).catch(() => new Map<string, string | null>());
+  return { story, photoUrl: urls.get(photoId) ?? null };
+}
+
 export type StoryInput = {
   /** optional since 00078; a public entry needs one (posts_public_has_title) */
   title: string | null;
