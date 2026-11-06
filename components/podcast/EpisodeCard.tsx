@@ -52,7 +52,8 @@ export function EpisodeCard({
   const minutes = roundMinutes(episode.duration_seconds);
   const approved = episode.status === "approved";
   // new likes and comments since I last looked (00081)
-  const { since } = useFeedbackSeen();
+  // frozen: the feed marks a card seen as it scrolls by; "חדש" stays for this visit
+  const { since } = useFeedbackSeen(true);
   const fresh = newFeedback({ episodeId: episode.id }, comments, reactions, member.id, since(episode.id));
 
   return (

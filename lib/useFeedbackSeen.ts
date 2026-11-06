@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { listSeen, markSeen as saveSeen } from "@/lib/data/feedback";
 import { newBaseline } from "@/lib/feedback";
 import { useMember } from "@/lib/useMember";
@@ -88,7 +88,14 @@ function mark(targetIds: string[], upTo?: string): void {
   void saveSeen(memberId, targetIds, at).catch(() => {});
 }
 
-export function useFeedbackSeen() {
+/**
+ * `frozen`: "new" is judged against the marks as they were when this card
+ * first had them, for the rest of its life on screen. The feed marks a card
+ * seen 1.5 s after its comments show, and with live marks its "חדש" vanished
+ * while you were still scrolling to it (Hadar 06/11/2026: "the notifications
+ * don't work"). It clears on the next visit instead. Marking is unchanged.
+ */
+export function useFeedbackSeen(frozen = false) {
   const { member } = useMember();
   const memberId = member?.id ?? null;
 
@@ -100,11 +107,14 @@ export function useFeedbackSeen() {
 
   const snap = useSyncExternalStore(subscribe, () => state, () => EMPTY);
   const ready = memberId !== null && snap.memberId === memberId && snap.baseline !== null;
+  const [first, setFirst] = useState<State | null>(null);
+  if (frozen && ready && first?.memberId !== memberId) setFirst(snap);
+  const marks = frozen ? (first?.memberId === memberId ? first : null) : ready ? snap : null;
 
   /** Since when feedback on this target is new to me; null while unknown. */
   const since = useCallback(
-    (targetId: string): string | null => (ready ? (snap.seen.get(targetId) ?? snap.baseline) : null),
-    [ready, snap]
+    (targetId: string): string | null => (marks ? (marks.seen.get(targetId) ?? marks.baseline) : null),
+    [marks]
   );
 
   return { memberId, since, markSeen: mark };

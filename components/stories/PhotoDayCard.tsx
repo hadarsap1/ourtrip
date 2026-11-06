@@ -41,7 +41,8 @@ export function PhotoDayCard({
   reactions: Reaction[];
   onOpen: (photo: ViewedPhoto) => void;
 }) {
-  const { since } = useFeedbackSeen();
+  // frozen: the feed marks a card seen as it scrolls by; "חדש" stays for this visit
+  const { since } = useFeedbackSeen(true);
   const shown = day.photos.slice(0, SHOWN);
   const hidden = day.photos.length - shown.length;
   const single = day.photos.length === 1 ? day.photos[0] : null;
