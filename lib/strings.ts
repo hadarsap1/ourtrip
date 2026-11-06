@@ -2326,6 +2326,7 @@ export const strings = {
     countsLabel: "{comments} תגובות, {likes} לייקים",
     onStory: "בעדכון",
     onStoryLabel: "התגובות על העדכון שהתמונה בו",
+    toStory: "לעדכון",
   },
 
   publicStory: {

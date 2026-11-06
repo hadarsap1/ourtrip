@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Sheet } from "@/components/Sheet";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { formatDate } from "@/lib/format";
@@ -32,6 +32,7 @@ export function PhotoView({
   onToast,
   onClose,
   onChangeDate,
+  storyFeedback,
 }: {
   photo: ViewedPhoto;
   tripId: string;
@@ -44,6 +45,10 @@ export function PhotoView({
   onClose: () => void;
   /** Parents only: move the photo to another day, and so its place (00084). */
   onChangeDate?: (date: string) => Promise<void>;
+  /** The photo is in an update with likes or comments: they live on the
+   *  update, so the sheet links there - the tile said "2 בעדכון" and the
+   *  sheet showed nothing (Hadar 06/11/2026). */
+  storyFeedback?: ReactNode;
 }) {
   const [editingDate, setEditingDate] = useState(false);
   const [date, setDate] = useState(photo.taken_on);
@@ -125,6 +130,7 @@ export function PhotoView({
             {photo.caption}
           </p>
         )}
+        {storyFeedback}
         <FeedbackBar
           tripId={tripId}
           member={member}
