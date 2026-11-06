@@ -32,7 +32,8 @@ export function usePhotoFeedback(tripId: string | null, withStories = false) {
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [photoStories, setPhotoStories] = useState<Map<string, string[]>>(new Map());
-  const { memberId, since } = useFeedbackSeen();
+  // frozen: opening a photo marks it seen; "חדש" on its tile stays for this visit
+  const { memberId, since } = useFeedbackSeen(true);
 
   const reload = useCallback(async () => {
     if (!tripId) return;

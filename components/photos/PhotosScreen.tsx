@@ -526,6 +526,7 @@ function FamilyPhotosView() {
           onChanged={() => void feedback.reload()}
           onToast={showToast}
           onClose={() => setViewing(null)}
+          storyFeedback={<StoryFeedbackLink badge={feedback.storyBadge(viewing.id)} inSheet />}
           onChangeDate={
             isOwner
               ? async (date) => {
@@ -602,13 +603,22 @@ function PhotoTile({
 
 /** The photo is in an update and people wrote there: how much, and a tap to
  *  read it on the update. */
-function StoryFeedbackLink({ badge }: { badge: (FeedbackBadge & { postId: string }) | null }) {
+function StoryFeedbackLink({
+  badge,
+  inSheet = false,
+}: {
+  badge: (FeedbackBadge & { postId: string }) | null;
+  /** in the photo sheet: says where the tap goes */
+  inSheet?: boolean;
+}) {
   if (!badge) return null;
   return (
     <Link
       href={`/stories#feedback-${badge.postId}`}
       aria-label={strings.feedback.onStoryLabel}
-      className="block w-fit rounded-full bg-sv-paper px-2 py-1"
+      // flex, not block: a block around the inline-flex counts sat it on the
+      // text baseline, off-centre in the pill
+      className="flex w-fit items-center gap-1.5 rounded-full bg-sv-paper px-2.5 py-1 leading-none"
     >
       <FeedbackCount
         comments={badge.comments}
@@ -616,6 +626,7 @@ function StoryFeedbackLink({ badge }: { badge: (FeedbackBadge & { postId: string
         isNew={badge.isNew}
         suffix={strings.feedback.onStory}
       />
+      {inSheet && <span className="text-xs font-bold text-sea">{strings.feedback.toStory}</span>}
     </Link>
   );
 }
