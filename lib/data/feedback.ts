@@ -159,3 +159,31 @@ export async function listPhotoStories(tripId: string): Promise<Map<string, stri
   }
   return byPhoto;
 }
+
+/** One like or comment by someone else, reduced to what the "עוד" tiles need
+ *  to say "something new here": its target and when. RLS filters as always. */
+export type FeedbackStamp = {
+  post_id: string | null;
+  episode_id: string | null;
+  photo_id: string | null;
+  created_at: string;
+};
+
+export async function listFeedbackStamps(tripId: string, memberId: string): Promise<FeedbackStamp[]> {
+  const supabase = requireClient();
+  const [comments, reactions] = await Promise.all([
+    supabase
+      .from("comments")
+      .select("post_id, episode_id, photo_id, created_at")
+      .eq("trip_id", tripId)
+      .neq("author_id", memberId),
+    supabase
+      .from("reactions")
+      .select("post_id, episode_id, photo_id, created_at")
+      .eq("trip_id", tripId)
+      .neq("member_id", memberId),
+  ]);
+  if (comments.error) throw new Error(comments.error.message);
+  if (reactions.error) throw new Error(reactions.error.message);
+  return [...comments.data, ...reactions.data];
+}

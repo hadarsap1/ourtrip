@@ -10,9 +10,10 @@ import type { Member } from "@/lib/types";
 
 /**
  * Unread count for the family wall, used by the kid/guest badge in the bottom
- * tab bar, the desktop rail and the kids' home tile. Owners have no badge -
- * they are the ones writing. Recounts on navigation, so the badge clears once
- * the wall marks its reads.
+ * tab bar, the desktop rail and the kids' home tile - and, for a parent, the
+ * chat tile on "עוד" and the dot on its tab (Hadar 04/11/2026: guests and kids
+ * write too, and a parent had no sign of it without opening the chat).
+ * Recounts on navigation, so the badge clears once the wall marks its reads.
  *
  * One module-level store serves every consumer (like useMember): with a hook
  * each, three badges opened three realtime channels and ran three recounts on
@@ -101,20 +102,19 @@ function subscribe(notify: () => void): () => void {
 export function useUnreadWall() {
   const pathname = usePathname();
   const { member } = useMember();
-  const isFamilyReader = Boolean(member && member.role !== "owner");
 
   useEffect(() => {
-    if (!member || member.role === "owner") return;
+    if (!member) return;
     return watch(member);
   }, [member]);
 
   // every consumer runs this on navigation; the shared timer makes it one count
   useEffect(() => {
     onWall = pathname === WALL_PATH || pathname.startsWith(`${WALL_PATH}/`);
-    if (!member || member.role === "owner") return;
+    if (!member) return;
     scheduleRecount(member.id, 500);
   }, [member, pathname]);
 
   const count = useSyncExternalStore(subscribe, () => unread, () => 0);
-  return isFamilyReader ? count : 0;
+  return member ? count : 0;
 }

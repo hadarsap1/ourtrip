@@ -121,6 +121,7 @@ export function SideRail() {
                     item={item}
                     active={isNavItemActive(pathname, item.href)}
                     compact
+                    badge={item.href === "/messages" ? unread : 0}
                   />
                 ))}
               </div>

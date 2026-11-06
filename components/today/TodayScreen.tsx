@@ -214,7 +214,7 @@ export function TodayScreen() {
   // and rendering the dashboard before this settles would flash the empty card
   // for a moment before the countdown replaced it.
   const [tripChecked, setTripChecked] = useState(false);
-  // the kids' wall tile shows new messages (0 and no work for owners)
+  // the kids' wall tile shows new messages
   const unreadWall = useUnreadWall();
   // Re-derives "next up" and the current agenda row as the day moves on.
   const [now, setNow] = useState(() => minutesNow());

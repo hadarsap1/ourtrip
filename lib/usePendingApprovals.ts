@@ -8,8 +8,13 @@ import { loadPendingApprovals } from "@/lib/data/pendingApprovals";
  * The parent's approval counts, reloaded whenever the app comes back to the
  * foreground - opening the app from a push notification lands on fresh
  * numbers. null while loading or when tripId is null (not a parent).
+ * refreshKey (the pathname, for the bottom bar) reloads when it changes, so
+ * the "עוד" dot clears once the parent has approved and moved on.
  */
-export function usePendingApprovals(tripId: string | null): PendingApprovals | null {
+export function usePendingApprovals(
+  tripId: string | null,
+  refreshKey?: string
+): PendingApprovals | null {
   const [pending, setPending] = useState<PendingApprovals | null>(null);
 
   useEffect(() => {
@@ -33,7 +38,7 @@ export function usePendingApprovals(tripId: string | null): PendingApprovals | n
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [tripId]);
+  }, [tripId, refreshKey]);
 
   return tripId ? pending : null;
 }

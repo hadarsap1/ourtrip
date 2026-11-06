@@ -104,3 +104,29 @@ export function feedbackCounts(
     likes: reactions.filter((r) => matchesTarget(r, target)).length,
   };
 }
+
+export type NewFeedbackByKind = { stories: number; photos: number; episodes: number };
+
+export const NO_NEW_FEEDBACK: NewFeedbackByKind = { stories: 0, photos: 0, episodes: 0 };
+
+/** How many updates, photos and episodes have a like or comment from someone
+ *  else that is new to me. `stamps` are already someone else's; `since` is
+ *  useFeedbackSeen's (null = not known yet, which counts as nothing new). */
+export function newFeedbackByKind(
+  stamps: { post_id: string | null; episode_id: string | null; photo_id: string | null; created_at: string }[],
+  since: (targetId: string) => string | null
+): NewFeedbackByKind {
+  const stories = new Set<string>();
+  const photos = new Set<string>();
+  const episodes = new Set<string>();
+  for (const s of stamps) {
+    const id = s.post_id ?? s.photo_id ?? s.episode_id;
+    if (!id) continue;
+    const from = since(id);
+    if (from === null || Date.parse(s.created_at) <= Date.parse(from)) continue;
+    if (s.post_id) stories.add(id);
+    else if (s.photo_id) photos.add(id);
+    else episodes.add(id);
+  }
+  return { stories: stories.size, photos: photos.size, episodes: episodes.size };
+}
