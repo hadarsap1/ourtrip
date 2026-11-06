@@ -100,8 +100,12 @@ export function FeedbackBar({
   const nameOf = (id: string) => (id === member.id ? strings.wall.me : (memberOf(id)?.display_name ?? ""));
 
   const { tallies, memberIds } = tallyReactions(reactions, target, member.id);
+  // "ועוד 1" hid who liked it with no way to see them (Hadar 06/11/2026):
+  // a tap on it lists everyone
+  const [allNames, setAllNames] = useState(false);
   const who = namesSummary(
-    memberIds.map((id) => (id === member.id ? nameOf(id) : nameWithKidTag(nameOf(id), memberOf(id)?.kid_names)))
+    memberIds.map((id) => (id === member.id ? nameOf(id) : nameWithKidTag(nameOf(id), memberOf(id)?.kid_names))),
+    allNames ? Infinity : 3
   );
   const mine = comments.filter((c) => matchesTarget(c, target));
   const canComment = member.role === "guest" || member.role === "owner";
@@ -199,9 +203,19 @@ export function FeedbackBar({
       </div>
       {who.shown && (
         <p className="text-[12px] text-sv-ink-soft">
-          {who.more > 0
-            ? strings.feedback.andMore.replace("{names}", who.shown).replace("{n}", String(who.more))
-            : who.shown}
+          {who.shown}
+          {who.more > 0 && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() => setAllNames(true)}
+                className="font-semibold text-sv-ink underline underline-offset-2"
+              >
+                {strings.feedback.andMoreN.replace("{n}", String(who.more))}
+              </button>
+            </>
+          )}
         </p>
       )}
 
