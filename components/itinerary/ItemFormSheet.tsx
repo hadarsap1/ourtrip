@@ -248,7 +248,7 @@ function ItemForm({
             <button
               type="button"
               onClick={handleDelete}
-              className="rounded-xl border border-rose-200 px-4 py-3 font-semibold text-rose-600 hover:bg-rose-50"
+              className="rounded-xl border border-alert/30 px-4 py-3 font-semibold text-alert hover:bg-alert-tint"
             >
               {strings.common.delete}
             </button>

@@ -183,7 +183,7 @@ export function MailImportSheet({
           {(phase.step === "setup" || phase.step === "searching") && (
             <>
               <p className="text-sm text-ink-soft">{s.intro}</p>
-              <p className="rounded-xl bg-paper-deep p-3 text-[12.5px] leading-relaxed text-ink-soft">
+              <p className="rounded-xl bg-paper-deep p-3 text-xs leading-relaxed text-ink-soft">
                 {s.privacy}
               </p>
 
@@ -215,7 +215,7 @@ export function MailImportSheet({
                   />
                 </div>
               </div>
-              <p className="text-[12px] text-ink-faint">{s.dateHint}</p>
+              <p className="text-xs text-ink-faint">{s.dateHint}</p>
 
               <button
                 type="button"
@@ -353,7 +353,7 @@ function CandidateRow({
         type="button"
         onClick={onToggle}
         aria-pressed={checked}
-        className={`flex w-full items-start gap-2.5 rounded-[16px] border p-3 text-start transition-colors ${
+        className={`flex w-full items-start gap-2.5 rounded-card border p-3 text-start transition-colors ${
           checked ? "border-sea bg-sea-tint/40" : "border-line bg-surface"
         }`}
       >
@@ -374,7 +374,7 @@ function CandidateRow({
             </span>
           </span>
 
-          <span className="mt-0.5 block text-[12px] text-ink-soft">
+          <span className="mt-0.5 block text-xs text-ink-soft">
             {strings.bookings.types[candidate.type]}
             {candidate.start_date ? (
               <>
@@ -401,19 +401,19 @@ function CandidateRow({
           {/* The subject line is the receipt for where this came from: it is how
               the owner tells a real confirmation from something the model
               misread, without leaving the app to open the mailbox. */}
-          <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
+          <span className="mt-0.5 block truncate text-xs text-ink-faint">
             {candidate.subject}
           </span>
 
           {duplicateOf && (
-            <span className="mt-1 inline-block rounded-full bg-paper-deep px-2 py-0.5 text-[12px] font-semibold text-ink-soft">
+            <span className="mt-1 inline-block rounded-full bg-paper-deep px-2 py-0.5 text-xs font-semibold text-ink-soft">
               {s.alreadyHave}
             </span>
           )}
         </span>
 
         {candidate.cost != null && (
-          <span className="shrink-0 text-[12px] font-semibold text-ink" dir="ltr">
+          <span className="shrink-0 text-xs font-semibold text-ink" dir="ltr">
             {formatMoney(candidate.cost, candidate.currency ?? "ILS")}
           </span>
         )}

@@ -67,20 +67,20 @@ export function StepsCard({ tripId }: { tripId: string }) {
   const place = stay ? findCountry(stay.code)?.he ?? stay.code : null;
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <p className="ot-kicker">{t.title}</p>
       <div className="mt-2 grid grid-cols-2 gap-3">
         {data.parents.map((p, i) => {
           const n = stepsOn(data.rows, p.id, today);
           return (
             <div key={p.id}>
-              <p className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-soft">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
                 <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: TONES[i % 2] }} />
                 {p.name}
               </p>
-              <p className="text-[24px] font-extrabold leading-8 tabular-nums text-ink">{n === null ? <span className="text-sm font-semibold text-ink-soft">{t.notReported}</span> : fmt(n)}</p>
+              <p className="text-2xl font-extrabold leading-8 tabular-nums text-ink">{n === null ? <span className="text-sm font-semibold text-ink-soft">{t.notReported}</span> : fmt(n)}</p>
               {stay && place && (
-                <p className="text-[12px] text-ink-soft">{t.stay.replace("{place}", place).replace("{n}", fmt(totalBetween(data.rows, p.id, stay.from, today)))}</p>
+                <p className="text-xs text-ink-soft">{t.stay.replace("{place}", place).replace("{n}", fmt(totalBetween(data.rows, p.id, stay.from, today)))}</p>
               )}
             </div>
           );
@@ -101,7 +101,7 @@ export function StepsCard({ tripId }: { tripId: string }) {
             </div>
           ))}
         </div>
-        <figcaption className="mt-1 flex justify-between gap-1.5 text-[12px] text-ink-soft" dir="ltr">
+        <figcaption className="mt-1 flex justify-between gap-1.5 text-xs text-ink-soft" dir="ltr">
           {week.map((d) => (
             <span key={d.date} className="flex-1 text-center">{formatWeekdayNarrow(d.date)}</span>
           ))}

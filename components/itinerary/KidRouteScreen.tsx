@@ -50,13 +50,13 @@ export function KidRouteScreen() {
       </header>
 
       {failed ? (
-        <p className="rounded-[20px] border border-line bg-surface p-6 text-center text-ink-soft">
+        <p className="rounded-card border border-line bg-surface p-6 text-center text-ink-soft">
           {strings.kidRoute.loadFailed}
         </p>
       ) : stops === null ? (
         <p className="text-center text-ink-soft">{strings.common.loading}</p>
       ) : stops.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-lg text-ink-soft">
+        <p className="rounded-card border border-dashed border-line bg-surface p-8 text-center text-lg text-ink-soft">
           {strings.kidRoute.empty}
         </p>
       ) : (
@@ -66,7 +66,7 @@ export function KidRouteScreen() {
             return (
               <li
                 key={stop.key}
-                className={`rounded-[20px] p-4 ${
+                className={`rounded-card p-4 ${
                   stop.isNow ? "bg-sea text-on-sea" : "border border-line bg-surface text-ink"
                 }`}
               >

@@ -119,7 +119,7 @@ export function CategorySheet({
         </label>
 
         {!plannedValid && (
-          <p className="text-sm text-rose-600">{s.totalBudgetInvalid}</p>
+          <p className="text-sm text-alert">{s.totalBudgetInvalid}</p>
         )}
 
         <button
@@ -135,7 +135,7 @@ export function CategorySheet({
             type="button"
             disabled={busy}
             onClick={() => void remove()}
-            className="w-full rounded-2xl border border-rose-200 py-2.5 text-sm font-medium text-rose-600"
+            className="w-full rounded-2xl border border-alert/30 py-2.5 text-sm font-medium text-alert"
           >
             {s.deleteCategory}
           </button>

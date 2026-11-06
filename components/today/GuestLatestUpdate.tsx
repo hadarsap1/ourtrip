@@ -57,12 +57,12 @@ export function GuestLatestUpdate({ tripId, role }: { tripId: string; role: Memb
 
   if (state.kind === "failed") return null;
   if (state.kind === "loading") {
-    return <div className="h-24 animate-pulse rounded-[20px] bg-sv-sage-soft" aria-busy="true" />;
+    return <div className="h-24 animate-pulse rounded-card bg-sv-sage-soft" aria-busy="true" />;
   }
   const g = strings.guestHome;
   if (!state.story) {
     return (
-      <p className="rounded-[20px] border border-dashed border-sv-line bg-sv-card px-4 py-3.5 text-sm text-sv-ink-soft">
+      <p className="rounded-card border border-dashed border-sv-line bg-sv-card px-4 py-3.5 text-sm text-sv-ink-soft">
         {g.latestEmpty}
       </p>
     );
@@ -72,37 +72,39 @@ export function GuestLatestUpdate({ tripId, role }: { tripId: string; role: Memb
   const stamp = Date.parse(story.published_at ?? story.created_at);
   const isNew = state.lastVisit !== null && Number.isFinite(stamp) && stamp > state.lastVisit;
 
+  // Photo on top, a headline and two lines under it (06/11/2026: beside a
+  // side photo the text ran the whole update and the photo stretched into a
+  // strip). The full update is one tap away in the feed.
   return (
     <Link
       href={`/stories#story-${story.id}`}
-      className="flex items-stretch gap-3 overflow-hidden rounded-[20px] border border-sv-line bg-sv-card active:bg-sv-sage-soft"
+      className="block overflow-hidden rounded-card border border-sv-line bg-sv-card active:bg-sv-sage-soft"
     >
-      {state.photoUrl ? (
+      {state.photoUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-        <img src={state.photoUrl} alt="" className="w-24 shrink-0 object-cover" />
-      ) : (
-        <span className="grid w-20 shrink-0 place-items-center bg-sv-sage-soft text-sv-sage">
-          <JournalIcon className="h-7 w-7" />
-        </span>
+        <img src={state.photoUrl} alt="" className="aspect-[16/9] w-full object-cover" />
       )}
-      <span className="min-w-0 flex-1 py-3 pe-3">
-        <span className="flex items-center gap-2 text-[12px] font-bold text-sv-sage">
+      <div className="px-4 py-3">
+        <p className="flex items-center gap-2 text-xs font-bold text-sv-sage">
+          {!state.photoUrl && <JournalIcon className="h-4 w-4" />}
           {g.latestTitle}
           {isNew && (
-            <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[12px] font-extrabold text-white">
+            <span className="rounded-full bg-alert px-2 py-0.5 text-xs font-extrabold text-on-alert">
               {g.latestNew}
             </span>
           )}
-        </span>
-        <span className="mt-0.5 block truncate font-bold text-sv-ink">{story.title || g.latestNoTitle}</span>
+        </p>
+        <p className="mt-1 line-clamp-2 text-lg font-bold leading-snug text-sv-ink">
+          {story.title || g.latestNoTitle}
+        </p>
         {story.body && (
-          <span className="mt-0.5 line-clamp-2 block text-sm text-sv-ink-soft">{story.body}</span>
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-sv-ink-soft">{story.body}</p>
         )}
-        <span className="mt-1 flex items-center justify-between gap-2 text-[12px] text-sv-ink-soft">
+        <p className="mt-2 flex items-center justify-between gap-2 text-xs text-sv-ink-soft">
           <span dir="ltr">{formatDate(story.entry_date)}</span>
           <span className="font-bold text-sv-sage">{g.latestRead} ←</span>
-        </span>
-      </span>
+        </p>
+      </div>
     </Link>
   );
 }

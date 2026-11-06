@@ -114,14 +114,14 @@ export function RegisterSW() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="shrink-0 rounded-full bg-surface px-3.5 py-1.5 text-[13px] font-bold text-ink"
+        className="shrink-0 rounded-full bg-surface px-3.5 py-1.5 text-sm font-bold text-ink"
       >
         {strings.update.action}
       </button>
       <button
         type="button"
         onClick={() => setUpdateReady(false)}
-        className="shrink-0 text-[13px] font-medium text-white/70"
+        className="shrink-0 text-sm font-medium text-white/70"
       >
         {strings.update.dismiss}
       </button>

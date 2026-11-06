@@ -385,7 +385,7 @@ export function Recorder({
       <div className="h-2 w-full overflow-hidden rounded-full bg-sv-line" aria-hidden="true">
         <div className="h-full rounded-full bg-sv-clay" style={{ width: `${progress * 100}%` }} />
       </div>
-      <p className="text-[12px] text-sv-ink-soft" role="status">
+      <p className="text-xs text-sv-ink-soft" role="status">
         {phase === "recording"
           ? strings.podcast.recording
           : phase === "paused"
@@ -410,7 +410,7 @@ export function Recorder({
         >
           <span>
             {strings.podcast.externalMics}
-            <span className="block text-[12px] font-normal text-sv-ink-soft">
+            <span className="block text-xs font-normal text-sv-ink-soft">
               {externalMics ? strings.podcast.externalMicsOn : strings.podcast.externalMicsOff}
             </span>
           </span>

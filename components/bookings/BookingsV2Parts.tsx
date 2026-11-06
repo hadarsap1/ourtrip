@@ -32,7 +32,7 @@ export function TypeTiles({
         className={`flex flex-col items-center justify-center rounded-2xl border px-2 py-2 text-sm font-bold ${value === null ? "border-sea bg-sea-tint text-sea-deep" : "border-line bg-surface text-ink"}`}
       >
         <span className="text-lg tabular-nums">{counts.reduce((s, c) => s + c.count, 0)}</span>
-        <span className="text-[12px] font-semibold">{t.all}</span>
+        <span className="text-xs font-semibold">{t.all}</span>
       </button>
       {counts.map(({ type, count }) => {
         const Icon = icons[type];
@@ -50,7 +50,7 @@ export function TypeTiles({
               <Icon className="h-4 w-4" strokeWidth={1.8} />
               {count}
             </span>
-            <span className="text-[12px] font-semibold">{strings.bookings.types[type]}</span>
+            <span className="text-xs font-semibold">{strings.bookings.types[type]}</span>
           </button>
         );
       })}
@@ -80,12 +80,12 @@ export function BookingFactsStrip({ booking }: { booking: Booking }) {
       {f.timesKind && (
         <div className="flex items-end justify-between gap-3">
           <span>
-            <span className="block text-[12px] text-ink-soft">{f.timesKind === "travel" ? t.departs : t.checkIn}</span>
+            <span className="block text-xs text-ink-soft">{f.timesKind === "travel" ? t.departs : t.checkIn}</span>
             <bdi className="block text-[22px] font-extrabold leading-7 tabular-nums text-ink">{f.from ?? "-"}</bdi>
           </span>
           <span aria-hidden="true" className="mb-2 h-px flex-1 border-t border-dashed border-line" />
           <span className="text-end">
-            <span className="block text-[12px] text-ink-soft">{f.timesKind === "travel" ? t.arrives : t.checkOut}</span>
+            <span className="block text-xs text-ink-soft">{f.timesKind === "travel" ? t.arrives : t.checkOut}</span>
             <bdi className="block text-[22px] font-extrabold leading-7 tabular-nums text-ink">{f.to ?? "-"}</bdi>
           </span>
         </div>
@@ -93,7 +93,7 @@ export function BookingFactsStrip({ booking }: { booking: Booking }) {
       {(chips.length > 0 || booking.confirmation_code) && (
         <div className="flex flex-wrap items-center gap-1.5">
           {chips.map((c) => (
-            <bdi key={c} className="rounded-md bg-paper-deep px-2 py-0.5 text-[12px] font-semibold text-ink">
+            <bdi key={c} className="rounded-md bg-paper-deep px-2 py-0.5 text-xs font-semibold text-ink">
               {c}
             </bdi>
           ))}
@@ -102,7 +102,7 @@ export function BookingFactsStrip({ booking }: { booking: Booking }) {
               type="button"
               onClick={() => void copy()}
               aria-label={t.copy}
-              className="ms-auto flex items-center gap-1.5 rounded-lg border border-line px-2.5 text-[13px] font-bold text-ink"
+              className="ms-auto flex items-center gap-1.5 rounded-lg border border-line px-2.5 text-sm font-bold text-ink"
             >
               {copied ? <CheckIcon className="h-4 w-4 text-success" /> : <ClipboardIcon className="h-4 w-4" />}
               <bdi className="tabular-nums">{copied ? t.copied : booking.confirmation_code}</bdi>

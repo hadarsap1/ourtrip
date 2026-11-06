@@ -574,7 +574,7 @@ export function ItineraryScreen() {
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 sm:max-w-2xl lg:max-w-4xl">
       <header className="mb-3 flex items-center justify-between gap-2">
-        <h1 className="text-[22px] font-extrabold text-ink">
+        <h1 className="ot-title">
           {strings.nav.itinerary}
         </h1>
         <div className="flex items-center gap-1.5">
@@ -587,7 +587,7 @@ export function ItineraryScreen() {
               searching ? strings.itinerary.closeSearch : strings.itinerary.tabSearch
             }
             aria-pressed={searching}
-            className={`grid h-11 w-11 place-items-center rounded-[11px] transition-colors ${
+            className={`grid h-11 w-11 place-items-center rounded-xl transition-colors ${
               searching
                 ? "bg-sea text-on-sea"
                 : "bg-paper-deep text-ink-soft active:bg-line"
@@ -612,7 +612,7 @@ export function ItineraryScreen() {
             // open.
             disabled={!trip}
             aria-label={strings.segments.open}
-            className="grid h-11 w-11 place-items-center rounded-[11px] bg-paper-deep text-ink-soft active:bg-line disabled:opacity-40"
+            className="grid h-11 w-11 place-items-center rounded-xl bg-paper-deep text-ink-soft active:bg-line disabled:opacity-40"
           >
             <PinIcon className="h-[17px] w-[17px]" />
           </button>
@@ -620,7 +620,7 @@ export function ItineraryScreen() {
             type="button"
             onClick={() => setDayForm({ day: null })}
             aria-label={strings.itinerary.addDay}
-            className="grid h-11 w-11 place-items-center rounded-[11px] bg-sea text-on-sea active:bg-sea-deep"
+            className="grid h-11 w-11 place-items-center rounded-xl bg-sea text-on-sea active:bg-sea-deep"
           >
             <PlusIcon className="h-[17px] w-[17px]" />
           </button>
@@ -711,7 +711,7 @@ export function ItineraryScreen() {
             ) : (
               <>
                 {days.length === 0 && (
-                  <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
+                  <p className="rounded-card border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
                     {strings.itinerary.emptyDays}
                   </p>
                 )}

@@ -27,12 +27,12 @@ export function ChecklistBlock({
 }) {
   const s = strings.home;
   return (
-    <section className="overflow-hidden rounded-[18px] border border-line bg-surface">
+    <section className="overflow-hidden rounded-card border border-line bg-surface">
       <div className="flex items-baseline gap-2 border-b border-line px-3.5 py-2.5">
-        <h2 className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink">
+        <h2 className="min-w-0 flex-1 truncate text-sm font-bold text-ink">
           {checklist.title}
         </h2>
-        <span className="shrink-0 text-[12px] font-semibold text-ink-soft">
+        <span className="shrink-0 text-xs font-semibold text-ink-soft">
           {s.checklistProgress
             .replace("{done}", String(checklist.done))
             .replace("{total}", String(checklist.total))}
@@ -40,7 +40,7 @@ export function ChecklistBlock({
       </div>
 
       {checklist.open.length === 0 ? (
-        <p className="px-3.5 py-3 text-center text-[13px] font-semibold text-sea">
+        <p className="px-3.5 py-3 text-center text-sm font-semibold text-sea">
           {s.checklistAllDone}
         </p>
       ) : (
@@ -60,7 +60,7 @@ export function ChecklistBlock({
                 >
                   <CheckIcon className="h-3.5 w-3.5 text-line" strokeWidth={2.5} />
                 </span>
-                <span className="min-w-0 flex-1 text-[13.5px] text-ink">
+                <span className="min-w-0 flex-1 text-sm text-ink">
                   {item.label}
                 </span>
               </button>
@@ -73,7 +73,7 @@ export function ChecklistBlock({
         href="/checklists"
         className="flex items-center gap-2 border-t border-line px-3.5 py-2.5 active:bg-paper-deep"
       >
-        <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-sea">
+        <span className="min-w-0 flex-1 text-xs font-semibold text-sea">
           {s.checklistMore}
         </span>
         <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />
@@ -104,13 +104,13 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
   return (
     <Link
       href="/budget"
-      className="block rounded-[18px] border border-line bg-surface p-3.5 active:bg-paper-deep"
+      className="block rounded-card border border-line bg-surface p-3.5 active:bg-paper-deep"
     >
       <div className="flex items-baseline gap-2">
-        <h2 className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
+        <h2 className="min-w-0 flex-1 text-sm font-bold text-ink">
           {strings.nav.budget}
         </h2>
-        <span className="shrink-0 text-[12px] text-ink-soft">
+        <span className="shrink-0 text-xs text-ink-soft">
           {b.kpiSpent} {money(progress.spent)}
         </span>
       </div>
@@ -123,7 +123,7 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
         >
           {money(progress.remaining)}
         </span>
-        <span className="text-[12px] text-ink-soft">
+        <span className="text-xs text-ink-soft">
           {progress.overSpent ? b.kpiOver : b.kpiRemaining}
           {budget.hasTarget && ` · ${b.target} ${money(budget.target ?? 0)}`}
         </span>
@@ -141,14 +141,14 @@ export function BudgetBlock({ budget }: { budget: BudgetSummary }) {
           style={{ width: `${Math.min(100, Math.max(0, progress.usedPct))}%` }}
         />
       </div>
-      <p className="mt-1 text-[12px] text-ink-soft">
+      <p className="mt-1 text-xs text-ink-soft">
         {b.paceTitle.replace("{n}", String(progress.usedPct))}
       </p>
 
       {/* Allocation: a different question, so never the same bar. */}
       {budget.hasTarget && (
         <p
-          className={`mt-1.5 border-t border-line pt-1.5 text-[12px] ${
+          className={`mt-1.5 border-t border-line pt-1.5 text-xs ${
             budget.overTarget ? "font-semibold text-alert" : "text-ink-soft"
           }`}
         >
@@ -192,13 +192,13 @@ function StretchCard({ stretch }: { stretch: TimelineStretch }) {
   );
   return (
     <div
-      className={`flex w-[136px] shrink-0 flex-col rounded-[16px] border p-3 ${
+      className={`flex w-[136px] shrink-0 flex-col rounded-card border p-3 ${
         highlighted ? "border-sea bg-sea-tint/40" : "border-line bg-surface"
       }`}
     >
       {/* The label line is always present, empty when the stretch is neither
           current nor next, so every card in the strip lines up. */}
-      <p className="mb-1 h-[13px] text-[12px] font-bold text-sea">
+      <p className="mb-1 h-[13px] text-xs font-bold text-sea">
         {highlighted
           ? stretch.isCurrent
             ? s.timelineCurrent
@@ -208,19 +208,19 @@ function StretchCard({ stretch }: { stretch: TimelineStretch }) {
       {/* Two lines, because one stretch is called "המקטע האחרון - פתוח
           (גאורגיה כברירת מחדל)" and a single truncated line of that says
           nothing at all. */}
-      <p className="line-clamp-2 min-h-[2.4em] text-[13px] font-bold leading-[1.2] text-ink">
+      <p className="line-clamp-2 min-h-[2.4em] text-sm font-bold leading-[1.2] text-ink">
         {area ?? country}
       </p>
       {/* The country, always reserved so the cards line up. The itinerary names
           Japan's stretches by city and everyone else's by country, so without
           this the strip said "יפן" nowhere and "תאילנד" twice. Empty when the
           stretch IS the country and its name is already above. */}
-      <p className="h-[13px] text-[12px] text-ink-soft">{area ? country : ""}</p>
-      <p className="mt-0.5 text-[12px] text-ink-soft">
+      <p className="h-[13px] text-xs text-ink-soft">{area ? country : ""}</p>
+      <p className="mt-0.5 text-xs text-ink-soft">
         {s.timelineDays.replace("{n}", String(stretch.days))}
       </p>
       <p
-        className={`mt-auto pt-1.5 text-[12px] ${
+        className={`mt-auto pt-1.5 text-xs ${
           stretch.daysWithItems === 0 ? "text-ink-faint" : "text-sea"
         }`}
       >

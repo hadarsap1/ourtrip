@@ -95,7 +95,7 @@ export function PocketScreen() {
   if (memberFailed) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
-        <h1 className="mb-3 text-2xl font-bold">{strings.pocket.title}</h1>
+        <h1 className="ot-title mb-3">{strings.pocket.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.memberFailed}</p>
         <button
           type="button"
@@ -111,7 +111,7 @@ export function PocketScreen() {
   if (!member) {
     return (
       <div className="mx-auto max-w-lg px-4 pt-8 text-center">
-        <h1 className="mb-3 text-2xl font-bold">{strings.pocket.title}</h1>
+        <h1 className="ot-title mb-3">{strings.pocket.title}</h1>
         <p className="mb-3 text-ink-soft">{strings.common.noMember}</p>
         <Link href="/login" className="inline-flex min-h-[44px] items-center font-semibold text-sea underline">
           {strings.common.signInAgain}
@@ -130,7 +130,7 @@ export function PocketScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.pocket.title}</h1>
+      <h1 className="ot-title">{strings.pocket.title}</h1>
       {isOwner && (
         <p className="text-xs text-ink-soft">{strings.pocket.infoNote}</p>
       )}
@@ -138,7 +138,7 @@ export function PocketScreen() {
       {isOwner && shownKids.length === 0 && (
         <section className="ot-card p-8 text-center">
           <CoinIcon className="mx-auto mb-3 h-10 w-10 text-line" />
-          <h2 className="mb-2 text-lg font-semibold">{strings.pocket.noKids}</h2>
+          <h2 className="mb-2 text-lg font-bold text-ink">{strings.pocket.noKids}</h2>
           <p className="mb-4 text-sm text-ink-soft">{strings.pocket.noKidsBody}</p>
           <Link
             href="/kids"
@@ -196,8 +196,8 @@ export function PocketScreen() {
                 {/* fun progress visual */}
                 <div className="mt-2 h-4 overflow-hidden rounded-full bg-paper-deep">
                   <div
-                    className={`flex h-full items-center justify-end rounded-full pe-1 text-[12px] ${
-                      pct >= 90 ? "bg-rose-400" : pct >= 60 ? "bg-amber-400" : "bg-sea"
+                    className={`flex h-full items-center justify-end rounded-full pe-1 text-xs ${
+                      pct >= 90 ? "bg-alert" : pct >= 60 ? "bg-sun" : "bg-sea"
                     }`}
                     style={{ width: `${Math.max(pct, 8)}%` }}
                   >

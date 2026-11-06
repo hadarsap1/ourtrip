@@ -128,7 +128,7 @@ export function PlanMyDaySheet({
               {plan.map((s, i) => (
                 <li key={s.option.id}>
                   {i > 0 && (
-                    <p className="flex justify-center py-0.5 text-[12px] text-ink-soft">
+                    <p className="flex justify-center py-0.5 text-xs text-ink-soft">
                       <span className="rounded-full bg-paper-deep px-2 py-0.5" title={t.estimate}>
                         {s.travelFromPrev !== null ? t.travel.replace("{n}", String(s.travelFromPrev)) : "…"}
                       </span>
@@ -138,13 +138,13 @@ export function PlanMyDaySheet({
                     <bdi className="w-12 shrink-0 text-sm font-extrabold tabular-nums text-sea">{hhmm(s.start)}</bdi>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-ink">{s.option.title}</span>
-                      <span className="block text-[12px] text-ink-soft">{catLabel(s.option.category)}</span>
+                      <span className="block text-xs text-ink-soft">{catLabel(s.option.category)}</span>
                     </span>
                     <button
                       type="button"
                       onClick={() => setEdited({ key: input, plan: swapStop(plan, i, input) })}
                       aria-label={t.swapLabel.replace("{title}", s.option.title)}
-                      className="shrink-0 rounded-lg border border-line px-3 text-[13px] font-semibold text-ink"
+                      className="shrink-0 rounded-lg border border-line px-3 text-sm font-semibold text-ink"
                     >
                       {t.swap}
                     </button>
@@ -154,7 +154,7 @@ export function PlanMyDaySheet({
             </ol>
           )}
 
-          <p className="text-[12px] text-ink-soft">{t.hint}</p>
+          <p className="text-xs text-ink-soft">{t.hint}</p>
           {note && <p role="alert" className="rounded-xl bg-warning-soft px-3 py-2 text-sm font-semibold text-warning">{note}</p>}
 
           <div className="grid grid-cols-2 gap-2.5">

@@ -96,7 +96,7 @@ export function KidsAdminScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.kids.title}</h1>
+      <h1 className="ot-title">{strings.kids.title}</h1>
 
       {kids.length === 0 && (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center text-sm text-ink-soft">
@@ -131,7 +131,7 @@ export function KidsAdminScreen() {
                 <>
                   <span
                     className={`font-semibold ${
-                      locked ? "text-amber-600" : "text-emerald-600"
+                      locked ? "text-sun-deep" : "text-success"
                     }`}
                   >
                     {locked ? (
@@ -158,7 +158,7 @@ export function KidsAdminScreen() {
                         .then(() => trip && refresh(trip.id))
                         .catch((err) => showToast(kidErrorMessage(err)));
                     }}
-                    className="font-semibold text-rose-500"
+                    className="font-semibold text-alert"
                   >
                     {strings.kids.revoke}
                   </button>

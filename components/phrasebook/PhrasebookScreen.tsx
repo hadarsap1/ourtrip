@@ -209,10 +209,10 @@ export function PhrasebookScreen() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <h1 className="text-2xl font-bold">{strings.phrasebook.title}</h1>
+      <h1 className="ot-title">{strings.phrasebook.title}</h1>
 
       {fromCache && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-700">
+        <p className="rounded-xl bg-sun-tint px-3 py-2 text-center text-xs font-medium text-sun-deep">
           {strings.offline.fromCache}
         </p>
       )}
@@ -444,11 +444,11 @@ function AddLanguageSheet({
                   onClick={() => onGenerate(language.code)}
                   className="flex w-full items-center gap-2 py-3 text-start disabled:opacity-45"
                 >
-                  <span className="min-w-0 flex-1 text-[15px] font-medium text-ink">
+                  <span className="min-w-0 flex-1 text-base font-medium text-ink">
                     {language.name}
                   </span>
                   {already && (
-                    <span className="shrink-0 text-[12px] text-ink-soft">
+                    <span className="shrink-0 text-xs text-ink-soft">
                       {strings.phrasebook.languageAlready}
                     </span>
                   )}

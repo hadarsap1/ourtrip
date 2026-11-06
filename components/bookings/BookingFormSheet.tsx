@@ -36,7 +36,7 @@ import type {
   BookingType,
 } from "@/lib/types";
 
-const labelClass = "mb-1 block text-[12.5px] font-semibold text-ink-soft";
+const labelClass = "mb-1 block text-xs font-semibold text-ink-soft";
 const inputClass =
   "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base text-ink focus:border-sea focus:outline-none";
 
@@ -353,13 +353,13 @@ function BookingForm({
           {datesContradict && (
             <p
               role="alert"
-              className="rounded-lg bg-alert-tint px-2.5 py-1.5 text-[12px] font-semibold text-alert"
+              className="rounded-lg bg-alert-tint px-2.5 py-1.5 text-xs font-semibold text-alert"
             >
               {strings.bookings.endBeforeStart}
             </p>
           )}
           {startDate === "" && (
-            <p className="text-[12px] text-ink-soft">
+            <p className="text-xs text-ink-soft">
               {strings.bookings.missingStartDate}
             </p>
           )}
@@ -534,7 +534,7 @@ function BookingForm({
           {fileError && (
             <p
               role="alert"
-              className="rounded-lg bg-alert-tint px-2.5 py-1.5 text-[12px] font-semibold text-alert"
+              className="rounded-lg bg-alert-tint px-2.5 py-1.5 text-xs font-semibold text-alert"
             >
               {fileError}
             </p>
@@ -564,7 +564,7 @@ function BookingForm({
             type="button"
             onClick={() => void handleDelete()}
             disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-alert/25 py-2.5 text-[13px] font-bold text-alert hover:bg-alert-tint disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-alert/25 py-2.5 text-sm font-bold text-alert hover:bg-alert-tint disabled:opacity-60"
           >
             <TrashIcon className="h-4 w-4" />
             {strings.bookings.deleteBooking}
@@ -624,9 +624,9 @@ function Section({
   return (
     <section className="rounded-2xl border border-line bg-paper/70 p-3">
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <h3 className="text-[12px] font-extrabold text-ink">{title}</h3>
+        <h3 className="text-xs font-extrabold text-ink">{title}</h3>
         {note && (
-          <span className="text-[12px] font-semibold text-sea-deep">
+          <span className="text-xs font-semibold text-sea-deep">
             {note}
           </span>
         )}
@@ -686,7 +686,7 @@ function FilePicker({
   return (
     <div className="space-y-2">
       {saved.length === 0 && pending.length === 0 && (
-        <p className="text-[12px] text-ink-soft">{strings.bookings.filesNone}</p>
+        <p className="text-xs text-ink-soft">{strings.bookings.filesNone}</p>
       )}
 
       {saved.map((file) => (
@@ -732,11 +732,11 @@ function FilePicker({
             : "border-line bg-surface hover:bg-paper-deep"
         }`}
       >
-        <span className="flex items-center gap-1.5 text-[13px] font-bold text-sea">
+        <span className="flex items-center gap-1.5 text-sm font-bold text-sea">
           <PlusIcon className="h-4 w-4" />
           {strings.bookings.attachFiles}
         </span>
-        <span className="text-[12px] text-ink-soft" dir="auto">
+        <span className="text-xs text-ink-soft" dir="auto">
           {strings.bookings.attachHint}
         </span>
       </button>
@@ -824,7 +824,7 @@ function FileRow({
       </span>
       <span className="min-w-0 flex-1">
         <span
-          className="block truncate text-[13px] font-semibold text-ink"
+          className="block truncate text-sm font-semibold text-ink"
           // `חשבונית.pdf` is Hebrew, `voucher.pdf` is Latin, and forcing
           // either direction mangles the other's extension.
           dir="auto"
@@ -832,7 +832,7 @@ function FileRow({
           {name}
         </span>
         {meta && (
-          <span className="block text-[12px] text-ink-soft" dir="auto">
+          <span className="block text-xs text-ink-soft" dir="auto">
             {meta}
           </span>
         )}
@@ -841,7 +841,7 @@ function FileRow({
         <button
           type="button"
           onClick={onOpen}
-          className="shrink-0 rounded-lg bg-paper-deep px-2.5 py-1.5 text-[12px] font-bold text-ink hover:bg-line"
+          className="shrink-0 rounded-lg bg-paper-deep px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-line"
         >
           {openLabel}
         </button>
@@ -885,7 +885,7 @@ function TypePicker({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(option)}
-            className={`flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-[12px] transition-colors ${
+            className={`flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border text-xs transition-colors ${
               active
                 ? "border-sea bg-sea-tint font-bold text-sea-deep"
                 : "border-line bg-surface font-semibold text-ink-soft hover:bg-paper-deep"

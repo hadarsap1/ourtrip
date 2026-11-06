@@ -97,11 +97,11 @@ function LegLocationForm({
     <Sheet open onClose={onClose} title={s.mapSetTitle}>
       <div className="space-y-3">
         <div className="rounded-xl border border-line bg-paper/70 p-3">
-          <p className="text-[13px] font-extrabold text-ink">
+          <p className="text-sm font-extrabold text-ink">
             {leg.stretch.locationName ??
               (leg.stretch.countryCode ? countryName(leg.stretch.countryCode) : "")}
           </p>
-          <p className="mt-0.5 text-[12px] text-ink-soft" dir="ltr">
+          <p className="mt-0.5 text-xs text-ink-soft" dir="ltr">
             {formatShortDate(leg.stretch.from)} - {formatShortDate(leg.stretch.to)}
             {" · "}
             {s.legDays.replace("{n}", String(leg.dayCount))}
@@ -111,7 +111,7 @@ function LegLocationForm({
         <div>
           <label
             htmlFor="leg-place"
-            className="mb-1 block text-[12.5px] font-semibold text-ink-soft"
+            className="mb-1 block text-xs font-semibold text-ink-soft"
           >
             {s.mapSetSearch}
           </label>
@@ -130,7 +130,7 @@ function LegLocationForm({
             }}
           />
           <p
-            className={`mt-1 text-[12px] ${
+            className={`mt-1 text-xs ${
               searchable ? "text-ink-soft" : "font-semibold text-alert"
             }`}
             role={searchable ? undefined : "alert"}

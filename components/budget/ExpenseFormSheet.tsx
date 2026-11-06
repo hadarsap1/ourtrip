@@ -285,7 +285,7 @@ function ExpenseForm({
       <div className="space-y-4">
         {/* 1. amount - the sheet's one focused element, so the eye lands where
             typing starts. Numeric keypad, pre-focused. */}
-        <div className="rounded-[20px] border-[1.5px] border-sea bg-surface px-4 py-3.5">
+        <div className="rounded-card border-[1.5px] border-sea bg-surface px-4 py-3.5">
           <label htmlFor="exp-amount" className="sr-only">
             {strings.budget.amount}
           </label>
@@ -303,12 +303,12 @@ function ExpenseForm({
               className="min-w-0 flex-1 bg-transparent text-[40px] font-extrabold leading-none text-ink placeholder:text-ink-faint focus:outline-none"
               dir="ltr"
             />
-            <span className="shrink-0 rounded-[11px] bg-paper-deep px-2 py-1.5 text-xs font-extrabold text-sea-deep">
+            <span className="shrink-0 rounded-xl bg-paper-deep px-2 py-1.5 text-xs font-extrabold text-sea-deep">
               {currency}
             </span>
           </div>
           {inIls !== null && currency !== "ILS" && (
-            <p className="mt-2 text-[12px] text-ink-soft">
+            <p className="mt-2 text-xs text-ink-soft">
               <span dir="ltr">
                 {strings.budget.approxIls.replace(
                   "{ils}",
@@ -421,7 +421,7 @@ function ExpenseForm({
                   setCategoryId(cat.id);
                   if (isNew) void save(cat.id);
                 }}
-                className={`rounded-[14px] px-2 py-2.5 text-sm font-bold disabled:opacity-40 ${
+                className={`rounded-xl px-2 py-2.5 text-sm font-bold disabled:opacity-40 ${
                   categoryId === cat.id
                     ? "bg-sea text-on-sea"
                     : "border border-line bg-surface text-ink"

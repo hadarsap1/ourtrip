@@ -99,7 +99,7 @@ export function DayCard({
   const isToday = day.date === todayISO();
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-line bg-surface">
+    <section className="overflow-hidden rounded-card border border-line bg-surface">
       {/* Day header on paper-deep rather than sea-tint: the tint now means
           "happening now" and shouldn't mark every day on the screen. */}
       <div className="flex items-center gap-1 bg-paper-deep pe-1.5">
@@ -108,21 +108,21 @@ export function DayCard({
         onClick={onEditDay}
         className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 px-3.5 py-2.5 text-start"
       >
-        <span className="text-[12px] font-extrabold text-sea-deep">
+        <span className="text-xs font-extrabold text-sea-deep">
           {formatWeekday(day.date)} {formatDate(day.date)}
         </span>
         {day.location_name && (
-          <span className="truncate text-[12px] font-semibold text-sea-deep/80">
+          <span className="truncate text-xs font-semibold text-sea-deep/80">
             {day.location_name}
           </span>
         )}
         {isToday && (
-          <span className="rounded-full bg-sun-tint px-1.5 py-px text-[12px] font-extrabold text-sun-deep">
+          <span className="rounded-full bg-sun-tint px-1.5 py-px text-xs font-extrabold text-sun-deep">
             {strings.itinerary.todayChip}
           </span>
         )}
         {day.country_code && (
-          <span className="rounded bg-surface px-1.5 py-px text-[12px] font-bold text-sea">
+          <span className="rounded bg-surface px-1.5 py-px text-xs font-bold text-sea">
             {day.country_code}
           </span>
         )}
@@ -177,7 +177,7 @@ export function DayCard({
       )}
 
       {items.length === 0 ? (
-        <p className="px-3.5 py-3 text-[13px] text-ink-faint">
+        <p className="px-3.5 py-3 text-sm text-ink-faint">
           {strings.itinerary.emptyDayItems}
         </p>
       ) : (
@@ -219,14 +219,14 @@ export function DayCard({
         <button
           type="button"
           onClick={onAddItem}
-          className="py-2.5 text-[13px] font-bold text-sea hover:bg-sea-tint"
+          className="py-2.5 text-sm font-bold text-sea hover:bg-sea-tint"
         >
           + {strings.itinerary.addItem}
         </button>
         <button
           type="button"
           onClick={onAddFromBank}
-          className="border-s border-line py-2.5 text-[13px] font-bold text-sea hover:bg-sea-tint"
+          className="border-s border-line py-2.5 text-sm font-bold text-sea hover:bg-sea-tint"
         >
           {strings.options.fromBank}
         </button>
@@ -289,7 +289,7 @@ function SortableItem({
         className="flex min-w-0 flex-1 items-start gap-2.5 text-start"
       >
         <span
-          className={`w-[42px] shrink-0 pt-px text-[12.5px] font-bold tabular-nums ${
+          className={`w-[42px] shrink-0 pt-px text-xs font-bold tabular-nums ${
             done ? "text-ink-faint" : "text-sea"
           }`}
           dir="ltr"
@@ -299,7 +299,7 @@ function SortableItem({
         {v2 && <TimelineNode type={nodeType(bookingType, item.is_outdoor)} position={position} muted={done || item.status === "cancelled"} />}
         <span className="min-w-0 flex-1">
           <span
-            className={`block truncate text-[13.5px] ${
+            className={`block truncate text-sm ${
               item.status === "cancelled" || done
                 ? "text-ink-faint line-through"
                 : "font-medium text-ink"
@@ -311,7 +311,7 @@ function SortableItem({
             hasBooking ||
             item.is_outdoor ||
             item.end_time) && (
-            <span className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-soft">
               {item.end_time && (
                 <span className="shrink-0 tabular-nums" dir="ltr">
                   {formatTime(item.start_time ?? "")}-{formatTime(item.end_time)}
@@ -362,7 +362,7 @@ function SortableItem({
       <button
         type="button"
         onClick={onCycleStatus}
-        className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold ${STATUS_CLASS[item.status]}`}
+        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_CLASS[item.status]}`}
       >
         {STATUS_LABEL[item.status]}
       </button>

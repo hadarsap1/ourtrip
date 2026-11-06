@@ -84,6 +84,10 @@
 
   /* Cards sit at 20px. Anything softer made every card read as the same weight. */
   --radius-stamp: 1.25rem;
+  /* Three corners (visual pass 06/11/2026): rounded-xl (12px) for controls,
+     rounded-card (18px) for cards and sheets, rounded-full for chips and
+     badges. Nine near-identical arbitrary values (10-22px) folded into them. */
+  --radius-card: 1.125rem;
   --shadow-card: var(--shadow-card-value);
 }
 
@@ -160,6 +164,14 @@ body {
   border-radius: 9999px;
   border: 2px dashed rgba(255, 255, 255, 0.16);
   pointer-events: none;
+}
+
+/* The postcard's colours as a flat full-bleed band (the Today place bar).
+   bg-sea-deep turned pale sage in dark mode - a glaring strip on a dark
+   screen; the postcard tokens stay a deep sage in both themes, under white. */
+.ot-band {
+  background: linear-gradient(135deg, var(--postcard-from) 0%, var(--postcard-to) 100%);
+  color: #fff;
 }
 
 /* Thin dashed divider echoing a stitched map route. */
@@ -256,6 +268,16 @@ body {
 h1:not([data-plain]) {
   font-family: var(--font-sovev), var(--font-heebo), system-ui, sans-serif;
   font-weight: 400;
+}
+
+/* One screen title (visual pass 06/11/2026): seven size/weight mixes had
+   grown across the screens. The handwriting face above sets the family and
+   weight; this sets one size, line and colour. Kid screens keep their larger
+   titles on purpose. */
+.ot-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  color: var(--text);
 }
 
 /* The capture button floats above the bottom bar on phones and tablets; give

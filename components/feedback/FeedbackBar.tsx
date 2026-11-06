@@ -210,7 +210,7 @@ export function FeedbackBar({
         ))}
       </div>
       {whoByKind.length > 0 && (
-        <ul className="space-y-1 text-[12px] text-sv-ink-soft">
+        <ul className="space-y-1 text-xs text-sv-ink-soft">
           {whoByKind.map((w) => (
             <li key={w.kind} className="flex items-start gap-1.5">
               <span className="mt-px shrink-0 [&>svg]:h-3.5 [&>svg]:w-3.5" role="img" aria-label={LABELS[w.kind]}>
@@ -246,7 +246,7 @@ export function FeedbackBar({
                     key={c.id}
                     className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}
                   >
-                    <p className="text-[12px] font-bold text-sv-ink">
+                    <p className="text-xs font-bold text-sv-ink">
                       {nameOf(c.author_id)}
                       {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
                       <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
@@ -258,7 +258,7 @@ export function FeedbackBar({
                         </span>
                       )}
                     </p>
-                    <p className="whitespace-pre-wrap break-words text-[14px] text-sv-ink">{c.body}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm text-sv-ink">{c.body}</p>
                     {(isOwner || c.author_id === member.id) && (
                       <div className="mt-1 flex items-center justify-end gap-2">
                         <button
@@ -311,12 +311,12 @@ export function FeedbackBar({
           </form>
           )}
           {audience.length > 0 && member.role !== "kid" && (
-            <p className="text-[12px] text-sv-ink-soft">
+            <p className="text-xs text-sv-ink-soft">
               {strings.feedback.commentsGoTo.replace("{to}", audience.join(", "))}
             </p>
           )}
           {member.role === "guest" && (
-            <p className="text-[12px] text-sv-ink-soft">{strings.feedback.commentsHint}</p>
+            <p className="text-xs text-sv-ink-soft">{strings.feedback.commentsHint}</p>
           )}
         </div>
       )}

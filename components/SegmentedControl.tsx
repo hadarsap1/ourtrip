@@ -30,12 +30,12 @@ export function SegmentedControl<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className="relative isolate grid rounded-[13px] bg-paper-deep p-[3px]"
+      className="relative isolate grid rounded-xl bg-paper-deep p-[3px]"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))` }}
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-[3px] -z-10 rounded-[10px] bg-surface transition-[inset-inline-start] duration-[180ms] ease-out"
+        className="absolute inset-y-[3px] -z-10 rounded-xl bg-surface transition-[inset-inline-start] duration-[180ms] ease-out"
         style={{
           width: `calc(${width}% - 6px)`,
           insetInlineStart: `calc(${index * width}% + 3px)`,
@@ -51,7 +51,7 @@ export function SegmentedControl<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(option.value)}
-            className={`min-h-[44px] rounded-[10px] py-[7px] text-[12.5px] transition-colors ${
+            className={`min-h-[44px] rounded-xl py-[7px] text-xs transition-colors ${
               active ? "font-bold text-sea-deep" : "font-semibold text-ink-soft"
             }`}
           >

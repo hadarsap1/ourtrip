@@ -260,13 +260,13 @@ export function PodcastScreen() {
     <SovevScreen>
       <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
         <header>
-          <h1 className="text-2xl font-bold">{strings.podcast.title}</h1>
+          <h1 className="ot-title">{strings.podcast.title}</h1>
           <p className="mt-0.5 text-sm text-ink-soft">{strings.podcast.subtitle}</p>
         </header>
 
         {canRecord && (
-          <section className="rounded-[20px] border border-sv-line bg-sv-card p-4">
-            <h2 className="mb-3 text-base font-bold text-ink">{strings.podcast.newEpisode}</h2>
+          <section className="rounded-card border border-sv-line bg-sv-card p-4">
+            <h2 className="mb-3 text-lg font-bold text-ink">{strings.podcast.newEpisode}</h2>
             <Recorder
               busy={saving}
               onSave={save}
@@ -274,7 +274,7 @@ export function PodcastScreen() {
               defaultNarrators={choices.kids}
             />
             {queued > 0 && (
-              <p className="mt-3 text-center text-[12px] font-semibold text-sv-clay" role="status">
+              <p className="mt-3 text-center text-xs font-semibold text-sv-clay" role="status">
                 {strings.podcast.queuedCount.replace("{n}", String(queued))}
               </p>
             )}
@@ -292,9 +292,9 @@ export function PodcastScreen() {
 
         {!loadFailed && (
         <section className="space-y-3">
-          <h2 className="text-base font-bold text-ink">{strings.podcast.episodesTitle}</h2>
+          <h2 className="text-lg font-bold text-ink">{strings.podcast.episodesTitle}</h2>
           {live.length === 0 ? (
-            <p className="rounded-[20px] border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
+            <p className="rounded-card border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
               {role === "guest" ? strings.podcast.emptyGuest : role === "kid" ? strings.podcast.emptyKid : strings.podcast.empty}
             </p>
           ) : (

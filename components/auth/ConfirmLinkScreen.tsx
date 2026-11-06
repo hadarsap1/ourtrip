@@ -64,7 +64,7 @@ export function ConfirmLinkScreen() {
       )}
       {error && (
         <div className="mt-5 space-y-3 text-center">
-          <p className="text-sm text-rose-600" role="alert">{error}</p>
+          <p className="text-sm text-alert" role="alert">{error}</p>
           <a href="/login" className="text-sm font-semibold text-sea underline">
             {strings.confirmLink.toLogin}
           </a>

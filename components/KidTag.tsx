@@ -6,7 +6,7 @@ export function KidTag({ names, className = "" }: { names: readonly string[] | n
   if (!text) return null;
   return (
     <span
-      className={`ms-1.5 inline-block max-w-full truncate rounded-full bg-paper-deep px-2 py-px align-middle text-[11px] font-semibold text-ink-soft ${className}`}
+      className={`ms-1.5 inline-block max-w-full truncate rounded-full bg-paper-deep px-2 py-px align-middle text-xs font-semibold text-ink-soft ${className}`}
     >
       {text}
     </span>

@@ -284,25 +284,25 @@ function LegSection({
   return (
     <section>
       <div className="sticky top-0 z-10 -mx-1 mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-xl bg-paper/95 px-1 py-1.5 backdrop-blur">
-        <h2 className="text-[13px] font-extrabold text-ink">
+        <h2 className="text-sm font-bold text-ink">
           {stretch ? legLabel(stretch) : strings.bookings.legUnplaced}
         </h2>
         {stretch?.countryCode && (
-          <span className="rounded bg-surface px-1.5 py-px text-[12px] font-bold text-sea">
+          <span className="rounded bg-surface px-1.5 py-px text-xs font-bold text-sea">
             {stretch.countryCode}
           </span>
         )}
         {stretch && (
-          <span className="text-[12px] font-semibold text-ink-soft" dir="ltr">
+          <span className="text-xs font-semibold text-ink-soft" dir="ltr">
             {formatShortDate(stretch.from)}
             {stretch.to !== stretch.from && ` - ${formatShortDate(stretch.to)}`}
           </span>
         )}
-        <span className="text-[12px] text-ink-soft">{countLabel}</span>
+        <span className="text-xs text-ink-soft">{countLabel}</span>
       </div>
 
       {!stretch && (
-        <p className="mb-2 rounded-xl bg-alert-tint px-3 py-2 text-[12px] text-alert">
+        <p className="mb-2 rounded-xl bg-alert-tint px-3 py-2 text-xs text-alert">
           {strings.bookings.legUnplacedHint}
         </p>
       )}
@@ -369,14 +369,14 @@ function BookingCard({
     : address;
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface p-3">
+    <section className="rounded-card border border-line bg-surface p-3">
       <button
         type="button"
         onClick={onEdit}
         className="flex w-full items-start justify-between gap-2 text-start"
       >
         <span className="flex min-w-0 items-start gap-2.5">
-          <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] bg-sea-tint text-sea-deep">
+          <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-xl bg-sea-tint text-sea-deep">
             <TypeIcon className="h-[17px] w-[17px]" strokeWidth={1.7} />
           </span>
           <span className="min-w-0">
@@ -405,7 +405,7 @@ function BookingCard({
             </span>
             {where && (
               <span
-                className="mt-1 flex items-center gap-1 text-[12px] text-sea-deep"
+                className="mt-1 flex items-center gap-1 text-xs text-sea-deep"
                 aria-label={strings.bookings.whereAria}
               >
                 <PinIcon className="h-3 w-3 shrink-0" strokeWidth={1.7} />
@@ -431,7 +431,7 @@ function BookingCard({
       {isEnabled("bookingsV2") && <BookingFactsStrip booking={booking} />}
 
       {notOnPlan && (
-        <p className="mt-1.5 text-[12px] text-ink-soft">{notOnPlan}</p>
+        <p className="mt-1.5 text-xs text-ink-soft">{notOnPlan}</p>
       )}
 
       <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2 text-xs font-semibold">
@@ -502,7 +502,7 @@ function BookingCard({
                 className="h-3.5 w-3.5 shrink-0 text-ink-soft"
                 strokeWidth={1.7}
               />
-              <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+              <span className="min-w-0 flex-1 truncate text-xs text-ink">
                 {file.file_name}
               </span>
               <OpenFileButton file={file} onError={onError}>
@@ -551,7 +551,7 @@ function OpenFileButton({
       type="button"
       onClick={() => void open()}
       disabled={opening}
-      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-line disabled:opacity-50"
+      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-paper-deep px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-line disabled:opacity-50"
     >
       {icon && <FileIcon className="h-3.5 w-3.5" />}
       {children}

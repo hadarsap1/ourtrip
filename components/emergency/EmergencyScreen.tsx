@@ -1,5 +1,6 @@
 "use client";
 
+import { Banner } from "@/components/ui/Banner";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
@@ -32,7 +33,7 @@ function TelRow({ label, value }: { label: string; value?: string }) {
       className="flex items-center justify-between rounded-xl bg-surface px-3 py-3 shadow-sm"
     >
       <span className="text-sm font-medium text-ink">{label}</span>
-      <span className="text-lg font-bold text-rose-600" dir="ltr">
+      <span className="text-lg font-bold text-alert" dir="ltr">
         {value}
       </span>
     </a>
@@ -158,8 +159,8 @@ export function EmergencyScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <div className="flex items-center justify-between">
-        <h1 data-plain className="text-2xl font-bold text-rose-700">
-          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-[12px] font-extrabold tracking-[0.06em]">
+        <h1 data-plain className="text-2xl font-bold text-alert">
+          <span className="rounded-md border-[1.4px] border-current/40 px-[5px] py-0.5 text-xs font-extrabold tracking-[0.06em]">
             {strings.emergency.sos}
           </span>{" "}
           {strings.emergency.title}
@@ -176,9 +177,7 @@ export function EmergencyScreen() {
       </div>
 
       {fromCache && (
-        <p className="rounded-xl bg-warning-soft px-3 py-2 text-center text-xs font-medium text-warning">
-          {strings.offline.fromCache}
-        </p>
+        <Banner tone="warning">{strings.offline.fromCache}</Banner>
       )}
 
       {/* Offline readiness (1.6): every page is saved on the device whenever it
@@ -204,7 +203,7 @@ export function EmergencyScreen() {
               onClick={() => setSelected(code)}
               className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                 selected === code
-                  ? "bg-rose-600 text-white"
+                  ? "bg-alert text-on-alert"
                   : "bg-surface text-ink-soft shadow-sm"
               }`}
             >
@@ -226,7 +225,7 @@ export function EmergencyScreen() {
       {selected && (
         <>
           {!page || Object.keys(content).length === 0 ? (
-            <div className="space-y-3 rounded-2xl border border-dashed border-rose-200 bg-surface p-6 text-center">
+            <div className="space-y-3 rounded-2xl border border-dashed border-alert/30 bg-surface p-6 text-center">
               <p className="text-sm text-ink-soft">{strings.emergency.emptyPage}</p>
               {isOwner && trip && (
                 <>
@@ -246,8 +245,8 @@ export function EmergencyScreen() {
           ) : (
             <div className="space-y-4">
               {(content.police || content.ambulance || content.fire) && (
-                <section className="rounded-2xl bg-rose-50 p-3">
-                  <h2 className="mb-2 px-1 text-sm font-bold text-rose-700">
+                <section className="rounded-2xl bg-alert-tint p-3">
+                  <h2 className="mb-2 px-1 text-sm font-bold text-alert">
                     {strings.emergency.numbers}
                     {selected && ` - ${countryName(selected)}`}
                   </h2>
@@ -321,7 +320,7 @@ export function EmergencyScreen() {
                 content.fire ||
                 content.embassy_phone ||
                 content.embassy_address) && (
-                <div className="rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                <div className="rounded-xl bg-sun-tint px-3 py-2.5 text-xs text-sun-deep">
                   <span className="font-semibold">{strings.emergency.verifyTitle}: </span>
                   {strings.emergency.verifyBody}{" "}
                   <a

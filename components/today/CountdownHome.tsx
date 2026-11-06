@@ -151,7 +151,7 @@ export function CountdownHome({ trip }: { trip: Trip }) {
       {checks !== null && checks.length > 0 && (
         <section>
           <p className="ot-kicker mb-2 px-0.5">{r.nextUp}</p>
-          <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+          <ul className="overflow-hidden rounded-card border border-line bg-surface">
             {checks.map((check, i) => {
               const text = r.checks[check.key];
               if (!text) return null;
@@ -172,10 +172,10 @@ export function CountdownHome({ trip }: { trip: Trip }) {
                       <WarningIcon className="h-4 w-4" strokeWidth={2} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13.5px] font-bold text-ink">
+                      <span className="block text-sm font-bold text-ink">
                         {text.label}
                       </span>
-                      <span className="block text-[12px] text-ink-soft">
+                      <span className="block text-xs text-ink-soft">
                         {Object.entries(check.values ?? {}).reduce(
                           (out, [k, v]) => out.replaceAll(`{${k}}`, String(v)),
                           text.detail
@@ -193,9 +193,9 @@ export function CountdownHome({ trip }: { trip: Trip }) {
 
       <Link
         href="/ready"
-        className="flex items-center gap-2.5 rounded-[18px] border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
+        className="flex items-center gap-2.5 rounded-card border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
       >
-        <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink">
+        <span className="min-w-0 flex-1 text-sm font-bold text-ink">
           {r.seeAll}
         </span>
         <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />

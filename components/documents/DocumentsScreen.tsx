@@ -1,5 +1,6 @@
 "use client";
 
+import { Banner } from "@/components/ui/Banner";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -561,11 +562,11 @@ export function DocumentsScreen() {
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3 px-4 pt-4 pb-8 sm:max-w-2xl lg:max-w-4xl">
       <header className="flex items-center justify-between gap-2">
-        <h1 className="text-[22px] font-extrabold text-ink">
+        <h1 className="ot-title">
           {isKid ? s.kidTitle : strings.nav.documents}
         </h1>
         {!isKid && status.locked > 0 && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[12px] font-bold text-success">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-xs font-bold text-success">
             <LockIcon className="h-3 w-3" />
             {s.lockedCountBadge.replace("{n}", String(status.locked))}
           </span>
@@ -573,7 +574,7 @@ export function DocumentsScreen() {
       </header>
 
       {fromCache && (
-        <p className="rounded-[12px] bg-paper-deep px-3 py-2 text-[12px] font-semibold text-ink-soft">
+        <p className="rounded-xl bg-paper-deep px-3 py-2 text-xs font-semibold text-ink-soft">
           {strings.offline.fromCache}
         </p>
       )}
@@ -604,7 +605,7 @@ export function DocumentsScreen() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={s.searchFull}
-          className="w-full rounded-[14px] border border-line bg-surface py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
+          className="w-full rounded-xl border border-line bg-surface py-[11px] pe-3.5 ps-10 text-base placeholder:text-ink-faint focus:border-sea focus:outline-none"
         />
       </div>
 
@@ -612,7 +613,7 @@ export function DocumentsScreen() {
         <button
           type="button"
           onClick={() => setTagFilter(null)}
-          className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
+          className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
             tagFilter === null
               ? "bg-sea-deep text-on-sea"
               : "bg-paper-deep text-ink-soft"
@@ -627,7 +628,7 @@ export function DocumentsScreen() {
               key={tag}
               type="button"
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
+              className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
                 tagFilter === tag
                   ? "bg-sea-deep text-on-sea"
                   : "bg-paper-deep text-ink-soft"
@@ -641,13 +642,13 @@ export function DocumentsScreen() {
       </div>
 
       {soonest && trip?.end_date && (
-        <div className="flex items-start gap-2.5 rounded-[16px] bg-sun-tint px-3.5 py-3">
+        <div className="flex items-start gap-2.5 rounded-card bg-sun-tint px-3.5 py-3">
           <WarningIcon className="mt-px h-[18px] w-[18px] shrink-0 text-sun-deep" />
           <div className="min-w-0">
-            <p className="text-[12.5px] font-bold text-sun-deep">
+            <p className="text-xs font-bold text-sun-deep">
               {s.expiryWarnTitle.replace("{title}", soonest.title)}
             </p>
-            <p className="mt-0.5 text-[12px] text-sun-deep/85">
+            <p className="mt-0.5 text-xs text-sun-deep/85">
               {s.expiryWarnBody
                 .replace("{expiry}", formatDate(soonest.expires_at!))
                 .replace("{end}", formatDate(trip.end_date))}
@@ -659,23 +660,25 @@ export function DocumentsScreen() {
       )}
 
       {!isKid && !docs.some((d) => d.tag === "insurance") && (
-        <section aria-labelledby="ins-missing" className="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-alert/40 bg-alert-tint p-4">
-          <WarningIcon className="h-6 w-6 shrink-0 text-alert" />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span id="ins-missing" className="text-sm font-bold text-ink">{s.insuranceMissing}</span>
-            <span className="text-xs text-ink-soft">{s.insuranceMissingHint}</span>
-          </span>
-          <button type="button" onClick={() => setForm({ doc: null, tag: "insurance" })} className="min-h-[44px] shrink-0 rounded-xl border-[1.5px] border-sea bg-surface px-3 text-sm font-bold text-sea">
-            {s.insuranceUpload}
-          </button>
-        </section>
+        <Banner
+          tone="danger"
+          icon={<WarningIcon className="h-6 w-6" />}
+          action={
+            <button type="button" onClick={() => setForm({ doc: null, tag: "insurance" })} className="min-h-[44px] rounded-xl border-[1.5px] border-sea bg-surface px-3 text-sm font-bold text-sea">
+              {s.insuranceUpload}
+            </button>
+          }
+        >
+          <span className="block font-bold text-ink">{s.insuranceMissing}</span>
+          <span className="block text-xs text-ink-soft">{s.insuranceMissingHint}</span>
+        </Banner>
       )}
       {visible.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
+        <p className="rounded-card border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-faint">
           {docs.length === 0 ? (isKid ? s.kidEmpty : s.empty) : s.noResults}
         </p>
       ) : (
-        <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+        <ul className="overflow-hidden rounded-card border border-line bg-surface">
           {visible.map((doc, i) => {
             const expires = Boolean(doc.expires_at && trip?.end_date && doc.expires_at <= trip.end_date);
             const TagIcon = TAG_ICON[doc.tag] ?? DocumentIcon;
@@ -690,24 +693,24 @@ export function DocumentsScreen() {
                   className="flex min-h-[64px] min-w-0 flex-1 items-center gap-2.5 py-2.5 text-start"
                 >
                   <span
-                    className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] ${
+                    className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-xl ${
                       expires ? "bg-sun-tint text-sun-deep" : "bg-paper-deep text-ink-soft"
                     }`}
                   >
                     <TagIcon className="h-[17px] w-[17px]" strokeWidth={1.7} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] font-semibold text-ink">{doc.title}</span>
+                    <span className="block truncate text-sm font-semibold text-ink">{doc.title}</span>
                     {openingId === doc.id && (
-                      <span className="block text-[12px] font-semibold text-sea" role="status">
+                      <span className="block text-xs font-semibold text-sea" role="status">
                         {s.opening}
                       </span>
                     )}
-                    <span className={`block truncate text-[12px] ${expires ? "font-semibold text-sun-deep" : "text-ink-soft"}`}>
+                    <span className={`block truncate text-xs ${expires ? "font-semibold text-sun-deep" : "text-ink-soft"}`}>
                       {s.tags[doc.tag] ?? doc.tag}
                       {doc.expires_at && (
                         <span
-                          className={`ms-1.5 inline-flex rounded-full px-1.5 text-[12px] font-bold ${
+                          className={`ms-1.5 inline-flex rounded-full px-1.5 text-xs font-bold ${
                             expires ? "bg-warning-soft text-warning" : "bg-paper-deep text-ink-soft"
                           }`}
                         >
@@ -966,10 +969,10 @@ function VaultStatusCard({
           {status.ready ? <CheckIcon className="h-5 w-5" /> : <WarningIcon className="h-5 w-5" />}
         </span>
         <div className="min-w-0">
-          <h2 className="text-base font-extrabold text-ink">
+          <h2 className="text-lg font-bold text-ink">
             {status.ready ? s.statusReadyTitle : s.statusTodoTitle}
           </h2>
-          <p className="text-[13px] text-ink-soft">{status.ready ? s.statusReadyBody : s.statusTodoBody}</p>
+          <p className="text-sm text-ink-soft">{status.ready ? s.statusReadyBody : s.statusTodoBody}</p>
         </div>
       </div>
 
@@ -1027,7 +1030,7 @@ function VaultStatusCard({
           {s.explainTitle}
           <ChevronDownIcon className="h-4 w-4 transition-transform group-open:rotate-180" />
         </summary>
-        <dl className="space-y-2.5 pb-1 text-[13px]">
+        <dl className="space-y-2.5 pb-1 text-sm">
           {(
             [
               [ShieldCheckIcon, s.explainPrivateTitle, s.explainPrivate],
@@ -1074,7 +1077,7 @@ function RowStatus({
   const s = strings.documents;
   const good = "bg-success-soft text-success";
   const pending = "bg-paper-deep text-ink-soft";
-  const pill = "inline-flex items-center gap-1 rounded-full px-2 py-px text-[12px] font-bold";
+  const pill = "inline-flex items-center gap-1 rounded-full px-2 py-px text-xs font-bold";
 
   let device: { text: string; tone: string; Icon: ComponentType<IconProps> };
   if (onDevice) device = { text: s.syncReady, tone: good, Icon: CheckIcon };

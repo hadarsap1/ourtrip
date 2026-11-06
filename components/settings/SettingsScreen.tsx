@@ -27,7 +27,7 @@ export function SettingsScreen() {
         <Link href={back} aria-label={member?.role === "guest" ? strings.settings.backHome : strings.settings.back} className="-ms-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-soft active:bg-paper-deep">
           <ChevronBackIcon className="h-5 w-5" />
         </Link>
-        <h1 className="text-[22px] font-extrabold text-ink">{strings.settings.title}</h1>
+        <h1 className="ot-title">{strings.settings.title}</h1>
       </header>
       {/* Renders only while the app is not installed yet (Safari tab), and
           disappears for good once it is on the home screen. */}

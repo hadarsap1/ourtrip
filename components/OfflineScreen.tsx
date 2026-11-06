@@ -48,7 +48,7 @@ export function OfflineScreen() {
         <p className="mt-1 text-sm text-ink-soft">{s.body}</p>
       </header>
 
-      <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+      <ul className="overflow-hidden rounded-card border border-line bg-surface">
         {LIFELINES.map((row, i) => (
           <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
             <Link
@@ -59,7 +59,7 @@ export function OfflineScreen() {
                 className="h-[18px] w-[18px] shrink-0 text-sea"
                 strokeWidth={1.7}
               />
-              <span className="flex-1 text-[13.5px] font-medium text-ink">
+              <span className="flex-1 text-sm font-medium text-ink">
                 {row.label}
               </span>
               <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />

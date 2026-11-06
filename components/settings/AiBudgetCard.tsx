@@ -63,9 +63,9 @@ export function AiBudgetCard() {
   }
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <h2 className="text-sm font-bold text-ink">{t.title}</h2>
-      <p className="mt-1 text-[12px] text-ink-soft">{t.hint}</p>
+      <p className="mt-1 text-xs text-ink-soft">{t.hint}</p>
       <form
         className="mt-3 flex items-end gap-2"
         onSubmit={(e) => {
@@ -73,7 +73,7 @@ export function AiBudgetCard() {
           void save();
         }}
       >
-        <label className="flex flex-1 flex-col gap-1 text-[12px] font-semibold text-ink-soft">
+        <label className="flex flex-1 flex-col gap-1 text-xs font-semibold text-ink-soft">
           {t.label}
           <span className="flex min-h-[44px] items-center gap-1 rounded-xl border border-line bg-surface px-3" dir="ltr">
             <span className="text-base text-ink-soft">$</span>

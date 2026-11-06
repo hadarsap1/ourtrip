@@ -201,7 +201,7 @@ export function TravelSearch({
   return (
     <div className="space-y-4 pb-8">
       <div>
-        <h1 className="text-lg font-bold">{strings.travelSearch.title}</h1>
+        <h1 className="ot-title">{strings.travelSearch.title}</h1>
         <p className="text-sm text-ink-soft">{strings.travelSearch.subtitle}</p>
       </div>
 

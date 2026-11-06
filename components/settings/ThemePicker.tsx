@@ -37,7 +37,7 @@ export function ThemePicker() {
               role="radio"
               aria-checked={on}
               onClick={() => setThemePref(o.value)}
-              className={`min-h-[44px] rounded-[10px] text-sm font-bold transition-colors ${
+              className={`min-h-[44px] rounded-xl text-sm font-bold transition-colors ${
                 on ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
               }`}
             >

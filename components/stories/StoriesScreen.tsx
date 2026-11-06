@@ -226,7 +226,7 @@ export function StoriesScreen() {
     <SovevScreen>
       <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
         <header className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{strings.stories.title}</h1>
+          <h1 className="ot-title">{strings.stories.title}</h1>
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href="/photos"
@@ -251,7 +251,7 @@ export function StoriesScreen() {
         {isOwner && pendingPhotos > 0 && (
           <Link
             href="/photos"
-            className="flex min-h-11 items-center justify-between rounded-[16px] bg-warning-soft px-4 text-sm font-bold text-warning"
+            className="flex min-h-11 items-center justify-between rounded-card bg-warning-soft px-4 text-sm font-bold text-warning"
           >
             {strings.stories.photosPending.replace("{n}", String(pendingPhotos))}
             <span aria-hidden="true">←</span>
@@ -262,7 +262,7 @@ export function StoriesScreen() {
         {isGuest && (
           <Link
             href="/map"
-            className="flex items-center gap-3 rounded-[20px] border border-sv-line bg-sv-card px-4 py-3.5 active:bg-sv-sage-soft"
+            className="flex items-center gap-3 rounded-card border border-sv-line bg-sv-card px-4 py-3.5 active:bg-sv-sage-soft"
           >
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
               <MapIcon className="h-6 w-6" />
@@ -280,21 +280,21 @@ export function StoriesScreen() {
           <button
             type="button"
             onClick={() => setComposer({ story: null })}
-            className="block w-full rounded-[20px] bg-sun-tint px-4 py-4 text-start"
+            className="block w-full rounded-card bg-sun-tint px-4 py-4 text-start"
           >
             <span className="flex items-baseline justify-between gap-2">
-              <span className="text-[17.5px] font-extrabold leading-tight text-sun-deep">
+              <span className="text-lg font-extrabold leading-tight text-sun-deep">
                 {strings.journal.prompt}
               </span>
               {family > 0 && (
-                <span className="shrink-0 text-[12px] text-ink-soft">
+                <span className="shrink-0 text-xs text-ink-soft">
                   {strings.journal.wroteCount
                     .replace("{n}", String(writersToday))
                     .replace("{total}", String(family))}
                 </span>
               )}
             </span>
-            <span className="mt-3 flex min-h-11 items-center justify-center gap-1.5 rounded-[13px] bg-sun-deep text-[14px] font-bold text-paper">
+            <span className="mt-3 flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-sun-deep text-sm font-bold text-paper">
               <PlusIcon className="h-4 w-4" /> {strings.stories.newStory}
             </span>
           </button>
@@ -315,7 +315,7 @@ export function StoriesScreen() {
         )}
 
         {feed.length === 0 ? (
-          <p className="rounded-[20px] border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
+          <p className="rounded-card border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
             {role === "guest" ? strings.stories.emptyGuest : strings.stories.empty}
           </p>
         ) : (

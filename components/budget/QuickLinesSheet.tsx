@@ -122,7 +122,7 @@ export function QuickLinesSheet({
         )}
 
         {unparsed.length > 0 && (
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-sun-deep">
             {s.quickLinesUnparsed.replace("{n}", String(unparsed.length))}
           </p>
         )}

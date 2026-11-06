@@ -188,7 +188,7 @@ export function KidLoginScreen() {
       )}
 
       {message && (
-        <p className="mt-6 rounded-xl bg-rose-50 px-3 py-2.5 text-center text-sm font-medium text-rose-600">
+        <p className="mt-6 rounded-xl bg-alert-tint px-3 py-2.5 text-center text-sm font-medium text-alert">
           {message}
         </p>
       )}

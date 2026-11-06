@@ -242,7 +242,7 @@ export function GooglePhotosSection({
                     )}
                   </button>
                   {/* status badges */}
-                  <div className="pointer-events-none absolute bottom-1 start-1 flex gap-1 text-[12px]">
+                  <div className="pointer-events-none absolute bottom-1 start-1 flex gap-1 text-xs">
                     {photo.map_pin_id && (
                       <span className="rounded-full bg-black/55 p-1 text-white">
                         <CameraIcon className="h-3 w-3" />
@@ -383,7 +383,7 @@ export function GooglePhotosSection({
             <button
               type="button"
               onClick={() => void handleDelete(actionPhoto)}
-              className="w-full rounded-xl bg-rose-50 px-3 py-2.5 text-sm font-semibold text-rose-600"
+              className="w-full rounded-xl bg-alert-tint px-3 py-2.5 text-sm font-semibold text-alert"
             >
               {strings.common.delete}
             </button>
@@ -405,7 +405,7 @@ export function GooglePhotosSection({
               <button
                 type="button"
                 onClick={() => void attachToPin(attaching, null)}
-                className="w-full rounded-xl bg-rose-50 px-3 py-2.5 text-start text-sm font-semibold text-rose-600"
+                className="w-full rounded-xl bg-alert-tint px-3 py-2.5 text-start text-sm font-semibold text-alert"
               >
                 <CloseIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
                   {strings.googlePhotos.detach}

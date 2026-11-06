@@ -45,9 +45,9 @@ function MyKidsForm({ initial }: { initial: string[] }) {
   }
 
   return (
-    <section className="rounded-[18px] border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <h2 className="text-sm font-bold text-ink">{t.settingsTitle}</h2>
-      <p className="mt-1 mb-3 text-[12px] text-ink-soft">{t.settingsHint}</p>
+      <p className="mt-1 mb-3 text-xs text-ink-soft">{t.settingsHint}</p>
       <KidNamesField id="my-kids" value={names} onChange={setNames} showHint={false} />
       <div className="mt-3 flex items-center gap-3">
         <button

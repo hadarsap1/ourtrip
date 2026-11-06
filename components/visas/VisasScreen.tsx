@@ -75,7 +75,7 @@ function WarningCard({ warning }: { warning: StayWarning }) {
       });
   return (
     <div
-      className={`flex gap-2.5 rounded-[17px] border p-3 ${
+      className={`flex gap-2.5 rounded-card border p-3 ${
         over
           ? "border-alert/30 bg-alert-tint text-alert"
           : "border-line bg-sun-tint text-sun-deep"
@@ -122,15 +122,15 @@ function RequirementCard({
   const status = s.statuses[row.status as VisaStatus];
 
   return (
-    <li className="rounded-[17px] border border-line bg-surface p-3.5 shadow-sm">
+    <li className="rounded-card border border-line bg-surface p-3.5 shadow-sm">
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-[12px] font-bold text-ink-soft">
+        <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-xs font-bold text-ink-soft">
           {type}
         </span>
         <span className="font-bold text-ink">{row.title_he}</span>
         {trust && (
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[12px] font-extrabold ${trust.className}`}
+            className={`rounded-md px-1.5 py-0.5 text-xs font-extrabold ${trust.className}`}
           >
             {trust.label}
           </span>
@@ -179,7 +179,7 @@ function RequirementCard({
           {s.statusLabel}: {status}
         </button>
         {row.verified_at && (
-          <span className="text-[12px] text-ink-faint">
+          <span className="text-xs text-ink-faint">
             {fill(s.verifiedOn, { date: formatDate(row.verified_at) })}
           </span>
         )}
@@ -314,8 +314,8 @@ export function VisasScreen() {
       ) : (
         groups.map((group) => (
           <section key={group.countryCode} className="space-y-3">
-            <div className="rounded-[17px] bg-sea px-4 py-3 text-on-sea">
-              <h2 className="text-lg font-extrabold">{group.countryHe}</h2>
+            <div className="rounded-card bg-sea px-4 py-3 text-on-sea">
+              <h2 className="text-lg font-bold text-ink">{group.countryHe}</h2>
               <StayLine blocks={group.blocks} />
             </div>
 

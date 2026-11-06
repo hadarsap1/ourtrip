@@ -57,7 +57,7 @@ export function SwipeRow({
               close();
               a.onSelect();
             }}
-            className={`flex w-[72px] flex-col items-center justify-center gap-0.5 text-[12px] font-bold ${a.toneClass}`}
+            className={`flex w-[72px] flex-col items-center justify-center gap-0.5 text-xs font-bold ${a.toneClass}`}
           >
             {a.icon}
             {a.label}

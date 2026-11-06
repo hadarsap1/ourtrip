@@ -117,7 +117,7 @@ export function CarCard({
   return (
     <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-ink">
+        <h2 className="text-sm font-bold text-ink">
           <CarIcon className="inline-block h-4 w-4 align-text-bottom" /> {strings.map.car}
         </h2>
         {carPin && (
@@ -125,7 +125,7 @@ export function CarCard({
             type="button"
             onClick={handleDelete}
             disabled={busy}
-            className="text-xs font-semibold text-rose-500 disabled:opacity-50"
+            className="text-xs font-semibold text-alert disabled:opacity-50"
           >
             {strings.common.delete}
           </button>

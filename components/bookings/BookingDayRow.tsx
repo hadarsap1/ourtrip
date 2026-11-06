@@ -79,10 +79,10 @@ export function BookingDayRow({
           <Icon className="h-[14px] w-[14px]" strokeWidth={1.7} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold text-sea-deep">
+          <span className="block truncate text-sm font-semibold text-sea-deep">
             {booking.title}
           </span>
-          <span className="block truncate text-[12px] text-sea-deep/70">
+          <span className="block truncate text-xs text-sea-deep/70">
             {strings.bookings.types[booking.type]}
             {span && ` · ${span}`}
             {entry.isStart && booking.confirmation_code && (
@@ -95,7 +95,7 @@ export function BookingDayRow({
         </span>
         {showCost && (
           <span
-            className="shrink-0 text-[12px] font-semibold text-sea-deep/80"
+            className="shrink-0 text-xs font-semibold text-sea-deep/80"
             dir="ltr"
           >
             {formatMoney(booking.cost!, booking.currency ?? "ILS")}

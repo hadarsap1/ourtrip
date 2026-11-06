@@ -26,26 +26,26 @@ export function PendingApprovalsCard({ tripId }: { tripId: string }) {
   if (rows.length === 0) return null;
 
   return (
-    <section className="overflow-hidden rounded-[18px] border border-sun/40 bg-sun-tint">
-      <h2 className="px-3.5 pt-3 pb-1.5 text-[13.5px] font-extrabold text-sun-deep">
+    <section className="overflow-hidden rounded-card border border-sun/40 bg-sun-tint">
+      <h2 className="px-3.5 pt-3 pb-1.5 text-sm font-extrabold text-sun-deep">
         {strings.attention.title}
       </h2>
       <ul>
         {rows.map((row) => (
           <li key={row.key} className="border-t border-sun/25">
             <Link href={row.href} className="flex min-h-[44px] items-center gap-2 px-3.5 py-2.5 active:bg-sun/10">
-              <span className="flex-1 text-[13.5px] font-semibold text-ink">
+              <span className="flex-1 text-sm font-semibold text-ink">
                 {row.label}
                 {row.tone === "waiting" && (
-                  <span className="ms-1.5 text-[12px] font-medium text-sun-deep">
+                  <span className="ms-1.5 text-xs font-medium text-sun-deep">
                     · {strings.attention.waitingLabel}
                   </span>
                 )}
               </span>
               {row.count !== null && (
                 <span
-                  className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[12px] font-extrabold ${
-                    row.tone === "waiting" ? "bg-rose-500 text-white" : "bg-surface text-sun-deep"
+                  className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-extrabold ${
+                    row.tone === "waiting" ? "bg-alert text-on-alert" : "bg-surface text-sun-deep"
                   }`}
                 >
                   {row.count}

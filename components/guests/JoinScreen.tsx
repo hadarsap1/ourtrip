@@ -130,14 +130,14 @@ export function JoinScreen({ token }: { token: string }) {
 
       {phase.kind === "invalid" && (
         <div className="space-y-2 text-center">
-          <h2 className="text-xl font-bold">{strings.join.invalidTitle}</h2>
+          <h2 className="text-lg font-bold text-ink">{strings.join.invalidTitle}</h2>
           <p className="text-ink-soft">{strings.join.invalidBody}</p>
         </div>
       )}
 
       {phase.kind === "member" && (
         <div className="space-y-4 text-center">
-          <h2 className="text-xl font-bold">{strings.join.memberTitle}</h2>
+          <h2 className="text-lg font-bold text-ink">{strings.join.memberTitle}</h2>
           <button
             type="button"
             className={buttonPrimary}
@@ -151,7 +151,7 @@ export function JoinScreen({ token }: { token: string }) {
 
       {phase.kind === "pending" && (
         <div className="space-y-4 text-center">
-          <h2 className="text-xl font-bold">{strings.join.pendingTitle}</h2>
+          <h2 className="text-lg font-bold text-ink">{strings.join.pendingTitle}</h2>
           <p className="text-ink-soft">
             {phase.via === "google" ? strings.join.pendingBodyGoogle : strings.join.pendingBodyEmail}
           </p>
@@ -165,7 +165,7 @@ export function JoinScreen({ token }: { token: string }) {
 
       {phase.kind === "signedIn" && (
         <div className="space-y-3 text-center">
-          <h2 className="text-xl font-bold">{strings.join.title}</h2>
+          <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
           <JoinAbout />
           <div className="text-start">
             <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
@@ -204,7 +204,7 @@ export function JoinScreen({ token }: { token: string }) {
       {phase.kind === "form" && (
         <div className="space-y-4">
           <div className="space-y-1 text-center">
-            <h2 className="text-xl font-bold">{strings.join.title}</h2>
+            <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
           </div>
           <JoinAbout />
           {/* above both ways in, so it counts for Google and for the typed form */}

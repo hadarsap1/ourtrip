@@ -79,7 +79,7 @@ export function TotalBudgetSheet({
           />
         </label>
 
-        {!valid && <p className="text-sm text-rose-600">{s.totalBudgetInvalid}</p>}
+        {!valid && <p className="text-sm text-alert">{s.totalBudgetInvalid}</p>}
 
         <p className="text-xs text-ink-soft">
           {s.totalBudgetAllocated.replace(

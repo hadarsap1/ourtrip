@@ -100,7 +100,7 @@ export function MapV2Layout({
                           {s.locationName ?? (s.countryCode ? findCountry(s.countryCode)?.he : "") ?? ""}
                         </span>
                       </span>
-                      <bdi className="shrink-0 text-[12px] text-ink-soft">
+                      <bdi className="shrink-0 text-xs text-ink-soft">
                         {formatShortDate(s.from)}-{formatShortDate(s.to)} · {t.nights.replace("{n}", String(s.days.length))}
                       </bdi>
                     </button>
@@ -152,14 +152,14 @@ export function MapV2Layout({
                     <li key={b.id} className="flex items-center justify-between gap-2 py-2">
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-bold text-ink">{b.title}</span>
-                        <span className="block truncate text-[12px] text-ink-soft">
+                        <span className="block truncate text-xs text-ink-soft">
                           {strings.bookings.types[b.type]}
                           {b.start_date && <> · <bdi>{formatShortDate(b.start_date)}</bdi></>}
                           {where && <> · <bdi>{where}</bdi></>}
                         </span>
                       </span>
                       {url && (
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="flex shrink-0 items-center rounded-lg bg-sea-tint px-3 text-[13px] font-bold text-sea-deep">
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="flex shrink-0 items-center rounded-lg bg-sea-tint px-3 text-sm font-bold text-sea-deep">
                           {t.navigate}
                         </a>
                       )}

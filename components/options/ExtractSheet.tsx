@@ -252,7 +252,7 @@ export function ExtractSheet({
             />
           </label>
 
-          {error && <p className="text-sm text-rose-600">{error}</p>}
+          {error && <p className="text-sm text-alert">{error}</p>}
 
           <button
             type="button"
