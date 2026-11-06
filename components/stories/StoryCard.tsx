@@ -62,7 +62,8 @@ export function StoryCard({
   const groupsOnly = published && story.visibility === "guests" && story.audience.length > 0;
   // new likes and comments since I last looked (00081); the comments are at
   // the bottom of a long card, so the top says so
-  const { since } = useFeedbackSeen();
+  // frozen: the feed marks a card seen as it scrolls by; "חדש" stays for this visit
+  const { since } = useFeedbackSeen(true);
   const fresh = newFeedback({ postId: story.id }, comments, reactions, member.id, since(story.id));
 
   return (
