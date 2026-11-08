@@ -411,6 +411,7 @@ export const strings = {
     kmNone: "אין צעדים",
     kmHint: "ק\"מ ברגל: ממוצע ההורים מתחילת הטיול, כ-0.75 מ' לצעד",
     kmOf: "{n} ק\"מ",
+    dailyAvg: "ממוצע יומי: {n}",
     ofTotal: "מתוך {n}",
     nightsTitle: "לילות בכל מדינה",
     nights: "{n} לילות",

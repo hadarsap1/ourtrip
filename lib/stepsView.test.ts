@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barScale, familyKm, stepsOn, stepsToKm, totalBetween, weekBars } from "./stepsView";
+import { barScale, dailyAverage, familyKm, stepsOn, stepsToKm, totalBetween, weekBars } from "./stepsView";
 
 const rows = [
   { member_id: "a", date: "2026-11-10", steps: 12000 },
@@ -26,6 +26,17 @@ describe("steps view (Phase 2)", () => {
   it("totals a stay per member", () => {
     expect(totalBetween(rows, "a", "2026-11-05", "2026-11-10")).toBe(33000);
     expect(totalBetween(rows, "b", "2026-11-01", "2026-11-04")).toBe(0);
+  });
+
+  it("averages steps a day over reported non-zero days only", () => {
+    const r = [
+      { member_id: "a", date: "2026-11-01", steps: 10000 },
+      { member_id: "a", date: "2026-11-02", steps: 0 },
+      { member_id: "a", date: "2026-11-04", steps: 5001 },
+      { member_id: "a", date: "2026-11-09", steps: 99999 },
+    ];
+    expect(dailyAverage(r, "a", "2026-11-01", "2026-11-05")).toBe(7501);
+    expect(dailyAverage(r, "b", "2026-11-01", "2026-11-05")).toBeNull();
   });
 
   it("turns steps into km walked at 0.75 m a step", () => {

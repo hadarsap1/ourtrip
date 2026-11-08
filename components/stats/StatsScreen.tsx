@@ -9,7 +9,7 @@ import { countryHex } from "@/lib/mapV2";
 import { isEnabled } from "@/lib/flags";
 import { queryKeys, readQuery } from "@/lib/offline/queryCache";
 import { passportStamps, stampTilt, tripStats } from "@/lib/tripStats";
-import { familyKm, stepsToKm, totalBetween, type StepRow } from "@/lib/stepsView";
+import { dailyAverage, familyKm, stepsToKm, totalBetween, type StepRow } from "@/lib/stepsView";
 import { formatShortDate, todayISO } from "@/lib/format";
 import { useMember } from "@/lib/useMember";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
@@ -128,11 +128,13 @@ export function StatsScreen() {
               <ul className="mt-1.5 grid grid-cols-2 gap-2">
                 {stepData!.parents.map((p) => {
                   const total = totalBetween(stepData!.rows, p.id, trip!.start_date!, today);
+                  const avg = dailyAverage(stepData!.rows, p.id, trip!.start_date!, today);
                   return (
                     <li key={p.id}>
                       <p className="text-xs text-ink-soft">{p.name}</p>
                       <p className="text-lg font-extrabold tabular-nums text-ink">{fmt(total)}</p>
                       <p className="text-xs tabular-nums text-ink-soft">{t.kmOf.replace("{n}", fmt(stepsToKm(total)))}</p>
+                      {avg !== null && <p className="text-xs tabular-nums text-ink-soft">{t.dailyAvg.replace("{n}", fmt(avg))}</p>}
                     </li>
                   );
                 })}

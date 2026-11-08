@@ -23,6 +23,17 @@ export function totalBetween(rows: StepRow[], memberId: string, from: string, to
   return rows.filter((r) => r.member_id === memberId && r.date >= from && r.date <= to).reduce((s, r) => s + r.steps, 0);
 }
 
+/**
+ * Average steps a day per member between two dates inclusive, over the days the
+ * phone reported a non-zero count (a missed or zero report would drag it down),
+ * rounded. Null when there is no such day.
+ */
+export function dailyAverage(rows: StepRow[], memberId: string, from: string, to: string): number | null {
+  const days = rows.filter((r) => r.member_id === memberId && r.date >= from && r.date <= to && r.steps > 0);
+  if (days.length === 0) return null;
+  return Math.round(days.reduce((s, r) => s + r.steps, 0) / days.length);
+}
+
 /** Bar height 0..1 against the week's best day (min scale 10k so a lazy week does not look heroic). */
 export function barScale(bars: { steps: Record<string, number> }[]): number {
   return Math.max(10_000, ...bars.flatMap((b) => Object.values(b.steps)));
