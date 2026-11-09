@@ -2813,3 +2813,27 @@ grants unchanged.
 | Full probe suite on 86 migrations | ✅ 501 PASS, 0 FAIL |
 | 00086 applied to production | ✅ done 09/11/2026 (MCP `apply_migration`); live was at 00085 |
 | Live: the guard query returns 0 / 0 | ✅ PASS - live catalog check 09/11/2026 |
+
+## 09/11/2026 - photo albums by theme (00087)
+
+New tables `albums` and `album_photos`, helper `album_trip_id` (security
+definer, execute for authenticated only). Policies: `albums_owner_all`
+(created_by must be the caller), `albums_kid_select`, `albums_guest_select`
+(only `shared_with_guests`); `album_photos_select` (the album AND the photo
+visible under their own RLS - as `post_photos_select`), `album_photos_owner_insert` /
+`_owner_delete`, `album_photos_kid_insert` / `_kid_delete` (added_by is the
+caller, the photo is of the album's trip, a kid removes only their own). No
+update policy on `album_photos`; guests have no write policy.
+
+| Check | Result |
+|---|---|
+| Owner creates, renames and fills albums; cannot create one in another member's name | ✅ PASS - local, probe `87_photo_albums.sql` |
+| Kid sees every album; adds a photo as themselves; cannot add in a parent's name, remove a parent's addition, or create / share / delete an album | ✅ PASS - local, probe 87 |
+| Guest sees only the shared album, and in it only the approved+shared photo - not the unshared one, not the kid's pending one | ✅ PASS - local, probe 87 |
+| Guest: a photo limited to another group is not in the album (00063) | ✅ PASS - local, probe 87 |
+| Guest writes nothing; revoked guest reads nothing | ✅ PASS - local, probe 87 |
+| Unsharing the album hides it and its rows; deleting a photo or an album removes the links | ✅ PASS - local, probe 87 |
+| Deny matrix (probe 90) with both tables seeded; kid list extended with `albums`, `album_photos` | ✅ PASS |
+| Full probe suite on 87 migrations | ⚠️ every probe passes except `69_trip_now_country` ("guest: no day today -> null"), which depends on the hour it runs (Tokyo vs Israel date) and touches nothing in 00087 |
+| 00087 applied to production | ⏳ not yet |
+

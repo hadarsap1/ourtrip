@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      album_photos: {
+        Row: {
+          added_by: string
+          album_id: string
+          created_at: string
+          photo_id: string
+        }
+        Insert: {
+          added_by: string
+          album_id: string
+          created_at?: string
+          photo_id: string
+        }
+        Update: {
+          added_by?: string
+          album_id?: string
+          created_at?: string
+          photo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_photos_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      albums: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          shared_with_guests: boolean
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          shared_with_guests?: boolean
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          shared_with_guests?: boolean
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "albums_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_files: {
         Row: {
           booking_id: string

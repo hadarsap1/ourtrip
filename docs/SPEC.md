@@ -81,6 +81,7 @@
 - Photo pipeline - approval and sharing are separate:
   - Kid uploads always start `pending` (server-enforced trigger) → owner approval queue → `approved` (visible to family) or `rejected` (visible to owners only)
   - Guests see a photo only when `status='approved'` **and** an owner explicitly set `shared_with_guests=true`. Owner uploads may skip approval but still require the explicit share step - nothing is guest-visible by default (DECISIONS #5)
+  - Albums by theme (00087, DECISIONS #58): the photos screen has two tabs, "לפי מקום" and "אלבומים". An album is a label: a photo stays in its place and can be in several albums. Parents create, rename, share and delete albums; parents and kids add photos (upload into the album, or pick from the existing ones) and a kid removes only what they added. A shared album shows guests only its photos that are themselves approved and shared (and in their group); the album screen tells a parent how many are not, with one "שיתוף שלהן" tap. Online only (offline banner)
 - Messages: two walls - family (owners + kids) and guests (owners + guests) - bridged one message at a time by a parent (DECISIONS #18, #30); unread badges via `message_reads`
 - Pocket money: each kid has a trip allowance (set by owner); kid logs purchases, sees remaining balance with a fun progress visual; owner sees it in the budget screen as an info section (not counted in family budget totals)
 

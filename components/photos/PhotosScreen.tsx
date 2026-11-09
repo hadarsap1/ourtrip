@@ -41,6 +41,15 @@ import { usePhotoFeedback, type FeedbackBadge } from "./usePhotoFeedback";
 import { PhotoPlacesMap } from "./PhotoPlacesMap";
 import { PlaceHeader } from "./PlaceHeader";
 import { FabPicker } from "@/components/ui/Fab";
+import { SegmentedControl } from "@/components/SegmentedControl";
+import { listAlbums } from "@/lib/data/albums";
+import { AlbumsView } from "./AlbumsView";
+
+type View = "places" | "albums";
+const VIEWS: readonly { value: View; label: string }[] = [
+  { value: "places", label: strings.albums.tabPlaces },
+  { value: "albums", label: strings.albums.tabAlbums },
+];
 
 // Photos are a place of their own again, by place (Hadar 01/11/2026): a small
 // map of where they were taken, then one section per stretch of the trip,
@@ -90,6 +99,19 @@ function GuestPhotosView() {
   const [viewing, setViewing] = useState<ViewedPhoto | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const feedback = usePhotoFeedback(tripId);
+  // the albums tab shows only once a parent shared an album (00087)
+  const [view, setView] = useState<View>("places");
+  const [hasAlbums, setHasAlbums] = useState(false);
+  useEffect(() => {
+    if (!tripId) return;
+    let cancelled = false;
+    void listAlbums(tripId)
+      .then((r) => !cancelled && setHasAlbums(r.albums.length > 0))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,12 +161,29 @@ function GuestPhotosView() {
   }
 
   const isEmpty = photos.length === 0 && googlePhotos.length === 0;
+  const guestTile = (photo: GuestPhoto) => (
+    <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
+  );
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
       <header className="flex items-center justify-between gap-3">
         <h1 className="ot-title">{strings.photos.title}</h1>
       </header>
+      {hasAlbums && (
+        <SegmentedControl options={VIEWS} value={view} onChange={setView} ariaLabel={strings.albums.tabsLabel} />
+      )}
+      {hasAlbums && view === "albums" && tripId && member ? (
+        <AlbumsView
+          tripId={tripId}
+          memberId={member.id}
+          role="guest"
+          photos={photos}
+          tile={guestTile}
+          onToast={setToast}
+        />
+      ) : (
+      <>
       {isEmpty && (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
@@ -155,7 +194,7 @@ function GuestPhotosView() {
         groups={groups}
         tile={(photo) => (
           <li key={photo.id} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
-            <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
+            {guestTile(photo)}
             {photo.caption && (
               <div className="p-2">
                 <PhotoCaption text={photo.caption} />
@@ -197,6 +236,8 @@ function GuestPhotosView() {
           ))}
         </div>
       )}
+      </>
+      )}
 
       {viewing && tripId && member && (
         <PhotoView
@@ -232,6 +273,8 @@ function FamilyPhotosView() {
   const [captionFor, setCaptionFor] = useState<PhotoWithUrl | null>(null);
   // a tapped photo, open with its likes and comments (00077)
   const [viewing, setViewing] = useState<PhotoWithUrl | null>(null);
+  // by place (#47) or by theme (00087, #58)
+  const [view, setView] = useState<View>("places");
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -307,6 +350,25 @@ function FamilyPhotosView() {
     [trip, member, uploading, refresh, showToast]
   );
 
+  // an upload inside an album: the same upload (a kid's waits for a parent),
+  // then AlbumsView adds the new photos to the album
+  const uploadForAlbum = useCallback(
+    async (files: File[]): Promise<string[]> => {
+      if (!trip || !member) return [];
+      const ids: string[] = [];
+      try {
+        for (const file of files) {
+          const photo = await uploadPhoto({ tripId: trip.id, memberId: member.id, isOwner: member.role === "owner", file });
+          ids.push(photo.id);
+        }
+      } finally {
+        await refresh(trip.id).catch(() => {});
+      }
+      return ids;
+    },
+    [trip, member, refresh]
+  );
+
   const isOwnerRole = member?.role === "owner";
   useEffect(() => {
     if (!trip || !isOwnerRole) return;
@@ -353,6 +415,7 @@ function FamilyPhotosView() {
       <header className="flex items-center justify-between gap-3">
         <h1 className="ot-title">{strings.photos.title}</h1>
       </header>
+      <SegmentedControl options={VIEWS} value={view} onChange={setView} ariaLabel={strings.albums.tabsLabel} />
 
       {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
       {isOwner && pending.length > 0 && (
@@ -398,6 +461,20 @@ function FamilyPhotosView() {
 
       {loadFailed ? (
         <LoadFailed onRetry={retryLoad} />
+      ) : view === "albums" && trip && member && member.role !== "guest" ? (
+        <AlbumsView
+          tripId={trip.id}
+          memberId={member.id}
+          role={member.role}
+          // a parent's album shows pending photos too (marked); rejected never
+          photos={isOwner ? photos.filter((p) => p.status !== "rejected") : visible}
+          tile={(photo) => (
+            <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
+          )}
+          onUpload={uploadForAlbum}
+          onPhotosChanged={() => refresh(trip.id)}
+          onToast={showToast}
+        />
       ) : visible.length === 0 && pending.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
@@ -491,7 +568,7 @@ function FamilyPhotosView() {
       )}
 
       {/* Google Photos: owner imports, family (owner + kids) views */}
-      {trip && (
+      {trip && view === "places" && (
         <div className="border-t border-line pt-4">
           <GooglePhotosSection tripId={trip.id} isOwner={isOwner} />
         </div>
@@ -574,7 +651,7 @@ function FamilyPhotosView() {
           }
         }}
       />
-      {isOwnerRole && trip && (
+      {isOwnerRole && trip && view === "places" && (
         <FabPicker label={strings.photos.upload} accept="image/*" multiple busy={uploading} onFiles={(files) => void uploadFiles(files)} />
       )}
       <Toast message={toast} />
