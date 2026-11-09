@@ -2791,4 +2791,5 @@ grant. After insert only `first_viewed_at`, `last_viewed_at` and
 | Anon cannot call the RPC or read the table | ✅ PASS - local, probe 85 |
 | Deny matrix (probe 90) with the new table seeded | ✅ PASS |
 | Full probe suite on 85 migrations | ✅ 488 PASS, 0 FAIL |
-| 00085 applied to production | pending - the Supabase MCP did not connect in this session |
+| 00085 applied to production | ✅ done 09/11/2026 (MCP); dependencies checked first (4-argument `feedback_target_visible`, `episodes.duration_seconds`) |
+| Live: RLS on, the four policies (`content_views_owner_select`, `_guest_select`, `_guest_insert`, `_guest_update`), no anon grant on the table, anon cannot execute `record_content_view`, authenticated can, security invoker | ✅ PASS - live catalog check 09/11/2026 |
