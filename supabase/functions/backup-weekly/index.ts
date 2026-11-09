@@ -104,6 +104,7 @@ const TABLES = [
   "comments",
   "reactions",
   "feedback_seen",
+  "content_views",
   "daily_steps",
   "step_tokens",
   "ai_usage",

@@ -2346,6 +2346,24 @@ export const strings = {
     toStory: "לעדכון",
   },
 
+  // which guests saw an update or a photo, or played an episode (00085);
+  // parents only
+  views: {
+    seenCount: "{n} ראו",
+    heardCount: "{n} האזינו",
+    seenLabel: "{n} אורחים ראו - מי ראה",
+    heardLabel: "{n} אורחים האזינו - מי האזין",
+    seenTitle: "מי ראה",
+    heardTitle: "מי האזין",
+    noneSeen: "עוד אף אורח לא ראה",
+    noneHeard: "עוד אף אורח לא האזין",
+    heard: "האזנה: {heard} מתוך {total} ({pct}%)",
+    heardNoTotal: "האזנה: {heard}",
+    justStarted: "התחלת האזנה",
+    guestsOnly: "נספרים רק אורחים, כל אחד פעם אחת. עדכון נספר כשהיה על המסך 2 שניות, תמונה כשנפתחה.",
+    guestsOnlyHeard: "נספרים רק אורחים, כל אחד פעם אחת. הזמן הוא הנקודה הכי רחוקה שהגיעו אליה בהאזנה, בלי דילוגים קדימה.",
+  },
+
   publicStory: {
     notFound: "הסיפור הזה לא זמין",
     notFoundBody: "אולי הוסר, או שעוד לא הגיע הזמן לפרסם אותו.",

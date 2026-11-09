@@ -98,7 +98,7 @@ begin
           if col.is_pk and pk is null then pk := col.col; end if;
           -- fill required columns, and trip_id / member-ish FKs even when nullable
           if (col.notnull and col.def is null) or col.col in ('trip_id', 'member_id', 'author_id', 'uploaded_by', 'sender_id', 'created_by', 'recorded_by')
-             or (col.col = 'post_id' and t.tbl in ('comments', 'reactions')) then
+             or (col.col = 'post_id' and t.tbl in ('comments', 'reactions', 'content_views')) then
             v := rls.gen_value(t.tbl, col.col, col.typ, col.udt, attempt);
             if v is null then cols := null; exit; end if;
             if col.is_pk and v = 'gen_random_uuid()' then v := quote_literal(gen_random_uuid()::text); end if;

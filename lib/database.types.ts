@@ -321,6 +321,78 @@ export type Database = {
           },
         ]
       }
+      content_views: {
+        Row: {
+          episode_id: string | null
+          first_viewed_at: string
+          heard_seconds: number
+          id: string
+          last_viewed_at: string
+          member_id: string
+          photo_id: string | null
+          post_id: string | null
+          trip_id: string
+        }
+        Insert: {
+          episode_id?: string | null
+          first_viewed_at?: string
+          heard_seconds?: number
+          id?: string
+          last_viewed_at?: string
+          member_id: string
+          photo_id?: string | null
+          post_id?: string | null
+          trip_id: string
+        }
+        Update: {
+          episode_id?: string | null
+          first_viewed_at?: string
+          heard_seconds?: number
+          id?: string
+          last_viewed_at?: string
+          member_id?: string
+          photo_id?: string | null
+          post_id?: string | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_views_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_views_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_views_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_views_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destination_facts: {
         Row: {
           country_code: string
@@ -2262,6 +2334,16 @@ export type Database = {
       mark_wall_read: { Args: { p_trip_id: string }; Returns: number }
       my_groups: { Args: never; Returns: string[] }
       my_guest_labels: { Args: never; Returns: string[] }
+      record_content_view: {
+        Args: {
+          p_at?: string
+          p_episode_id?: string
+          p_heard_seconds?: number
+          p_photo_id?: string
+          p_post_id?: string
+        }
+        Returns: undefined
+      }
       set_my_kid_names: {
         Args: { p_kid_names: string[]; p_trip_id: string }
         Returns: string[]

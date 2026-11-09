@@ -652,3 +652,11 @@ export const StopIcon = (p: IconProps) => (
     <rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" />
   </Glyph>
 );
+
+// Who saw it (00085)
+export const EyeIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="2.8" />
+  </Glyph>
+);
