@@ -2793,3 +2793,23 @@ grant. After insert only `first_viewed_at`, `last_viewed_at` and
 | Full probe suite on 85 migrations | ✅ 488 PASS, 0 FAIL |
 | 00085 applied to production | ✅ done 09/11/2026 (MCP); dependencies checked first (4-argument `feedback_target_visible`, `episodes.duration_seconds`) |
 | Live: RLS on, the four policies (`content_views_owner_select`, `_guest_select`, `_guest_insert`, `_guest_update`), no anon grant on the table, anon cannot execute `record_content_view`, authenticated can, security invoker | ✅ PASS - live catalog check 09/11/2026 |
+
+## 09/11/2026 - read policies once per query, the rest of the tables (00086)
+
+QA: every screen slow. 41 tables' SELECT / FOR ALL policies still called
+`is_owner_of` / `is_kid_of` / `is_active_guest_of(trip_id)` (or a bare
+`current_member_id()` / `auth.uid()`) once per row. Rewritten in 00059's
+once-per-query form. Same rules; INSERT / UPDATE / DELETE-only policies and
+grants unchanged.
+
+| Check | Result |
+|---|---|
+| Before/after diff: DB at 00085, every public table seeded, visible rows recorded for owner, kid, guest, revoked guest, outsider, anon, other trip's owner; 00086 applied in the same transaction; recorded again | ✅ PASS - 0 rows gained or lost, every table, every identity |
+| Owner: own trip's days, items, phrases, photos only; cannot write into another trip | ✅ PASS - local, probe `86_rls_once_per_query_rest.sql` |
+| Kid: day-to-day tables only, no documents / expenses / budget | ✅ PASS - local, probe 86 |
+| Guest: only days with a done + shared item and only that item; rule 3 photos only (approved AND shared); no phrasebook, documents, budget | ✅ PASS - local, probe 86 |
+| Revoked guest, outsider, anon: nothing of the trip | ✅ PASS - local, probe 86 |
+| Guard: no SELECT / FOR ALL policy calls a per-row membership helper, or bare `current_member_id()` / `auth.uid()` | ✅ PASS - local, probe 86 |
+| Full probe suite on 86 migrations | ✅ 501 PASS, 0 FAIL |
+| 00086 applied to production | ✅ done 09/11/2026 (MCP `apply_migration`); live was at 00085 |
+| Live: the guard query returns 0 / 0 | ✅ PASS - live catalog check 09/11/2026 |
