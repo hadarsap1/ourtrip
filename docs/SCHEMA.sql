@@ -227,10 +227,12 @@ create table photos (
 -- RULE: owner uploads may default to 'approved'; kid uploads ALWAYS start 'pending'
 -- (enforced by trigger, see below). Sharing with guests is a second, explicit step.
 
--- Albums by theme (00087, DECISIONS #58): a label over photos, not a folder.
--- Parents own albums; parents and kids add photos; guests read a shared album
--- and, in it, only photos rule 3 already shows them (album_photos_select
--- needs both the album and the photo visible under their own RLS).
+-- Albums by theme (00087, DECISIONS #58). A photo uploaded into an album
+-- belongs to it only (photos.album_id, never changes): not in the place grid,
+-- the updates or the home. Parents own albums; parents and kids upload into
+-- them. A parent's upload into a shared album is the share step itself; a
+-- kid's is still forced pending + unshared. Guests see an album photo only
+-- under rule 3 AND while its album is shared (photos_guest_select).
 create table albums (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references trips(id),
@@ -239,13 +241,9 @@ create table albums (
   created_by uuid not null references members(id),
   created_at timestamptz not null default now()
 );
-create table album_photos (
-  album_id uuid not null references albums(id) on delete cascade,
-  photo_id uuid not null references photos(id) on delete cascade,
-  added_by uuid not null references members(id),
-  created_at timestamptz not null default now(),
-  primary key (album_id, photo_id)
-);
+-- on photos: album_id uuid references albums(id) on delete cascade,
+--            album_shared_at timestamptz  -- when it became visible to guests
+--                                        -- in the album ("new", set by trigger)
 
 -- One shared family wall: owners + kids + guests all read the same feed (DECISIONS #15).
 create table messages (

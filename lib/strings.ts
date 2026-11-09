@@ -1900,7 +1900,8 @@ export const strings = {
     deleteConfirm: "למחוק את התמונה?",
   },
 
-  // albums by theme (00087, DECISIONS #58): a label, the photos stay by place
+  // albums by theme (00087, DECISIONS #58): album photos belong to the album
+  // only - not in the place grid, the updates or the home
   albums: {
     tabPlaces: "לפי מקום",
     tabAlbums: "אלבומים",
@@ -1913,30 +1914,36 @@ export const strings = {
     rename: "שינוי שם",
     renamed: "השם עודכן",
     empty: "עוד אין אלבומים",
-    emptyHint: "אלבום הוא מקום לתמונות לפי נושא, לא לפי מקום. תמונה נשארת גם במקום שלה",
+    emptyHint: "אלבום הוא מקום לתמונות לפי נושא. תמונות שעולות לאלבום מופיעות רק בו, לא בשאר התמונות ולא בעדכונים",
     albumEmpty: "עוד אין תמונות באלבום",
     back: "כל האלבומים",
     shareToggle: "האלבום משותף עם אורחים",
     sharedChip: "משותף",
-    // the album opens nothing by itself (rule 3)
+    // the explicit share step for a parent's upload (rule 3 amendment, #58)
+    upload: "העלאה לאלבום",
+    uploadShare: "העלאה ושיתוף עם אורחים",
+    uploadShareHint: "תמונה שתעלה לכאן תופיע מיד לאורחים",
+    uploadPrivateHint: "האלבום לא משותף - רק המשפחה תראה את התמונות",
+    kidUploadHint: "התמונה תופיע אחרי שאמא או אבא יאשרו",
+    uploaded: (n: number) => (n === 1 ? "התמונה עלתה לאלבום" : `${n} תמונות עלו לאלבום`),
+    // photos uploaded while the album was private stay unshared
     unsharedPhotos: (n: number) =>
       n === 1 ? "תמונה אחת באלבום לא משותפת עם אורחים, והם לא יראו אותה" : `${n} תמונות באלבום לא משותפות עם אורחים, והן לא יוצגו להם`,
     shareThem: "שיתוף שלהן",
     sharedThem: "התמונות שותפו עם אורחים",
-    pendingHint: "תמונות שממתינות לאישור יופיעו לאורחים רק אחרי אישור ושיתוף",
-    addExisting: "הוספה מהתמונות",
-    pickTitle: "בחירת תמונות לאלבום",
-    addPicked: (n: number) => (n === 1 ? "הוספת תמונה אחת" : `הוספת ${n} תמונות`),
-    added: "נוספו לאלבום",
-    upload: "העלאה לאלבום",
-    remove: "הוצאה מהאלבום",
-    removed: "התמונה יצאה מהאלבום",
+    notShared: "לא משותפת עם אורחים",
     deleteAlbum: "מחיקת האלבום",
-    deleteConfirm: "למחוק את האלבום? התמונות עצמן נשארות",
+    deleteConfirm: "למחוק את האלבום וכל התמונות שבו?",
     deleted: "האלבום נמחק",
     count: (n: number) => (n === 1 ? "תמונה אחת" : `${n} תמונות`),
-    noneToPick: "כל התמונות כבר באלבום",
-    notShared: "לא משותפת עם אורחים",
+    // the in-app notification (no push)
+    fresh: (n: number) => (n === 1 ? "תמונה חדשה" : `${n} חדשות`),
+    homeFresh: (n: number, name: string) =>
+      n === 1 ? `תמונה חדשה באלבום ${name}` : `${n} תמונות חדשות באלבום ${name}`,
+    homeOpen: "לאלבום",
+    // the approval queue: a kid's photo for an album
+    inAlbum: "לאלבום: {name}",
+    approveShare: "אישור ושיתוף באלבום",
   },
 
   googlePhotos: {

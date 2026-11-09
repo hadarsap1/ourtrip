@@ -2816,24 +2816,30 @@ grants unchanged.
 
 ## 09/11/2026 - photo albums by theme (00087)
 
-New tables `albums` and `album_photos`, helper `album_trip_id` (security
-definer, execute for authenticated only). Policies: `albums_owner_all`
-(created_by must be the caller), `albums_kid_select`, `albums_guest_select`
-(only `shared_with_guests`); `album_photos_select` (the album AND the photo
-visible under their own RLS - as `post_photos_select`), `album_photos_owner_insert` /
-`_owner_delete`, `album_photos_kid_insert` / `_kid_delete` (added_by is the
-caller, the photo is of the album's trip, a kid removes only their own). No
-update policy on `album_photos`; guests have no write policy.
+New table `albums`, columns `photos.album_id` / `photos.album_shared_at`,
+helper `album_trip_id` (security definer, authenticated only), trigger
+`photos_z_album_guard` (runs after the kid rules: an album of another trip is
+refused, `album_id` never changes, `album_shared_at` set when the photo
+becomes approved AND shared). Policies: `albums_owner_all` (created_by is the
+caller), `albums_kid_select`, `albums_guest_select` (shared only);
+`photos_guest_select` keeps rule 3 word for word and adds "album_id is null
+or the album is visible to me". Rule 3 amendment (Hadar 09/11/2026, #58): a
+parent's upload into a shared album carries `shared_with_guests = true`; kid
+uploads are still forced pending + unshared by the 00001 trigger.
 
 | Check | Result |
 |---|---|
-| Owner creates, renames and fills albums; cannot create one in another member's name | ✅ PASS - local, probe `87_photo_albums.sql` |
-| Kid sees every album; adds a photo as themselves; cannot add in a parent's name, remove a parent's addition, or create / share / delete an album | ✅ PASS - local, probe 87 |
-| Guest sees only the shared album, and in it only the approved+shared photo - not the unshared one, not the kid's pending one | ✅ PASS - local, probe 87 |
-| Guest: a photo limited to another group is not in the album (00063) | ✅ PASS - local, probe 87 |
-| Guest writes nothing; revoked guest reads nothing | ✅ PASS - local, probe 87 |
-| Unsharing the album hides it and its rows; deleting a photo or an album removes the links | ✅ PASS - local, probe 87 |
-| Deny matrix (probe 90) with both tables seeded; kid list extended with `albums`, `album_photos` | ✅ PASS |
+| Owner creates and renames albums, uploads into them; cannot create one in another member's name; cannot take a photo out of its album | ✅ PASS - local, probe `87_photo_albums.sql` |
+| Shared album upload gets `album_shared_at`; unshared upload does not | ✅ PASS - local, probe 87 |
+| Kid sees every album; upload into an album lands pending + unshared even when sent approved + shared; cannot create / share / delete an album | ✅ PASS - local, probe 87 |
+| Nobody uploads into another trip's album | ✅ PASS - local, probe 87 |
+| Guest: only the shared album; in it only approved + shared photos; a shared photo in an unshared album stays hidden; ordinary shared photos unaffected | ✅ PASS - local, probe 87 |
+| Guest sees the kid's photo only after a parent approves AND shares it, and it becomes "new" then | ✅ PASS - local, probe 87 |
+| Guest: a group photo outside their groups is not in the album (00063) | ✅ PASS - local, probe 87 |
+| Guest writes nothing on albums; revoked guest reads nothing | ✅ PASS - local, probe 87 |
+| Unsharing the album hides it and every photo in it; deleting an album deletes its photos | ✅ PASS - local, probe 87 |
+| Deny matrix (probe 90) with `albums` seeded; kid list extended with `albums` | ✅ PASS |
+| Probe 86 guard (no per-row membership helper in SELECT policies) with the new `photos_guest_select` | ✅ PASS |
 | Full probe suite on 87 migrations | ⚠️ every probe passes except `69_trip_now_country` ("guest: no day today -> null"), which depends on the hour it runs (Tokyo vs Israel date) and touches nothing in 00087 |
 | 00087 applied to production | ⏳ not yet |
-
+| `backup-weekly` lists `albums` (lib/backupTables.test.ts) - function redeploy | ⏳ not yet |

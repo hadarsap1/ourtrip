@@ -76,6 +76,8 @@ const TABLES = [
   "documents",
   "document_pin",
   "document_passkeys",
+  // before photos: photos.album_id points here (00087)
+  "albums",
   "photos",
   "google_photos",
   "messages",

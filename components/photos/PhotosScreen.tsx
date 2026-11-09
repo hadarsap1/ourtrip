@@ -7,7 +7,8 @@ import { listDays } from "@/lib/data/itinerary";
 import { groupByPlace, placeByDate, type PlaceGroup } from "@/lib/photoPlaces";
 import {
   listGuestGooglePhotos,
-  listGuestPhotos,
+  listGuestPhotosWithAlbums,
+  type GuestAlbumPhoto,
   type GuestGooglePhoto,
   type GuestPhoto,
 } from "@/lib/data/guests";
@@ -42,7 +43,7 @@ import { PhotoPlacesMap } from "./PhotoPlacesMap";
 import { PlaceHeader } from "./PlaceHeader";
 import { FabPicker } from "@/components/ui/Fab";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { listAlbums } from "@/lib/data/albums";
+import { listAlbums, type Album } from "@/lib/data/albums";
 import { AlbumsView } from "./AlbumsView";
 
 type View = "places" | "albums";
@@ -50,6 +51,15 @@ const VIEWS: readonly { value: View; label: string }[] = [
   { value: "places", label: strings.albums.tabPlaces },
   { value: "albums", label: strings.albums.tabAlbums },
 ];
+
+/** /photos?album=<id> - the home's "new in the album" line opens it */
+function albumFromUrl(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get("album");
+  } catch {
+    return null;
+  }
+}
 
 // Photos are a place of their own again, by place (Hadar 01/11/2026): a small
 // map of where they were taken, then one section per stretch of the trip,
@@ -100,13 +110,15 @@ function GuestPhotosView() {
   const [toast, setToast] = useState<string | null>(null);
   const feedback = usePhotoFeedback(tripId);
   // the albums tab shows only once a parent shared an album (00087)
-  const [view, setView] = useState<View>("places");
+  const [initialAlbum] = useState(albumFromUrl);
+  const [view, setView] = useState<View>(initialAlbum ? "albums" : "places");
   const [hasAlbums, setHasAlbums] = useState(false);
+  const [albumPhotos, setAlbumPhotos] = useState<GuestAlbumPhoto[]>([]);
   useEffect(() => {
     if (!tripId) return;
     let cancelled = false;
     void listAlbums(tripId)
-      .then((r) => !cancelled && setHasAlbums(r.albums.length > 0))
+      .then((r) => !cancelled && setHasAlbums(r.length > 0))
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -116,13 +128,14 @@ function GuestPhotosView() {
   useEffect(() => {
     let cancelled = false;
     void Promise.all([
-      listGuestPhotos().catch(() => [] as GuestPhoto[]),
+      listGuestPhotosWithAlbums().catch(() => ({ photos: [] as GuestPhoto[], albumPhotos: [] as GuestAlbumPhoto[] })),
       listGuestGooglePhotos().catch(() => [] as GuestGooglePhoto[]),
       getActiveTrip().catch(() => null),
     ])
       .then(([p, g, t]) => {
         if (!cancelled) {
-          setPhotos(p);
+          setPhotos(p.photos);
+          setAlbumPhotos(p.albumPhotos);
           setGooglePhotos(g);
           setTripId(t?.id ?? null);
         }
@@ -178,8 +191,9 @@ function GuestPhotosView() {
           tripId={tripId}
           memberId={member.id}
           role="guest"
-          photos={photos}
+          photos={albumPhotos}
           tile={guestTile}
+          initialAlbumId={initialAlbum}
           onToast={setToast}
         />
       ) : (
@@ -274,7 +288,10 @@ function FamilyPhotosView() {
   // a tapped photo, open with its likes and comments (00077)
   const [viewing, setViewing] = useState<PhotoWithUrl | null>(null);
   // by place (#47) or by theme (00087, #58)
-  const [view, setView] = useState<View>("places");
+  const [initialAlbum] = useState(albumFromUrl);
+  const [view, setView] = useState<View>(initialAlbum ? "albums" : "places");
+  // names for the approval queue ("לאלבום: אווירה") and its share-in-one-tap
+  const [albums, setAlbums] = useState<Album[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -284,7 +301,14 @@ function FamilyPhotosView() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    setPhotos(await listPhotos(tripId));
+    // album photos too: the albums tab and the approval queue need them
+    const [list] = await Promise.all([
+      listPhotos(tripId, { albums: "include" }),
+      listAlbums(tripId)
+        .then(setAlbums)
+        .catch(() => {}),
+    ]);
+    setPhotos(list);
   }, []);
   const feedback = usePhotoFeedback(trip?.id ?? null, true);
 
@@ -350,21 +374,30 @@ function FamilyPhotosView() {
     [trip, member, uploading, refresh, showToast]
   );
 
-  // an upload inside an album: the same upload (a kid's waits for a parent),
-  // then AlbumsView adds the new photos to the album
+  // an upload into an album: the photo belongs to it only. A parent's upload
+  // into a shared album is shared at once - the button said so (#58); a
+  // kid's waits for a parent, unshared, whatever is sent (00001 trigger).
   const uploadForAlbum = useCallback(
-    async (files: File[]): Promise<string[]> => {
-      if (!trip || !member) return [];
-      const ids: string[] = [];
+    async (files: File[], album: Album): Promise<number> => {
+      if (!trip || !member) return 0;
+      const isOwnerUpload = member.role === "owner";
+      let n = 0;
       try {
         for (const file of files) {
-          const photo = await uploadPhoto({ tripId: trip.id, memberId: member.id, isOwner: member.role === "owner", file });
-          ids.push(photo.id);
+          await uploadPhoto({
+            tripId: trip.id,
+            memberId: member.id,
+            isOwner: isOwnerUpload,
+            file,
+            albumId: album.id,
+            share: isOwnerUpload && album.shared_with_guests,
+          });
+          n += 1;
         }
       } finally {
         await refresh(trip.id).catch(() => {});
       }
-      return ids;
+      return n;
     },
     [trip, member, refresh]
   );
@@ -403,10 +436,14 @@ function FamilyPhotosView() {
   }
 
   const isOwner = member?.role === "owner";
+  // the approval queue holds album photos too; everything else splits:
+  // album photos live in their album only (00087, #58)
   const pending = photos.filter((p) => p.status === "pending");
-  const visible = isOwner
-    ? photos.filter((p) => p.status !== "pending")
-    : photos.filter((p) => p.status !== "rejected" || p.uploaded_by === member?.id);
+  const seenBy = (p: PhotoWithUrl) => p.status !== "rejected" || p.uploaded_by === member?.id;
+  const gridPhotos = photos.filter((p) => p.album_id === null);
+  const albumPhotos = photos.filter((p) => p.album_id !== null && (isOwner ? p.status !== "rejected" : seenBy(p)));
+  const visible = isOwner ? gridPhotos.filter((p) => p.status !== "pending") : gridPhotos.filter(seenBy);
+  const albumById = new Map(albums.map((a) => [a.id, a]));
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
@@ -433,6 +470,30 @@ function FamilyPhotosView() {
                 {photo.caption && (
                   <div className="px-2 pt-2">
                     <PhotoCaption text={photo.caption} />
+                  </div>
+                )}
+                {photo.album_id && albumById.get(photo.album_id) && (
+                  <p className="px-2 pt-2 text-xs font-semibold text-ink-soft" dir="auto">
+                    {strings.albums.inAlbum.replace("{name}", albumById.get(photo.album_id)!.name)}
+                  </p>
+                )}
+                {/* approval and sharing stay two explicit steps, here in one tap */}
+                {photo.album_id && albumById.get(photo.album_id)?.shared_with_guests && (
+                  <div className="px-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        member &&
+                        void run(async () => {
+                          await approvePhoto(photo.id, member.id);
+                          await setPhotoShared(photo.id, true);
+                        })
+                      }
+                      className="w-full rounded-lg bg-sea py-2 text-sm font-bold text-on-sea"
+                    >
+                      <CheckIcon className="inline-block h-3.5 w-3.5 align-text-bottom" />{" "}
+                      {strings.albums.approveShare}
+                    </button>
                   </div>
                 )}
                 <div className="flex gap-2 p-2">
@@ -467,7 +528,8 @@ function FamilyPhotosView() {
           memberId={member.id}
           role={member.role}
           // a parent's album shows pending photos too (marked); rejected never
-          photos={isOwner ? photos.filter((p) => p.status !== "rejected") : visible}
+          photos={albumPhotos}
+          initialAlbumId={initialAlbum}
           tile={(photo) => (
             <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
           )}
@@ -475,7 +537,7 @@ function FamilyPhotosView() {
           onPhotosChanged={() => refresh(trip.id)}
           onToast={showToast}
         />
-      ) : visible.length === 0 && pending.length === 0 ? (
+      ) : visible.length === 0 && pending.filter((p) => p.album_id === null).length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>

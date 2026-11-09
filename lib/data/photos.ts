@@ -16,14 +16,20 @@ function requireClient() {
   return supabase;
 }
 
-/** All family-visible photos with signed URLs (RLS scopes rows by role). */
-export async function listPhotos(tripId: string): Promise<PhotoWithUrl[]> {
+/** All family-visible photos with signed URLs (RLS scopes rows by role).
+ *  Album photos (00087, #58) belong to their album only and are left out
+ *  unless asked for: the photos screen needs them for its albums and its
+ *  approval queue. */
+export async function listPhotos(
+  tripId: string,
+  opts: { albums?: "exclude" | "include" | "only" } = {}
+): Promise<PhotoWithUrl[]> {
   const supabase = requireClient();
-  const { data, error } = await supabase
-    .from("photos")
-    .select("*")
-    .eq("trip_id", tripId)
-    .order("created_at", { ascending: false });
+  let query = supabase.from("photos").select("*").eq("trip_id", tripId);
+  const albums = opts.albums ?? "exclude";
+  if (albums === "exclude") query = query.is("album_id", null);
+  else if (albums === "only") query = query.not("album_id", "is", null);
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   if (data.length === 0) return [];
 
@@ -51,6 +57,11 @@ export async function uploadPhoto(input: {
   /** [] = every guest once shared; else only these groups (00063/00064).
    *  Sharing stays a parent's separate step (#5). */
   audience?: string[];
+  /** upload into this album (00087): the photo belongs to it only */
+  albumId?: string | null;
+  /** a parent's upload into a shared album is the share step itself
+   *  (Hadar 09/11/2026, #58); ignored for kids by the 00001 trigger */
+  share?: boolean;
 }): Promise<Photo> {
   const supabase = requireClient();
   // the day it was taken, not the day it was uploaded; the canvas drops EXIF
@@ -72,8 +83,9 @@ export async function uploadPhoto(input: {
       caption: input.caption?.trim() || null,
       taken_on: shotOn && shotOn <= today ? shotOn : today,
       audience: input.audience ?? [],
+      album_id: input.albumId ?? null,
       ...(input.isOwner
-        ? { status: "approved" as const, approved_by: input.memberId }
+        ? { status: "approved" as const, approved_by: input.memberId, shared_with_guests: input.share === true }
         : {}),
     })
     .select()
