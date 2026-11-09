@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { EditIcon, PinIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { NewFeedbackChip } from "@/components/feedback/FeedbackCount";
+import { ViewersChip } from "@/components/feedback/ViewersChip";
+import { useRecordWhenOnScreen } from "@/lib/useRecordView";
 import { newFeedback } from "@/lib/feedback";
 import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { formatDate } from "@/lib/format";
@@ -65,9 +67,14 @@ export function StoryCard({
   // frozen: the feed marks a card seen as it scrolls by; "חדש" stays for this visit
   const { since } = useFeedbackSeen(true);
   const fresh = newFeedback({ postId: story.id }, comments, reactions, member.id, since(story.id));
+  // a guest saw it: half the card on screen for 2 s (00085); parents see who
+  const cardRef = useRef<HTMLElement>(null);
+  useRecordWhenOnScreen(cardRef, story.id, published);
+  const outToGuests = published && story.visibility !== "family";
 
   return (
     <article
+      ref={cardRef}
       id={`story-${story.id}`}
       className="scroll-mt-4 overflow-hidden rounded-card border border-sv-line bg-sv-card"
     >
@@ -97,6 +104,7 @@ export function StoryCard({
                 : AUDIENCE_BADGE[story.visibility]}
             </span>
           )}
+          {outToGuests && <ViewersChip target={{ postId: story.id }} members={members} alwaysShow />}
           {published && isScheduled(story) && story.publish_after && (
             <span className="rounded-full bg-sv-sage-soft px-2 py-0.5 font-semibold text-sv-sage">
               {strings.stories.scheduled.replace("{date}", formatDate(story.publish_after.slice(0, 10)))}

@@ -3,6 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { Sheet } from "@/components/Sheet";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { ViewersChip } from "@/components/feedback/ViewersChip";
+import { useRecordOnOpen } from "@/lib/useRecordView";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import type { Comment, Member, Reaction } from "@/lib/types";
@@ -16,6 +18,8 @@ export type ViewedPhoto = {
   uploaded_by?: string;
   /** the groups it went to, when not everyone (00063) - shown to the family */
   audience?: string[];
+  /** approved and shared with guests: parents see "0 ראו" too (00085) */
+  sharedWithGuests?: boolean;
 };
 
 // A tapped photo as a post: the picture, its whole text, and the likes and
@@ -54,6 +58,8 @@ export function PhotoView({
   const [date, setDate] = useState(photo.taken_on);
   const [saving, setSaving] = useState(false);
   const author = photo.uploaded_by ? members.find((m) => m.id === photo.uploaded_by)?.display_name : null;
+  // a guest opened it (00085); RLS records it only if the photo passed rule 3
+  useRecordOnOpen(photo.id);
   return (
     <Sheet open onClose={onClose} title={formatDate(photo.taken_on)}>
       <div className="space-y-3">
@@ -66,6 +72,7 @@ export function PhotoView({
           />
         )}
         {author && <p className="text-xs font-semibold text-ink-soft">{strings.photos.by.replace("{name}", author)}</p>}
+        <ViewersChip target={{ photoId: photo.id }} members={members} alwaysShow={photo.sharedWithGuests === true} />
         {onChangeDate && !editingDate && (
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-ink-soft">{strings.photos.takenOn.replace("{date}", formatDate(photo.taken_on))}</p>

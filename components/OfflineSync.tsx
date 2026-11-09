@@ -23,6 +23,8 @@ export function OfflineSync() {
 
     const sync = () => {
       if (!navigator.onLine) return;
+      // guests' views kept offline (00085): sent quietly, no toast
+      void import("@/lib/offline/viewOutbox").then(({ flushViews }) => flushViews()).catch(() => {});
       void replayPendingWrites().then(async ({ replayed, dropped, conflicts }) => {
         await refreshPendingCount();
         // Still online after replaying = this device is in step with the server.

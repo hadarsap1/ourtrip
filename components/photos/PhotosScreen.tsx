@@ -517,7 +517,11 @@ function FamilyPhotosView() {
       )}
       {viewing && trip && member && (
         <PhotoView
-          photo={viewing}
+          photo={{
+            ...viewing,
+            // the current row, so "0 ראו" follows the share toggle (00085)
+            sharedWithGuests: photos.some((p) => p.id === viewing.id && p.status === "approved" && p.shared_with_guests),
+          }}
           tripId={trip.id}
           member={member}
           members={feedback.members}

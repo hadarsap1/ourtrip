@@ -11,6 +11,7 @@ export type Episode = Tables<"episodes">;
 export type Reaction = Tables<"reactions">;
 export type ReactionKind = Enums<"reaction_kind">;
 export type Comment = Tables<"comments">;
+export type ContentView = Tables<"content_views">;
 export type ItineraryDay = Tables<"itinerary_days">;
 export type ItineraryItem = Tables<"itinerary_items">;
 export type Booking = Tables<"bookings">;

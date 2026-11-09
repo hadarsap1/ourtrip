@@ -4,6 +4,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Booking, ItineraryDay, ItineraryItem } from "@/lib/types";
+import type { PendingView } from "@/lib/views";
 
 export type OfflineDocument = {
   id: string;
@@ -146,13 +147,16 @@ interface OurTripDB extends DBSchema {
   destination_facts: { key: string; value: FactsSnapshot };
   query_cache: { key: string; value: QueryCacheEntry };
   failed_writes: { key: number; value: FailedWrite };
+  /** Guests' views not sent yet (00085), one per target. Not part of the
+   *  pending-writes count: guests are not told views are recorded. */
+  view_outbox: { key: string; value: PendingView };
 }
 
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 5, {
+  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 6, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore("documents_offline", { keyPath: "id" });
@@ -175,6 +179,9 @@ export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
       }
       if (oldVersion < 5) {
         db.createObjectStore("failed_writes", { keyPath: "id", autoIncrement: true });
+      }
+      if (oldVersion < 6) {
+        db.createObjectStore("view_outbox", { keyPath: "key" });
       }
     },
   });

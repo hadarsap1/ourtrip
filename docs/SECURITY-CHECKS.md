@@ -2768,3 +2768,28 @@ update policy on photos.
 | Full probe suite on 84 migrations | ✅ 328 PASS; 1 FAIL in probe 69 (`guest: no day today -> null`), also failing on main without 00084 - time-of-day dependent, unrelated |
 | 00084 applied to production | ✅ done 05/11/2026 (MCP); before it, the live function matched 00076 |
 | Live: `photos_guard_update` pins `taken_on`, security definer with pinned search_path, no execute for anon/authenticated; `photos_before_update` enabled; photos policies unchanged (`photos_owner_all`, `photos_kid_*`, `photos_guest_select`) | ✅ PASS - live catalog check 05/11/2026 |
+
+## 09/11/2026 - who saw an update, a photo or an episode (00085)
+
+New table `content_views` and RPC `record_content_view` (security invoker).
+Policies: `content_views_owner_select` (parents read the trip),
+`content_views_guest_select` / `_guest_insert` / `_guest_update` (an active
+guest, own rows only, and the target must pass `feedback_target_visible`
+under the guest's own RLS). No kid policy, no delete policy, anon has no
+grant. After insert only `first_viewed_at`, `last_viewed_at` and
+`heard_seconds` can change (column grants).
+
+| Check | Result |
+|---|---|
+| Guest records an update, a shared photo and a shared episode; repeats stay one row each | ✅ PASS - local, probe `85_content_views.sql` |
+| Heard time never goes down and stops at the episode's length | ✅ PASS - local, probe 85 |
+| Guest: an unshared photo (rule 3), a family-only update and an unshared episode record nothing; a direct insert of the unshared photo is refused | ✅ PASS - local, probe 85 |
+| Guest cannot record a view for another member, or move a row to another member | ✅ PASS - local, probe 85 |
+| Guest reads only their own rows, never who else saw it | ✅ PASS - local, probe 85 |
+| Revoked guest, kid, outsider: record and read nothing; kid direct insert refused | ✅ PASS - local, probe 85 |
+| Parent reads every guest's views; their own opening is not counted; cannot delete | ✅ PASS - local, probe 85 |
+| Anon cannot call the RPC or read the table | ✅ PASS - local, probe 85 |
+| Deny matrix (probe 90) with the new table seeded | ✅ PASS |
+| Full probe suite on 85 migrations | ✅ 488 PASS, 0 FAIL |
+| 00085 applied to production | ✅ done 09/11/2026 (MCP); dependencies checked first (4-argument `feedback_target_visible`, `episodes.duration_seconds`) |
+| Live: RLS on, the four policies (`content_views_owner_select`, `_guest_select`, `_guest_insert`, `_guest_update`), no anon grant on the table, anon cannot execute `record_content_view`, authenticated can, security invoker | ✅ PASS - live catalog check 09/11/2026 |

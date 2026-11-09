@@ -1,8 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { EditIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { NewFeedbackChip } from "@/components/feedback/FeedbackCount";
+import { ViewersChip } from "@/components/feedback/ViewersChip";
+import { useRecordListening } from "@/lib/useRecordView";
 import { newFeedback } from "@/lib/feedback";
 import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { roundMinutes } from "@/lib/audio";
@@ -55,6 +58,9 @@ export function EpisodeCard({
   // frozen: the feed marks a card seen as it scrolls by; "חדש" stays for this visit
   const { since } = useFeedbackSeen(true);
   const fresh = newFeedback({ episodeId: episode.id }, comments, reactions, member.id, since(episode.id));
+  // a guest pressed play, and how far they listened (00085); parents see who
+  const audioRef = useRef<HTMLAudioElement>(null);
+  useRecordListening(audioRef, episode.id, url);
 
   return (
     <article
@@ -70,6 +76,14 @@ export function EpisodeCard({
         )}
         <span dir="ltr">{formatDate(episode.created_at.slice(0, 10))}</span>
         {minutes !== null && <span>· {strings.podcast.minutes.replace("{n}", String(minutes))}</span>}
+        {approved && episode.shared_with_guests && (
+          <ViewersChip
+            target={{ episodeId: episode.id }}
+            members={members}
+            alwaysShow
+            durationSeconds={episode.duration_seconds}
+          />
+        )}
         {episode.status === "pending" && (
           <span className="rounded-full bg-warning-soft px-2 py-0.5 font-bold text-warning">
             {strings.stories.pending}
@@ -85,7 +99,7 @@ export function EpisodeCard({
         <p className="whitespace-pre-wrap text-base leading-[1.6] text-sv-ink">{episode.description}</p>
       )}
       {url ? (
-        <audio controls preload="none" src={url} className="w-full">
+        <audio ref={audioRef} controls preload="none" src={url} className="w-full">
           <track kind="captions" />
         </audio>
       ) : (
