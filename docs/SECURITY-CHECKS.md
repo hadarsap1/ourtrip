@@ -2841,5 +2841,6 @@ uploads are still forced pending + unshared by the 00001 trigger.
 | Deny matrix (probe 90) with `albums` seeded; kid list extended with `albums` | ✅ PASS |
 | Probe 86 guard (no per-row membership helper in SELECT policies) with the new `photos_guest_select` | ✅ PASS |
 | Full probe suite on 87 migrations | ⚠️ every probe passes except `69_trip_now_country` ("guest: no day today -> null"), which depends on the hour it runs (Tokyo vs Israel date) and touches nothing in 00087 |
-| 00087 applied to production | ⏳ not yet |
-| `backup-weekly` lists `albums` (lib/backupTables.test.ts) - function redeploy | ⏳ not yet |
+| 00087 applied to production | ✅ done 09/11/2026 - run by Hadar in the SQL Editor (the MCP approval prompt did not reach his phone twice); recorded in `supabase_migrations.schema_migrations` as 00087_photo_albums |
+| Live: `albums` RLS on with `albums_owner_all` / `_kid_select` / `_guest_select`; `photos.album_id` + `album_shared_at`; trigger `photos_z_album_guard` last after the kid rules; `photos_guest_select` = rule 3 + the album clause; `album_trip_id` executable by authenticated, not anon; `photos_album_guard` not executable by authenticated | ✅ PASS - live catalog check 09/11/2026 |
+| `backup-weekly` redeployed with the repo's table list (`albums`, and `expense_receipts`, `feedback_seen`, `content_views` that the live version had also drifted past); every listed table checked to exist live first; verify_jwt stays false (cron secret) | ✅ done 09/11/2026, version 15 |
