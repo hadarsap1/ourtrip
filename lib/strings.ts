@@ -1900,6 +1900,52 @@ export const strings = {
     deleteConfirm: "למחוק את התמונה?",
   },
 
+  // albums by theme (00087, DECISIONS #58): album photos belong to the album
+  // only - not in the place grid, the updates or the home
+  albums: {
+    tabPlaces: "לפי מקום",
+    tabAlbums: "אלבומים",
+    tabsLabel: "איך לראות את התמונות",
+    newAlbum: "אלבום חדש",
+    nameLabel: "שם האלבום",
+    namePlaceholder: "למשל: אווירה",
+    create: "יצירה",
+    created: "האלבום נוצר",
+    rename: "שינוי שם",
+    renamed: "השם עודכן",
+    empty: "עוד אין אלבומים",
+    emptyHint: "אלבום הוא מקום לתמונות לפי נושא. תמונות שעולות לאלבום מופיעות רק בו, לא בשאר התמונות ולא בעדכונים",
+    albumEmpty: "עוד אין תמונות באלבום",
+    back: "כל האלבומים",
+    shareToggle: "האלבום משותף עם אורחים",
+    sharedChip: "משותף",
+    // the explicit share step for a parent's upload (rule 3 amendment, #58)
+    upload: "העלאה לאלבום",
+    uploadShare: "העלאה ושיתוף עם אורחים",
+    uploadShareHint: "תמונה שתעלה לכאן תופיע מיד לאורחים",
+    uploadPrivateHint: "האלבום לא משותף - רק המשפחה תראה את התמונות",
+    kidUploadHint: "התמונה תופיע אחרי שאמא או אבא יאשרו",
+    uploaded: (n: number) => (n === 1 ? "התמונה עלתה לאלבום" : `${n} תמונות עלו לאלבום`),
+    // photos uploaded while the album was private stay unshared
+    unsharedPhotos: (n: number) =>
+      n === 1 ? "תמונה אחת באלבום לא משותפת עם אורחים, והם לא יראו אותה" : `${n} תמונות באלבום לא משותפות עם אורחים, והן לא יוצגו להם`,
+    shareThem: "שיתוף שלהן",
+    sharedThem: "התמונות שותפו עם אורחים",
+    notShared: "לא משותפת עם אורחים",
+    deleteAlbum: "מחיקת האלבום",
+    deleteConfirm: "למחוק את האלבום וכל התמונות שבו?",
+    deleted: "האלבום נמחק",
+    count: (n: number) => (n === 1 ? "תמונה אחת" : `${n} תמונות`),
+    // the in-app notification (no push)
+    fresh: (n: number) => (n === 1 ? "תמונה חדשה" : `${n} חדשות`),
+    homeFresh: (n: number, name: string) =>
+      n === 1 ? `תמונה חדשה באלבום ${name}` : `${n} תמונות חדשות באלבום ${name}`,
+    homeOpen: "לאלבום",
+    // the approval queue: a kid's photo for an album
+    inAlbum: "לאלבום: {name}",
+    approveShare: "אישור ושיתוף באלבום",
+  },
+
   googlePhotos: {
     title: "Google Photos",
     subtitle: "התמונות נשמרות ב-Google Photos - כאן רואים אותן לפי מדינה",

@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      albums: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          shared_with_guests: boolean
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          shared_with_guests?: boolean
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          shared_with_guests?: boolean
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "albums_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_files: {
         Row: {
           booking_id: string
@@ -1549,6 +1584,8 @@ export type Database = {
       }
       photos: {
         Row: {
+          album_id: string | null
+          album_shared_at: string | null
           audience: string[]
           approved_by: string | null
           caption: string | null
@@ -1563,6 +1600,8 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          album_id?: string | null
+          album_shared_at?: string | null
           audience?: string[]
           approved_by?: string | null
           caption?: string | null
@@ -1577,6 +1616,8 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          album_id?: string | null
+          album_shared_at?: string | null
           audience?: string[]
           approved_by?: string | null
           caption?: string | null

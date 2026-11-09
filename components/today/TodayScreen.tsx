@@ -9,6 +9,7 @@ import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
 import { Banner } from "@/components/ui/Banner";
 import { GuestLatestUpdate } from "./GuestLatestUpdate";
+import { AlbumNewsLines, albumNewsTotal, useAlbumNews } from "@/components/photos/AlbumNews";
 import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
@@ -298,6 +299,11 @@ export function TodayScreen() {
     };
   }, [isGuest, tripId]);
 
+  // "new in the album" (00087): a line on the guest home, a badge on the
+  // photos door for guests and kids
+  const albumNews = useAlbumNews(tripId, member?.id ?? null, isGuest || member?.role === "kid");
+  const albumFresh = albumNewsTotal(albumNews);
+
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
 
@@ -307,7 +313,7 @@ export function TodayScreen() {
       // the map of where we've been lives inside the updates (Hadar
       // 31/10/2026); the photos are a door again, by place (01/11/2026)
       { href: "/stories", Icon: JournalIcon, label: strings.guestHome.tileStories },
-      { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos },
+      { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos, badge: albumFresh },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall, badge: unreadWall },
       { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
     ];
@@ -330,6 +336,7 @@ export function TodayScreen() {
           <GuestFamilyClock now={clock} countryCode={nowCountry} />
           {/* what the family wrote last, before the doors (UX pass 06/11/2026) */}
           {tripId && <GuestLatestUpdate tripId={tripId} role={member.role} />}
+          <AlbumNewsLines news={albumNews} />
           <div className="grid grid-cols-2 gap-2.5">
             {tiles.map((tile) => (
               <Link
@@ -375,7 +382,7 @@ export function TodayScreen() {
       { href: "/messages", Icon: MessagesIcon, label: strings.kidHome.tileWall, badge: unreadWall },
       { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
       { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
-      { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos },
+      { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos, badge: albumFresh },
       ...(FLAG_DEFAULTS.pocketMoney
         ? [{ href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket }]
         : []),

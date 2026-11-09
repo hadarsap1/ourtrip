@@ -229,14 +229,31 @@ export type GuestPhoto = {
   lng?: number | null;
 };
 
+export type GuestAlbumPhoto = GuestPhoto & { album_id: string };
+
+/** The photos a guest may see, signed by guest-photos. Album photos (00087,
+ *  #58) belong to their album, so they come apart from the rest. Which photo is in which album comes
+ *  from the guest's own RLS read of photos (a shared album only, rule 3),
+ *  so the function itself needs no change. listGuestPhotos is the grid. */
 export async function listGuestPhotos(): Promise<GuestPhoto[]> {
-  const { data, error } = await requireClient().functions.invoke(
-    "guest-photos",
-    { body: {} }
-  );
-  if (error) throw new Error(error.message);
-  if (!data?.ok) throw new Error(data?.error ?? "failed");
-  return data.photos as GuestPhoto[];
+  return (await listGuestPhotosWithAlbums()).photos;
+}
+
+export async function listGuestPhotosWithAlbums(): Promise<{ photos: GuestPhoto[]; albumPhotos: GuestAlbumPhoto[] }> {
+  const supabase = requireClient();
+  const [fn, inAlbums] = await Promise.all([
+    supabase.functions.invoke("guest-photos", { body: {} }),
+    supabase.from("photos").select("id, album_id").not("album_id", "is", null),
+  ]);
+  if (fn.error) throw new Error(fn.error.message);
+  if (!fn.data?.ok) throw new Error(fn.data?.error ?? "failed");
+  if (inAlbums.error) throw new Error(inAlbums.error.message);
+  const albumOf = new Map(inAlbums.data.map((r) => [r.id, r.album_id as string]));
+  const photos = fn.data.photos as GuestPhoto[];
+  return {
+    photos: photos.filter((p) => !albumOf.has(p.id)),
+    albumPhotos: photos.filter((p) => albumOf.has(p.id)).map((p) => ({ ...p, album_id: albumOf.get(p.id)! })),
+  };
 }
 
 export type GuestGooglePhoto = {

@@ -78,6 +78,8 @@ export async function listPhotosForDate(
     .select("*")
     .eq("trip_id", tripId)
     .eq("taken_on", date)
+    // album photos stay in their album (00087)
+    .is("album_id", null)
     .order("created_at", { ascending: false });
   if (error || !data || data.length === 0) return [];
 
