@@ -44,7 +44,9 @@ import { PlaceHeader } from "./PlaceHeader";
 import { FabPicker } from "@/components/ui/Fab";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { listAlbums, type Album } from "@/lib/data/albums";
-import { AlbumsView } from "./AlbumsView";
+import { AlbumsView, type AlbumPhotoStats } from "./AlbumsView";
+import { useContentViews } from "@/lib/useContentViews";
+import { viewersOf } from "@/lib/views";
 
 type View = "places" | "albums";
 const VIEWS: readonly { value: View; label: string }[] = [
@@ -192,7 +194,8 @@ function GuestPhotosView() {
           memberId={member.id}
           role="guest"
           photos={albumPhotos}
-          tile={guestTile}
+          tile={(photo) => <PhotoTile photo={photo} badge={NO_BADGE} onOpen={() => setViewing(photo)} />}
+          stats={(id) => ({ views: null, ...feedback.photoBadge(id) })}
           initialAlbumId={initialAlbum}
           onToast={setToast}
         />
@@ -311,6 +314,8 @@ function FamilyPhotosView() {
     setPhotos(list);
   }, []);
   const feedback = usePhotoFeedback(trip?.id ?? null, true);
+  // guests' views of album photos (00085): parents only, null for the rest
+  const views = useContentViews(member?.role === "owner" && trip ? trip.id : null);
 
   useEffect(() => {
     let cancelled = false;
@@ -436,6 +441,10 @@ function FamilyPhotosView() {
   }
 
   const isOwner = member?.role === "owner";
+  const albumStats = (id: string): AlbumPhotoStats => ({
+    views: views ? viewersOf(views, { photoId: id }, feedback.members).length : isOwner ? 0 : null,
+    ...feedback.photoBadge(id),
+  });
   // the approval queue holds album photos too; everything else splits:
   // album photos live in their album only (00087, #58)
   const pending = photos.filter((p) => p.status === "pending");
@@ -530,9 +539,9 @@ function FamilyPhotosView() {
           // a parent's album shows pending photos too (marked); rejected never
           photos={albumPhotos}
           initialAlbumId={initialAlbum}
-          tile={(photo) => (
-            <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
-          )}
+          // the numbers are under the photo in an album, not over it
+          tile={(photo) => <PhotoTile photo={photo} badge={NO_BADGE} onOpen={() => setViewing(photo)} />}
+          stats={albumStats}
           onUpload={uploadForAlbum}
           onPhotosChanged={() => refresh(trip.id)}
           onToast={showToast}
@@ -720,6 +729,8 @@ function FamilyPhotosView() {
     </div>
   );
 }
+
+const NO_BADGE: FeedbackBadge = { comments: 0, likes: 0, isNew: false };
 
 /** A photo in the grid: tap to open it with its likes and comments (00077),
  *  counted over the picture with "new" for what came since I last looked. */

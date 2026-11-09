@@ -17,6 +17,8 @@ import {
 import { setPhotoShared } from "@/lib/data/photos";
 import { strings } from "@/lib/strings";
 import { failureText } from "@/lib/failureText";
+import { EyeIcon, HeartIcon, MessagesIcon } from "@/components/icons";
+import { NewDot } from "@/components/feedback/FeedbackCount";
 
 // Albums by theme (00087, DECISIONS #58). A photo uploaded into an album
 // belongs to it only, so the "vibe" photos never crowd the place grid or the
@@ -35,12 +37,44 @@ export type AlbumViewPhoto = {
   shared_with_guests?: boolean;
 };
 
+/** One photo's numbers. views: guests who opened it (00085), null for
+ *  anyone but a parent, who alone may see them (#57). */
+export type AlbumPhotoStats = { views: number | null; comments: number; likes: number; isNew: boolean };
+
+/** 👁 3 · 💬 2 · ❤ 1 under a photo, zeros included. */
+function StatsRow({ stats }: { stats: AlbumPhotoStats }) {
+  return (
+    <span
+      role="img"
+      aria-label={strings.albums.statsLabel(stats.views, stats.comments, stats.likes)}
+      className="flex items-center gap-2.5 text-xs font-semibold text-ink-soft"
+    >
+      {stats.views !== null && (
+        <span className="inline-flex items-center gap-0.5">
+          <EyeIcon className="h-3.5 w-3.5" />
+          {stats.views}
+        </span>
+      )}
+      <span className="inline-flex items-center gap-0.5">
+        <MessagesIcon className="h-3.5 w-3.5" />
+        {stats.comments}
+      </span>
+      <span className="inline-flex items-center gap-0.5">
+        <HeartIcon className="h-3.5 w-3.5" />
+        {stats.likes}
+      </span>
+      {stats.isNew && <NewDot />}
+    </span>
+  );
+}
+
 export function AlbumsView<P extends AlbumViewPhoto>({
   tripId,
   memberId,
   role,
   photos,
   tile,
+  stats,
   initialAlbumId,
   onUpload,
   onPhotosChanged,
@@ -52,6 +86,8 @@ export function AlbumsView<P extends AlbumViewPhoto>({
   /** the album photos the caller may see, newest first */
   photos: P[];
   tile: (photo: P) => React.ReactNode;
+  /** views (parents), comments and likes of one photo */
+  stats: (photoId: string) => AlbumPhotoStats;
   /** open this album straight away (the home's "new" line links here) */
   initialAlbumId?: string | null;
   /** family only: uploads into the album and returns how many went up */
@@ -264,18 +300,19 @@ export function AlbumsView<P extends AlbumViewPhoto>({
             {items.map((photo) => (
               <li key={photo.id} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
                 {tile(photo)}
-                {(photo.status === "pending" ||
-                  (isOwner && open.shared_with_guests && photo.status === "approved" && !photo.shared_with_guests)) && (
-                  <div className="p-2 text-xs">
-                    {photo.status === "pending" ? (
-                      <span className="inline-block rounded-full bg-sun-tint px-2 py-0.5 font-semibold text-sun-deep">
-                        {strings.photos.pending}
-                      </span>
-                    ) : (
-                      <span className="text-ink-soft">{strings.albums.notShared}</span>
-                    )}
-                  </div>
-                )}
+                <div className="space-y-1 p-2 text-xs">
+                  <StatsRow stats={stats(photo.id)} />
+                  {photo.status === "pending" ? (
+                    <span className="inline-block rounded-full bg-sun-tint px-2 py-0.5 font-semibold text-sun-deep">
+                      {strings.photos.pending}
+                    </span>
+                  ) : (
+                    isOwner &&
+                    open.shared_with_guests &&
+                    photo.status === "approved" &&
+                    !photo.shared_with_guests && <span className="block text-ink-soft">{strings.albums.notShared}</span>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -327,6 +364,18 @@ export function AlbumsView<P extends AlbumViewPhoto>({
             const items = photosOf(album.id);
             const cover = items.find((p) => p.url)?.url ?? null;
             const n = fresh.get(album.id) ?? 0;
+            // the album's totals: views are guest x photo openings (parents only)
+            const totals = items.reduce(
+              (t, p) => {
+                const st = stats(p.id);
+                return {
+                  views: st.views === null || t.views === null ? null : t.views + st.views,
+                  comments: t.comments + st.comments,
+                  likes: t.likes + st.likes,
+                };
+              },
+              { views: isOwner ? 0 : null, comments: 0, likes: 0 } as { views: number | null; comments: number; likes: number }
+            );
             return (
               <li key={album.id}>
                 <button
@@ -356,6 +405,13 @@ export function AlbumsView<P extends AlbumViewPhoto>({
                           {strings.albums.sharedChip}
                         </span>
                       )}
+                    </span>
+                    <span className="block text-xs text-ink-soft">
+                      {[
+                        ...(totals.views !== null ? [strings.albums.cardViews(totals.views)] : []),
+                        strings.albums.cardComments(totals.comments),
+                        strings.albums.cardLikes(totals.likes),
+                      ].join(" · ")}
                     </span>
                   </span>
                 </button>

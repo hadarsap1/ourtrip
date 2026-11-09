@@ -1944,6 +1944,13 @@ export const strings = {
     // the approval queue: a kid's photo for an album
     inAlbum: "לאלבום: {name}",
     approveShare: "אישור ושיתוף באלבום",
+    // views / comments / likes on each photo and on the album card, zeros too
+    // (Hadar 09/11/2026); views for parents only (#57)
+    statsLabel: (views: number | null, comments: number, likes: number) =>
+      `${views === null ? "" : `${views} צפיות, `}${comments} תגובות, ${likes} לייקים`,
+    cardViews: (n: number) => (n === 1 ? "צפייה אחת" : `${n} צפיות`),
+    cardComments: (n: number) => (n === 1 ? "תגובה אחת" : `${n} תגובות`),
+    cardLikes: (n: number) => (n === 1 ? "לייק אחד" : `${n} לייקים`),
   },
 
   googlePhotos: {
