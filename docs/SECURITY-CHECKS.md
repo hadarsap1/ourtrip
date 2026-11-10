@@ -2859,4 +2859,5 @@ insights read `bookings` too, already owners only (`bookings_owner_all`).
 | Kid and guest read no expenses (so no countries) and their updates change nothing | ✅ PASS - local, probe 88 |
 | Probe 82 (cash withdrawals) unchanged on 88 migrations | ✅ PASS |
 | Deny matrix (probe 90) on 88 migrations | ✅ PASS |
-| 00088 applied to production | ⏳ pending - the Supabase MCP did not connect from this session |
+| 00088 applied to production | ✅ done 10/11/2026 via the Supabase MCP (apply_migration 00088_expense_country) |
+| Live: `expenses.country_code` text; `expenses_country_code_format` present; RLS on with `expenses_owner_all` the only policy; no existing row has a country (all automatic) | ✅ verified 10/11/2026 |
