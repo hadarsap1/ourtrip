@@ -251,6 +251,8 @@ export async function createExpense(input: {
   isCashWithdrawal?: boolean;
   /** 00082: paid from this withdrawal, so the withdrawal counts that much less. */
   paidFromExpenseId?: string | null;
+  /** 00088: the country it belongs to; null/absent = placed automatically. */
+  countryCode?: string | null;
 }): Promise<void> {
   const supabase = requireClient();
   const [trip, member] = await Promise.all([
@@ -274,6 +276,7 @@ export async function createExpense(input: {
     spent_on: spentOn,
     is_cash_withdrawal: input.isCashWithdrawal ?? false,
     paid_from_expense_id: input.isCashWithdrawal ? null : (input.paidFromExpenseId ?? null),
+    ...(input.countryCode ? { country_code: input.countryCode } : {}),
     created_by: member.id,
   });
   if (error && !(input.id && error.code === "23505")) throw new Error(error.message);
@@ -355,6 +358,7 @@ export async function createExpenseOrQueue(input: {
   spentOn?: string;
   isCashWithdrawal?: boolean;
   paidFromExpenseId?: string | null;
+  countryCode?: string | null;
 }): Promise<"saved" | "queued"> {
   try {
     await createExpense(input);
@@ -372,6 +376,7 @@ export async function createExpenseOrQueue(input: {
         spentOn: input.spentOn ?? todayISO(),
         isCashWithdrawal: input.isCashWithdrawal ?? false,
         paidFromExpenseId: input.paidFromExpenseId ?? null,
+        countryCode: input.countryCode ?? null,
       });
       return "queued";
     }
@@ -384,7 +389,7 @@ export async function updateExpense(
   id: string,
   patch: Pick<
     TablesUpdate<"expenses">,
-    "category_id" | "description" | "is_cash_withdrawal" | "paid_from_expense_id"
+    "category_id" | "description" | "is_cash_withdrawal" | "paid_from_expense_id" | "country_code"
   > & {
     amount: number;
     currency: string;

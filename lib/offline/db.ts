@@ -60,6 +60,8 @@ export type ExpensePayload = {
   /** 00082; absent on entries queued before cash withdrawals existed. */
   isCashWithdrawal?: boolean;
   paidFromExpenseId?: string | null;
+  /** 00088; absent on entries queued before expenses had a country. */
+  countryCode?: string | null;
 };
 
 /** A receipt photo taken offline (00083). The photo itself is kept here, as
