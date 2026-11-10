@@ -15,6 +15,7 @@ import { addReceiptOrQueue } from "@/lib/data/receipts";
 import { ReceiptsField, type PendingReceipt } from "./ReceiptsField";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
+import { findCountry, flagEmoji } from "@/lib/countries";
 import type { BudgetCategory, Expense, ExpenseReceipt } from "@/lib/types";
 
 const LAST_CURRENCY_KEY = "ourtrip-last-currency";
@@ -31,6 +32,7 @@ export function ExpenseFormSheet({
   cashSplits = new Map(),
   receipts = [],
   localCurrency,
+  countries = [],
   onClose,
   onDone,
   onError,
@@ -46,6 +48,8 @@ export function ExpenseFormSheet({
   receipts?: ExpenseReceipt[];
   /** Currency of the country we're in today, when we know it. */
   localCurrency?: string | null;
+  /** The trip's countries, for the manual country choice (00088). */
+  countries?: string[];
   onClose: () => void;
   onDone: (message: string) => void;
   onError: (message: string) => void;
@@ -63,6 +67,7 @@ export function ExpenseFormSheet({
       cashSplits={cashSplits}
       receipts={receipts}
       localCurrency={localCurrency ?? null}
+      countries={countries}
       onClose={onClose}
       onDone={onDone}
       onError={onError}
@@ -81,6 +86,7 @@ function ExpenseForm({
   cashSplits,
   receipts,
   localCurrency,
+  countries,
   onClose,
   onDone,
   onError,
@@ -93,6 +99,7 @@ function ExpenseForm({
   receipts: ExpenseReceipt[];
   onReceiptsChanged: (message: string) => void;
   localCurrency: string | null;
+  countries: string[];
   onClose: () => void;
   onDone: (message: string) => void;
   onError: (message: string) => void;
@@ -116,6 +123,10 @@ function ExpenseForm({
   const [categoryId, setCategoryId] = useState(expense?.category_id ?? "");
   const [description, setDescription] = useState(expense?.description ?? "");
   const [spentOn, setSpentOn] = useState(expense?.spent_on ?? todayISO());
+  // "" = automatic: a linked booking's dates, otherwise the day it was paid (#59)
+  const [countryCode, setCountryCode] = useState(expense?.country_code ?? "");
+  const countryOptions =
+    countryCode && !countries.includes(countryCode) ? [...countries, countryCode] : countries;
   const [saving, setSaving] = useState(false);
   // photos taken on a new expense, saved with it
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
@@ -177,6 +188,7 @@ function ExpenseForm({
           spentOn,
           isCashWithdrawal: isWithdrawal,
           paidFromExpenseId: paidFromId,
+          countryCode: countryCode || null,
         });
         rememberCurrency(currency);
         let receiptsQueued = result === "queued" && pendingReceipts.length > 0;
@@ -214,6 +226,7 @@ function ExpenseForm({
         spent_on: spentOn,
         is_cash_withdrawal: isWithdrawal,
         paid_from_expense_id: paidFromId,
+        country_code: countryCode || null,
       });
       rememberCurrency(currency);
       onDone(strings.budget.expenseSaved);
@@ -390,6 +403,29 @@ function ExpenseForm({
             </p>
           )}
         </div>
+
+        {/* country (00088, #59) - before the category, which saves a new expense */}
+        {countryOptions.length > 0 && (
+          <div>
+            <label htmlFor="exp-country" className={labelClass}>
+              {strings.budget.country}
+            </label>
+            <select
+              id="exp-country"
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className={`${inputClass} bg-surface`}
+            >
+              <option value="">{strings.budget.countryAuto}</option>
+              {countryOptions.map((c) => (
+                <option key={c} value={c}>
+                  {flagEmoji(c)} {findCountry(c)?.he ?? c}
+                </option>
+              ))}
+            </select>
+            {countryCode && <p className="mt-1 text-xs text-ink-soft">{strings.budget.countryManualHint}</p>}
+          </div>
+        )}
 
         {/* receipts - before the category, which saves a new expense */}
         <ReceiptsField

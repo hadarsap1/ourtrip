@@ -755,6 +755,7 @@ export type Database = {
           amount_ils: number
           booking_id: string | null
           category_id: string
+          country_code: string | null
           created_at: string
           created_by: string
           currency: string
@@ -771,6 +772,7 @@ export type Database = {
           amount_ils: number
           booking_id?: string | null
           category_id: string
+          country_code?: string | null
           created_at?: string
           created_by: string
           currency: string
@@ -787,6 +789,7 @@ export type Database = {
           amount_ils?: number
           booking_id?: string | null
           category_id?: string
+          country_code?: string | null
           created_at?: string
           created_by?: string
           currency?: string

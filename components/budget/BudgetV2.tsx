@@ -3,12 +3,12 @@
 import { useState, useSyncExternalStore } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Ring } from "@/components/ui/Progress";
-import { dailySpend, finishedVisitSummaries, sparkPoints, spendByCountry } from "@/lib/budgetV2";
-import { flagEmoji, findCountry } from "@/lib/countries";
-import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
+import { dailySpend, sparkPoints } from "@/lib/budgetV2";
+import { formatMoney, todayISO } from "@/lib/format";
 import { readFxStore } from "@/lib/fxCache";
 import { strings } from "@/lib/strings";
-import type { BudgetCategory, Expense, ItineraryDay } from "@/lib/types";
+import type { Booking, BudgetCategory, Expense, ItineraryDay } from "@/lib/types";
+import { BudgetInsights } from "./BudgetInsights";
 
 const t = strings.budgetV2;
 const ils = (n: number) => formatMoney(Math.round(n), "ILS");
@@ -24,27 +24,33 @@ function ratesStamp(): string | null {
 
 /**
  * Budget v2 (Phase 2.4), behind the budgetV2 flag: "left today" hero with a
- * 14-day sparkline, then categories as rings or spending per country with
- * end-of-stay summaries, and the offline FX stamp. Everything is derived from
+ * 14-day sparkline, then categories as rings or the insights (per country,
+ * everyday vs specific, cash - DECISIONS #59), and the offline FX stamp. Everything is derived from
  * the same expenses/categories the screen already loaded (cache-first), plus
  * the itinerary days for the country view - so it all renders offline.
  */
 export function BudgetV2({
   categories,
   expenses,
+  rawExpenses,
   days,
+  bookings,
   budgetForProgress,
   remaining,
   onEditCategory,
 }: {
   categories: BudgetCategory[];
+  /** Counted: each withdrawal reduced by what was itemized out of it. */
   expenses: Expense[];
+  /** As entered, for the insights (they split the cash themselves). */
+  rawExpenses: Expense[];
   days: ItineraryDay[];
+  bookings: Booking[];
   budgetForProgress: number;
   remaining: number;
   onEditCategory: (c: BudgetCategory) => void;
 }) {
-  const [tab, setTab] = useState<"categories" | "countries">("categories");
+  const [tab, setTab] = useState<"categories" | "insights">("categories");
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
   const today = todayISO();
 
@@ -53,9 +59,6 @@ export function BudgetV2({
   const series = dailySpend(expenses, today, 14);
   const spentBy = new Map<string, number>();
   for (const e of expenses) spentBy.set(e.category_id, (spentBy.get(e.category_id) ?? 0) + e.amount_ils);
-  const byCountry = spendByCountry(expenses, days, today);
-  const summaries = finishedVisitSummaries(expenses, days, today);
-  const catLabel = (id: string | null) => categories.find((c) => c.id === id)?.label_he ?? "";
   // No "left today": much is prepaid (flights, hotels, attractions), so a
   // daily share means nothing (Hadar, 06/10/2026). The trip total is the number.
   const over = remaining < 0;
@@ -96,7 +99,7 @@ export function BudgetV2({
         onChange={setTab}
         options={[
           { value: "categories", label: t.tabCategories },
-          { value: "countries", label: t.tabCountries },
+          { value: "insights", label: t.tabInsights },
         ]}
       />
 
@@ -131,61 +134,7 @@ export function BudgetV2({
           })}
         </ul>
       ) : (
-        <div className="space-y-2.5">
-          <ul className="overflow-hidden rounded-card border border-line bg-surface">
-            {byCountry.countries.map((c) => (
-              <li key={c.code} className="flex items-center justify-between gap-3 border-t border-line px-3.5 py-2.5 first:border-t-0">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span aria-hidden="true" className="text-lg">{flagEmoji(c.code)}</span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-ink">{findCountry(c.code)?.he ?? c.code}</span>
-                    <span className="block text-xs text-ink-soft">
-                      {c.daysSoFar > 0 ? t.daysSoFar.replace("{n}", String(c.daysSoFar)).replace("{total}", String(c.daysPlanned)) : t.notYet}
-                    </span>
-                  </span>
-                </span>
-                <span className="shrink-0 text-end">
-                  <span className="block text-sm font-bold tabular-nums text-ink"><bdi>{ils(c.spent)}</bdi></span>
-                  {c.perDay !== null && (
-                    <span className="block text-xs tabular-nums text-ink-soft"><bdi>{t.perDay.replace("{amount}", ils(c.perDay))}</bdi></span>
-                  )}
-                </span>
-              </li>
-            ))}
-            {byCountry.unassigned > 0 && (
-              <li className="flex items-center justify-between gap-3 border-t border-line bg-paper-deep px-3.5 py-2.5">
-                <span className="text-xs font-semibold text-ink-soft">{t.unassigned}</span>
-                <span className="text-sm font-bold tabular-nums text-ink"><bdi>{ils(byCountry.unassigned)}</bdi></span>
-              </li>
-            )}
-          </ul>
-
-          {summaries.length > 0 && (
-            <section>
-              <h2 className="mb-1.5 px-0.5 text-xs font-bold text-ink">{t.summariesTitle}</h2>
-              <ul className="space-y-2">
-                {summaries.map((v) => (
-                  <li key={`${v.code}-${v.from}`} className="rounded-card border border-line bg-surface px-3.5 py-3">
-                    <p className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-sm font-bold text-ink">
-                        <span aria-hidden="true">{flagEmoji(v.code)}</span>
-                        {findCountry(v.code)?.he ?? v.code}
-                      </span>
-                      <span className="text-sm font-extrabold tabular-nums text-ink"><bdi>{ils(v.spent)}</bdi></span>
-                    </p>
-                    <p className="mt-0.5 flex flex-wrap justify-between gap-x-3 text-xs text-ink-soft">
-                      <span>
-                        <bdi>{t.summaryNights.replace("{n}", String(v.nights)).replace("{from}", formatShortDate(v.from)).replace("{to}", formatShortDate(v.to))}</bdi>
-                      </span>
-                      <span><bdi>{t.perDay.replace("{amount}", ils(v.perDay))}</bdi></span>
-                    </p>
-                    {v.topCategoryId && <p className="mt-0.5 text-xs text-ink-soft">{t.summaryTop.replace("{category}", catLabel(v.topCategoryId))}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
+        <BudgetInsights categories={categories} expenses={rawExpenses} days={days} bookings={bookings} />
       )}
 
       <p className="text-center text-xs text-ink-soft">{stamp ? t.ratesUpdated.replace("{when}", stamp) : t.ratesNever}</p>

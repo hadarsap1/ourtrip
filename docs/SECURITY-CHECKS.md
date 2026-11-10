@@ -2844,3 +2844,20 @@ uploads are still forced pending + unshared by the 00001 trigger.
 | 00087 applied to production | ✅ done 09/11/2026 - run by Hadar in the SQL Editor (the MCP approval prompt did not reach his phone twice); recorded in `supabase_migrations.schema_migrations` as 00087_photo_albums |
 | Live: `albums` RLS on with `albums_owner_all` / `_kid_select` / `_guest_select`; `photos.album_id` + `album_shared_at`; trigger `photos_z_album_guard` last after the kid rules; `photos_guest_select` = rule 3 + the album clause; `album_trip_id` executable by authenticated, not anon; `photos_album_guard` not executable by authenticated | ✅ PASS - live catalog check 09/11/2026 |
 | `backup-weekly` redeployed with the repo's table list (`albums`, and `expense_receipts`, `feedback_seen`, `content_views` that the live version had also drifted past); every listed table checked to exist live first; verify_jwt stays false (cron secret) | ✅ done 09/11/2026, version 15 |
+
+## 10/11/2026 - an expense's own country (00088)
+
+New column `expenses.country_code` (null = placed automatically, otherwise an
+ISO alpha-2 code, check `expenses_country_code_format`). No new policy: it is
+on `expenses`, covered by `expenses_owner_all` (owners only). The budget
+insights read `bookings` too, already owners only (`bookings_owner_all`).
+
+| Check | Result |
+|---|---|
+| Owner sets, changes and clears an expense's country | ✅ PASS - local, probe 88 |
+| A country that is not two capital letters is refused | ✅ PASS - local, probe 88 |
+| Kid and guest read no expenses (so no countries) and their updates change nothing | ✅ PASS - local, probe 88 |
+| Probe 82 (cash withdrawals) unchanged on 88 migrations | ✅ PASS |
+| Deny matrix (probe 90) on 88 migrations | ✅ PASS |
+| 00088 applied to production | ✅ done 10/11/2026 via the Supabase MCP (apply_migration 00088_expense_country) |
+| Live: `expenses.country_code` text; `expenses_country_code_format` present; RLS on with `expenses_owner_all` the only policy; no existing row has a country (all automatic) | ✅ verified 10/11/2026 |

@@ -14,6 +14,7 @@ import {
   subscribeBudget,
 } from "@/lib/data/expenses";
 import { listReceipts } from "@/lib/data/receipts";
+import { listBookings } from "@/lib/data/bookings";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import {
   cashWithdrawalSplits,
@@ -26,13 +27,14 @@ import { strings } from "@/lib/strings";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { tripPosition } from "@/lib/tripDay";
-import type { BudgetCategory, Expense, ExpenseReceipt, Trip } from "@/lib/types";
+import type { Booking, BudgetCategory, Expense, ExpenseReceipt, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
 import { BudgetV2 } from "./BudgetV2";
+import { tripCountries } from "@/lib/budgetInsights";
 import { isEnabled } from "@/lib/flags";
 import { listDays } from "@/lib/data/itinerary";
 import type { ItineraryDay } from "@/lib/types";
@@ -106,6 +108,8 @@ export function BudgetScreen() {
   const [localCurrency, setLocalCurrency] = useState<string | null>(null);
   // Budget v2: itinerary days place each expense in a country.
   const [days, setDays] = useState<ItineraryDay[]>([]);
+  // Insights (#59): a booking's dates place what was paid for it in a country.
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -115,19 +119,22 @@ export function BudgetScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [cats, exps, total, recs] = await Promise.all([
+    const [cats, exps, total, recs, bks] = await Promise.all([
       listCategories(tripId),
       listExpenses(tripId),
       // not fatal: with no total the screen derives one from the categories
       getTripTotalBudget(tripId).catch(() => null),
       // not fatal either: the budget works without its receipt photos
       listReceipts(tripId).catch(() => [] as ExpenseReceipt[]),
+      // nor its bookings: without them every expense sits on the day it was paid
+      listBookings(tripId).catch(() => null),
     ]);
     setCategories(cats);
     setExpenses(exps);
     setTotalBudget(total);
     setReceipts(recs);
-    void writeQuery(queryKeys.budget(tripId), { cats, exps, total, recs });
+    if (bks) setBookings(bks);
+    void writeQuery(queryKeys.budget(tripId), { cats, exps, total, recs, ...(bks ? { bks } : {}) });
   }, []);
 
   useEffect(() => {
@@ -163,12 +170,14 @@ export function BudgetScreen() {
         exps: typeof expenses;
         total?: number | null;
         recs?: ExpenseReceipt[];
+        bks?: Booking[];
       }>(queryKeys.budget(activeTrip.id));
       if (cached && !cancelled) {
         setCategories(cached.data.cats);
         setExpenses(cached.data.exps);
         setTotalBudget(cached.data.total ?? null);
         setReceipts(cached.data.recs ?? []);
+        setBookings(cached.data.bks ?? []);
         setLoading(false);
       }
       try {
@@ -313,7 +322,9 @@ export function BudgetScreen() {
         <BudgetV2
           categories={categories}
           expenses={counted}
+          rawExpenses={expenses}
           days={days}
+          bookings={bookings}
           budgetForProgress={budgetForProgress}
           remaining={remaining}
           onEditCategory={(category) => setCategoryForm({ category })}
@@ -648,6 +659,7 @@ export function BudgetScreen() {
           expenseForm?.expense ? (receiptsByExpense.get(expenseForm.expense.id) ?? []) : []
         }
         localCurrency={localCurrency}
+        countries={tripCountries(days)}
         onClose={() => setExpenseForm(null)}
         onReceiptsChanged={(message) => {
           refreshNow();
