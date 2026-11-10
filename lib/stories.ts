@@ -152,3 +152,44 @@ export function mergeFeed<S extends { entry_date: string }, P>(
   while (d < days.length) out.push({ kind: "photos", day: days[d++] });
   return out;
 }
+
+// ---------- search and order (Hadar 10/11/2026) ----------
+
+export type FeedOrder = "newest" | "oldest";
+
+/** Lowercase, no niqqud, final letters as their plain form: "שלום" finds "שלומ". */
+function fold(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[֑-ׇ̀-ͯ]/g, "")
+    .replace(/ך/g, "כ")
+    .replace(/ם/g, "מ")
+    .replace(/ן/g, "נ")
+    .replace(/ף/g, "פ")
+    .replace(/ץ/g, "צ");
+}
+
+/**
+ * Does an update match what the reader typed? Every word must appear
+ * somewhere: the title, the text, the place, the writer's name or the date
+ * (DD/MM/YYYY). An empty query matches everything.
+ */
+export function matchesStory(
+  post: Pick<Post, "title" | "body" | "place_label" | "entry_date">,
+  query: string,
+  authorName = ""
+): boolean {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const [y, m, d] = post.entry_date.split("-");
+  const haystack = fold(
+    [post.title ?? "", post.body, post.place_label ?? "", authorName, `${d}/${m}/${y}`].join("\n")
+  );
+  return words.every((w) => haystack.includes(w));
+}
+
+/** The feed is built newest first; oldest first reads it the other way. */
+export function orderFeed<T>(feed: T[], order: FeedOrder): T[] {
+  return order === "newest" ? feed : [...feed].reverse();
+}
