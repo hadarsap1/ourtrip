@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Toast } from "@/components/Toast";
-import { MapIcon, PhotosIcon, PlusIcon, PrinterIcon } from "@/components/icons";
+import { CloseIcon, MapIcon, PhotosIcon, PlusIcon, PrinterIcon, SearchIcon } from "@/components/icons";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
@@ -19,7 +20,15 @@ import { listPhotos, setPhotoDate } from "@/lib/data/photos";
 import { listGuestPhotos } from "@/lib/data/guests";
 import { listComments, listReactions, pollFeedback } from "@/lib/data/feedback";
 import { shareText, shareUrl } from "@/lib/share";
-import { loosePhotoDays, mergeFeed, splitStories, storyHeadline } from "@/lib/stories";
+import {
+  loosePhotoDays,
+  matchesStory,
+  mergeFeed,
+  orderFeed,
+  splitStories,
+  storyHeadline,
+  type FeedOrder,
+} from "@/lib/stories";
 import { todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
@@ -33,6 +42,8 @@ import type { Comment, Member, Reaction, Trip } from "@/lib/types";
  * (approvals, sharing, Google Photos) is one tap away. Guests read what went
  * out to them, under the map of where we've been. The chat stays apart.
  */
+const ORDER_KEY = "ot-updates-order";
+
 export function StoriesScreen() {
   const { member, memberLoading } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -56,6 +67,23 @@ export function StoriesScreen() {
   const [pendingPhotos, setPendingPhotos] = useState(0);
   const [viewing, setViewing] = useState<ViewedPhoto | null>(null);
   const scrolled = useRef(false);
+  // search and order: a reader's own view of the feed, nothing is stored on the server
+  const [query, setQuery] = useState("");
+  const [order, setOrder] = useState<FeedOrder>(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem(ORDER_KEY) === "oldest" ? "oldest" : "newest";
+    } catch {
+      return "newest";
+    }
+  });
+  const changeOrder = (next: FeedOrder) => {
+    setOrder(next);
+    try {
+      localStorage.setItem(ORDER_KEY, next);
+    } catch {
+      // private window: the order just isn't remembered
+    }
+  };
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -171,7 +199,18 @@ export function StoriesScreen() {
   const family = members.filter((m) => m.role !== "guest" && !m.is_preview).length;
   const roleOf = (id: string) => members.find((m) => m.id === id)?.role;
   const inUpdates = new Set(stories.flatMap((x) => x.photos.map((p) => p.photoId)));
-  const feed = mergeFeed(sections.published, loosePhotoDays(photos, inUpdates));
+  const searching = query.trim().length > 0;
+  const nameOf = (id: string) => members.find((m) => m.id === id)?.display_name ?? "";
+  // while searching only the updates that match show; loose photo days have no words to find
+  const found = searching
+    ? sections.published.filter((x) => matchesStory(x, query, nameOf(x.author_id)))
+    : [];
+  const feed = orderFeed(
+    searching
+      ? found.map((story) => ({ kind: "story" as const, story }))
+      : mergeFeed(sections.published, loosePhotoDays(photos, inUpdates)),
+    order
+  );
 
   const offerShare = (story: Story) => {
     const url = shareUrl(window.location.origin, {
@@ -314,9 +353,59 @@ export function StoriesScreen() {
           </section>
         )}
 
+        {sections.published.length > 1 && (
+          <section className="space-y-2.5" aria-label={strings.stories.searchLabel}>
+            <label className="relative block">
+              <span className="sr-only">{strings.stories.searchLabel}</span>
+              <SearchIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 start-3 my-auto h-5 w-5 text-sv-ink-soft"
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={strings.stories.searchPlaceholder}
+                enterKeyHint="search"
+                className="min-h-11 w-full rounded-2xl border border-sv-line bg-sv-card ps-10 pe-11 text-base text-ink placeholder:text-sv-ink-soft [&::-webkit-search-cancel-button]:hidden"
+              />
+              {searching && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label={strings.stories.clearSearch}
+                  className="absolute inset-y-0 end-0 grid w-11 place-items-center text-sv-ink-soft"
+                >
+                  <CloseIcon className="h-4 w-4" />
+                </button>
+              )}
+            </label>
+            <SegmentedControl
+              ariaLabel={strings.stories.orderLabel}
+              value={order}
+              onChange={changeOrder}
+              options={[
+                { value: "newest", label: strings.stories.orderNewest },
+                { value: "oldest", label: strings.stories.orderOldest },
+              ]}
+            />
+            {searching && found.length > 0 && (
+              <p className="text-sm text-sv-ink-soft" aria-live="polite">
+                {found.length === 1
+                  ? strings.stories.searchCountOne
+                  : strings.stories.searchCount.replace("{n}", String(found.length))}
+              </p>
+            )}
+          </section>
+        )}
+
         {feed.length === 0 ? (
           <p className="rounded-card border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
-            {role === "guest" ? strings.stories.emptyGuest : strings.stories.empty}
+            {searching
+              ? strings.stories.searchEmpty
+              : role === "guest"
+                ? strings.stories.emptyGuest
+                : strings.stories.empty}
           </p>
         ) : (
           <section className="space-y-5">

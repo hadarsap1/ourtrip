@@ -8,6 +8,8 @@ import {
   splitStories,
   titleFromJournal,
   loosePhotoDays,
+  matchesStory,
+  orderFeed,
   mergeFeed,
   toLocalInput,
 } from "./stories";
@@ -170,5 +172,33 @@ describe("cardHeadline", () => {
   });
   it("no text, no headline", () => {
     expect(cardHeadline({ title: null, body: "" })).toEqual({ headline: "", body: "" });
+  });
+});
+
+describe("matchesStory", () => {
+  const p = post({ title: "יום בים", body: "שחינו עם דגים", place_label: "Phuket, Thailand", entry_date: "2026-11-03" });
+  it("matches everything on an empty query", () => {
+    expect(matchesStory(p, "  ")).toBe(true);
+  });
+  it("finds words in the title, text, place, writer and date", () => {
+    expect(matchesStory(p, "בים")).toBe(true);
+    expect(matchesStory(p, "דגים")).toBe(true);
+    expect(matchesStory(p, "phuket")).toBe(true);
+    expect(matchesStory(p, "סיון", "סיון")).toBe(true);
+    expect(matchesStory(p, "03/11")).toBe(true);
+  });
+  it("needs every word", () => {
+    expect(matchesStory(p, "בים דגים")).toBe(true);
+    expect(matchesStory(p, "בים הרים")).toBe(false);
+  });
+  it("ignores final letters and niqqud", () => {
+    expect(matchesStory(post({ body: "שָׁלוֹם", entry_date: "2026-11-03" }), "שלומ")).toBe(true);
+  });
+});
+
+describe("orderFeed", () => {
+  it("keeps newest first, reverses for oldest", () => {
+    expect(orderFeed([3, 2, 1], "newest")).toEqual([3, 2, 1]);
+    expect(orderFeed([3, 2, 1], "oldest")).toEqual([1, 2, 3]);
   });
 });

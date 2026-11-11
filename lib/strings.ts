@@ -2321,6 +2321,16 @@ export const strings = {
     photoOf: "תמונה {i} מתוך {n}",
     mapCard: "איפה היינו",
     mapCardHint: "כל המקומות שעברנו, על המפה",
+    // search and order (Hadar 10/11/2026)
+    searchLabel: "חיפוש בעדכונים",
+    searchPlaceholder: "חיפוש: מילה, מקום, תאריך",
+    clearSearch: "ניקוי החיפוש",
+    orderLabel: "סדר העדכונים",
+    orderNewest: "מהחדש לישן",
+    orderOldest: "מהישן לחדש",
+    searchCount: "{n} עדכונים נמצאו",
+    searchCountOne: "עדכון אחד נמצא",
+    searchEmpty: "לא מצאנו עדכון עם המילים האלה",
   },
 
   podcast: {
