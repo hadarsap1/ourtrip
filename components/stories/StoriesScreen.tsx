@@ -21,6 +21,7 @@ import { listComments, listReactions, pollFeedback } from "@/lib/data/feedback";
 import { shareText, shareUrl } from "@/lib/share";
 import { loosePhotoDays, mergeFeed, splitStories, storyHeadline } from "@/lib/stories";
 import { todayISO } from "@/lib/format";
+import { clearStoryDraft, loadStoryDraft } from "@/lib/storyDraft";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Comment, Member, Reaction, Trip } from "@/lib/types";
@@ -56,6 +57,8 @@ export function StoriesScreen() {
   const [pendingPhotos, setPendingPhotos] = useState(0);
   const [viewing, setViewing] = useState<ViewedPhoto | null>(null);
   const scrolled = useRef(false);
+  // bumped when the unsaved draft is discarded, so the banner reads storage again
+  const [, setDraftTick] = useState(0);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -161,6 +164,9 @@ export function StoriesScreen() {
     );
   }
 
+  // a new update left unsaved on this device (read on each render: closing
+  // the composer re-renders, and the read is one small localStorage key)
+  const hasDraft = loadStoryDraft(trip.id, member.id) !== null;
   const isOwner = role === "owner";
   const isGuest = role === "guest";
   const canWrite = role === "owner" || role === "kid";
@@ -298,6 +304,32 @@ export function StoriesScreen() {
               <PlusIcon className="h-4 w-4" /> {strings.stories.newStory}
             </span>
           </button>
+        )}
+
+        {canWrite && hasDraft && !composer && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-sv-line bg-sun-tint px-4 py-3">
+            <span className="text-sm font-bold text-sun-deep">{strings.stories.draftWaiting}</span>
+            <span className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setComposer({ story: null })}
+                className="min-h-11 rounded-xl bg-sun-deep px-3 text-sm font-bold text-paper"
+              >
+                {strings.stories.draftContinue}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!(await askConfirm(strings.stories.draftDiscardConfirm))) return;
+                  clearStoryDraft(trip.id, member.id);
+                  setDraftTick((n) => n + 1);
+                }}
+                className="min-h-11 rounded-xl border border-sv-line px-3 text-sm font-bold text-sv-ink-soft"
+              >
+                {strings.stories.draftDiscard}
+              </button>
+            </span>
+          </div>
         )}
 
         {sections.pending.length > 0 && (

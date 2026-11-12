@@ -16,6 +16,7 @@ import {
 import { createJournalEntryOrQueue } from "@/lib/data/journal";
 import { AudienceRow } from "@/components/AudienceSheet";
 import { audienceOptions, fromLocalInput, toLocalInput } from "@/lib/stories";
+import { clearStoryDraft, loadStoryDraft, saveStoryDraft } from "@/lib/storyDraft";
 import { strings } from "@/lib/strings";
 import type { Member, Post, PostVisibility, Trip } from "@/lib/types";
 
@@ -72,19 +73,25 @@ export function StoryComposer({
 }) {
   const isOwner = member.role === "owner";
   const isKid = member.role === "kid";
-  const [title, setTitle] = useState(existing?.title ?? "");
-  const [body, setBody] = useState(existing?.body ?? "");
-  const [mood, setMood] = useState<string | null>(existing?.mood ?? null);
-  const [place, setPlace] = useState(existing?.place_label ?? initialPlace ?? "");
+  // a new update picks up where the last one was left on this device: photos
+  // upload as they are picked, so closing the app must not lose the text
+  // around them (Sivan 12/11/2026)
+  const [draft] = useState(() => (existing ? null : loadStoryDraft(trip.id, member.id)));
+  const [title, setTitle] = useState(existing?.title ?? draft?.title ?? "");
+  const [body, setBody] = useState(existing?.body ?? draft?.body ?? "");
+  const [mood, setMood] = useState<string | null>(existing?.mood ?? draft?.mood ?? null);
+  const [place, setPlace] = useState(existing?.place_label ?? (draft?.place || initialPlace) ?? "");
   const [photos, setPhotos] = useState<Picked[]>(
-    existing?.photos.map((p) => ({ id: p.photoId, url: p.url })) ?? []
+    existing?.photos.map((p) => ({ id: p.photoId, url: p.url })) ??
+      draft?.photoIds.map((id) => ({ id, url: null })) ??
+      []
   );
   // a kid's entry waiting for a parent is one the kid asked to share
   const [audience, setAudience] = useState<PostVisibility>(
-    existing ? (existing.status === "pending" ? "guests" : existing.visibility) : "family"
+    existing ? (existing.status === "pending" ? "guests" : existing.visibility) : (draft?.audience ?? "family")
   );
   // which guest groups, when the audience is guests (00063): [] = every guest
-  const [groups, setGroups] = useState<string[]>(existing?.audience ?? []);
+  const [groups, setGroups] = useState<string[]>(existing?.audience ?? draft?.groups ?? []);
   const [later, setLater] = useState(Boolean(existing?.publish_after));
   const [publishAfter, setPublishAfter] = useState(toLocalInput(existing?.publish_after ?? null));
   const [sharePhotos, setSharePhotos] = useState(true);
@@ -94,6 +101,44 @@ export function StoryComposer({
 
   const options = audienceOptions(authorRole);
   const choice = audienceText(audience, isKid);
+
+  // the restored photos: signed URLs again, and drop any deleted meanwhile
+  useEffect(() => {
+    if (!draft || draft.photoIds.length === 0) return;
+    let cancelled = false;
+    void listPhotos(trip.id)
+      .then((all) => {
+        if (cancelled) return;
+        const byId = new Map(all.map((p) => [p.id, p.url]));
+        setPhotos((prev) =>
+          prev.filter((p) => byId.has(p.id)).map((p) => ({ id: p.id, url: p.url ?? byId.get(p.id) ?? null }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [draft, trip.id]);
+
+  useEffect(() => {
+    if (draft) onToast(s.draftRestored);
+    // once, on open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // every change of a new update is kept on the device until it is saved
+  useEffect(() => {
+    if (existing) return;
+    saveStoryDraft(trip.id, member.id, {
+      title,
+      body,
+      mood,
+      place: place === (initialPlace ?? "") ? "" : place,
+      photoIds: photos.map((p) => p.id),
+      audience,
+      groups,
+    });
+  }, [existing, trip.id, member.id, title, body, mood, place, initialPlace, photos, audience, groups]);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -156,6 +201,7 @@ export function StoryComposer({
           mood,
           locationName: place || null,
         });
+        clearStoryDraft(trip.id, member.id);
         if (result === "queued") {
           onToast(strings.journal.queued);
           onSaved(null, false);
@@ -180,6 +226,7 @@ export function StoryComposer({
         const fresh = await reloadStory(post.id, member.role);
         if (fresh) await syncPublicCopies(fresh);
       }
+      if (!existing) clearStoryDraft(trip.id, member.id);
       onSaved(post, post.status === "approved");
     } catch {
       onToast(strings.common.error);

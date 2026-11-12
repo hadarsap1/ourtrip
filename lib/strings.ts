@@ -2309,6 +2309,12 @@ export const strings = {
     preparingPublic: "מכינים את התמונות לקישור הפתוח…",
     publicNeedsTitle: "לבלוג הפתוח צריך כותרת",
     bodyRequired: "כותבים משהו קודם",
+    // a new update left unsaved on this device (Sivan 12/11/2026)
+    draftRestored: "חזרנו לעדכון שהתחלת לכתוב",
+    draftWaiting: "יש עדכון שהתחלתם לכתוב ועוד לא נשמר",
+    draftContinue: "להמשיך לכתוב",
+    draftDiscard: "למחוק את הטיוטה",
+    draftDiscardConfirm: "למחוק את הטקסט שלא נשמר? התמונות נשארות בגלריה",
     printBook: "ספר זיכרונות להדפסה",
     // guests: the map of where we've been, at the top of the journal (Hadar 31/10/2026)
     // photos with no update of their own, one card per day (Hadar 31/10/2026)
