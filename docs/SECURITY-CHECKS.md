@@ -2861,3 +2861,17 @@ insights read `bookings` too, already owners only (`bookings_owner_all`).
 | Deny matrix (probe 90) on 88 migrations | ✅ PASS |
 | 00088 applied to production | ✅ done 10/11/2026 via the Supabase MCP (apply_migration 00088_expense_country) |
 | Live: `expenses.country_code` text; `expenses_country_code_format` present; RLS on with `expenses_owner_all` the only policy; no existing row has a country (all automatic) | ✅ verified 10/11/2026 |
+
+## Steps - manual correction in settings (no migration) - 12/11/2026
+
+A parent types a day's steps in Settings → steps when the Shortcut missed it
+(`setMySteps`, upsert of the parent's own `daily_steps` row). Covered by the
+existing `daily_steps_owner_all` (00042); no policy change.
+
+| Check | Result |
+|---|---|
+| Live probe, production, inside a rolled-back transaction: kid upserts a parent's day | ✅ PASS - denied (42501), reads 0 rows |
+| Same as guest | ✅ PASS - denied (42501), reads 0 rows |
+| Same as the other owner | ✅ PASS - allowed (both parents may correct, as in 00042) |
+| Probe left no trace (12/11 still 7,019 after) | ✅ verified |
+| UI: section renders only for owners with `stepsCounter` on | ✅ code path (same guard as the token UI) |

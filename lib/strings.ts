@@ -394,6 +394,16 @@ export const strings = {
     revokeConfirm: "לבטל את הקוד? הטלפון יפסיק לדווח צעדים.",
     revoked: "בוטל",
     error: "לא הצלחנו ליצור קוד - צריך חיבור",
+    manualTitle: "תיקון ידני",
+    manualHint: "אם הקיצור לא דיווח, מקלידים את מספר הצעדים מאפליקציית בריאות. מחליף את מה שנשמר לאותו יום.",
+    manualDate: "יום",
+    manualSteps: "צעדים",
+    manualCurrent: "שמור עכשיו: {n}",
+    manualNone: "עוד לא נשמר ליום הזה",
+    manualSave: "שמירה",
+    manualSaved: "נשמר",
+    manualInvalid: "מספר שלם בין 0 ל-200,000",
+    manualError: "השמירה נכשלה - צריך חיבור",
   },
 
   metro: {

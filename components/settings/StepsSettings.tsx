@@ -3,7 +3,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { isEnabled } from "@/lib/flags";
-import { createStepToken, listStepTokens, revokeStepToken, stepsIngestUrl, type StepToken } from "@/lib/data/steps";
+import { createStepToken, listStepTokens, listSteps, revokeStepToken, setMySteps, stepsIngestUrl, type StepToken } from "@/lib/data/steps";
+import { todayISO } from "@/lib/format";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
@@ -29,6 +30,10 @@ export function StepsSettings() {
   const [copied, setCopied] = useState<"token" | "url" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const owner = member?.role === "owner";
+  const [day, setDay] = useState(todayISO);
+  const [count, setCount] = useState("");
+  const [current, setCurrent] = useState<number | null | undefined>(undefined);
+  const [manualMsg, setManualMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     if (!on || !owner) return;
@@ -41,7 +46,35 @@ export function StepsSettings() {
     };
   }, [on, owner, fresh]);
 
+  const memberId = member?.id;
+  useEffect(() => {
+    if (!on || !owner || !memberId) return;
+    let alive = true;
+    void listSteps([memberId], day, day)
+      .then((rows) => alive && setCurrent(rows[0]?.steps ?? null))
+      .catch(() => alive && setCurrent(undefined));
+    return () => {
+      alive = false;
+    };
+  }, [on, owner, memberId, day]);
+
   if (!on || !owner) return null;
+
+  async function saveManual() {
+    const n = Number(count);
+    if (count.trim() === "" || !Number.isInteger(n) || n < 0 || n > 200_000) {
+      setManualMsg({ ok: false, text: t.manualInvalid });
+      return;
+    }
+    try {
+      await setMySteps(day, n);
+      setCurrent(n);
+      setCount("");
+      setManualMsg({ ok: true, text: t.manualSaved });
+    } catch {
+      setManualMsg({ ok: false, text: t.manualError });
+    }
+  }
 
   async function copy(what: "token" | "url", value: string) {
     try {
@@ -103,6 +136,55 @@ export function StepsSettings() {
         </ol>
         <p className="pb-2 text-xs font-semibold text-ink-soft">{t.guideNote}</p>
       </details>
+
+      <div className="mt-3 rounded-xl bg-paper-deep px-3 py-2.5">
+        <h3 className="text-sm font-bold text-ink">{t.manualTitle}</h3>
+        <p className="mt-0.5 text-xs text-ink-soft">{t.manualHint}</p>
+        <div className="mt-2 flex gap-2">
+          <label className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold text-ink-soft">{t.manualDate}</span>
+            <input
+              type="date"
+              value={day}
+              max={todayISO()}
+              onChange={(e) => {
+                setDay(e.target.value || todayISO());
+                setCurrent(undefined);
+                setManualMsg(null);
+              }}
+              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink"
+            />
+          </label>
+          <label className="w-28 shrink-0">
+            <span className="block text-xs font-semibold text-ink-soft">{t.manualSteps}</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={200000}
+              step={1}
+              value={count}
+              onChange={(e) => {
+                setCount(e.target.value);
+                setManualMsg(null);
+              }}
+              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink"
+              dir="ltr"
+            />
+          </label>
+        </div>
+        <p className="mt-1 text-xs tabular-nums text-ink-soft">
+          {current === undefined ? "\u00a0" : current === null ? t.manualNone : t.manualCurrent.replace("{n}", current.toLocaleString("he-IL"))}
+        </p>
+        <button type="button" onClick={() => void saveManual()} className="mt-2 min-h-[44px] w-full rounded-lg bg-sea text-sm font-bold text-on-sea">
+          {t.manualSave}
+        </button>
+        {manualMsg && (
+          <p role={manualMsg.ok ? "status" : "alert"} className={`mt-1.5 text-sm font-semibold ${manualMsg.ok ? "text-ink" : "text-danger"}`}>
+            {manualMsg.text}
+          </p>
+        )}
+      </div>
 
       {tokens.length > 0 && (
         <div className="mt-3">

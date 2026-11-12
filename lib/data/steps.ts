@@ -43,6 +43,19 @@ export async function listSteps(memberIds: string[], from: string, to: string): 
   return (data ?? []) as StepRow[];
 }
 
+/**
+ * Manual correction by the signed-in parent for one of their own days (the
+ * Shortcut missed it). RLS daily_steps_owner_all (00042) allows owners only.
+ */
+export async function setMySteps(date: string, steps: number): Promise<void> {
+  const me = await getCurrentMember();
+  if (!me || me.role !== "owner") throw new Error("forbidden");
+  const { error } = await db()
+    .from("daily_steps")
+    .upsert({ member_id: me.id, date, steps, updated_at: new Date().toISOString() });
+  if (error) throw new Error(error.message);
+}
+
 export type StepToken = { id: string; member_id: string; label: string | null; created_at: string; last_used_at: string | null; revoked_at: string | null };
 
 export async function listStepTokens(): Promise<StepToken[]> {
