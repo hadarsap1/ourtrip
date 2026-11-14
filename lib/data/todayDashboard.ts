@@ -42,7 +42,7 @@ export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
       listPhotosForDate(trip.id, date).catch(() => []),
     ]);
 
-    // a withdrawal counts only what its itemized purchases left of it (00082)
+    // a withdrawal counts only what the cash expenses left of it (00089)
     const counted = countedExpenses(expenses);
     const spentTotal = counted.reduce((sum, e) => sum + e.amount_ils, 0);
     const spentToday = counted

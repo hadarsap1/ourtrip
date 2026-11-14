@@ -59,6 +59,9 @@ export type ExpensePayload = {
   spentOn: string;
   /** 00082; absent on entries queued before cash withdrawals existed. */
   isCashWithdrawal?: boolean;
+  /** 00089; absent on entries queued before the cash wallet. */
+  paidInCash?: boolean;
+  /** 00082, legacy: queued by an older app; saved as paid in cash. */
   paidFromExpenseId?: string | null;
   /** 00088; absent on entries queued before expenses had a country. */
   countryCode?: string | null;

@@ -2875,3 +2875,24 @@ existing `daily_steps_owner_all` (00042); no policy change.
 | Same as the other owner | ✅ PASS - allowed (both parents may correct, as in 00042) |
 | Probe left no trace (12/11 still 7,019 after) | ✅ verified |
 | UI: section renders only for owners with `stepsCounter` on | ✅ code path (same guard as the token UI) |
+
+## 14/11/2026 - cash wallet per currency (00089, DECISIONS #60)
+
+New column `expenses.paid_in_cash` (check `expenses_withdrawal_not_paid_in_cash`:
+a withdrawal is not paid in cash). No new policy: it is on `expenses`, covered
+by `expenses_owner_all` (owners only). `expenses_cash_guard` is replaced: it no
+longer looks anything up (security invoker, pinned search_path, execute revoked
+from public/anon/authenticated); it only turns an older client's
+`paid_from_expense_id` into `paid_in_cash` and clears the link. Probe 82 is
+replaced by probe 89 (its link checks no longer apply).
+
+| Check | Result |
+|---|---|
+| Owner logs an expense paid in cash | ✅ PASS - local, probe `89_cash_pool.sql` |
+| An old client's link to a withdrawal is stored as paid in cash, unlinked | ✅ PASS - local, probe 89 |
+| A withdrawal cannot be paid in cash; a withdrawal can be unmarked | ✅ PASS - local, probe 89 |
+| Kid / guest read no cash expenses, their updates change nothing, guest cannot add one | ✅ PASS - local, probe 89 |
+| Existing links (applied on 88 migrations with a withdrawal + linked purchase) become `paid_in_cash = true`, link null; the withdrawal untouched | ✅ PASS - local, manual |
+| All probes (incl. deny matrix) on 89 migrations | ✅ PASS |
+| 00089 applied to production | ⏳ pending |
+

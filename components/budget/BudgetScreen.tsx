@@ -17,11 +17,13 @@ import { listReceipts } from "@/lib/data/receipts";
 import { listBookings } from "@/lib/data/bookings";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import {
-  cashWithdrawalSplits,
+  cashWallets,
+  cashWithdrawalUses,
   countedExpenses,
   resolveBudgetTotals,
   resolveBudgetProgress,
-  type CashWithdrawalSplit,
+  type CashWallet,
+  type CashWithdrawalUse,
 } from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
@@ -47,31 +49,63 @@ function daysBetween(fromISO: string, toISO: string): number {
   );
 }
 
-/** Under a withdrawal: how much of it was itemized and what still counts.
- *  Under a purchase paid from cash: that it came out of a withdrawal. */
+/** Under a withdrawal: how much of it the cash expenses used up and what is
+ *  left. Under an expense paid in cash: that it came out of the cash. */
 function CashNote({
   expense,
-  split,
+  use,
 }: {
   expense: Expense;
-  split: CashWithdrawalSplit | undefined;
+  use: CashWithdrawalUse | undefined;
 }) {
   const s = strings.budget;
-  if (expense.is_cash_withdrawal && split) {
+  if (expense.is_cash_withdrawal && use) {
     return (
       <span className="block text-xs text-sea-deep">
-        {split.count === 0
+        {use.used === 0
           ? s.cashWithdrawalTag
           : s.cashWithdrawalSplit
-              .replace("{itemized}", formatMoney(Math.round(split.itemized), "ILS"))
-              .replace("{left}", formatMoney(Math.round(split.left), "ILS"))}
+              .replace("{used}", formatMoney(Math.round(use.used), expense.currency))
+              .replace("{left}", formatMoney(Math.round(use.left), expense.currency))}
       </span>
     );
   }
-  if (expense.paid_from_expense_id) {
+  if (expense.paid_in_cash) {
     return <span className="block text-xs text-sea-deep">{s.paidFromCashTag}</span>;
   }
   return null;
+}
+
+/** The cash left, one wallet per currency (00089). Today's currency first,
+ *  then the newest; an older wallet only while cash is left in it. */
+function CashWalletCard({ wallets, localCurrency }: { wallets: CashWallet[]; localCurrency: string | null }) {
+  const ordered = [
+    ...wallets.filter((w) => w.currency === localCurrency),
+    ...wallets.filter((w) => w.currency !== localCurrency),
+  ];
+  const shown = ordered.filter((w, i) => i === 0 || w.left > 0);
+  if (shown.length === 0) return null;
+  const [main, ...rest] = shown;
+  return (
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
+      <p className="text-xs font-bold text-ink">{strings.budget.cashWalletTitle}</p>
+      <p className="mt-1 text-2xl font-extrabold leading-none text-ink">
+        <bdi>{formatMoney(Math.round(main.left), main.currency)}</bdi>
+      </p>
+      <p className="mt-1 text-xs text-ink-soft">
+        {strings.budget.cashWalletOf.replace("{withdrawn}", formatMoney(Math.round(main.withdrawn), main.currency))}
+      </p>
+      {rest.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink">
+          {rest.map((w) => (
+            <li key={w.currency}>
+              <bdi>{formatMoney(Math.round(w.left), w.currency)}</bdi>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
 }
 
 export function BudgetScreen() {
@@ -229,12 +263,12 @@ export function BudgetScreen() {
   }
 
   // ---------- dashboard math ----------
-  // A cash withdrawal counts only what the purchases paid from it left of it
-  // (00082), so the suitcases bought from it are not counted twice. Every sum
+  // A cash withdrawal counts only what the expenses paid in cash in its
+  // currency left of it (00089), so that cash is not counted twice. Every sum
   // below runs on `counted`; the expense list shows what was entered.
-  const cashSplits = cashWithdrawalSplits(expenses);
+  const cashUses = cashWithdrawalUses(expenses);
+  const wallets = cashWallets(expenses);
   const counted = countedExpenses(expenses);
-  const withdrawals = expenses.filter((e) => e.is_cash_withdrawal);
   const receiptsByExpense = new Map<string, ExpenseReceipt[]>();
   for (const r of receipts) {
     receiptsByExpense.set(r.expense_id, [...(receiptsByExpense.get(r.expense_id) ?? []), r]);
@@ -370,6 +404,8 @@ export function BudgetScreen() {
         </div>
       </div>
       )}
+
+      <CashWalletCard wallets={wallets} localCurrency={localCurrency} />
 
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
@@ -603,7 +639,7 @@ export function BudgetScreen() {
                         />
                       )}
                     </span>
-                    <CashNote expense={expense} split={cashSplits.get(expense.id)} />
+                    <CashNote expense={expense} use={cashUses.get(expense.id)} />
                   </span>
                   <span className="shrink-0 text-end">
                     <span
@@ -653,8 +689,7 @@ export function BudgetScreen() {
         open={expenseForm !== null}
         expense={expenseForm?.expense ?? null}
         categories={categories}
-        withdrawals={withdrawals}
-        cashSplits={cashSplits}
+        wallets={wallets}
         receipts={
           expenseForm?.expense ? (receiptsByExpense.get(expenseForm.expense.id) ?? []) : []
         }

@@ -13,9 +13,9 @@
 // country: it counts in the trip total, never in a per-day average.
 //
 // EVERYDAY vs SPECIFIC (Hadar 10/11/2026). Day-to-day spending is cash, logged
-// as one expense per ATM withdrawal; a big purchase paid from that cash is
-// logged on its own, pointing at the withdrawal (00082). So "everyday" is what
-// is left of the withdrawals once those purchases are taken out
+// as one expense per ATM withdrawal; what is paid from that cash and logged on
+// its own is marked paid in cash (00089, one wallet per currency). So
+// "everyday" is the cash of the withdrawals not logged as any expense
 // (countedExpenses), and everything logged on its own is "specific".
 //
 // PAID vs USED. A piece dated after today is paid in advance: it is in the
@@ -38,13 +38,15 @@ const MAX_SPREAD_NIGHTS = 120;
 export type InsightExpense = Pick<
   Expense,
   | "id"
+  | "amount"
+  | "currency"
   | "amount_ils"
   | "spent_on"
   | "category_id"
   | "booking_id"
   | "country_code"
   | "is_cash_withdrawal"
-  | "paid_from_expense_id"
+  | "paid_in_cash"
 >;
 export type InsightBooking = Pick<Booking, "id" | "type" | "start_date" | "end_date">;
 export type InsightDay = Pick<ItineraryDay, "date" | "country_code">;
@@ -175,25 +177,20 @@ export function scopeInsights(
   const looseNights = hasLoose ? scopeDays.filter((d) => d.date <= today && !coveredNights.has(d.date)).length : 0;
   const lodgingNights = coveredNights.size + (hasLoose ? Math.max(looseNights, 1) : 0);
 
-  // Cash: withdrawals made here (by their own placement), what was itemized out of them.
-  const raw = new Map(expenses.map((e) => [e.id, e]));
+  // Cash: withdrawals made here (by their own placement), and how much of them
+  // the cash expenses logged on their own used up (the rest is everyday).
+  const counted = new Map(countedExpenses(expenses).map((e) => [e.id, e.amount_ils]));
   let withdrawn = 0;
-  let itemized = 0;
+  let unlogged = 0;
   let withdrawals = 0;
   const countryOn = new Map(days.filter((d) => d.country_code).map((d) => [d.date, d.country_code as string]));
   const placeOf = (e: InsightExpense) => e.country_code ?? countryOn.get(e.spent_on) ?? null;
   for (const e of expenses) {
-    if (e.is_cash_withdrawal) {
-      if (scope !== null && placeOf(e) !== scope) continue;
-      withdrawn += e.amount_ils;
-      withdrawals += 1;
-    }
-  }
-  for (const e of expenses) {
-    const w = e.paid_from_expense_id ? raw.get(e.paid_from_expense_id) : undefined;
-    if (!w?.is_cash_withdrawal) continue;
-    if (scope !== null && placeOf(w) !== scope) continue;
-    itemized += e.amount_ils;
+    if (!e.is_cash_withdrawal) continue;
+    if (scope !== null && placeOf(e) !== scope) continue;
+    withdrawn += e.amount_ils;
+    unlogged += counted.get(e.id) ?? e.amount_ils;
+    withdrawals += 1;
   }
 
   const sum = [...byCat.values()].reduce((a, b) => a + b, 0);
@@ -215,7 +212,7 @@ export function scopeInsights(
     lodgingNights,
     byCategory,
     noCountry: scope === null ? noCountry : 0,
-    cash: { withdrawn, itemized, everyday: Math.max(0, withdrawn - itemized), withdrawals },
+    cash: { withdrawn, itemized: Math.max(0, withdrawn - unlogged), everyday: unlogged, withdrawals },
   };
 }
 

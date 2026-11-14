@@ -20,12 +20,14 @@ const bookings = [
 let n = 0;
 const exp = (p: Partial<InsightExpense> & { amount_ils: number }): InsightExpense => ({
   id: `e${++n}`,
+  amount: p.amount_ils,
+  currency: "ILS",
   spent_on: "2026-11-02",
   category_id: "food",
   booking_id: null,
   country_code: null,
   is_cash_withdrawal: false,
-  paid_from_expense_id: null,
+  paid_in_cash: false,
   ...p,
 });
 
@@ -56,7 +58,7 @@ describe("expenseSlices", () => {
 
   it("a withdrawal counts only what is left of it, as everyday", () => {
     const w = exp({ amount_ils: 1000, is_cash_withdrawal: true });
-    const p = exp({ amount_ils: 400, paid_from_expense_id: w.id, category_id: "attractions" });
+    const p = exp({ amount_ils: 400, paid_in_cash: true, category_id: "attractions" });
     const s = expenseSlices([w, p], days, bookings);
     expect(s.find((x) => x.expenseId === w.id)).toMatchObject({ amount: 600, kind: "everyday" });
     expect(s.find((x) => x.expenseId === p.id)).toMatchObject({ amount: 400, kind: "specific" });
@@ -65,7 +67,7 @@ describe("expenseSlices", () => {
 
 describe("scopeInsights", () => {
   const w = exp({ amount_ils: 900, is_cash_withdrawal: true, spent_on: "2026-11-01" });
-  const bigCash = exp({ amount_ils: 300, paid_from_expense_id: w.id, category_id: "attractions" });
+  const bigCash = exp({ amount_ils: 300, paid_in_cash: true, category_id: "attractions" });
   const vnHotel = exp({ amount_ils: 800, booking_id: "b-vn-hotel", category_id: "lodging", spent_on: "2026-10-15" });
   const jpHotel = exp({ amount_ils: 1200, booking_id: "b-jp-hotel", category_id: "lodging", spent_on: "2026-11-02" });
   const prep = exp({ amount_ils: 100, spent_on: "2026-10-01" });

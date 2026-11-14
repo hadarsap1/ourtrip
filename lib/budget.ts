@@ -86,57 +86,113 @@ export function resolveBudgetProgress(
 }
 
 /**
- * Cash withdrawals (00082, DECISIONS #52).
+ * Cash: one wallet per currency (00089, DECISIONS #60, amends #52).
  *
- * Day-to-day cash is logged as one expense per ATM withdrawal. A big purchase
- * paid from that cash is logged on its own, in its own category, pointing at
- * the withdrawal. Counting both as entered would count that money twice, so a
- * withdrawal counts only what is left of it once its purchases are taken out
- * - never below zero: purchases beyond the withdrawal came from other cash and
- * still count in full.
+ * Cash is drawn at an ATM in the local currency and logged as a withdrawal.
+ * Every expense paid with that cash is logged on its own, in its own category,
+ * marked "paid in cash" - no link to any particular withdrawal. A new country
+ * is a new currency, so a new wallet.
+ *
+ * - The wallet of a currency: its withdrawals minus its cash expenses, in that
+ *   currency, shown never below zero.
+ * - So no money is counted twice, the cash expenses use up the withdrawals of
+ *   their currency oldest first, and a withdrawal counts in the totals only
+ *   what is left of it (in ILS at its own rate) - never below zero: cash
+ *   spent beyond the withdrawals still counts in full.
  *
  * Every total, per-day and per-category sum runs on these counted amounts; the
  * expense list keeps showing what was entered.
  */
-type CashFields = Pick<Expense, "id" | "amount_ils" | "is_cash_withdrawal" | "paid_from_expense_id">;
+type CashFields = Pick<
+  Expense,
+  "id" | "amount" | "currency" | "amount_ils" | "spent_on" | "is_cash_withdrawal" | "paid_in_cash"
+>;
 
-export type CashWithdrawalSplit = {
-  /** What was withdrawn, in ILS. */
+export type CashWallet = {
+  currency: string;
+  /** Withdrawn in this currency. */
   withdrawn: number;
-  /** Sum of the purchases logged as paid from it. */
-  itemized: number;
-  /** What it still counts as: withdrawn − itemized, at least 0. */
+  /** Logged as paid in cash in this currency. */
+  spent: number;
+  /** withdrawn − spent, at least 0. */
   left: number;
-  /** Number of purchases paid from it. */
-  count: number;
+  withdrawals: number;
+  /** The newest withdrawal's date, to put the current wallet first. */
+  lastWithdrawal: string;
 };
 
-export function cashWithdrawalSplits(expenses: CashFields[]): Map<string, CashWithdrawalSplit> {
-  const splits = new Map<string, CashWithdrawalSplit>();
+export type CashWithdrawalUse = {
+  /** In the withdrawal's own currency. */
+  withdrawn: number;
+  used: number;
+  left: number;
+  /** What it still counts as in the totals, in ILS. */
+  countedIls: number;
+};
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const byDate = (a: CashFields, b: CashFields) =>
+  a.spent_on < b.spent_on ? -1 : a.spent_on > b.spent_on ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+
+function allocateCash(expenses: CashFields[]) {
+  const spentBy = new Map<string, number>();
+  const withdrawalsBy = new Map<string, CashFields[]>();
   for (const e of expenses) {
     if (e.is_cash_withdrawal) {
-      splits.set(e.id, { withdrawn: e.amount_ils, itemized: 0, left: e.amount_ils, count: 0 });
+      withdrawalsBy.set(e.currency, [...(withdrawalsBy.get(e.currency) ?? []), e]);
+    } else if (e.paid_in_cash) {
+      spentBy.set(e.currency, (spentBy.get(e.currency) ?? 0) + e.amount);
     }
   }
-  for (const e of expenses) {
-    const split = e.paid_from_expense_id ? splits.get(e.paid_from_expense_id) : undefined;
-    if (!split) continue;
-    split.itemized += e.amount_ils;
-    split.count += 1;
+  const wallets: CashWallet[] = [];
+  const uses = new Map<string, CashWithdrawalUse>();
+  for (const [currency, list] of withdrawalsBy) {
+    const spent = round2(spentBy.get(currency) ?? 0);
+    let toCover = spent;
+    let withdrawn = 0;
+    for (const w of [...list].sort(byDate)) {
+      withdrawn += w.amount;
+      const used = round2(Math.min(w.amount, Math.max(0, toCover)));
+      toCover -= used;
+      const left = round2(w.amount - used);
+      uses.set(w.id, {
+        withdrawn: w.amount,
+        used,
+        left,
+        countedIls: w.amount > 0 ? round2((w.amount_ils * left) / w.amount) : 0,
+      });
+    }
+    withdrawn = round2(withdrawn);
+    wallets.push({
+      currency,
+      withdrawn,
+      spent,
+      left: Math.max(0, round2(withdrawn - spent)),
+      withdrawals: list.length,
+      lastWithdrawal: list.reduce((d, w) => (w.spent_on > d ? w.spent_on : d), ""),
+    });
   }
-  for (const split of splits.values()) {
-    split.left = Math.max(0, Math.round((split.withdrawn - split.itemized) * 100) / 100);
-  }
-  return splits;
+  wallets.sort((a, b) => (a.lastWithdrawal < b.lastWithdrawal ? 1 : a.lastWithdrawal > b.lastWithdrawal ? -1 : 0));
+  return { wallets, uses };
+}
+
+/** The cash wallets, newest withdrawal first (one per currency withdrawn). */
+export function cashWallets(expenses: CashFields[]): CashWallet[] {
+  return allocateCash(expenses).wallets;
+}
+
+/** How much of each withdrawal the cash expenses used up, oldest first. */
+export function cashWithdrawalUses(expenses: CashFields[]): Map<string, CashWithdrawalUse> {
+  return allocateCash(expenses).uses;
 }
 
 /** The expenses with each withdrawal's amount_ils replaced by what it still
  *  counts as. Feed this, not the raw list, to any sum. */
 export function countedExpenses<T extends CashFields>(expenses: T[]): T[] {
-  const splits = cashWithdrawalSplits(expenses);
-  if (splits.size === 0) return expenses;
+  if (!expenses.some((e) => e.is_cash_withdrawal)) return expenses;
+  const uses = cashWithdrawalUses(expenses);
   return expenses.map((e) => {
-    const split = splits.get(e.id);
-    return split ? { ...e, amount_ils: split.left } : e;
+    const use = uses.get(e.id);
+    return use ? { ...e, amount_ils: use.countedIls } : e;
   });
 }
