@@ -334,6 +334,11 @@ export function BudgetScreen() {
   const cashUses = cashWithdrawalUses(expenses);
   const wallets = cashWallets(expenses, adjustments);
   const counted = countedExpenses(expenses);
+  // The list shows what was entered last on top (Hadar 15/11/2026): sorted by
+  // spent_on, a booking paid ahead for next April sat above today's coffee.
+  const byEntry = [...expenses].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
   const receiptsByExpense = new Map<string, ExpenseReceipt[]>();
   for (const r of receipts) {
     receiptsByExpense.set(r.expense_id, [...(receiptsByExpense.get(r.expense_id) ?? []), r]);
@@ -696,7 +701,7 @@ export function BudgetScreen() {
           </p>
         ) : (
           <ul>
-            {expenses.map((expense) => (
+            {byEntry.map((expense) => (
               <li key={expense.id} className="border-t border-line">
                 <button
                   type="button"
