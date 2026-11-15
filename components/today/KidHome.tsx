@@ -27,15 +27,8 @@ import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import { formatTime, todayISO } from "@/lib/format";
 import { readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { strings } from "@/lib/strings";
-import { currentItemId, nextUp } from "@/lib/tripDay";
 import { passportStamps, stampTilt, type Stamp } from "@/lib/tripStats";
 import type { ItineraryItem, Member } from "@/lib/types";
-
-function countdown(minutes: number): string {
-  if (minutes < 1) return strings.today.nowLabel;
-  if (minutes < 60) return strings.today.inMinutes.replace("{n}", String(minutes));
-  return strings.today.inHours.replace("{n}", String(Math.round(minutes / 60)));
-}
 
 /** The stamps, from the itinerary a kid may read; the last list is kept on
  *  the tablet so the passport is there in the car too. */
@@ -66,8 +59,10 @@ function useStamps(tripId: string | null): Stamp[] {
 /**
  * The kids' own home (Hadar 15/11/2026): the same boxes as the parents' with
  * a bigger title gave a kid nothing to look forward to. Now: a passport that
- * fills up country by country, the place in its country's colour, ONE big
- * "now" instead of the whole agenda, and four tiles in colour.
+ * fills up country by country, the place in its country's colour, and four
+ * tiles in colour. No day plan by the hour (Hadar 15/11/2026): the kids only
+ * need to know what was BOOKED for today - a tour, a show, a class - so only
+ * items tied to a booking are listed, and with none there is no list at all.
  *
  * Read-only, as before: a kid's policies are select-only on the itinerary,
  * and nothing here reaches the budget, the vault or the bookings.
@@ -78,7 +73,6 @@ export function KidHome({
   data,
   weather,
   clock,
-  nowMinutes,
   unreadWall,
   albumFresh,
 }: {
@@ -87,7 +81,6 @@ export function KidHome({
   data: TodayData | null;
   weather: DayWeather | null;
   clock: Date;
-  nowMinutes: number;
   unreadWall: number;
   albumFresh: number;
 }) {
@@ -97,13 +90,9 @@ export function KidHome({
   const country = data?.day?.country_code ?? null;
   const tone = countryTone(country);
 
-  // one thing, big: what is happening now, or else what comes next
-  const currentId = currentItemId(items, nowMinutes);
-  const current = items.find((i) => i.id === currentId) ?? null;
-  const next = nextUp(items, nowMinutes);
-  const focus = current ?? next?.item ?? null;
-  const later = items.filter((i) => i.id !== focus?.id && i.status !== "done");
-  const allDone = items.length > 0 && !focus && later.length === 0;
+  // only what was booked for today; the booking itself (price, code) is the
+  // parents' and is never read here - the item just says it has one
+  const booked = items.filter((i) => i.booking_id !== null && i.status !== "done");
 
   const earned = stamps.filter((s) => s.earned).length;
   const upcoming = stamps.find((s) => !s.earned) ?? null;
@@ -219,38 +208,22 @@ export function KidHome({
         </Link>
       )}
 
-      {/* one thing, big - not the whole agenda */}
-      {focus && (
+      {booked.length > 0 && (
         <section className="rounded-card bg-surface p-4 shadow-card">
-          <p className="flex items-center gap-2 text-sm font-bold" style={{ color: tone.bg }}>
-            {current ? k.nowTitle : k.nextTitle}
-            {!current && next && <span className="font-semibold text-ink-soft">· {countdown(next.minutesUntil)}</span>}
+          <p className="text-sm font-bold" style={{ color: tone.bg }}>
+            {k.bookedToday}
           </p>
-          <p className="mt-1 text-2xl font-bold leading-snug text-ink">{focus.title}</p>
-          {(focus.start_time || focus.location_name) && (
-            <p className="mt-1 text-base text-ink-soft">
-              {focus.start_time && <bdi className="font-bold tabular-nums">{formatTime(focus.start_time)}</bdi>}
-              {focus.start_time && focus.location_name && " · "}
-              {focus.location_name}
-            </p>
-          )}
-        </section>
-      )}
-      {allDone && (
-        <p className="rounded-card bg-surface p-4 text-center text-lg font-semibold text-ink-soft shadow-card">
-          {k.doneToday}
-        </p>
-      )}
-      {later.length > 0 && (
-        <section className="rounded-card border border-line bg-surface">
-          <p className="px-4 pt-3 text-sm font-bold text-ink-soft">{k.laterToday}</p>
-          <ul className="divide-y divide-line">
-            {later.map((item) => (
-              <li key={item.id} className="flex items-baseline gap-3 px-4 py-2.5">
-                <span className="w-14 shrink-0 text-sm font-bold tabular-nums text-ink-soft" dir="ltr">
-                  {item.start_time ? formatTime(item.start_time) : "-"}
-                </span>
-                <span className="text-base font-medium text-ink">{item.title}</span>
+          <ul className="mt-1 space-y-2">
+            {booked.map((item) => (
+              <li key={item.id}>
+                <p className="text-xl font-bold leading-snug text-ink">{item.title}</p>
+                {(item.start_time || item.location_name) && (
+                  <p className="text-base text-ink-soft">
+                    {item.start_time && <bdi className="font-bold tabular-nums">{formatTime(item.start_time)}</bdi>}
+                    {item.start_time && item.location_name && " · "}
+                    {item.location_name}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

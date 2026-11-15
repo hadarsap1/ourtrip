@@ -97,3 +97,6 @@ values ('11111111-0000-0000-0000-000000000001','bbbbbbbb-0000-0000-0000-00000000
 -- an insert is forced to "pending" for a kid's recording; a parent approves and shares it
 update episodes set status = 'approved', shared_with_guests = true, approved_by = 'bbbbbbbb-0000-0000-0000-000000000001';
 update posts set published_at = now() - interval '1 day' where id = '99999999-0000-0000-0000-000000000001';
+-- one booked activity today (the kids' home lists only items tied to a booking)
+insert into bookings (id, trip_id, type, title, start_date, status) values ('77777777-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000001','attraction','שיעור בישול','2026-11-15','booked');
+update itinerary_items set booking_id = '77777777-0000-0000-0000-000000000001' where title = 'שיעור בישול וייטנאמי' and day_id in (select id from itinerary_days where date = current_date);

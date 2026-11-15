@@ -2009,7 +2009,8 @@ export const strings = {
     // the same wall as the bottom tab, first on the home (Hadar 20/10/2026)
     tileWall: "צ'אט עם החברים",
     // The kids' own home (Hadar 15/11/2026): a passport that fills up, one
-    // big "now", and tiles in colour. The place wears its country's colour.
+    // list of what was booked for today, and tiles in colour. The place wears
+    // its country's colour.
     passport: "הדרכון שלי",
     passportCount: "{n} מתוך {total} מדינות",
     passportNext: "עוד {n} ימים לחותמת של {country}",
@@ -2019,10 +2020,8 @@ export const strings = {
     stampGot: "{country} - יש חותמת",
     stampNext: "{country} - החותמת הבאה",
     stampLater: "{country} - בהמשך",
-    nowTitle: "עכשיו",
-    nextTitle: "הבא בתור",
-    laterToday: "עוד היום",
-    doneToday: "סיימנו את התוכנית להיום",
+    // no day plan by the hour for the kids, only what was booked (Hadar 15/11/2026)
+    bookedToday: "הזמנו להיום",
     moreTitle: "עוד דברים",
   },
 

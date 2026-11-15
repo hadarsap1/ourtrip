@@ -310,7 +310,7 @@ export function TodayScreen() {
     );
   }
 
-  // ---------- kid home (SPEC 2.1): passport, one big "now", colour (KidHome) ----------
+  // ---------- kid home (SPEC 2.1): passport, what was booked today, colour (KidHome) ----------
   if (member?.role === "kid") {
     return (
       <KidHome
@@ -319,7 +319,6 @@ export function TodayScreen() {
         data={data}
         weather={weather}
         clock={clock}
-        nowMinutes={now}
         unreadWall={unreadWall}
         albumFresh={albumFresh}
       />
