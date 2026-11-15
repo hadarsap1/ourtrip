@@ -2896,5 +2896,6 @@ replaced by probe 89 (its link checks no longer apply).
 | All probes (incl. deny matrix) on 89 migrations | ✅ PASS |
 | Before 00089, production data: the USD withdrawal of 30/10 (exchanged to dong, Hadar) re-entered as 26,002,400 VND and the Tam Coc hotel as 2,661,300 VND, amount_ils unchanged on both | ✅ done 14/11/2026 via the Supabase MCP |
 | 00089 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
+| After 00089: the $160 Cat Ba - Sapa ride (paid in dong, Hadar) re-entered as 4,098,100 VND, amount_ils unchanged. Trip total 40,397.09 (was 40,337.70; the 59.39 is cash spent at later rates than the withdrawals') | ✅ done 15/11/2026 via the Supabase MCP |
 | Live: `paid_in_cash` on 11 expenses, no `paid_from_expense_id` left; `expenses_withdrawal_not_paid_in_cash` present; RLS on with `expenses_owner_all` the only policy; `expenses_cash_guard` not executable by authenticated | ✅ verified 15/11/2026 |
 
