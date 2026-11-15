@@ -2957,4 +2957,4 @@ that rolls back.
 | Realtime | table added to `supabase_realtime`; delivery follows the SELECT policies above | ✅ by policy |
 | 00091 applied to production | ✅ done 15/11/2026 via the Supabase MCP (`00091_jar_quotes`); verified live: RLS on, exactly `jar_quotes_owner_all` / `jar_quotes_kid_select` / `jar_quotes_guest_select`, both triggers, in `supabase_realtime`; anon reads 0 rows |
 | 00089 (cash pool) on production | ✅ checked 15/11/2026: column, `expenses_cash_guard` function + trigger and `expenses_withdrawal_not_paid_in_cash` are live, no `paid_from_expense_id` link left - applied, but missing from the recorded migration history | ✅ (history only) |
-| `backup-weekly` redeployed with `jar_quotes` | **not run here** | ⚠️ PENDING |
+| `backup-weekly` redeployed with `jar_quotes` | ✅ done 15/11/2026, version 17; live v16 matched the repo except that line; deployed content re-read and identical to the repo; verify_jwt stays false (cron secret). First run with the table: next Sunday 03:00 UTC |
