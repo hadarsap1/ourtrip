@@ -8,7 +8,7 @@
 //
 // Sonnet rather than Haiku on purpose: this is one call per country (six for
 // the whole trip), and flag symbolism is exactly the kind of detail a small
-// model invents with confidence. Kids believe every word.
+// model invents with confidence. The family reads every word as true.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -34,34 +34,34 @@ const INPUT_SCHEMA = {
     flag_meaning: {
       type: "string",
       description:
-        "What the flag looks like and why: what each colour and shape stands for. 2-4 short Hebrew sentences.",
+        "What the flag looks like and why: what each colour and symbol stands for, when and how it was adopted, and any interesting story behind it. 3-5 Hebrew sentences.",
     },
     population: {
       type: "string",
       description:
-        'Rounded population and a comparison to Israel (about 10 million), e.g. "בערך 125 מיליון איש - פי 12 מישראל".',
+        "Rounded population, a comparison to Israel (about 10 million), and one interesting detail about where or how people live.",
     },
     capital: {
       type: "string",
-      description: "The capital city, optionally with one short fun line.",
+      description: "The capital city and one interesting detail about it (history, meaning of the name, what it is known for).",
     },
     language: {
       type: "string",
-      description: 'The main language(s), and how to say "hello" in it, written in Hebrew letters.',
+      description: 'The main language(s), something interesting about it (its script, its origin, tones), and how to say "hello" in it written in Hebrew letters.',
     },
     currency: {
       type: "string",
-      description: "The currency name in Hebrew, with one simple line a child understands.",
+      description: "The currency name in Hebrew and one interesting detail (who appears on the notes, where the name comes from, a rough sense of its value against the shekel).",
     },
     size_vs_israel: {
       type: "string",
       description:
-        'Land area compared with Israel (about 22,000 square km), rounded, e.g. "גדולה מישראל פי 17".',
+        "Land area compared with Israel (about 22,000 square km), rounded, plus one detail about its geography (islands, mountains, length from end to end).",
     },
     national_symbol: {
       type: "string",
       description:
-        "A national animal or flower and one line about it. Empty string if the country has no well-known one.",
+        "A national animal or flower and why it was chosen or what it symbolises. Empty string if the country has no well-known one.",
     },
   },
   required: [...FIELDS],
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
   try {
     response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 3000,
       tools: [
         {
           name: "emit_country",
@@ -145,21 +145,27 @@ Deno.serve(async (req) => {
         {
           role: "user",
           content:
-            `Write a short "country card" about ${countryName} (${countryCode}) ` +
-            `for two Hebrew-speaking children aged about 6-9 who are travelling ` +
-            `there with their parents.\n\n` +
+            `Write a "country card" about ${countryName} (${countryCode}) for an ` +
+            `Israeli family travelling there: two parents and two children in ` +
+            `elementary school. The whole family reads it together, so pitch it ` +
+            `like a good encyclopedia for curious 10-12 year olds - real content ` +
+            `that an adult also finds interesting, not baby talk.\n\n` +
             `Rules:\n` +
-            `- Write in Hebrew, in simple words a 7-year-old can read alone.\n` +
-            `- ONLY well-established facts. For the flag, explain the official ` +
-            `or widely accepted meaning of its colours and symbols. If the ` +
-            `meaning is disputed or unknown, say what it shows and that people ` +
-            `tell different stories about it - never invent a meaning.\n` +
-            `- Numbers are rounded and friendly ("בערך 70 מיליון"), and always ` +
-            `compared with Israel so a child can feel the size. Israel has about ` +
-            `10 million people and about 22,000 square km.\n` +
-            `- Avoid war, killing, politics and anything frightening. If the ` +
-            `flag's history involves a war, describe it gently ("the struggle to ` +
-            `become independent") without violence.\n` +
+            `- Write in clear, natural Hebrew. Proper vocabulary is fine; avoid ` +
+            `academic jargon, slang and childish phrasing (exclamation marks, ` +
+            `"וואו", explaining obvious words).\n` +
+            `- Give substance: names, years, the reason behind things, a ` +
+            `surprising detail. Prefer one specific, interesting fact over a ` +
+            `generic statement.\n` +
+            `- ONLY well-established facts. For the flag, give the official or ` +
+            `widely accepted meaning of its colours and symbols and when it was ` +
+            `adopted. If the meaning is disputed, say so and give the main ` +
+            `interpretations - never invent one.\n` +
+            `- Numbers are rounded ("בערך 125 מיליון") and compared with Israel, ` +
+            `which has about 10 million people and about 22,000 square km.\n` +
+            `- History, including independence and wars, may be mentioned ` +
+            `factually and briefly, without graphic detail. Avoid current ` +
+            `political controversy.\n` +
             `- No emoji in the text.\n\n` +
             `Call emit_country with the card.`,
         },
