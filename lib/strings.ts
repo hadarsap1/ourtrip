@@ -10,6 +10,7 @@ export const strings = {
   // entries and a screen reader announced nothing on arrival. The root layout
   // appends " · OurTrip" through a title template.
   pageTitles: {
+    jar: "הישר לצנצנת",
     settings: "הגדרות",
     stats: "הטיול במספרים",
     today: "היום",
@@ -478,6 +479,7 @@ export const strings = {
       phrasebook_entries: "שיחון",
       destination_facts: "הידעת",
       country_profiles: "כרטיסי מדינה",
+      jar_quotes: "הישר לצנצנת",
       posts: "עדכונים",
       messages: "צ'אט",
       photos: "תמונות",
@@ -1163,6 +1165,42 @@ export const strings = {
 
   // "הידעת" - facts about each destination, written for the kids. Keyed by
   // stretch of the itinerary, so Kyoto and Tokyo each get their own.
+  // "הישר לצנצנת" (00091): what the kids said on the trip. Parents write,
+  // kids read, guests see only what a parent shared.
+  jar: {
+    title: "הישר לצנצנת",
+    navLabel: "הישר לצנצנת",
+    subtitle: "משפטים ושיבושי לשון של הילדים מהטיול",
+    add: "ציטוט חדש",
+    editTitle: "עריכת ציטוט",
+    quoteLabel: "מה נאמר",
+    quotePlaceholder: "״אבא, תראה, אווירון!״",
+    meantLabel: "הכוונה הייתה ל... (לא חובה)",
+    meantPlaceholder: "מטוס",
+    meantPrefix: "הכוונה:",
+    backgroundLabel: "רקע (לא חובה)",
+    backgroundPlaceholder: "איפה זה היה, מה קרה רגע לפני...",
+    saidByLabel: "מי אמר",
+    saidByHint: "אפשר לבחור יותר מאחד",
+    otherLabel: "מישהו אחר",
+    otherPlaceholder: "שם (בן דוד, מדריך...)",
+    otherAdd: "הוספה",
+    otherRemove: "הסרת {name}",
+    saidOnLabel: "מתי",
+    needSpeaker: "צריך לבחור מי אמר",
+    shareLabel: "משותף עם האורחים",
+    shareOff: "רק המשפחה",
+    shared: "שותף עם האורחים",
+    unshared: "הציטוט חזר להיות רק של המשפחה",
+    deleteConfirm: "למחוק את הציטוט מהצנצנת?",
+    empty: "הצנצנת עדיין ריקה",
+    emptyOwner: "שמעתם משהו מצחיק? זה המקום לשמור אותו.",
+    emptyKid: "ההורים עוד לא הכניסו לצנצנת אף ציטוט.",
+    emptyGuest: "עדיין לא שותפו ציטוטים.",
+    count: "{n} ציטוטים בצנצנת",
+    loadFailed: "לא הצלחנו לטעון את הצנצנת",
+  },
+
   facts: {
     title: "הידעת?",
     navLabel: "הידעת",

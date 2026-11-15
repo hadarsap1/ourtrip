@@ -16,6 +16,7 @@ import {
   JournalIcon,
   MailIcon,
   GlobeIcon,
+  JarIcon,
   MapIcon,
   MessagesIcon,
   MicIcon,
@@ -192,6 +193,12 @@ export function MoreScreen() {
       // showing 0 would read as "broken" rather than "none written yet".
       label: strings.facts.navLabel,
       Icon: BulbIcon,
+      count: null,
+    },
+    {
+      href: "/jar",
+      label: strings.jar.navLabel,
+      Icon: JarIcon,
       count: null,
     },
     ...(statsOn

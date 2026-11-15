@@ -1331,6 +1331,69 @@ export type Database = {
           },
         ]
       }
+      jar_quotes: {
+        Row: {
+          background: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          meant: string | null
+          quote: string
+          said_by: string[]
+          said_by_other: string[]
+          said_on: string
+          shared_with_guests: boolean
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          background?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          meant?: string | null
+          quote: string
+          said_by?: string[]
+          said_by_other?: string[]
+          said_on?: string
+          shared_with_guests?: boolean
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          background?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          meant?: string | null
+          quote?: string
+          said_by?: string[]
+          said_by_other?: string[]
+          said_on?: string
+          shared_with_guests?: boolean
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jar_quotes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jar_quotes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kid_device_registrations: {
         Row: {
           code_hash: string

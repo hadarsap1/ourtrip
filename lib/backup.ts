@@ -33,6 +33,7 @@ export const BACKUP_TABLES: TableSpec[] = [
   { name: "phrasebook_entries", by: "trip" },
   { name: "destination_facts", by: "trip" },
   { name: "country_profiles", by: "trip" },
+  { name: "jar_quotes", by: "trip" },
   // the journal: diary lines and stories in one table since 00078
   { name: "posts", by: "trip" },
   { name: "messages", by: "trip" },

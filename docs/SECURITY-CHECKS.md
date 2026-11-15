@@ -2927,3 +2927,33 @@ transaction that rolls back.
 | `country-profile-generate` deployed | ✅ done 15/11/2026, version 1, verify_jwt on; `ai_reserve` takes any function name, the cap comes from the bundled `aiCost.ts` |
 | `backup-weekly` redeployed with `country_profiles` | ✅ done 15/11/2026, version 16; live v15 matched the repo except that line; verify_jwt stays false (cron secret) |
 | First real generation | **not run here** | ⚠️ PENDING - a parent presses "יצירת כרטיס מדינה" |
+
+## 15/11/2026 - "הישר לצנצנת" (00091)
+
+New table `jar_quotes`: what the kids said on the trip (the quote, optionally
+what was meant, optionally background), who said it (family members by id
+and/or free-text names), the date and the country of that itinerary day.
+Parents write; kids only read; a guest reads a quote only once a parent
+switched `shared_with_guests` on for it (default off, per quote, no
+trip-wide switch). A trigger refuses any `said_by` id that is not a parent or
+kid of the same trip. Probe: `scripts/rls/probes/91_jar_quotes.sql`, run
+against a fresh local database with all 91 migrations, inside a transaction
+that rolls back.
+
+| Check | Method | Result |
+|---|---|---|
+| Owner writes quotes, default family-only | owner JWT, `insert` | ✅ PASS - `shared_with_guests = false` |
+| Owner shares one with guests | owner JWT, `update` | ✅ PASS |
+| A guest / unknown id cannot be the speaker | `insert` with guest id, random id | ✅ PASS - `check_violation` |
+| A quote cannot be empty | `insert` with spaces | ✅ PASS - `check_violation` |
+| Kid reads every quote, shared or not | kid JWT, `select` | ✅ PASS - 2 rows |
+| Kid cannot INSERT | kid JWT, `insert` | ✅ PASS - `insufficient_privilege` |
+| Kid cannot UPDATE / DELETE (incl. sharing) | kid JWT, then rows compared as superuser | ✅ PASS - unchanged |
+| Guest reads only the shared quote | guest JWT, `select` | ✅ PASS - exactly that id |
+| Guest cannot INSERT / UPDATE / DELETE | guest JWT | ✅ PASS |
+| Un-sharing hides it from the guest again | flip back, guest `select` | ✅ PASS - 0 rows |
+| Revoked guest, outsider, anon read nothing, even shared | each role, `select` | ✅ PASS |
+| Deny matrix still holds | `probes/90_matrix.sql` (kid allow-list gains `jar_quotes`) | ✅ PASS |
+| Realtime | table added to `supabase_realtime`; delivery follows the SELECT policies above | ✅ by policy |
+| 00091 applied to production | **not run here** (Supabase MCP not connected in this session) | ⚠️ PENDING |
+| `backup-weekly` redeployed with `jar_quotes` | **not run here** | ⚠️ PENDING |

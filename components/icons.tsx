@@ -142,6 +142,15 @@ export const BulbIcon = (p: IconProps) => (
   </Glyph>
 );
 
+/** "הישר לצנצנת" - a jar with a lid, for the kids' sayings. */
+export const JarIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M8 3h8M9 3v3M15 3v3" />
+    <path d="M9 6h6c2.2 1 3 2.7 3 5v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8c0-2.3.8-4 3-5z" />
+    <path d="M9.5 13.5h5M9.5 16.5h3" />
+  </Glyph>
+);
+
 export const OptionsIcon = (p: IconProps) => (
   <Glyph {...p}>
     <rect x="4" y="4" width="16" height="16" rx="2" />
