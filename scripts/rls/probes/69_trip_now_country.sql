@@ -29,7 +29,10 @@ select rls.check('anon cannot call trip_now_country',
   not has_function_privilege('anon', 'public.trip_now_country(uuid)', 'execute'));
 
 -- no day for today (before the trip, a gap) -> nothing to show
-delete from itinerary_days where country_code = 'JP';
+-- Yesterday's day goes too: between 15:00 and 17:00 UTC it is already
+-- tomorrow in Tokyo but still "yesterday's" date in Hanoi, so the VN day was
+-- today in its own zone and this check failed for two hours a day (QA 15/11/2026).
+delete from itinerary_days where country_code in ('JP', 'VN');
 set local role authenticated; select rls.as_guest();
 select rls.check('guest: no day today -> null',
   public.trip_now_country('00000000-0000-0000-0000-0000000000a1') is null);

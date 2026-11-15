@@ -3,6 +3,7 @@ import { getActiveTrip } from "@/lib/data/trip";
 import { listItems } from "@/lib/data/itinerary";
 import { todayISO } from "@/lib/format";
 import { readTodaySnapshot, saveTodaySnapshot } from "@/lib/offline/caches";
+import { freshBoot } from "@/lib/boot";
 import type { Booking, ItineraryDay, ItineraryItem } from "@/lib/types";
 
 export type TodayData = {
@@ -26,6 +27,16 @@ export async function loadToday(): Promise<{
     const supabase = getSupabase();
     const trip = await getActiveTrip();
     if (!supabase || !trip) throw new Error("unavailable");
+
+    // The opening request (00096) already holds today for this trip: the day,
+    // its items (cancelled bookings' entries left out) and today's bookings,
+    // read under the same policies as the queries below.
+    const boot = await freshBoot();
+    if (boot?.today && boot.today.date === date && boot.trip?.id === trip.id) {
+      const data: TodayData = { date, day: boot.today.day, items: boot.today.items, bookings: boot.today.bookings };
+      await saveTodaySnapshot(data);
+      return { data, fromCache: false };
+    }
 
     const { data: day, error: dayError } = await supabase
       .from("itinerary_days")

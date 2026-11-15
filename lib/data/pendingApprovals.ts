@@ -1,3 +1,4 @@
+import { freshBoot } from "@/lib/boot";
 import { getSupabase } from "@/lib/supabase";
 import { NO_PENDING, type PendingApprovals } from "@/lib/approvals";
 
@@ -11,6 +12,10 @@ import { NO_PENDING, type PendingApprovals } from "@/lib/approvals";
 export async function loadPendingApprovals(tripId: string): Promise<PendingApprovals> {
   const supabase = getSupabase();
   if (!supabase) return NO_PENDING;
+
+  // counted by the opening request (00096) when the app has just opened
+  const boot = await freshBoot();
+  if (boot?.pending && boot.trip?.id === tripId) return boot.pending;
 
   const count = async (query: PromiseLike<{ count: number | null }>): Promise<number> => {
     try {

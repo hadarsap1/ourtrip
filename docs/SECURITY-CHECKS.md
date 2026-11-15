@@ -3085,3 +3085,36 @@ No migration, no policy change. What each home reads, and under which policy:
 | Light + dark, 390 px: no tap target under 44 px, no sideways scroll, no failed request | ✅ PASS |
 | RLS harness unchanged | ✅ 584 PASS, 0 FAIL (no SQL in this change) |
 
+## 15/11/2026 - one request to open the app (`app_boot`, 00096, DECISIONS #66)
+
+New function `app_boot(p_today date)`: **SECURITY INVOKER**, `search_path =
+public`, execute for `authenticated` only. It calls
+`link_member_to_auth_user()` (00055, unchanged, already the app's first call)
+and then reads, as the caller: the caller's own member row, the active trip,
+today's day and items, today's bookings and four pending counts. No table,
+policy or grant on a table changes. Because it runs as the caller, it cannot
+return a row the caller's own queries would not: it is the same reads in one
+round trip.
+
+Client: no new access. The gate still treats "no role" as before; a failed or
+missing function falls back to the separate queries.
+
+| Check | Result |
+|---|---|
+| anon cannot execute; the function is security invoker | ✅ PASS - local, probe `96_app_boot.sql` |
+| Owner: role, own row, trip, today's day and items in order (the item of a cancelled booking left out), today's bookings (range + single day, not cancelled, not tomorrow), the waiting counts | ✅ PASS - local, probe 96 |
+| Kid: day and items; **no bookings, no price, no confirmation code**; no join requests in the counts | ✅ PASS - local, probe 96 |
+| Guest: role and own row; no bookings or codes; no pending photo; never the unshared item | ✅ PASS - local, probe 96 |
+| Revoked guest: a role and own row but no trip, so no day, items, bookings or counts | ✅ PASS - local, probe 96 |
+| Outsider (signed in, no member row): `{"role": null}` and nothing else | ✅ PASS - local, probe 96 |
+| Another (inactive) trip never comes back | ✅ PASS - local, probe 96 |
+| Full harness | ✅ 599 PASS, 0 FAIL on 96 migrations |
+| Through the UI on the local stack, three roles: the home renders from the one call; with the function dropped the app falls back and renders the same | ✅ PASS |
+| Offline, three roles: homes open from the device copies as before | ✅ PASS - local stack, network off |
+| 00096 applied to production | ⏳ not yet (the app works without it; any order) |
+
+Also in this pass: probe 69 failed for two hours a day (15:00-17:00 UTC, when
+Tokyo's date is ahead of Hanoi's) - a fault in the probe, not in
+`trip_now_country`; fixed. `scripts/rls/run.sh` now really runs every probe
+after a failure (`pipefail` ended it at the first one).
+
