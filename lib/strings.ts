@@ -2412,6 +2412,9 @@ export const strings = {
     galleryEmpty: "עוד אין תמונות בגלריה",
     galleryDone: "סיום",
     removePhoto: "הסרת התמונה",
+    coverBadge: "מובילה",
+    makeCover: "הפיכה לתמונה המובילה",
+    coverHint: "התמונה המובילה מופיעה ראשונה בעדכון. לחיצה על הכוכב בתמונה אחרת תחליף אותה.",
     audienceLabel: "מי רואה?",
     // "משפחה" read as including grandparents (20/10/2026); it is only the four of us
     audienceFamily: "רק אנחנו",
