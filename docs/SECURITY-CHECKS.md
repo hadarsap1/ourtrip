@@ -3040,7 +3040,9 @@ guests. Asking still grants nothing - every guest policy needs the allowlist
 row only a parent writes.
 
 Client, cosmetic only: the open page shows the Google button alone and an
-intro with no names; "approve all" sends only Google-proven requests.
+same note from the family as the handed-out link, names included (Hadar's
+choice, 15/11/2026; no places or dates); "approve all" sends only
+Google-proven requests.
 
 | Check | Result |
 |---|---|
@@ -3053,6 +3055,6 @@ intro with no names; "approve all" sends only Google-proven requests.
 | Reset: both old tokens invalid | ✅ PASS - local, probe 95 |
 | Anon still reads no `guest_join_links` | ✅ PASS - local, probes 93, 95 |
 | Probes 54, 57, 93 (join link) and the deny matrix on 95 migrations | ✅ PASS - full harness 584 PASS, 0 FAIL |
-| Through the UI, signed out: the login screen links to the open token; that page has no typed form and no names; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
+| Through the UI, signed out: the login screen links to the open token; that page has no typed form; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
 | 00095 applied to production | ⏳ after the app is deployed (see DECISIONS #64 for the order) |
 

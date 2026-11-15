@@ -126,6 +126,7 @@ export function JoinScreen({ token }: { token: string }) {
           className="relative z-10 mx-auto h-20 w-20 rounded-full border-[3px] border-white/90 object-cover"
         />
         <h1 className="relative z-10 mt-3 text-3xl">{strings.appName}</h1>
+        <p className="relative z-10 mt-1 text-sm text-white/85">{strings.join.postcardLine}</p>
       </div>
 
       {phase.kind === "loading" && (
@@ -158,9 +159,11 @@ export function JoinScreen({ token }: { token: string }) {
       {phase.kind === "pending" && (
         <div className="space-y-4 text-center">
           <h2 className="text-lg font-bold text-ink">{strings.join.pendingTitle}</h2>
-          <p className="text-ink-soft">
+          <p className="text-ink">{strings.join.pendingWait}</p>
+          <p className="text-sm text-ink-soft">
             {phase.via === "google" ? strings.join.pendingBodyGoogle : strings.join.pendingBodyEmail}
           </p>
+          <p className="sovev-display text-xl text-ink">{strings.join.signature}</p>
           {phase.via === "google" && (
             <button type="button" className={buttonSecondary} disabled={busy} onClick={() => void run(load)}>
               {strings.join.checkAgain}
@@ -172,7 +175,7 @@ export function JoinScreen({ token }: { token: string }) {
       {phase.kind === "signedIn" && (
         <div className="space-y-3 text-center">
           <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
-          <JoinAbout open={googleOnly} />
+          <JoinAbout />
           <div className="text-start">
             <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
           </div>
@@ -212,7 +215,7 @@ export function JoinScreen({ token }: { token: string }) {
           <div className="space-y-1 text-center">
             <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
           </div>
-          <JoinAbout open={googleOnly} />
+          <JoinAbout />
           {/* above both ways in, so it counts for Google and for the typed form */}
           <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
           <div className="space-y-1">
@@ -290,20 +293,57 @@ export function JoinScreen({ token }: { token: string }) {
   );
 }
 
-/** What this is, for a parent who scanned a sticker from a classmate. */
-function JoinAbout({ open }: { open: boolean }) {
+/**
+ * A note from the family to someone who knows them: who we are, what is
+ * inside, how to get in, signed. Everyone who reaches this page was sent here
+ * by one of us or knows the address (Hadar 15/11/2026).
+ */
+function JoinAbout() {
+  const j = strings.join;
   return (
-    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-4 text-start">
-      <p className="text-sm text-ink">{open ? strings.join.aboutIntroOpen : strings.join.aboutIntro}</p>
-      <ul className="space-y-1.5">
-        {strings.join.aboutItems.map((item) => (
-          <li key={item.text} className="flex items-start gap-2 text-sm text-ink">
-            <span aria-hidden="true">{item.icon}</span>
-            <span>{item.text}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-ink-soft">{strings.join.aboutPrivacy}</p>
+    <div className="space-y-4 rounded-card border border-line bg-surface p-5 text-start shadow-card">
+      <div className="space-y-1.5">
+        <p className="sovev-display text-2xl leading-8 text-sea">{j.hello}</p>
+        <p className="text-base leading-7 text-ink">{j.aboutIntro}</p>
+      </div>
+
+      <div className="space-y-2">
+        <p className="ot-kicker">{j.aboutFindTitle}</p>
+        <ul className="space-y-2">
+          {j.aboutItems.map((item) => (
+            <li key={item.text} className="flex items-start gap-2.5 text-sm leading-6 text-ink">
+              <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sea-tint">
+                {item.icon}
+              </span>
+              <span className="pt-0.5">{item.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-2">
+        <p className="ot-kicker">{j.aboutHowTitle}</p>
+        <ol className="space-y-1.5">
+          {j.aboutSteps.map((step, i) => (
+            <li key={step} className="flex items-start gap-2.5 text-sm leading-6 text-ink">
+              <span
+                aria-hidden="true"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sea text-xs font-bold text-on-sea"
+              >
+                {i + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="border-t border-dashed border-line pt-3">
+        <p className="text-sm text-ink-soft">{j.signOff}</p>
+        <p className="sovev-display text-2xl leading-8 text-ink">{j.signature}</p>
+      </div>
+
+      <p className="text-xs text-ink-soft">{j.aboutPrivacy}</p>
     </div>
   );
 }

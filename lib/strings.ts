@@ -1856,24 +1856,33 @@ export const strings = {
 
   // the public page behind the join link
   join: {
-    title: "רוצים לעקוב אחרי הטיול?",
+    // The page reads as a note from the four of us to someone who knows us
+    // (Hadar 15/11/2026: "whoever gets the link is connected to us, and it
+    // feels cold"). Names by Hadar's choice (20/10: so class parents know whose
+    // sticker it is), on the login screen's page too - it is Google only there
+    // (00095). Still no places and no dates on a page anyone can open.
+    title: "בואו איתנו לטיול",
+    postcardLine: "הטיול של משפחת ספיר ורדי מסביב לעולם",
     body: "עדכונים, תמונות והפודקאסט של הילדים מהדרך. נרשמים פעם אחת, ואחרי שנאשר תקבלו גישה.",
-    // for a parent who scanned the sticker and has no idea what this is (Hadar 20/10/2026).
-    // The page is open to anyone with the link: names by Hadar's choice (so class
-    // parents know whose sticker it is), but no places or dates.
-    aboutIntro: "אנחנו משפחת ספיר ורדי: סיון, הדר, אלה ועומר. אנחנו יוצאים לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
-    // from the login screen (00095) the page is one tap from the open internet:
-    // the same words with no names (QA 15/11/2026). The sticker / WhatsApp link
-    // keeps the names above.
-    aboutIntroOpen: "אנחנו משפחה שיצאה לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
-    googleOnlyHint: "מכאן מצטרפים עם חשבון Google. קיבלתם מאיתנו קישור בוואטסאפ? דרכו אפשר גם עם מייל.",
+    hello: "היי, איזה כיף שהגעתם!",
+    aboutIntro: "אנחנו סיון, הדר, אלה ועומר. יצאנו לטיול של כמה חודשים מסביב לעולם, ואנחנו רוצים שתהיו איתנו בדרך. בשביל זה בנינו אפליקציה קטנה, רק למשפחה ולחברים.",
+    aboutFindTitle: "מה מחכה לכם בפנים",
     aboutItems: [
-      { icon: "📖", text: "עדכונים מהדרך - מה ראינו ומה עשינו, עם מפה של איפה היינו" },
-      { icon: "📷", text: "תמונות מהטיול" },
-      { icon: "🎙️", text: "הפודקאסט של הילדים - פרקים קצרים מהדרך" },
-      { icon: "💬", text: "צ'אט - אפשר לכתוב לילדים, והם קוראים" },
+      { icon: "📖", text: "עדכונים מהדרך - מה ראינו ומה עשינו, ומפה של כל המקומות שעברנו" },
+      { icon: "📷", text: "תמונות מהטיול, גם כאלה שאלה ועומר צילמו בעצמם" },
+      { icon: "🎙️", text: "הפודקאסט של אלה ועומר - פרקים קצרים שהם מקליטים מהדרך" },
+      { icon: "💬", text: "צ'אט - כותבים לנו ולילדים, והם קוראים ועונים" },
     ],
-    aboutPrivacy: "רק מי שאישרנו רואה את התוכן. בלי פרסומות ובלי עלות.",
+    aboutHowTitle: "איך מצטרפים",
+    aboutSteps: [
+      "מבקשים להצטרף כאן למטה. זה לוקח חצי דקה",
+      "אנחנו רואים את הבקשה ומאשרים",
+      "מאותו רגע נכנסים מתי שרוצים, ורואים את כל מה שחדש",
+    ],
+    aboutPrivacy: "זה נשאר בינינו: רק מי שאישרנו רואה את התוכן. בלי פרסומות ובלי עלות.",
+    signOff: "מחכים לכם,",
+    signature: "סיון, הדר, אלה ועומר",
+    googleOnlyHint: "מכאן מצטרפים עם חשבון Google, כדי שנדע שזה באמת אתם. קיבלתם מאיתנו קישור בוואטסאפ? דרכו אפשר גם עם מייל.",
     google: "הצטרפות עם Google",
     googleHint: "הכי מהיר - לחיצה אחת, בלי להקליד",
     or: "או עם מייל",
@@ -1882,11 +1891,13 @@ export const strings = {
     send: "שליחת בקשה",
     joinAs: "הצטרפות בתור {email}",
     otherAccount: "חשבון אחר",
-    pendingTitle: "הבקשה התקבלה 🙌",
-    pendingBodyGoogle: "נעדכן ברגע שנאשר. אחרי האישור פשוט נכנסים לאפליקציה עם אותו חשבון Google.",
-    pendingBodyEmail: "אחרי שנאשר יגיע אליכם מייל עם קישור כניסה. כדאי להציץ גם בתיקיית הספאם.",
+    pendingTitle: "הבקשה אצלנו 🙌",
+    // true of a family on the road: so a slow approval does not read as a no
+    pendingWait: "נאשר ברגע שנראה אותה. לפעמים אנחנו בלי קליטה או ישנים כשאצלכם יום, אז אם זה לוקח קצת - זה לא אתם, זה אנחנו.",
+    pendingBodyGoogle: "אחרי האישור פשוט נכנסים לאפליקציה עם אותו חשבון Google.",
+    pendingBodyEmail: "אחרי האישור יגיע אליכם מייל עם קישור כניסה. כדאי להציץ גם בתיקיית הספאם.",
     checkAgain: "בדיקה אם אושרתי",
-    memberTitle: "אתם כבר בפנים!",
+    memberTitle: "אתם כבר איתנו!",
     enter: "כניסה לאפליקציה",
     invalidTitle: "הקישור לא בתוקף",
     invalidBody: "ייתכן שנוצר קישור חדש. בקשו אותו ממי ששלח לכם.",
