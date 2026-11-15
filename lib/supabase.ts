@@ -106,6 +106,34 @@ export function guardedFetch(input: RequestInfo | URL, init?: RequestInit): Prom
   );
 }
 
+// One screen load asks the database the same thing from several places at
+// once: the member row from the gate, the bar and the screen; the "waiting for
+// approval" counts from the bar and the home card (QA 15/11/2026: 47 requests
+// on the parents' home, a dozen of them repeats). Every request pays the trip
+// to the database's region, so identical reads that are in the air at the same
+// moment share one request. Reads only, same address and same headers (so the
+// same person, the same count / range options), and only while the first is
+// still in flight - nothing is cached, a later read always goes out.
+const inFlight = new Map<string, Promise<Response>>();
+const SHARED_HEADERS = ["authorization", "prefer", "range", "accept", "accept-profile"];
+
+export function sharedReadFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  if ((method !== "GET" && method !== "HEAD") || !url.includes("/rest/v1/") || init?.signal) {
+    return guardedFetch(input, init);
+  }
+  const headers = new Headers(init?.headers);
+  const key = [method, url, ...SHARED_HEADERS.map((h) => headers.get(h) ?? "")].join("\n");
+  let pending = inFlight.get(key);
+  if (!pending) {
+    pending = guardedFetch(input, init).finally(() => inFlight.delete(key));
+    inFlight.set(key, pending);
+  }
+  // each caller reads its own copy of the body
+  return pending.then((res) => res.clone());
+}
+
 // supabase-js's own default key, spelled out so storedAuthUserId reads the
 // same slot (changing it would sign everyone out).
 function authStorageKey(url: string): string {
@@ -121,7 +149,7 @@ export function getSupabase(): SupabaseClient<Database> | null {
 
   client = createClient(url, anonKey, {
     auth: { storageKey: authStorageKey(url) },
-    global: { fetch: guardedFetch },
+    global: { fetch: sharedReadFetch },
   });
   return client;
 }

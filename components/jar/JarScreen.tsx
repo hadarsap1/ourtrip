@@ -5,6 +5,7 @@ import { askConfirm } from "@/components/ConfirmSheet";
 import { LoadFailed } from "@/components/LoadFailed";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
+import { Banner } from "@/components/ui/Banner";
 import { countryName } from "@/lib/data/emergency";
 import {
   addQuote,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/data/jar";
 import { getActiveTrip, listMembers } from "@/lib/data/trip";
 import { formatDate, todayISO } from "@/lib/format";
+import { readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { spreadDelay } from "@/lib/realtimeTopic";
 import { strings } from "@/lib/strings";
 import type { JarQuote, Member } from "@/lib/types";
@@ -54,6 +56,7 @@ export function JarScreen() {
   const [draft, setDraft] = useState<JarDraft>(emptyDraft);
   const [otherName, setOtherName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
@@ -74,14 +77,30 @@ export function JarScreen() {
       setLoading(false);
       return;
     }
+    // The jar is read in cars and on planes: the last list this person was
+    // given is kept on the device and shown when the network is not there
+    // (QA 15/11/2026). Only what RLS returned to them is stored.
+    const cacheKey = `jar:${trip.id}`;
     try {
       const [rows, members] = await Promise.all([listQuotes(trip.id), listMembers(trip.id)]);
+      const fam = members.filter((m) => m.role === "owner" || m.role === "kid");
       setTripId(trip.id);
       setQuotes(rows);
-      setFamily(members.filter((m) => m.role === "owner" || m.role === "kid"));
+      setFamily(fam);
       setFailed(false);
+      setFromCache(false);
+      void writeQuery(cacheKey, { rows, fam });
     } catch {
-      setFailed(true);
+      const cached = await readQuery<{ rows: JarQuote[]; fam: Member[] }>(cacheKey);
+      if (cached) {
+        setTripId(trip.id);
+        setQuotes(cached.data.rows);
+        setFamily(cached.data.fam);
+        setFailed(false);
+        setFromCache(true);
+      } else {
+        setFailed(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -215,6 +234,8 @@ export function JarScreen() {
           {s.add}
         </button>
       )}
+
+      {fromCache && <Banner tone="warning">{strings.offline.fromCache}</Banner>}
 
       {loading ? (
         <p className="py-6 text-center text-sm text-ink-soft">{strings.common.loading}</p>

@@ -145,12 +145,18 @@ export function GuestsAdminScreen() {
     }
   }
 
+  // "Approve all" takes only requests whose address Google proved. A typed
+  // address proves nothing about who is asking, so those are approved one by
+  // one, where the address is read (QA 15/11/2026).
+  const proven = requests.filter((r) => r.auth_user_id !== null);
+
   async function approveAll(labels: string[]) {
-    if (approving || !trip) return;
+    if (approving || !trip || proven.length === 0) return;
     setApproving("all");
     try {
+      const batch = proven;
       const results = await inviteMany(
-        requests.map((r) => ({ name: r.display_name, email: r.email })),
+        batch.map((r) => ({ name: r.display_name, email: r.email })),
         labels,
         () => {}
       );
@@ -162,10 +168,12 @@ export function GuestsAdminScreen() {
       // inviteMany keeps the order it was given, so each result pairs with its request
       const notEmailed = results.flatMap((r, i) =>
         r.ok && !r.emailed && r.link
-          ? [{ name: r.name, email: r.email, link: r.link, viaGoogle: requests[i]?.auth_user_id != null }]
+          ? [{ name: r.name, email: r.email, link: r.link, viaGoogle: batch[i]?.auth_user_id != null }]
           : []
       );
       if (notEmailed.length > 0) setUnsent(notEmailed);
+      const typed = requests.length - batch.length;
+      if (typed > 0) showToast(strings.guests.approveAllSkipped.replace("{n}", String(typed)));
       await refresh(trip.id);
     } catch {
       showToast(strings.common.error);
@@ -261,14 +269,17 @@ export function GuestsAdminScreen() {
             <span className="ot-kicker">
               {strings.guests.requestsTitle.replace("{n}", String(requests.length))}
             </span>
-            {requests.length > 1 && (
+            {proven.length > 1 && (
               <button
                 type="button"
                 disabled={approving !== null}
                 onClick={() => setApproveFor("all")}
                 className="text-sm font-semibold text-sea disabled:opacity-60"
               >
-                {strings.guests.approveAll.replace("{n}", String(requests.length))}
+                {(proven.length === requests.length ? strings.guests.approveAll : strings.guests.approveAllProven).replace(
+                  "{n}",
+                  String(proven.length)
+                )}
               </button>
             )}
           </h2>
@@ -401,7 +412,10 @@ export function GuestsAdminScreen() {
         <ApproveSheet
           title={
             approveFor === "all"
-              ? strings.guests.approveAll.replace("{n}", String(requests.length))
+              ? (proven.length === requests.length ? strings.guests.approveAll : strings.guests.approveAllProven).replace(
+                  "{n}",
+                  String(proven.length)
+                )
               : approveFor.display_name
           }
           knownLabels={knownLabels}

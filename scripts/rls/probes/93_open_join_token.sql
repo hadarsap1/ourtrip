@@ -15,18 +15,22 @@ set local role authenticated; select rls.as_owner();
 create temp table tok as select public.guest_join_token('00000000-0000-0000-0000-0000000000a1') as t;
 grant select on tok to anon, authenticated;
 reset role;
+-- since 00095 the login screen gets the trip's OPEN token (Google only), not
+-- the one a parent hands out
+create temp table otok as select open_token as t from guest_join_links;
+grant select on otok to anon, authenticated;
 
 set local role anon; select rls.as_anon();
-select rls.check('anon: gets the active trip''s join token',
-  public.guest_join_open_token() = (select t from tok));
+select rls.check('anon: gets the active trip''s open join token',
+  public.guest_join_open_token() = (select t from otok));
 select rls.check('anon: still cannot read guest_join_links', not exists (select 1 from guest_join_links));
-select rls.check('anon: asking with it only makes a pending request',
-  public.submit_guest_join(public.guest_join_open_token(), 'probe', 'new@probe.test') = 'pending');
+select rls.check('anon: asking with it and a typed address is refused (00095)',
+  public.submit_guest_join(public.guest_join_open_token(), 'probe', 'new@probe.test') = 'google_only');
 reset role;
 
 set local role authenticated; select rls.as_outsider();
 select rls.check('outsider: gets the same token, nothing more',
-  public.guest_join_open_token() = (select t from tok));
+  public.guest_join_open_token() = (select t from otok));
 select rls.check('outsider: reads no requests', not exists (select 1 from guest_join_requests));
 reset role;
 

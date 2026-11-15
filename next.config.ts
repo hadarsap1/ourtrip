@@ -59,13 +59,26 @@ const CSP_REPORT_ONLY = [
   // podcast audio: signed URLs from Supabase storage, blob: for the preview of
   // a take before it is saved
   "media-src 'self' blob: https://*.supabase.co",
-  // GIS runs its OAuth token flow in an iframe
-  "frame-src 'self' https://accounts.google.com",
+  // GIS runs its OAuth token flow in an iframe; blob: is the documents
+  // viewer, which shows a decrypted PDF in an iframe (found in QA 15/11/2026:
+  // enforcing the policy as it stood would have blanked the vault's viewer)
+  "frame-src 'self' blob: https://accounts.google.com",
+  // Google Maps' vector renderer runs in blob: workers
+  "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
 ].join("; ");
+
+// The part of the policy that is ENFORCED (QA 15/11/2026). These three never
+// decide whether a script, image or request loads, so they cannot take a
+// screen down: who may frame the app (nobody), where a <base> may point, and
+// where a form may post. The rest stays report-only above until it has been
+// read on a real phone with the map, the Photos picker and a PDF open -
+// object-src is left there too, because the PDF viewer inside the vault's
+// blob: iframe inherits this policy.
+const CSP_ENFORCED = ["frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"].join("; ");
 
 const nextConfig: NextConfig = {
   // Next 16.3 appends a block of its own to CLAUDE.md on every `next dev`.
@@ -98,6 +111,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Content-Security-Policy", value: CSP_ENFORCED },
           { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
         ],
       },

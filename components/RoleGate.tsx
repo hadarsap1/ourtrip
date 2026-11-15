@@ -10,8 +10,11 @@ import { useMember } from "@/lib/useMember";
 // when one is reached by URL (UX pass 14/10). Not a security boundary.
 const OWNER_ONLY = [
   "/budget", "/documents", "/checklists", "/kids", "/guests", "/notifications",
-  "/ready", "/visas", "/options", "/recommend", "/memory-book", "/pocket",
+  "/ready", "/visas", "/options", "/recommend", "/memory-book",
 ];
+// /pocket is not here: the kids' bar gets a "דמי כיס" tab when the pocketMoney
+// flag is on, and the screen shows a kid their own row (pocket RLS). Listed, it
+// sent a kid from their own tab to "reserved for parents" (QA 15/11/2026).
 // what a guest can open at all (the guest home's tiles and tabs)
 const GUEST_ALLOWED = ["/", "/stories", "/podcast", "/photos", "/messages", "/map", "/settings", "/jar"];
 

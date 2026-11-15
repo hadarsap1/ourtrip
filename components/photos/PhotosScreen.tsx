@@ -127,28 +127,33 @@ function GuestPhotosView() {
     };
   }, [tripId]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.all([
-      listGuestPhotosWithAlbums().catch(() => ({ photos: [] as GuestPhoto[], albumPhotos: [] as GuestAlbumPhoto[] })),
+  // The photos did not arrive (no signal, or guest-photos is down): that is
+  // not "no photos yet". A grandparent on a weak line was told the album was
+  // empty (QA 15/11/2026).
+  const [loadFailed, setLoadFailed] = useState(false);
+  const alive = useRef(true);
+  const load = useCallback(async () => {
+    const [p, g, t] = await Promise.all([
+      listGuestPhotosWithAlbums().catch(() => null),
       listGuestGooglePhotos().catch(() => [] as GuestGooglePhoto[]),
       getActiveTrip().catch(() => null),
-    ])
-      .then(([p, g, t]) => {
-        if (!cancelled) {
-          setPhotos(p.photos);
-          setAlbumPhotos(p.albumPhotos);
-          setGooglePhotos(g);
-          setTripId(t?.id ?? null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    ]);
+    if (!alive.current) return;
+    setLoadFailed(p === null);
+    setPhotos(p?.photos ?? []);
+    setAlbumPhotos(p?.albumPhotos ?? []);
+    setGooglePhotos(g);
+    setTripId(t?.id ?? null);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    alive.current = true;
+    void load();
+    return () => {
+      alive.current = false;
+    };
+  }, [load]);
 
   if (loading) {
     return (
@@ -201,7 +206,8 @@ function GuestPhotosView() {
         />
       ) : (
       <>
-      {isEmpty && (
+      {loadFailed && <LoadFailed onRetry={load} />}
+      {isEmpty && !loadFailed && (
         <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
           {strings.photos.empty}
         </p>

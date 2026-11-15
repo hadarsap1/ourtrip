@@ -1818,6 +1818,9 @@ export const strings = {
     approve: "אישור",
     decline: "דחייה",
     approveAll: "אישור כולם ({n})",
+    // "approve all" takes only requests whose address Google proved (QA 15/11/2026)
+    approveAllProven: "אישור המאומתים ({n})",
+    approveAllSkipped: "{n} בקשות עם מייל שהוקלד נשארו לאישור אחת-אחת",
     approved: "{name} אושר/ה ויקבל/תקבל מייל כניסה",
     approvedAll: "אושרו {ok} מתוך {total}",
     // approved, but guest-invite could not email the sign-in link
@@ -1853,19 +1856,29 @@ export const strings = {
 
   // the public page behind the join link
   join: {
-    title: "רוצים לעקוב אחרי הטיול?",
+    // The page reads as a note from the four of us to someone who knows us
+    // (Hadar 15/11/2026: "whoever gets the link is connected to us, and it
+    // feels cold"). Names by Hadar's choice (20/10: so class parents know whose
+    // sticker it is), on the login screen's page too - it is Google only there
+    // (00095). Still no places and no dates on a page anyone can open.
+    title: "בואו איתנו לטיול",
+    postcardLine: "הטיול של משפחת ספיר ורדי מסביב לעולם",
     body: "עדכונים, תמונות והפודקאסט של הילדים מהדרך. נרשמים פעם אחת, ואחרי שנאשר תקבלו גישה.",
-    // for a parent who scanned the sticker and has no idea what this is (Hadar 20/10/2026).
-    // The page is open to anyone with the link: names by Hadar's choice (so class
-    // parents know whose sticker it is), but no places or dates.
-    aboutIntro: "אנחנו משפחת ספיר ורדי: סיון, הדר, אלה ועומר. אנחנו יוצאים לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
+    hello: "היי, איזה כיף שהגעתם!",
+    // short on purpose: the whole page, button included, fits one phone
+    // screen with no scrolling (Hadar 15/11/2026)
+    aboutIntro: "יצאנו לטיול של כמה חודשים מסביב לעולם, ואנחנו רוצים שתהיו איתנו בדרך. בנינו בשביל זה אפליקציה קטנה, רק למשפחה ולחברים.",
     aboutItems: [
-      { icon: "📖", text: "עדכונים מהדרך - מה ראינו ומה עשינו, עם מפה של איפה היינו" },
-      { icon: "📷", text: "תמונות מהטיול" },
-      { icon: "🎙️", text: "הפודקאסט של הילדים - פרקים קצרים מהדרך" },
-      { icon: "💬", text: "צ'אט - אפשר לכתוב לילדים, והם קוראים" },
+      { icon: "📖", text: "עדכונים ומפה" },
+      { icon: "📷", text: "תמונות מהדרך" },
+      { icon: "🎙️", text: "הפודקאסט של אלה ועומר" },
+      { icon: "💬", text: "צ'אט איתנו" },
     ],
-    aboutPrivacy: "רק מי שאישרנו רואה את התוכן. בלי פרסומות ובלי עלות.",
+    aboutPrivacy: "מבקשים להצטרף, אנחנו מאשרים, ואתם בפנים. רק מי שאישרנו רואה את התוכן.",
+    signOff: "מחכים לכם,",
+    signature: "סיון, הדר, אלה ועומר",
+    googleOnlyHint: "קיבלתם מאיתנו קישור בוואטסאפ? דרכו אפשר להצטרף גם עם מייל.",
+    kidsToggle: "+ של מי אתם ההורים? (לא חובה)",
     google: "הצטרפות עם Google",
     googleHint: "הכי מהיר - לחיצה אחת, בלי להקליד",
     or: "או עם מייל",
@@ -1874,11 +1887,13 @@ export const strings = {
     send: "שליחת בקשה",
     joinAs: "הצטרפות בתור {email}",
     otherAccount: "חשבון אחר",
-    pendingTitle: "הבקשה התקבלה 🙌",
-    pendingBodyGoogle: "נעדכן ברגע שנאשר. אחרי האישור פשוט נכנסים לאפליקציה עם אותו חשבון Google.",
-    pendingBodyEmail: "אחרי שנאשר יגיע אליכם מייל עם קישור כניסה. כדאי להציץ גם בתיקיית הספאם.",
+    pendingTitle: "הבקשה אצלנו 🙌",
+    // true of a family on the road: so a slow approval does not read as a no
+    pendingWait: "נאשר ברגע שנראה אותה. לפעמים אנחנו בלי קליטה או ישנים כשאצלכם יום, אז אם זה לוקח קצת - זה לא אתם, זה אנחנו.",
+    pendingBodyGoogle: "אחרי האישור פשוט נכנסים לאפליקציה עם אותו חשבון Google.",
+    pendingBodyEmail: "אחרי האישור יגיע אליכם מייל עם קישור כניסה. כדאי להציץ גם בתיקיית הספאם.",
     checkAgain: "בדיקה אם אושרתי",
-    memberTitle: "אתם כבר בפנים!",
+    memberTitle: "אתם כבר איתנו!",
     enter: "כניסה לאפליקציה",
     invalidTitle: "הקישור לא בתוקף",
     invalidBody: "ייתכן שנוצר קישור חדש. בקשו אותו ממי ששלח לכם.",
@@ -1926,6 +1941,32 @@ export const strings = {
     latestRead: "לקריאה",
     latestNoTitle: "עדכון מהדרך",
     latestEmpty: "עוד לא שיתפנו עדכון. כשנכתוב מהדרך, הוא יופיע כאן",
+    // The home is a note from the road, to this person (Hadar 15/11/2026:
+    // "whoever gets the link is connected to us"): their name, what is new
+    // since they were last here, the newest update with its photo, the latest
+    // photos, something the kids said, and a way to answer.
+    hello: "היי {name}!",
+    sinceTitle: "מאז שביקרת",
+    newStory: "עדכון חדש",
+    newStories: "{n} עדכונים חדשים",
+    newPhoto: "תמונה חדשה",
+    newPhotos: "{n} תמונות חדשות",
+    newEpisode: "פרק חדש",
+    newEpisodes: "{n} פרקים חדשים",
+    newMessage: "הודעה חדשה",
+    newMessages: "{n} הודעות חדשות",
+    by: "מאת {name}",
+    heart: "אהבתי",
+    hearted: "אהבתי - לחיצה מבטלת",
+    photosTitle: "תמונות אחרונות",
+    photosAll: "לכל התמונות",
+    quoteTitle: "הישר מהצנצנת",
+    quoteAll: "לכל הציטוטים",
+    writeUs: "כתבו לנו משהו...",
+    writeUsCta: "לצ'אט",
+    emptyTitle: "עוד רגע מתחילים לספר",
+    emptyBody: "כשנכתוב את העדכון הראשון מהדרך, הוא יחכה לכם כאן.",
+    more: "עוד",
   },
 
   kidLogin: {
@@ -1967,6 +2008,21 @@ export const strings = {
     tileRoute: "לאן ממשיכים?",
     // the same wall as the bottom tab, first on the home (Hadar 20/10/2026)
     tileWall: "צ'אט עם החברים",
+    // The kids' own home (Hadar 15/11/2026): a passport that fills up, one
+    // list of what was booked for today, and tiles in colour. The place wears
+    // its country's colour.
+    passport: "הדרכון שלי",
+    passportCount: "{n} מתוך {total} מדינות",
+    passportNext: "עוד {n} ימים לחותמת של {country}",
+    passportNextTomorrow: "מחר: חותמת של {country}!",
+    passportDone: "כל החותמות אצלי!",
+    passportOpen: "פתיחת הדרכון",
+    stampGot: "{country} - יש חותמת",
+    stampNext: "{country} - החותמת הבאה",
+    stampLater: "{country} - בהמשך",
+    // no day plan by the hour for the kids, only what was booked (Hadar 15/11/2026)
+    bookedToday: "הזמנו להיום",
+    moreTitle: "עוד דברים",
   },
 
   // the quick paths into the journal (00078: one feed with the stories)

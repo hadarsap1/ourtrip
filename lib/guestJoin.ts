@@ -5,8 +5,10 @@
 import { strings } from "@/lib/strings";
 
 export type JoinStatus = "member" | "pending" | null;
-export type JoinInfo = { valid: boolean; status: JoinStatus };
-export type SubmitResult = "pending" | "member" | "invalid" | "bad_input" | "busy";
+/** googleOnly: the token is the login screen's open one (00095) - a request
+ *  through it must come from a signed-in Google account. */
+export type JoinInfo = { valid: boolean; status: JoinStatus; googleOnly: boolean };
+export type SubmitResult = "pending" | "member" | "invalid" | "bad_input" | "busy" | "google_only";
 
 /** The link that is shared: the short /j/ path, redirected to /join/ (next.config.ts). */
 export function joinUrl(origin: string, token: string): string {
@@ -49,12 +51,12 @@ export function approvedShareText(
 
 /** What guest_join_info returned, narrowed; anything unexpected is invalid. */
 export function parseJoinInfo(raw: unknown): JoinInfo {
-  const obj = (raw ?? {}) as { valid?: unknown; status?: unknown };
+  const obj = (raw ?? {}) as { valid?: unknown; status?: unknown; google_only?: unknown };
   const status = obj.status === "member" || obj.status === "pending" ? obj.status : null;
-  return { valid: obj.valid === true, status };
+  return { valid: obj.valid === true, status, googleOnly: obj.google_only === true };
 }
 
-const RESULTS: SubmitResult[] = ["pending", "member", "invalid", "bad_input", "busy"];
+const RESULTS: SubmitResult[] = ["pending", "member", "invalid", "bad_input", "busy", "google_only"];
 export function parseSubmitResult(raw: unknown): SubmitResult {
   return RESULTS.includes(raw as SubmitResult) ? (raw as SubmitResult) : "invalid";
 }

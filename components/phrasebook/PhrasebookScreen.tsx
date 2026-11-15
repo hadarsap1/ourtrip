@@ -31,6 +31,10 @@ import type { PhrasebookEntry, Trip } from "@/lib/types";
 export function PhrasebookScreen() {
   const { member } = useMember();
   const isOwner = member?.role === "owner";
+  // Adding a language writes phrasebook_entries, which only a parent may do
+  // (phrasebook_entries_owner_all); a kid pressing it got an error (QA
+  // 15/11/2026). Shown with no member so the no-backend shell keeps it.
+  const canAddLanguage = !member || member.role === "owner";
   const [trip, setTrip] = useState<Trip | null>(null);
   const [languages, setLanguages] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -237,6 +241,7 @@ export function PhrasebookScreen() {
               {languageName(lang)}
             </button>
           ))}
+          {canAddLanguage && (
           <button
             type="button"
             onClick={() => setAddOpen(true)}
@@ -245,10 +250,11 @@ export function PhrasebookScreen() {
           >
             + {strings.phrasebook.addLanguage}
           </button>
+          )}
         </div>
       )}
 
-      {languages.length === 0 && (
+      {languages.length === 0 && canAddLanguage && (
         <button
           type="button"
           onClick={() => setAddOpen(true)}

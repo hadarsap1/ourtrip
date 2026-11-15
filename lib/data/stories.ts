@@ -98,6 +98,18 @@ export async function latestStory(
   return { story, photoUrl: urls.get(photoId) ?? null };
 }
 
+/** When each update this member may read went out - for "new since your last
+ *  visit" on the guest home. Ids and times only; RLS decides which. */
+export async function listStoryStamps(tripId: string): Promise<{ id: string; at: string }[]> {
+  const { data, error } = await requireClient()
+    .from("posts")
+    .select("id, published_at, created_at")
+    .eq("trip_id", tripId)
+    .eq("status", "approved");
+  if (error) throw new Error(error.message);
+  return data.map((p) => ({ id: p.id, at: p.published_at ?? p.created_at }));
+}
+
 export type StoryInput = {
   /** optional since 00078; a public entry needs one (posts_public_has_title) */
   title: string | null;

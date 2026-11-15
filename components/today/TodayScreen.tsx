@@ -8,28 +8,18 @@ import { InTripNow } from "./InTripNow";
 import { StepsCard } from "./StepsCard";
 import { IosInstallHint } from "./IosInstallHint";
 import { Banner } from "@/components/ui/Banner";
-import { GuestLatestUpdate } from "./GuestLatestUpdate";
-import { AlbumNewsLines, albumNewsTotal, useAlbumNews } from "@/components/photos/AlbumNews";
-import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
-import { KidFactCard } from "@/components/facts/KidFactCard";
+import { albumNewsTotal, useAlbumNews } from "@/components/photos/AlbumNews";
+import { isEnabled } from "@/lib/flags";
+import { GuestHome } from "@/components/today/GuestHome";
+import { KidHome } from "@/components/today/KidHome";
 import {
   BedIcon,
-  BulbIcon,
   CameraIcon,
-  CoinIcon,
-  JarIcon,
-  JournalIcon,
-  MessagesIcon,
-  MicIcon,
-  PhotosIcon,
-  PhrasebookIcon,
   PinIcon,
   RainDropIcon,
   RouteIcon,
-  StarIcon,
   WeatherIcon,
 } from "@/components/icons";
-import { SovevBrand, SovevScreen } from "@/components/sovev/SovevScreen";
 import { countryName } from "@/lib/data/emergency";
 import { loadToday, type TodayData } from "@/lib/data/today";
 import {
@@ -45,10 +35,7 @@ import {
 import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { daysUntil } from "@/lib/data/readiness";
 import { getActiveTrip, getNowCountry } from "@/lib/data/trip";
-import { hasQuotes } from "@/lib/data/jar";
-import { GuestFamilyClock, KidIsraelClock } from "./FamilyClock";
 import { strings } from "@/lib/strings";
-import { kidTagText } from "@/lib/kidTag";
 import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { currentItemId, minutesNow, nextUp } from "@/lib/tripDay";
 import { useMember } from "@/lib/useMember";
@@ -301,20 +288,6 @@ export function TodayScreen() {
     };
   }, [isGuest, tripId]);
 
-  // "הישר לצנצנת" (00091): a guest gets the door only once a parent shared a
-  // quote - RLS returns a guest nothing else, so "any row" means "shared"
-  const [guestJar, setGuestJar] = useState(false);
-  useEffect(() => {
-    if (!isGuest || !tripId) return;
-    let alive = true;
-    void hasQuotes(tripId).then((yes) => {
-      if (alive) setGuestJar(yes);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [isGuest, tripId]);
-
   // "new in the album" (00087): a line on the guest home, a badge on the
   // photos door for guests and kids
   const albumNews = useAlbumNews(tripId, member?.id ?? null, isGuest || member?.role === "kid");
@@ -323,199 +296,32 @@ export function TodayScreen() {
   const data = result?.data ?? null;
   const activeItems = data?.items.filter((i) => i.status !== "cancelled") ?? [];
 
-  // ---------- guest portal home ----------
+  // ---------- guest portal home: a note from the road (GuestHome) ----------
   if (member?.role === "guest") {
-    const tiles = [
-      // the map of where we've been lives inside the updates (Hadar
-      // 31/10/2026); the photos are a door again, by place (01/11/2026)
-      { href: "/stories", Icon: JournalIcon, label: strings.guestHome.tileStories },
-      { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos, badge: albumFresh },
-      { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall, badge: unreadWall },
-      { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
-      ...(guestJar ? [{ href: "/jar", Icon: JarIcon, label: strings.jar.navLabel }] : []),
-    ];
-    // The guest portal wears the "סו-בב עולם!" brand: the illustration from
-    // the farewell invitation, parchment and ink (docs/DESIGN-sharing.md).
     return (
-      <SovevScreen>
-        <div className="mx-auto max-w-lg space-y-5 px-4 pt-6 pb-8 sm:max-w-2xl">
-          <SovevBrand size="lg" />
-          {/* eslint-disable-next-line @next/next/no-img-element -- static brand illustration */}
-          <img
-            src="/sovev/scene.jpg"
-            alt=""
-            className="aspect-[2/1] w-full rounded-card border-2 border-sv-ink object-cover"
-          />
-          <div>
-            <h1 className="sovev-display text-2xl font-extrabold text-sv-ink">{strings.guestHome.welcome}</h1>
-            <p className="text-sm text-sv-ink-soft">{strings.guestHome.subtitle}</p>
-          </div>
-          <GuestFamilyClock now={clock} countryCode={nowCountry} />
-          {/* what the family wrote last, before the doors (UX pass 06/11/2026) */}
-          {tripId && <GuestLatestUpdate tripId={tripId} role={member.role} />}
-          <AlbumNewsLines news={albumNews} />
-          <div className="grid grid-cols-2 gap-2.5">
-            {tiles.map((tile) => (
-              <Link
-                key={tile.href}
-                href={tile.href}
-                className="flex flex-col items-center gap-2.5 rounded-card border border-sv-line bg-sv-card p-5 active:bg-sv-sage-soft"
-              >
-                <span className="relative grid h-11 w-11 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
-                  <tile.Icon className="h-6 w-6" />
-                  {tile.badge ? (
-                    <span className="absolute -end-2 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-alert px-1 text-xs font-extrabold text-on-alert">
-                      {tile.badge > 9 ? "9+" : tile.badge}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="text-center font-bold text-ink">{tile.label}</span>
-              </Link>
-            ))}
-          </div>
-          <Link
-            href="/settings"
-            className="flex min-h-[44px] items-center justify-between gap-2 rounded-card border border-sv-line bg-sv-card px-4 py-2.5 text-sm"
-          >
-            {(member.kid_names ?? []).length > 0 ? (
-              <>
-                <span className="min-w-0 truncate font-semibold text-sv-ink">{kidTagText(member.kid_names)}</span>
-                <span className="shrink-0 font-semibold text-sv-sage">{strings.kidTag.homeEdit}</span>
-              </>
-            ) : (
-              <span className="font-semibold text-sv-sage">{strings.kidTag.homeAdd}</span>
-            )}
-          </Link>
-        </div>
-      </SovevScreen>
+      <GuestHome
+        member={member}
+        tripId={tripId}
+        now={clock}
+        countryCode={nowCountry}
+        albumFresh={albumFresh}
+        unreadWall={unreadWall}
+      />
     );
   }
 
-  // ---------- kid home variant (SPEC 2.1) ----------
+  // ---------- kid home (SPEC 2.1): passport, what was booked today, colour (KidHome) ----------
   if (member?.role === "kid") {
-    // The wall leads: friends write there, and the kids missed it behind the
-    // bottom tab alone (Hadar 20/10/2026).
-    const kidTiles: { href: string; Icon: typeof RouteIcon; label: string; badge?: number }[] = [
-      { href: "/messages", Icon: MessagesIcon, label: strings.kidHome.tileWall, badge: unreadWall },
-      { href: "/itinerary", Icon: RouteIcon, label: strings.kidHome.tileRoute },
-      { href: "/podcast", Icon: MicIcon, label: strings.kidHome.tilePodcast },
-      { href: "/photos", Icon: PhotosIcon, label: strings.kidHome.tilePhotos, badge: albumFresh },
-      ...(FLAG_DEFAULTS.pocketMoney
-        ? [{ href: "/pocket", Icon: CoinIcon, label: strings.kidHome.tilePocket }]
-        : []),
-      {
-        href: "/phrasebook",
-        Icon: PhrasebookIcon,
-        label: strings.kidHome.tilePhrasebook,
-      },
-      {
-        href: "/facts",
-        Icon: BulbIcon,
-        label: strings.kidHome.tileFacts,
-      },
-      { href: "/jar", Icon: JarIcon, label: strings.jar.navLabel },
-      ...(isEnabled("statsStamps")
-        ? [{ href: "/stats", Icon: StarIcon, label: strings.kidHome.tileStamps }]
-        : []),
-    ];
     return (
-      <div className="mx-auto max-w-lg space-y-4 px-4 pt-6 pb-8 sm:max-w-2xl">
-        <header className="flex items-start justify-between gap-3">
-          <h1 className="text-3xl font-bold">
-            {strings.kidHome.hello} {member.display_name}!
-          </h1>
-          <Link
-            href="/emergency"
-            aria-label={strings.emergency.title}
-            className="shrink-0 rounded-2xl bg-alert px-3 py-2 text-sm font-bold text-on-alert"
-          >
-            {strings.emergency.sos}
-          </Link>
-        </header>
-
-        <section className="rounded-card bg-sea p-4 text-on-sea">
-          <p className="text-sm font-medium opacity-80">
-            {strings.kidHome.whereToday}
-          </p>
-          <p className="mt-1 flex items-center gap-2 text-2xl font-bold">
-            <PinIcon className="h-6 w-6 shrink-0 opacity-80" />
-            {data?.day?.location_name ?? strings.kidHome.noLocation}
-          </p>
-          {weather && (
-            <p className="mt-1.5 flex items-center gap-2 text-lg">
-              <WeatherIcon
-                code={weather.weatherCode}
-                className="h-6 w-6 opacity-90"
-              />
-              <span dir="ltr">
-                {weather.tempMin}-{weather.tempMax}°
-              </span>
-            </p>
-          )}
-          <KidIsraelClock now={clock} />
-        </section>
-
-        {activeItems.length > 0 && (
-          <section className="rounded-card border border-line bg-surface">
-            <ul className="divide-y divide-line">
-              {activeItems.map((item) => (
-                <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
-                  <span
-                    className="w-14 shrink-0 text-sm font-bold tabular-nums text-sea"
-                    dir="ltr"
-                  >
-                    {item.start_time ? formatTime(item.start_time) : "-"}
-                  </span>
-                  <span
-                    className={`text-lg font-medium ${
-                      item.status === "done"
-                        ? "text-ink-faint line-through"
-                        : "text-ink"
-                    }`}
-                  >
-                    {item.title}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {/* One fact about where they are, or nothing at all when there is no
-            fact for this destination yet. */}
-        {trip?.id && <KidFactCard tripId={trip.id} />}
-
-        {/* daily journal prompt */}
-        <Link
-          href="/stories"
-          className="block rounded-card bg-sun-tint p-4 text-sun-deep"
-        >
-          <p className="text-lg font-bold">{strings.kidHome.journalPrompt}</p>
-          <p className="mt-0.5 text-sm font-bold">
-            {strings.kidHome.journalCta} ←
-          </p>
-        </Link>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          {kidTiles.map((tile) => (
-            <Link
-              key={tile.href}
-              href={tile.href}
-              className="flex flex-col items-center gap-2 rounded-card border border-line bg-surface p-4 active:bg-sea-tint/50"
-            >
-              <span className="relative grid h-10 w-10 place-items-center rounded-xl bg-sea-tint text-sea-deep">
-                <tile.Icon className="h-[22px] w-[22px]" />
-                {tile.badge ? (
-                  <span className="absolute -end-2 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-alert px-1 text-xs font-extrabold text-on-alert">
-                    {tile.badge > 9 ? "9+" : tile.badge}
-                  </span>
-                ) : null}
-              </span>
-              <span className="text-sm font-semibold text-ink">{tile.label}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+      <KidHome
+        member={member}
+        tripId={tripId}
+        data={data}
+        weather={weather}
+        clock={clock}
+        unreadWall={unreadWall}
+        albumFresh={albumFresh}
+      />
     );
   }
 

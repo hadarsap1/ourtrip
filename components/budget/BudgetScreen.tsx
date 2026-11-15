@@ -184,6 +184,16 @@ export function BudgetScreen() {
       ? { expense: null }
       : null
   );
+  // The "add expense" bar is sticky at the bottom of <main>, like the chat's
+  // composer: main's bottom room left it floating 80px above the bottom bar,
+  // over the figures (QA 15/11/2026). Same switch as MessagesScreen.
+  useEffect(() => {
+    document.body.dataset.chat = "1";
+    return () => {
+      delete document.body.dataset.chat;
+    };
+  }, []);
+
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("add") !== "1") return;

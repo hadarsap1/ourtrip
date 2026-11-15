@@ -31,12 +31,28 @@ export function JoinScreen({ token }: { token: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [kidNames, setKidNames] = useState<string[]>([]);
+  // the login screen's open token (00095): Google only, and no names on the page
+  const [googleOnly, setGoogleOnly] = useState(false);
+  // optional parts, closed until asked for, so the button is on the first screen
+  const [kidsOpen, setKidsOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  // No bottom bar on this page, so main's room for it is only empty scroll
+  // (the same switch the chat uses, globals.css).
+  useEffect(() => {
+    document.body.dataset.chat = "1";
+    return () => {
+      delete document.body.dataset.chat;
+    };
+  }, []);
 
   const afterSubmit = useCallback((result: SubmitResult, via: "google" | "email") => {
     if (result === "pending") setPhase({ kind: "pending", via });
     else if (result === "member") setPhase({ kind: "member" });
     else if (result === "invalid") setPhase({ kind: "invalid" });
-    else setError(result === "busy" ? strings.join.busy : strings.join.badInput);
+    else if (result === "google_only") {
+      setGoogleOnly(true);
+      setError(strings.join.googleOnlyHint);
+    } else setError(result === "busy" ? strings.join.busy : strings.join.badInput);
   }, []);
 
   const load = useCallback(async () => {
@@ -46,6 +62,7 @@ export function JoinScreen({ token }: { token: string }) {
       const info = await getJoinInfo(token);
       const { data } = (await getSupabase()?.auth.getSession()) ?? { data: { session: null } };
       const user = data.session?.user;
+      setGoogleOnly(info.googleOnly);
       if (!info.valid) {
         if (rememberedJoinToken() === token) forgetJoinToken();
         setPhase({ kind: "invalid" });
@@ -107,19 +124,25 @@ export function JoinScreen({ token }: { token: string }) {
 
   const buttonPrimary =
     "w-full rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-on-sea shadow-sm active:bg-sea-deep disabled:opacity-60";
+  const linkButton = "text-sm font-semibold text-sea underline";
   const buttonSecondary =
     "w-full rounded-full border border-line bg-surface px-8 py-3 text-center font-semibold text-ink-soft disabled:opacity-60";
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 pb-16 pt-8">
-      <div className="ot-postcard mb-6 p-7 text-center">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 pb-3 pt-3">
+      {/* One screen, no scrolling (Hadar 15/11/2026): the badge sits beside
+          the name, and the optional parts below open on a tap. */}
+      <div className="ot-postcard mb-3 flex items-center gap-3 px-4 py-2.5">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
         <img
           src="/sovev/badge-192.png"
           alt=""
-          className="relative z-10 mx-auto h-20 w-20 rounded-full border-[3px] border-white/90 object-cover"
+          className="relative z-10 h-14 w-14 shrink-0 rounded-full border-2 border-white/90 object-cover"
         />
-        <h1 className="relative z-10 mt-3 text-3xl">{strings.appName}</h1>
+        <div className="relative z-10 min-w-0">
+          <h1 className="text-2xl leading-7">{strings.appName}</h1>
+          <p className="text-xs text-white/85">{strings.join.postcardLine}</p>
+        </div>
       </div>
 
       {phase.kind === "loading" && (
@@ -152,9 +175,11 @@ export function JoinScreen({ token }: { token: string }) {
       {phase.kind === "pending" && (
         <div className="space-y-4 text-center">
           <h2 className="text-lg font-bold text-ink">{strings.join.pendingTitle}</h2>
-          <p className="text-ink-soft">
+          <p className="text-ink">{strings.join.pendingWait}</p>
+          <p className="text-sm text-ink-soft">
             {phase.via === "google" ? strings.join.pendingBodyGoogle : strings.join.pendingBodyEmail}
           </p>
+          <p className="sovev-display text-xl text-ink">{strings.join.signature}</p>
           {phase.via === "google" && (
             <button type="button" className={buttonSecondary} disabled={busy} onClick={() => void run(load)}>
               {strings.join.checkAgain}
@@ -165,10 +190,15 @@ export function JoinScreen({ token }: { token: string }) {
 
       {phase.kind === "signedIn" && (
         <div className="space-y-3 text-center">
-          <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
           <JoinAbout />
           <div className="text-start">
-            <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
+            {kidsOpen ? (
+              <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
+            ) : (
+              <button type="button" className={linkButton} onClick={() => setKidsOpen(true)}>
+                {strings.join.kidsToggle}
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -202,70 +232,83 @@ export function JoinScreen({ token }: { token: string }) {
       )}
 
       {phase.kind === "form" && (
-        <div className="space-y-4">
-          <div className="space-y-1 text-center">
-            <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
-          </div>
+        <div className="space-y-3">
           <JoinAbout />
           {/* above both ways in, so it counts for Google and for the typed form */}
-          <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
+          {kidsOpen ? (
+            <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
+          ) : (
+            <button type="button" className={linkButton} onClick={() => setKidsOpen(true)}>
+              {strings.join.kidsToggle}
+            </button>
+          )}
           <div className="space-y-1">
             <button type="button" className={buttonPrimary} onClick={() => void withGoogle()}>
               {strings.join.google}
             </button>
-            <p className="text-center text-xs text-ink-soft">{strings.join.googleHint}</p>
+            {!googleOnly && <p className="text-center text-xs text-ink-soft">{strings.join.googleHint}</p>}
           </div>
-          <p className="flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-            {strings.join.or}
-          </p>
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void run(async () => {
-                afterSubmit(
-                  await submitJoinRequest(token, name.trim(), email.trim(), normalizeKidNames(kidNames)),
-                  "email"
-                );
-              });
-            }}
-          >
-            <div>
-              <label htmlFor="join-name" className="mb-1 block text-sm font-medium text-ink-soft">
-                {strings.join.name}
-              </label>
-              <input
-                id="join-name"
-                type="text"
-                required
-                maxLength={60}
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="join-email" className="mb-1 block text-sm font-medium text-ink-soft">
-                {strings.join.email}
-              </label>
-              <input
-                id="join-email"
-                type="email"
-                required
-                maxLength={254}
-                autoComplete="email"
-                inputMode="email"
-                dir="ltr"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-              />
-            </div>
-            <button type="submit" className={buttonSecondary} disabled={busy}>
-              {strings.join.send}
+          {googleOnly ? (
+            <p className="text-center text-xs text-ink-soft">{strings.join.googleOnlyHint}</p>
+          ) : !emailOpen ? (
+            <button type="button" className={`${linkButton} mx-auto block`} onClick={() => setEmailOpen(true)}>
+              {strings.join.or}
             </button>
-          </form>
+          ) : (
+            <>
+              <p className="flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+                {strings.join.or}
+              </p>
+              <form
+                className="space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void run(async () => {
+                    afterSubmit(
+                      await submitJoinRequest(token, name.trim(), email.trim(), normalizeKidNames(kidNames)),
+                      "email"
+                    );
+                  });
+                }}
+              >
+                <div>
+                  <label htmlFor="join-name" className="mb-1 block text-sm font-medium text-ink-soft">
+                    {strings.join.name}
+                  </label>
+                  <input
+                    id="join-name"
+                    type="text"
+                    required
+                    maxLength={60}
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="join-email" className="mb-1 block text-sm font-medium text-ink-soft">
+                    {strings.join.email}
+                  </label>
+                  <input
+                    id="join-email"
+                    type="email"
+                    required
+                    maxLength={254}
+                    autoComplete="email"
+                    inputMode="email"
+                    dir="ltr"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+                  />
+                </div>
+                <button type="submit" className={buttonSecondary} disabled={busy}>
+                  {strings.join.send}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       )}
 
@@ -278,20 +321,32 @@ export function JoinScreen({ token }: { token: string }) {
   );
 }
 
-/** What this is, for a parent who scanned a sticker from a classmate. */
+/**
+ * A note from the family to someone who knows them: who we are, what is
+ * inside, how to get in, signed. Everyone who reaches this page was sent here
+ * by one of us or knows the address (Hadar 15/11/2026).
+ */
 function JoinAbout() {
+  const j = strings.join;
   return (
-    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-4 text-start">
-      <p className="text-sm text-ink">{strings.join.aboutIntro}</p>
-      <ul className="space-y-1.5">
-        {strings.join.aboutItems.map((item) => (
-          <li key={item.text} className="flex items-start gap-2 text-sm text-ink">
+    <div className="space-y-2.5 rounded-card border border-line bg-surface px-4 py-3.5 text-start shadow-card">
+      <div className="space-y-1">
+        <p className="sovev-display text-2xl leading-7 text-sea">{j.hello}</p>
+        <p className="text-sm leading-6 text-ink">{j.aboutIntro}</p>
+      </div>
+      <ul className="grid grid-cols-2 gap-2">
+        {j.aboutItems.map((item) => (
+          <li key={item.text} className="flex items-center gap-1.5 rounded-xl bg-sea-tint px-2.5 py-2 text-sm font-medium text-ink">
             <span aria-hidden="true">{item.icon}</span>
-            <span>{item.text}</span>
+            <span className="min-w-0">{item.text}</span>
           </li>
         ))}
       </ul>
-      <p className="text-xs text-ink-soft">{strings.join.aboutPrivacy}</p>
+      <p className="text-ink">
+        <span className="text-sm text-ink-soft">{j.signOff} </span>
+        <span className="sovev-display text-xl">{j.signature}</span>
+      </p>
+      <p className="text-xs text-ink-soft">{j.aboutPrivacy}</p>
     </div>
   );
 }

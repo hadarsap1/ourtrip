@@ -1129,18 +1129,21 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          open_token: string
           token: string
           trip_id: string
         }
         Insert: {
           created_at?: string
           created_by: string
+          open_token?: string
           token?: string
           trip_id: string
         }
         Update: {
           created_at?: string
           created_by?: string
+          open_token?: string
           token?: string
           trip_id?: string
         }

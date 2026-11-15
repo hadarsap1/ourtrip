@@ -22,6 +22,7 @@ import { shareText, shareUrl } from "@/lib/share";
 import { loosePhotoDays, mergeFeed, splitStories, storyHeadline } from "@/lib/stories";
 import { todayISO } from "@/lib/format";
 import { clearStoryDraft, loadStoryDraft } from "@/lib/storyDraft";
+import { LoadFailed } from "@/components/LoadFailed";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 import type { Comment, Member, Reaction, Trip } from "@/lib/types";
@@ -43,6 +44,9 @@ export function StoriesScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [place, setPlace] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // The list did not arrive (no signal): that is not "nothing here yet"
+  // (QA 15/11/2026).
+  const [loadFailed, setLoadFailed] = useState(false);
   // ?new=1 lands with the composer open
   const [composer, setComposer] = useState<{ story: Story | null } | null>(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("new") === "1"
@@ -109,6 +113,16 @@ export function StoriesScreen() {
     [role, loadFeedback, loadPhotos]
   );
 
+  const retryLoad = useCallback(async () => {
+    if (!trip) return;
+    try {
+      await refresh(trip.id);
+      setLoadFailed(false);
+    } catch {
+      // still no line: the notice stays, and tries again by itself
+    }
+  }, [trip, refresh]);
+
   useEffect(() => {
     if (memberLoading || !member) return;
     let cancelled = false;
@@ -128,7 +142,10 @@ export function StoriesScreen() {
           if (!cancelled) setPlace(here);
         }
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled) {
+          showToast(strings.common.error);
+          setLoadFailed(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -346,7 +363,9 @@ export function StoriesScreen() {
           </section>
         )}
 
-        {feed.length === 0 ? (
+        {feed.length === 0 && loadFailed ? (
+          <LoadFailed onRetry={retryLoad} />
+        ) : feed.length === 0 ? (
           <p className="rounded-card border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
             {role === "guest" ? strings.stories.emptyGuest : strings.stories.empty}
           </p>

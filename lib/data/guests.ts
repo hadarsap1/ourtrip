@@ -1,5 +1,6 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
+import { photoUrls } from "@/lib/data/media";
 import type { Tables } from "@/lib/database.types";
 import { parseJoinInfo, parseSubmitResult, type JoinInfo, type SubmitResult } from "@/lib/guestJoin";
 
@@ -263,6 +264,25 @@ export async function listGuestPhotosWithAlbums(): Promise<{ photos: GuestPhoto[
     photos: photos.filter((p) => !albumOf.has(p.id)),
     albumPhotos: photos.filter((p) => albumOf.has(p.id)).map((p) => ({ ...p, album_id: albumOf.get(p.id)! })),
   };
+}
+
+/**
+ * The newest few photos a guest may see, for their home. Rows through the
+ * guest's own RLS (rule 3: approved AND shared, in their groups; album photos
+ * stay in their album, #58), then only those few are signed - the photos
+ * screen's call signs every photo of the trip, too much for a home screen.
+ */
+export async function latestGuestPhotos(limit: number): Promise<GuestPhoto[]> {
+  const { data, error } = await requireClient()
+    .from("photos")
+    .select("id, caption, taken_on")
+    .is("album_id", null)
+    .order("taken_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  const urls = await photoUrls("guest", data.map((p) => p.id));
+  return data.map((p) => ({ id: p.id, caption: p.caption, taken_on: p.taken_on ?? "", url: urls.get(p.id) ?? null }));
 }
 
 export type GuestGooglePhoto = {

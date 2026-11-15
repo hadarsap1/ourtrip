@@ -8,12 +8,18 @@ describe("joinUrl", () => {
 });
 
 describe("parseJoinInfo", () => {
+  it("marks the login screen's open token as Google only (00095)", () => {
+    expect(parseJoinInfo({ valid: true, status: null, google_only: true }).googleOnly).toBe(true);
+    expect(parseJoinInfo({ valid: true, google_only: "yes" }).googleOnly).toBe(false);
+    expect(parseSubmitResult("google_only")).toBe("google_only");
+  });
+
   it("reads a valid link with a status", () => {
-    expect(parseJoinInfo({ valid: true, status: "pending" })).toEqual({ valid: true, status: "pending" });
+    expect(parseJoinInfo({ valid: true, status: "pending" })).toEqual({ valid: true, status: "pending", googleOnly: false });
   });
   it("treats anything unexpected as invalid with no status", () => {
-    expect(parseJoinInfo(null)).toEqual({ valid: false, status: null });
-    expect(parseJoinInfo({ valid: "yes", status: "declined" })).toEqual({ valid: false, status: null });
+    expect(parseJoinInfo(null)).toEqual({ valid: false, status: null, googleOnly: false });
+    expect(parseJoinInfo({ valid: "yes", status: "declined" })).toEqual({ valid: false, status: null, googleOnly: false });
   });
 });
 

@@ -2999,3 +2999,86 @@ token, and the login screen then gets the new one.
 | 00093 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
 | Live: security definer, `search_path=""`, execute for anon + authenticated, returns the active trip's token | ✅ verified 15/11/2026 |
 
+
+## 15/11/2026 - `country_profiles` in once-per-query form (00094), QA pass
+
+00090 wrote `country_profiles_owner_all` / `_kid_select` with
+`is_owner_of(trip_id)` / `is_kid_of(trip_id)` - the per-row form 00086
+removed everywhere else. The guard in probe 86 failed on it (noted under
+00092 above), and because `scripts/rls/run.sh` stops at the first failing
+probe, a full harness pass never reached probes 87-93. 00094 alters the two
+policies to `trip_id = (select member_trip_as('owner' | 'kid'))`. No change in
+who sees what: parents read and write their trip's cards, kids read them,
+guests / revoked guests / anon / another trip get nothing.
+
+Client changes in the same pass are cosmetic role gates only (kids no longer
+see the emergency / phrasebook edit buttons, the vault tile or the planning
+rows; kids and guests no longer see the map's bookings tab). RLS already
+refused every one of those writes and reads; nothing here is a boundary.
+
+| Check | Result |
+|---|---|
+| Probe 86 guard: no SELECT / FOR ALL policy calls a per-row helper | ✅ PASS - local, 94 migrations |
+| Probe 90 (`country_profiles`): owner all, kid read-only, guest / revoked / anon / other trip nothing | ✅ PASS - local |
+| Full harness, all probes in one run | ✅ 569 PASS, 0 FAIL |
+| Through the UI on a local PostgREST with the real policies: kid opens /budget, /documents, /pocket - "reserved for parents", no rows fetched; guest opens /budget, /documents, /itinerary, /facts - same; guest /jar shows only the 2 shared quotes of 3 | ✅ PASS - local |
+| 00094 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
+| Live: both policies read `trip_id = (select member_trip_as(...))`; 0 SELECT / ALL policies in `public` call a per-row helper | ✅ verified 15/11/2026 |
+| Live security advisor after the apply | nothing new: the SECURITY DEFINER helpers callable by anon / authenticated (by design), `pg_net` in public, leaked-password protection off, RLS-without-policy on the 00078 archive and two `private` tables (intended) |
+
+## 15/11/2026 - the login screen's join token is Google only (00095, DECISIONS #64)
+
+`guest_join_links.open_token` (unique, not null, own default). Changed
+functions, all still security definer with a fixed `search_path`:
+`guest_join_open_token()` returns the open token; `guest_join_info()` accepts
+either token and reports `google_only`; `submit_guest_join()` refuses a request
+through the open token that is not signed in (`'google_only'`, nothing
+written) and no longer lets an unsigned request rewrite a waiting or declined
+one; `guest_join_token(reset)` renews both tokens. No table policy changed:
+`guest_join_links` and `guest_join_requests` stay unreadable to anon, kids and
+guests. Asking still grants nothing - every guest policy needs the allowlist
+row only a parent writes.
+
+Client, cosmetic only: the open page shows the Google button alone and an
+same note from the family as the handed-out link, names included (Hadar's
+choice, 15/11/2026; no places or dates); "approve all" sends only
+Google-proven requests.
+
+| Check | Result |
+|---|---|
+| The two tokens differ; the login screen gets the open one, never the handed-out one | ✅ PASS - local, probe `95_open_join_google_only.sql` |
+| Anon + typed address through the open token: `google_only`, no row written | ✅ PASS - local, probe 95 |
+| Signed-in outsider through the open token: a pending request under the login's own address | ✅ PASS - local, probe 95 |
+| Handed-out token: a typed address still asks | ✅ PASS - local, probe 95 |
+| Unsigned retype of a waiting address (its own or a signed-in person's): name and kid names unchanged | ✅ PASS - local, probe 95 |
+| The signed-in owner of the address can still update their own request | ✅ PASS - local, probe 95 |
+| Reset: both old tokens invalid | ✅ PASS - local, probe 95 |
+| Anon still reads no `guest_join_links` | ✅ PASS - local, probes 93, 95 |
+| Probes 54, 57, 93 (join link) and the deny matrix on 95 migrations | ✅ PASS - full harness 584 PASS, 0 FAIL |
+| Through the UI, signed out: the login screen links to the open token; that page has no typed form; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
+| 00095 applied to production | ⏳ after the app is deployed (see DECISIONS #64 for the order) |
+
+## 15/11/2026 - new guest home and kids' home (DECISIONS #65)
+
+No migration, no policy change. What each home reads, and under which policy:
+
+| Home | Read | Covered by |
+|---|---|---|
+| Guest | newest update + ids/times of updates (`posts`) | `posts` guest select: approved, in the guest's groups |
+| Guest | the update's first photo, the four newest photos (`photos`, `post_photos`) | `photos_guest_select` - rule 3: `approved` AND `shared_with_guests`, audience, album only while shared. The home asks for non-album rows; URLs are signed by `guest-media`, which reads the ids again with the caller's JWT |
+| Guest | one jar quote (`jar_quotes`) | `jar_quotes_guest_select`: `shared_with_guests` only |
+| Guest | episodes' times (`episodes`) | `episodes_guest_select`: approved AND shared |
+| Guest | hearts on the update, add / remove own (`reactions`) | existing reactions policies (own rows only for write) |
+| Guest | names (`trip_member_names`) | 00051: names only, never an address |
+| Kid | the itinerary's dates and countries, for the passport (`itinerary_days`) | kid select (read-only) |
+| Kid | today's day and items | as before (`loadToday`) |
+
+| Check | Result |
+|---|---|
+| Guest home through the real policies (local PostgREST): shows the shared update, 4 photos that are approved + shared and outside albums, the shared quote; nothing of the budget, bookings or unshared photos is requested | ✅ PASS - local stack |
+| Heart from the guest home: adds the guest's own reaction, second tap removes it | ✅ PASS - local stack |
+| Kid home: no request to budget, documents or bookings beyond what the home already made; passport from `itinerary_days` only | ✅ PASS - local stack |
+| Offline: kid home (place, passport, now) opens from the device copy; guest home shows the greeting and the offline banner, each block that could not load is left out | ✅ PASS - local stack, network off |
+| Light + dark, 390 px: no tap target under 44 px, no sideways scroll, no failed request | ✅ PASS |
+| RLS harness unchanged | ✅ 584 PASS, 0 FAIL (no SQL in this change) |
+
