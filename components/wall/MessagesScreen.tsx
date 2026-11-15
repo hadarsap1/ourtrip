@@ -28,6 +28,7 @@ import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
 import { EditIcon, MessagesIcon, TrashIcon } from "@/components/icons";
 import { EditTextSheet } from "@/components/EditTextSheet";
+import { LoadFailed } from "@/components/LoadFailed";
 import { strings } from "@/lib/strings";
 import { spreadDelay } from "@/lib/realtimeTopic";
 import { useMember } from "@/lib/useMember";
@@ -50,6 +51,9 @@ export function MessagesScreen() {
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<WallMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  // The list did not arrive (no signal): that is not "nothing here yet"
+  // (QA 15/11/2026).
+  const [loadFailed, setLoadFailed] = useState(false);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -85,6 +89,16 @@ export function MessagesScreen() {
     []
   );
 
+  const retryLoad = useCallback(async () => {
+    if (!trip) return;
+    try {
+      await refresh(trip.id, member?.id ?? null);
+      setLoadFailed(false);
+    } catch {
+      // still no line: the notice stays, and tries again by itself
+    }
+  }, [trip, member, refresh]);
+
   useEffect(() => {
     // Nothing to fetch until a member is resolved. When resolution finishes
     // and produces nobody, `loading` is left as-is on purpose - the render
@@ -113,7 +127,10 @@ export function MessagesScreen() {
           setGroups(myGroups);
         }
       } catch {
-        if (!cancelled) showToast(strings.common.error);
+        if (!cancelled) {
+          showToast(strings.common.error);
+          setLoadFailed(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -386,7 +403,9 @@ export function MessagesScreen() {
       <p className="mb-2 text-xs text-ink-soft">{hint}</p>
 
       <div className="flex-1 space-y-2 overflow-y-auto pb-3">
-        {threads.length === 0 ? (
+        {threads.length === 0 && loadFailed ? (
+          <LoadFailed onRetry={retryLoad} />
+        ) : threads.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
             {strings.wall.empty}
           </p>

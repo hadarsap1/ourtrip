@@ -18,8 +18,12 @@ import { strings } from "@/lib/strings";
 // Screens where a capture button would be in the way or wrong. The wall and
 // the journal have their own composer, right where the
 // button floats (UX pass 14/10). Photos has its own button that opens the
-// picker straight away (Hadar 04/11/2026).
-const HIDDEN_ON = ["/photos", "/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
+// picker straight away (Hadar 04/11/2026). The map's bottom sheet is fixed
+// where the button floats: it sat on the "ימים" tab, which could not be
+// pressed (QA 15/11/2026). The budget has its own "add expense" bar pinned at
+// the bottom: the room the scroller keeps for this button (globals.css,
+// body[data-fab]) lifted that bar to mid-screen, over the figures.
+const HIDDEN_ON = ["/map", "/budget", "/photos", "/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
 const noop = () => () => {};
 
 /**

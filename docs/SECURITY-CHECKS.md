@@ -2999,3 +2999,27 @@ token, and the login screen then gets the new one.
 | 00093 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
 | Live: security definer, `search_path=""`, execute for anon + authenticated, returns the active trip's token | ✅ verified 15/11/2026 |
 
+
+## 15/11/2026 - `country_profiles` in once-per-query form (00094), QA pass
+
+00090 wrote `country_profiles_owner_all` / `_kid_select` with
+`is_owner_of(trip_id)` / `is_kid_of(trip_id)` - the per-row form 00086
+removed everywhere else. The guard in probe 86 failed on it (noted under
+00092 above), and because `scripts/rls/run.sh` stops at the first failing
+probe, a full harness pass never reached probes 87-93. 00094 alters the two
+policies to `trip_id = (select member_trip_as('owner' | 'kid'))`. No change in
+who sees what: parents read and write their trip's cards, kids read them,
+guests / revoked guests / anon / another trip get nothing.
+
+Client changes in the same pass are cosmetic role gates only (kids no longer
+see the emergency / phrasebook edit buttons, the vault tile or the planning
+rows; kids and guests no longer see the map's bookings tab). RLS already
+refused every one of those writes and reads; nothing here is a boundary.
+
+| Check | Result |
+|---|---|
+| Probe 86 guard: no SELECT / FOR ALL policy calls a per-row helper | ✅ PASS - local, 94 migrations |
+| Probe 90 (`country_profiles`): owner all, kid read-only, guest / revoked / anon / other trip nothing | ✅ PASS - local |
+| Full harness, all probes in one run | ✅ 569 PASS, 0 FAIL |
+| Through the UI on a local PostgREST with the real policies: kid opens /budget, /documents, /pocket - "reserved for parents", no rows fetched; guest opens /budget, /documents, /itinerary, /facts - same; guest /jar shows only the 2 shared quotes of 3 | ✅ PASS - local |
+| 00094 applied to production | ⏳ NOT YET - the Supabase connector did not connect in this session |

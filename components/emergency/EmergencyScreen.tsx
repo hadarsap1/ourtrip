@@ -165,7 +165,7 @@ export function EmergencyScreen() {
           </span>{" "}
           {strings.emergency.title}
         </h1>
-        {trip && (
+        {isOwner && trip && (
           <button
             type="button"
             onClick={() => setEditing({ countryCode: selected })}
@@ -210,7 +210,7 @@ export function EmergencyScreen() {
               {countryName(code)}
             </button>
           ))}
-          {trip && (
+          {isOwner && trip && (
             <button
               type="button"
               onClick={() => setEditing({ countryCode: null })}

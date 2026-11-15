@@ -11,7 +11,7 @@
 //   4. Navigations are network-first with a short timeout, so a slow mobile
 //      connection falls back to the cached shell instead of hanging.
 
-const SHELL_CACHE = "ourtrip-shell-v19";
+const SHELL_CACHE = "ourtrip-shell-v20";
 const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
 const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
@@ -27,6 +27,9 @@ const SHELL_URLS = [
   "/emergency", "/map", "/phrasebook", "/photos", "/pocket",
   "/messages", "/recommend", "/notifications", "/options", "/memory-book",
   "/ready", "/facts", "/settings", "/stories", "/podcast", "/offline",
+  // added after the list was last revised: without its page a screen opened
+  // offline for the first time fell to /offline (QA 15/11/2026)
+  "/jar", "/stats", "/visas",
   "/manifest.webmanifest",
 ];
 

@@ -33,6 +33,7 @@ export function MapV2Layout({
   noKey,
   days,
   bookings,
+  showBookings = true,
   dayFilter,
   onDayFilter,
   onFocusStretch,
@@ -44,6 +45,9 @@ export function MapV2Layout({
   noKey: boolean;
   days: ItineraryDay[];
   bookings: Booking[];
+  /** Bookings are the parents' (bookings_owner_all): a kid or a guest gets no
+   *  rows, so the tab was always "no bookings" for them (QA 15/11/2026). */
+  showBookings?: boolean;
   dayFilter: string | null;
   onDayFilter: (id: string | null) => void;
   onFocusStretch: (s: Stretch) => void;
@@ -75,7 +79,7 @@ export function MapV2Layout({
             options={[
               { value: "route", label: t.tabRoute },
               { value: "days", label: t.tabDays },
-              { value: "bookings", label: t.tabBookings },
+              ...(showBookings ? [{ value: "bookings" as const, label: t.tabBookings }] : []),
             ]}
           />
 
