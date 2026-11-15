@@ -477,6 +477,7 @@ export const strings = {
       routes: "מסלולים במפה",
       phrasebook_entries: "שיחון",
       destination_facts: "הידעת",
+      country_profiles: "כרטיסי מדינה",
       posts: "עדכונים",
       messages: "צ'אט",
       photos: "תמונות",
@@ -1193,6 +1194,27 @@ export const strings = {
     deleteConfirm: "למחוק את העובדה?",
     byHand: "נכתב על ידכם",
     verifyHint: "העובדות נוצרו אוטומטית - כדאי לעבור עליהן לפני שהילדים קוראים.",
+    // The country card above the facts: one per country, shown on every
+    // stretch of it (00090).
+    country: {
+      title: "על {country}",
+      flagTitle: "הדגל",
+      population: "אוכלוסייה",
+      capital: "עיר הבירה",
+      language: "שפה",
+      currency: "מטבע",
+      size_vs_israel: "גודל לעומת ישראל",
+      national_symbol: "סמל לאומי",
+      flag_meaning: "הדגל ומשמעותו",
+      empty: "עוד אין כרטיס מדינה",
+      generate: "יצירת כרטיס מדינה",
+      regenerate: "יצירה מחדש",
+      generating: "יוצר כרטיס… זה לוקח כמה שניות",
+      generated: "כרטיס המדינה נוצר - כדאי לעבור עליו",
+      regenerateConfirm: "היצירה מחדש תחליף את כל כרטיס המדינה, כולל שינויים שעשיתם בו.",
+      edit: "עריכת כרטיס המדינה",
+      verifyHint: "הכרטיס נוצר אוטומטית - כדאי לבדוק את הפרטים לפני שהילדים קוראים.",
+    },
   },
 
   common: {

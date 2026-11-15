@@ -47,6 +47,7 @@ describe("aiCost", () => {
       "translate-phrase",
       "phrasebook-generate",
       "facts-generate",
+      "country-profile-generate",
       "emergency-autofill",
     ]) {
       expect(AI_DAILY_CAPS[fn]).toBeGreaterThan(0);

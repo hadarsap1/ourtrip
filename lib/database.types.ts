@@ -428,6 +428,69 @@ export type Database = {
           },
         ]
       }
+      country_profiles: {
+        Row: {
+          capital: string | null
+          country_code: string
+          currency: string | null
+          flag_meaning: string | null
+          id: string
+          language: string | null
+          national_symbol: string | null
+          population: string | null
+          size_vs_israel: string | null
+          source: string
+          trip_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          capital?: string | null
+          country_code: string
+          currency?: string | null
+          flag_meaning?: string | null
+          id?: string
+          language?: string | null
+          national_symbol?: string | null
+          population?: string | null
+          size_vs_israel?: string | null
+          source?: string
+          trip_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          capital?: string | null
+          country_code?: string
+          currency?: string | null
+          flag_meaning?: string | null
+          id?: string
+          language?: string | null
+          national_symbol?: string | null
+          population?: string | null
+          size_vs_israel?: string | null
+          source?: string
+          trip_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_profiles_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "country_profiles_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destination_facts: {
         Row: {
           country_code: string

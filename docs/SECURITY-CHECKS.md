@@ -2899,3 +2899,31 @@ replaced by probe 89 (its link checks no longer apply).
 | After 00089: the $160 Cat Ba - Sapa ride (paid in dong, Hadar) re-entered as 4,098,100 VND, amount_ils unchanged. Trip total 40,397.09 (was 40,337.70; the 59.39 is cash spent at later rates than the withdrawals') | ✅ done 15/11/2026 via the Supabase MCP |
 | Live: `paid_in_cash` on 11 expenses, no `paid_from_expense_id` left; `expenses_withdrawal_not_paid_in_cash` present; RLS on with `expenses_owner_all` the only policy; `expenses_cash_guard` not executable by authenticated | ✅ verified 15/11/2026 |
 
+---
+
+## "הידעת" country card (`country_profiles`, migration 00090)
+
+New table, new Edge Function `country-profile-generate`. One card per country
+(flag and its meaning, population, capital, language, currency, size next to
+Israel, national symbol), shown above the facts of every stretch in that
+country. Same access shape as `destination_facts`: owners write, kids read,
+guests have no policy. Probe: `scripts/rls/probes/90_country_profiles.sql`,
+run against a fresh local database with all migrations, inside a
+transaction that rolls back.
+
+| Check | Method | Result |
+|---|---|---|
+| Owner writes and edits a card | owner JWT, `insert` / `update` | ✅ PASS |
+| One card per country per trip | second `insert` for JP | ✅ PASS - `unique_violation` |
+| Country must be an ISO code | `insert` with `japan` | ✅ PASS - `check_violation` |
+| Kid can READ | kid JWT, `select` | ✅ PASS - 1 row |
+| Kid cannot INSERT | kid JWT, `insert` | ✅ PASS - `insufficient_privilege` |
+| Kid cannot UPDATE / DELETE | kid JWT, then row compared as superuser | ✅ PASS - row unchanged |
+| Guest reads nothing, changes nothing | guest JWT | ✅ PASS |
+| Anonymous reads nothing | `anon` | ✅ PASS |
+| Deny matrix still holds | `probes/90_matrix.sql` (kid allow-list gains `country_profiles`) | ✅ PASS |
+| Generation is owner-only | function checks `current_member_role() = 'owner'`, `verify_jwt=true`, AI budget cap 10/day | ✅ PASS - by inspection |
+| 00090 applied to production | ✅ done 15/11/2026 via the Supabase MCP (recorded live as `00089_country_profiles`, applied before the cash-pool migration took that number on main; renamed 00090 in the repo); live was at 00088; verified live: RLS on, exactly `country_profiles_kid_select` and `country_profiles_owner_all` |
+| `country-profile-generate` deployed | ✅ done 15/11/2026, version 1, verify_jwt on; `ai_reserve` takes any function name, the cap comes from the bundled `aiCost.ts` |
+| `backup-weekly` redeployed with `country_profiles` | ✅ done 15/11/2026, version 16; live v15 matched the repo except that line; verify_jwt stays false (cron secret) |
+| First real generation | **not run here** | ⚠️ PENDING - a parent presses "יצירת כרטיס מדינה" |

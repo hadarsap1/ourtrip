@@ -21,7 +21,7 @@ Items I could not verify from the code alone are marked ❌.
 | Map | Google Maps JavaScript API; a static "today" snapshot blob is cached for offline | `components/map/MapScreen.tsx`, `lib/data/map.ts` |
 | Segments | Not a table: "legs/stretches" are derived from consecutive `itinerary_days` sharing a country + label | `lib/data/segments.ts` |
 | Notifications | Web Push with VAPID (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`), `push-send` Edge Function, pg_cron triggers (00010, 00019, 00025) | `lib/push.ts`, `supabase/functions/push-send` |
-| AI | Anthropic called from Edge Functions only (`recommend`, `gmail-bookings`, `extract-places`, `phrasebook-generate`, `translate-phrase`, `facts-generate`, `emergency-autofill`); key in function env | `supabase/functions/*` |
+| AI | Anthropic called from Edge Functions only (`recommend`, `gmail-bookings`, `extract-places`, `phrasebook-generate`, `translate-phrase`, `facts-generate`, `country-profile-generate`, `emergency-autofill`); key in function env | `supabase/functions/*` |
 | Theme | Light only. Tokens are `paper / ink / sea / sun / line / alert` in `@theme` | `app/globals.css` |
 | Strings | Single `lib/strings.ts` | - |
 | Tests | Vitest unit tests in `lib/`; Playwright smoke at 390×844 with no backend (11 tests) + an env-wired authenticated config | `e2e/`, `playwright*.config.ts` |
