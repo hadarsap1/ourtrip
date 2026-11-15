@@ -51,7 +51,11 @@ export async function setAlbumShared(id: string, shared: boolean): Promise<void>
 /** Deletes the album with its photos (rows cascade; files removed here). */
 export async function deleteAlbum(id: string): Promise<void> {
   const supabase = requireClient();
-  const { data: photos } = await supabase.from("photos").select("file_path").eq("album_id", id);
+  // The paths first, and stop if they did not arrive: deleting the album
+  // cascades the rows, and without the paths the files would stay in storage
+  // with nothing pointing at them (QA 15/11/2026).
+  const { data: photos, error: readError } = await supabase.from("photos").select("file_path").eq("album_id", id);
+  if (readError) throw new Error(readError.message);
   const { error } = await supabase.from("albums").delete().eq("id", id);
   if (error) throw new Error(error.message);
   const paths = (photos ?? []).map((p) => p.file_path);

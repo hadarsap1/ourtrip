@@ -31,12 +31,17 @@ export function JoinScreen({ token }: { token: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [kidNames, setKidNames] = useState<string[]>([]);
+  // the login screen's open token (00095): Google only, and no names on the page
+  const [googleOnly, setGoogleOnly] = useState(false);
 
   const afterSubmit = useCallback((result: SubmitResult, via: "google" | "email") => {
     if (result === "pending") setPhase({ kind: "pending", via });
     else if (result === "member") setPhase({ kind: "member" });
     else if (result === "invalid") setPhase({ kind: "invalid" });
-    else setError(result === "busy" ? strings.join.busy : strings.join.badInput);
+    else if (result === "google_only") {
+      setGoogleOnly(true);
+      setError(strings.join.googleOnlyHint);
+    } else setError(result === "busy" ? strings.join.busy : strings.join.badInput);
   }, []);
 
   const load = useCallback(async () => {
@@ -46,6 +51,7 @@ export function JoinScreen({ token }: { token: string }) {
       const info = await getJoinInfo(token);
       const { data } = (await getSupabase()?.auth.getSession()) ?? { data: { session: null } };
       const user = data.session?.user;
+      setGoogleOnly(info.googleOnly);
       if (!info.valid) {
         if (rememberedJoinToken() === token) forgetJoinToken();
         setPhase({ kind: "invalid" });
@@ -166,7 +172,7 @@ export function JoinScreen({ token }: { token: string }) {
       {phase.kind === "signedIn" && (
         <div className="space-y-3 text-center">
           <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
-          <JoinAbout />
+          <JoinAbout open={googleOnly} />
           <div className="text-start">
             <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
           </div>
@@ -206,7 +212,7 @@ export function JoinScreen({ token }: { token: string }) {
           <div className="space-y-1 text-center">
             <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
           </div>
-          <JoinAbout />
+          <JoinAbout open={googleOnly} />
           {/* above both ways in, so it counts for Google and for the typed form */}
           <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
           <div className="space-y-1">
@@ -215,57 +221,63 @@ export function JoinScreen({ token }: { token: string }) {
             </button>
             <p className="text-center text-xs text-ink-soft">{strings.join.googleHint}</p>
           </div>
-          <p className="flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-            {strings.join.or}
-          </p>
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void run(async () => {
-                afterSubmit(
-                  await submitJoinRequest(token, name.trim(), email.trim(), normalizeKidNames(kidNames)),
-                  "email"
-                );
-              });
-            }}
-          >
-            <div>
-              <label htmlFor="join-name" className="mb-1 block text-sm font-medium text-ink-soft">
-                {strings.join.name}
-              </label>
-              <input
-                id="join-name"
-                type="text"
-                required
-                maxLength={60}
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="join-email" className="mb-1 block text-sm font-medium text-ink-soft">
-                {strings.join.email}
-              </label>
-              <input
-                id="join-email"
-                type="email"
-                required
-                maxLength={254}
-                autoComplete="email"
-                inputMode="email"
-                dir="ltr"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
-              />
-            </div>
-            <button type="submit" className={buttonSecondary} disabled={busy}>
-              {strings.join.send}
-            </button>
-          </form>
+          {googleOnly ? (
+            <p className="text-center text-xs text-ink-soft">{strings.join.googleOnlyHint}</p>
+          ) : (
+            <>
+              <p className="flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+                {strings.join.or}
+              </p>
+              <form
+                className="space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void run(async () => {
+                    afterSubmit(
+                      await submitJoinRequest(token, name.trim(), email.trim(), normalizeKidNames(kidNames)),
+                      "email"
+                    );
+                  });
+                }}
+              >
+                <div>
+                  <label htmlFor="join-name" className="mb-1 block text-sm font-medium text-ink-soft">
+                    {strings.join.name}
+                  </label>
+                  <input
+                    id="join-name"
+                    type="text"
+                    required
+                    maxLength={60}
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="join-email" className="mb-1 block text-sm font-medium text-ink-soft">
+                    {strings.join.email}
+                  </label>
+                  <input
+                    id="join-email"
+                    type="email"
+                    required
+                    maxLength={254}
+                    autoComplete="email"
+                    inputMode="email"
+                    dir="ltr"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-base focus:border-sea focus:outline-none"
+                  />
+                </div>
+                <button type="submit" className={buttonSecondary} disabled={busy}>
+                  {strings.join.send}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       )}
 
@@ -279,10 +291,10 @@ export function JoinScreen({ token }: { token: string }) {
 }
 
 /** What this is, for a parent who scanned a sticker from a classmate. */
-function JoinAbout() {
+function JoinAbout({ open }: { open: boolean }) {
   return (
     <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-4 text-start">
-      <p className="text-sm text-ink">{strings.join.aboutIntro}</p>
+      <p className="text-sm text-ink">{open ? strings.join.aboutIntroOpen : strings.join.aboutIntro}</p>
       <ul className="space-y-1.5">
         {strings.join.aboutItems.map((item) => (
           <li key={item.text} className="flex items-start gap-2 text-sm text-ink">

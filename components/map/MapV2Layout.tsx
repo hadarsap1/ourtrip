@@ -64,6 +64,8 @@ export function MapV2Layout({
 
   return (
     <div className="relative h-[calc(100dvh-5rem)] overflow-hidden lg:h-dvh">
+      {/* the map fills the screen; the page still needs a heading for a screen reader */}
+      <h1 className="sr-only">{strings.map.title}</h1>
       {noKey ? (
         <p className="m-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">{strings.map.noKey}</p>
       ) : (

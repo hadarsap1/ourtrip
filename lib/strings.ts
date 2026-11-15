@@ -1818,6 +1818,9 @@ export const strings = {
     approve: "אישור",
     decline: "דחייה",
     approveAll: "אישור כולם ({n})",
+    // "approve all" takes only requests whose address Google proved (QA 15/11/2026)
+    approveAllProven: "אישור המאומתים ({n})",
+    approveAllSkipped: "{n} בקשות עם מייל שהוקלד נשארו לאישור אחת-אחת",
     approved: "{name} אושר/ה ויקבל/תקבל מייל כניסה",
     approvedAll: "אושרו {ok} מתוך {total}",
     // approved, but guest-invite could not email the sign-in link
@@ -1859,6 +1862,11 @@ export const strings = {
     // The page is open to anyone with the link: names by Hadar's choice (so class
     // parents know whose sticker it is), but no places or dates.
     aboutIntro: "אנחנו משפחת ספיר ורדי: סיון, הדר, אלה ועומר. אנחנו יוצאים לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
+    // from the login screen (00095) the page is one tap from the open internet:
+    // the same words with no names (QA 15/11/2026). The sticker / WhatsApp link
+    // keeps the names above.
+    aboutIntroOpen: "אנחנו משפחה שיצאה לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
+    googleOnlyHint: "מכאן מצטרפים עם חשבון Google. קיבלתם מאיתנו קישור בוואטסאפ? דרכו אפשר גם עם מייל.",
     aboutItems: [
       { icon: "📖", text: "עדכונים מהדרך - מה ראינו ומה עשינו, עם מפה של איפה היינו" },
       { icon: "📷", text: "תמונות מהטיול" },

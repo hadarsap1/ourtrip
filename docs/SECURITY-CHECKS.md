@@ -3022,4 +3022,37 @@ refused every one of those writes and reads; nothing here is a boundary.
 | Probe 90 (`country_profiles`): owner all, kid read-only, guest / revoked / anon / other trip nothing | ✅ PASS - local |
 | Full harness, all probes in one run | ✅ 569 PASS, 0 FAIL |
 | Through the UI on a local PostgREST with the real policies: kid opens /budget, /documents, /pocket - "reserved for parents", no rows fetched; guest opens /budget, /documents, /itinerary, /facts - same; guest /jar shows only the 2 shared quotes of 3 | ✅ PASS - local |
-| 00094 applied to production | ⏳ NOT YET - the Supabase connector did not connect in this session |
+| 00094 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
+| Live: both policies read `trip_id = (select member_trip_as(...))`; 0 SELECT / ALL policies in `public` call a per-row helper | ✅ verified 15/11/2026 |
+| Live security advisor after the apply | nothing new: the SECURITY DEFINER helpers callable by anon / authenticated (by design), `pg_net` in public, leaked-password protection off, RLS-without-policy on the 00078 archive and two `private` tables (intended) |
+
+## 15/11/2026 - the login screen's join token is Google only (00095, DECISIONS #64)
+
+`guest_join_links.open_token` (unique, not null, own default). Changed
+functions, all still security definer with a fixed `search_path`:
+`guest_join_open_token()` returns the open token; `guest_join_info()` accepts
+either token and reports `google_only`; `submit_guest_join()` refuses a request
+through the open token that is not signed in (`'google_only'`, nothing
+written) and no longer lets an unsigned request rewrite a waiting or declined
+one; `guest_join_token(reset)` renews both tokens. No table policy changed:
+`guest_join_links` and `guest_join_requests` stay unreadable to anon, kids and
+guests. Asking still grants nothing - every guest policy needs the allowlist
+row only a parent writes.
+
+Client, cosmetic only: the open page shows the Google button alone and an
+intro with no names; "approve all" sends only Google-proven requests.
+
+| Check | Result |
+|---|---|
+| The two tokens differ; the login screen gets the open one, never the handed-out one | ✅ PASS - local, probe `95_open_join_google_only.sql` |
+| Anon + typed address through the open token: `google_only`, no row written | ✅ PASS - local, probe 95 |
+| Signed-in outsider through the open token: a pending request under the login's own address | ✅ PASS - local, probe 95 |
+| Handed-out token: a typed address still asks | ✅ PASS - local, probe 95 |
+| Unsigned retype of a waiting address (its own or a signed-in person's): name and kid names unchanged | ✅ PASS - local, probe 95 |
+| The signed-in owner of the address can still update their own request | ✅ PASS - local, probe 95 |
+| Reset: both old tokens invalid | ✅ PASS - local, probe 95 |
+| Anon still reads no `guest_join_links` | ✅ PASS - local, probes 93, 95 |
+| Probes 54, 57, 93 (join link) and the deny matrix on 95 migrations | ✅ PASS - full harness 584 PASS, 0 FAIL |
+| Through the UI, signed out: the login screen links to the open token; that page has no typed form and no names; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
+| 00095 applied to production | ⏳ after the app is deployed (see DECISIONS #64 for the order) |
+
