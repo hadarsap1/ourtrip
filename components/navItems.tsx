@@ -8,6 +8,7 @@ import {
   DocumentIcon,
   HomeIcon,
   type IconProps,
+  JarIcon,
   JournalIcon,
   MailIcon,
   MapIcon,
@@ -102,6 +103,7 @@ export const ownerRailGroups: NavGroup[] = [
       // Owner-facing too: FactsScreen is where the AI facts are generated,
       // checked and deleted before the kids read them.
       { href: "/facts", label: strings.facts.navLabel, Icon: BulbIcon },
+      { href: "/jar", label: strings.jar.navLabel, Icon: JarIcon },
     ],
   },
   {

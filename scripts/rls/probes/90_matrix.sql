@@ -35,7 +35,7 @@ select rls.check('guest: cannot write, change or delete a parent''s row anywhere
 -- kids: the family's day-to-day only; never documents, money, bookings, admin
 select rls.check('kid: reads only family day-to-day tables',
   not exists (select 1 from rls_matrix where who = 'kid' and op = 'select' and result = 'VISIBLE'
-               and tbl not in ('country_profiles', 'destination_facts', 'emergency_info', 'fx_rates', 'google_photos',
+               and tbl not in ('country_profiles', 'destination_facts', 'emergency_info', 'fx_rates', 'google_photos', 'jar_quotes',
                                'itinerary_days', 'itinerary_items', 'photos', 'phrasebook_entries', 'albums')));
 select rls.check('kid: cannot write, change or delete a parent''s row anywhere',
   not exists (select 1 from rls_matrix where who = 'kid' and op <> 'select' and result = 'ALLOWED'));

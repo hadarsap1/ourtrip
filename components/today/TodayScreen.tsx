@@ -17,6 +17,7 @@ import {
   BulbIcon,
   CameraIcon,
   CoinIcon,
+  JarIcon,
   JournalIcon,
   MessagesIcon,
   MicIcon,
@@ -44,6 +45,7 @@ import {
 import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { daysUntil } from "@/lib/data/readiness";
 import { getActiveTrip, getNowCountry } from "@/lib/data/trip";
+import { hasQuotes } from "@/lib/data/jar";
 import { GuestFamilyClock, KidIsraelClock } from "./FamilyClock";
 import { strings } from "@/lib/strings";
 import { kidTagText } from "@/lib/kidTag";
@@ -299,6 +301,20 @@ export function TodayScreen() {
     };
   }, [isGuest, tripId]);
 
+  // "הישר לצנצנת" (00091): a guest gets the door only once a parent shared a
+  // quote - RLS returns a guest nothing else, so "any row" means "shared"
+  const [guestJar, setGuestJar] = useState(false);
+  useEffect(() => {
+    if (!isGuest || !tripId) return;
+    let alive = true;
+    void hasQuotes(tripId).then((yes) => {
+      if (alive) setGuestJar(yes);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isGuest, tripId]);
+
   // "new in the album" (00087): a line on the guest home, a badge on the
   // photos door for guests and kids
   const albumNews = useAlbumNews(tripId, member?.id ?? null, isGuest || member?.role === "kid");
@@ -316,6 +332,7 @@ export function TodayScreen() {
       { href: "/photos", Icon: PhotosIcon, label: strings.guestHome.tilePhotos, badge: albumFresh },
       { href: "/messages", Icon: MessagesIcon, label: strings.guestHome.tileWall, badge: unreadWall },
       { href: "/podcast", Icon: MicIcon, label: strings.guestHome.tilePodcast },
+      ...(guestJar ? [{ href: "/jar", Icon: JarIcon, label: strings.jar.navLabel }] : []),
     ];
     // The guest portal wears the "סו-בב עולם!" brand: the illustration from
     // the farewell invitation, parchment and ink (docs/DESIGN-sharing.md).
@@ -396,6 +413,7 @@ export function TodayScreen() {
         Icon: BulbIcon,
         label: strings.kidHome.tileFacts,
       },
+      { href: "/jar", Icon: JarIcon, label: strings.jar.navLabel },
       ...(isEnabled("statsStamps")
         ? [{ href: "/stats", Icon: StarIcon, label: strings.kidHome.tileStamps }]
         : []),

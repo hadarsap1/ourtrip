@@ -2927,3 +2927,34 @@ transaction that rolls back.
 | `country-profile-generate` deployed | ✅ done 15/11/2026, version 1, verify_jwt on; `ai_reserve` takes any function name, the cap comes from the bundled `aiCost.ts` |
 | `backup-weekly` redeployed with `country_profiles` | ✅ done 15/11/2026, version 16; live v15 matched the repo except that line; verify_jwt stays false (cron secret) |
 | First real generation | **not run here** | ⚠️ PENDING - a parent presses "יצירת כרטיס מדינה" |
+
+## 15/11/2026 - "הישר לצנצנת" (00091)
+
+New table `jar_quotes`: what the kids said on the trip (the quote, optionally
+what was meant, optionally background), who said it (family members by id
+and/or free-text names), the date and the country of that itinerary day.
+Parents write; kids only read; a guest reads a quote only once a parent
+switched `shared_with_guests` on for it (default off, per quote, no
+trip-wide switch). A trigger refuses any `said_by` id that is not a parent or
+kid of the same trip. Probe: `scripts/rls/probes/91_jar_quotes.sql`, run
+against a fresh local database with all 91 migrations, inside a transaction
+that rolls back.
+
+| Check | Method | Result |
+|---|---|---|
+| Owner writes quotes, default family-only | owner JWT, `insert` | ✅ PASS - `shared_with_guests = false` |
+| Owner shares one with guests | owner JWT, `update` | ✅ PASS |
+| A guest / unknown id cannot be the speaker | `insert` with guest id, random id | ✅ PASS - `check_violation` |
+| A quote cannot be empty | `insert` with spaces | ✅ PASS - `check_violation` |
+| Kid reads every quote, shared or not | kid JWT, `select` | ✅ PASS - 2 rows |
+| Kid cannot INSERT | kid JWT, `insert` | ✅ PASS - `insufficient_privilege` |
+| Kid cannot UPDATE / DELETE (incl. sharing) | kid JWT, then rows compared as superuser | ✅ PASS - unchanged |
+| Guest reads only the shared quote | guest JWT, `select` | ✅ PASS - exactly that id |
+| Guest cannot INSERT / UPDATE / DELETE | guest JWT | ✅ PASS |
+| Un-sharing hides it from the guest again | flip back, guest `select` | ✅ PASS - 0 rows |
+| Revoked guest, outsider, anon read nothing, even shared | each role, `select` | ✅ PASS |
+| Deny matrix still holds | `probes/90_matrix.sql` (kid allow-list gains `jar_quotes`) | ✅ PASS |
+| Realtime | table added to `supabase_realtime`; delivery follows the SELECT policies above | ✅ by policy |
+| 00091 applied to production | ✅ done 15/11/2026 via the Supabase MCP (`00091_jar_quotes`); verified live: RLS on, exactly `jar_quotes_owner_all` / `jar_quotes_kid_select` / `jar_quotes_guest_select`, both triggers, in `supabase_realtime`; anon reads 0 rows |
+| 00089 (cash pool) on production | ✅ checked 15/11/2026: column, `expenses_cash_guard` function + trigger and `expenses_withdrawal_not_paid_in_cash` are live, no `paid_from_expense_id` link left - applied, but missing from the recorded migration history | ✅ (history only) |
+| `backup-weekly` redeployed with `jar_quotes` | ✅ done 15/11/2026, version 17; live v16 matched the repo except that line; deployed content re-read and identical to the repo; verify_jwt stays false (cron secret). First run with the table: next Sunday 03:00 UTC |

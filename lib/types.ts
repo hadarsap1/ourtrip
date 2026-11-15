@@ -27,6 +27,7 @@ export type SavedRoute = Tables<"routes">;
 export type PhrasebookEntry = Tables<"phrasebook_entries">;
 export type DestinationFact = Tables<"destination_facts">;
 export type CountryProfile = Tables<"country_profiles">;
+export type JarQuote = Tables<"jar_quotes">;
 export type Checklist = Tables<"checklists">;
 export type ChecklistItem = Tables<"checklist_items">;
 export type PlaceOption = Tables<"place_options">;

@@ -90,6 +90,7 @@ const TABLES = [
   "place_options",
   "destination_facts",
   "country_profiles",
+  "jar_quotes",
   "visa_requirements",
   "checklists",
   "checklist_items",
