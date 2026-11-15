@@ -33,6 +33,17 @@ export function JoinScreen({ token }: { token: string }) {
   const [kidNames, setKidNames] = useState<string[]>([]);
   // the login screen's open token (00095): Google only, and no names on the page
   const [googleOnly, setGoogleOnly] = useState(false);
+  // optional parts, closed until asked for, so the button is on the first screen
+  const [kidsOpen, setKidsOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  // No bottom bar on this page, so main's room for it is only empty scroll
+  // (the same switch the chat uses, globals.css).
+  useEffect(() => {
+    document.body.dataset.chat = "1";
+    return () => {
+      delete document.body.dataset.chat;
+    };
+  }, []);
 
   const afterSubmit = useCallback((result: SubmitResult, via: "google" | "email") => {
     if (result === "pending") setPhase({ kind: "pending", via });
@@ -113,20 +124,25 @@ export function JoinScreen({ token }: { token: string }) {
 
   const buttonPrimary =
     "w-full rounded-full bg-sea px-8 py-3.5 text-center font-semibold text-on-sea shadow-sm active:bg-sea-deep disabled:opacity-60";
+  const linkButton = "text-sm font-semibold text-sea underline";
   const buttonSecondary =
     "w-full rounded-full border border-line bg-surface px-8 py-3 text-center font-semibold text-ink-soft disabled:opacity-60";
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 pb-16 pt-8">
-      <div className="ot-postcard mb-6 p-7 text-center">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 pb-3 pt-3">
+      {/* One screen, no scrolling (Hadar 15/11/2026): the badge sits beside
+          the name, and the optional parts below open on a tap. */}
+      <div className="ot-postcard mb-3 flex items-center gap-3 px-4 py-2.5">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
         <img
           src="/sovev/badge-192.png"
           alt=""
-          className="relative z-10 mx-auto h-20 w-20 rounded-full border-[3px] border-white/90 object-cover"
+          className="relative z-10 h-14 w-14 shrink-0 rounded-full border-2 border-white/90 object-cover"
         />
-        <h1 className="relative z-10 mt-3 text-3xl">{strings.appName}</h1>
-        <p className="relative z-10 mt-1 text-sm text-white/85">{strings.join.postcardLine}</p>
+        <div className="relative z-10 min-w-0">
+          <h1 className="text-2xl leading-7">{strings.appName}</h1>
+          <p className="text-xs text-white/85">{strings.join.postcardLine}</p>
+        </div>
       </div>
 
       {phase.kind === "loading" && (
@@ -174,10 +190,15 @@ export function JoinScreen({ token }: { token: string }) {
 
       {phase.kind === "signedIn" && (
         <div className="space-y-3 text-center">
-          <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
           <JoinAbout />
           <div className="text-start">
-            <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
+            {kidsOpen ? (
+              <KidNamesField id="join-kids-google" value={kidNames} onChange={setKidNames} />
+            ) : (
+              <button type="button" className={linkButton} onClick={() => setKidsOpen(true)}>
+                {strings.join.kidsToggle}
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -211,21 +232,28 @@ export function JoinScreen({ token }: { token: string }) {
       )}
 
       {phase.kind === "form" && (
-        <div className="space-y-4">
-          <div className="space-y-1 text-center">
-            <h2 className="text-lg font-bold text-ink">{strings.join.title}</h2>
-          </div>
+        <div className="space-y-3">
           <JoinAbout />
           {/* above both ways in, so it counts for Google and for the typed form */}
-          <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
+          {kidsOpen ? (
+            <KidNamesField id="join-kids" value={kidNames} onChange={setKidNames} />
+          ) : (
+            <button type="button" className={linkButton} onClick={() => setKidsOpen(true)}>
+              {strings.join.kidsToggle}
+            </button>
+          )}
           <div className="space-y-1">
             <button type="button" className={buttonPrimary} onClick={() => void withGoogle()}>
               {strings.join.google}
             </button>
-            <p className="text-center text-xs text-ink-soft">{strings.join.googleHint}</p>
+            {!googleOnly && <p className="text-center text-xs text-ink-soft">{strings.join.googleHint}</p>}
           </div>
           {googleOnly ? (
             <p className="text-center text-xs text-ink-soft">{strings.join.googleOnlyHint}</p>
+          ) : !emailOpen ? (
+            <button type="button" className={`${linkButton} mx-auto block`} onClick={() => setEmailOpen(true)}>
+              {strings.join.or}
+            </button>
           ) : (
             <>
               <p className="flex items-center gap-3 text-sm text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
@@ -301,48 +329,23 @@ export function JoinScreen({ token }: { token: string }) {
 function JoinAbout() {
   const j = strings.join;
   return (
-    <div className="space-y-4 rounded-card border border-line bg-surface p-5 text-start shadow-card">
-      <div className="space-y-1.5">
-        <p className="sovev-display text-2xl leading-8 text-sea">{j.hello}</p>
-        <p className="text-base leading-7 text-ink">{j.aboutIntro}</p>
+    <div className="space-y-2.5 rounded-card border border-line bg-surface px-4 py-3.5 text-start shadow-card">
+      <div className="space-y-1">
+        <p className="sovev-display text-2xl leading-7 text-sea">{j.hello}</p>
+        <p className="text-sm leading-6 text-ink">{j.aboutIntro}</p>
       </div>
-
-      <div className="space-y-2">
-        <p className="ot-kicker">{j.aboutFindTitle}</p>
-        <ul className="space-y-2">
-          {j.aboutItems.map((item) => (
-            <li key={item.text} className="flex items-start gap-2.5 text-sm leading-6 text-ink">
-              <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sea-tint">
-                {item.icon}
-              </span>
-              <span className="pt-0.5">{item.text}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="space-y-2">
-        <p className="ot-kicker">{j.aboutHowTitle}</p>
-        <ol className="space-y-1.5">
-          {j.aboutSteps.map((step, i) => (
-            <li key={step} className="flex items-start gap-2.5 text-sm leading-6 text-ink">
-              <span
-                aria-hidden="true"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sea text-xs font-bold text-on-sea"
-              >
-                {i + 1}
-              </span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
-
-      <div className="border-t border-dashed border-line pt-3">
-        <p className="text-sm text-ink-soft">{j.signOff}</p>
-        <p className="sovev-display text-2xl leading-8 text-ink">{j.signature}</p>
-      </div>
-
+      <ul className="grid grid-cols-2 gap-2">
+        {j.aboutItems.map((item) => (
+          <li key={item.text} className="flex items-center gap-1.5 rounded-xl bg-sea-tint px-2.5 py-2 text-sm font-medium text-ink">
+            <span aria-hidden="true">{item.icon}</span>
+            <span className="min-w-0">{item.text}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-ink">
+        <span className="text-sm text-ink-soft">{j.signOff} </span>
+        <span className="sovev-display text-xl">{j.signature}</span>
+      </p>
       <p className="text-xs text-ink-soft">{j.aboutPrivacy}</p>
     </div>
   );
