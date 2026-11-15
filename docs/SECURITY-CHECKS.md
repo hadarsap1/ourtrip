@@ -3056,7 +3056,10 @@ Google-proven requests.
 | Anon still reads no `guest_join_links` | ✅ PASS - local, probes 93, 95 |
 | Probes 54, 57, 93 (join link) and the deny matrix on 95 migrations | ✅ PASS - full harness 584 PASS, 0 FAIL |
 | Through the UI, signed out: the login screen links to the open token; that page has no typed form; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
-| 00095 applied to production | ⏳ after the app is deployed (see DECISIONS #64 for the order) |
+| 00095 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration), after #205 was deployed (Vercel READY, 0 runtime errors) |
+| Live: the two tokens differ; `guest_join_open_token()` returns the open one; `guest_join_info` says `google_only` for the open token and not for the handed-out one | ✅ verified 15/11/2026 |
+| Live: an unsigned request through the open token answers `google_only` and writes no row | ✅ verified 15/11/2026 |
+| Live: anon may execute `guest_join_open_token` and `submit_guest_join`, not `guest_join_token`; the join tables' policies are unchanged (2) | ✅ verified 15/11/2026 |
 
 ## 15/11/2026 - new guest home and kids' home (DECISIONS #65)
 
