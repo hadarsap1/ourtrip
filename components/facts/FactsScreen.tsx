@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
+import { CountryCard } from "@/components/facts/CountryCard";
 import {
   addFact,
   countFactsByDestination,
@@ -213,6 +214,17 @@ export function FactsScreen() {
             );
           })}
         </div>
+      )}
+
+      {!loading && trip && selected && (
+        <CountryCard
+          key={selected.countryCode}
+          tripId={trip.id}
+          countryCode={selected.countryCode}
+          isOwner={isOwner}
+          memberId={member?.id ?? null}
+          onToast={showToast}
+        />
       )}
 
       {loading ? (

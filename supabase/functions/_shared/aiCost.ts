@@ -60,5 +60,6 @@ export const AI_DAILY_CAPS: Record<string, number> = {
   "translate-phrase": 100,
   "phrasebook-generate": 10,
   "facts-generate": 10,
+  "country-profile-generate": 10,
   "emergency-autofill": 20,
 };

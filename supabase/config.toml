@@ -112,6 +112,9 @@ verify_jwt = false
 [functions.facts-generate]
 verify_jwt = true
 
+[functions.country-profile-generate]
+verify_jwt = true
+
 [functions.translate-phrase]
 verify_jwt = true
 
