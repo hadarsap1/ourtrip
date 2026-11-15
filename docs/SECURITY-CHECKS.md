@@ -2975,5 +2975,6 @@ publication (delivered only to subscribers the SELECT policy admits) and to
 | Kid / guest read none, cannot add, their updates and deletes change nothing | ✅ PASS - local, probe 92 |
 | Deny matrix (probe 90) on 92 migrations, `cash_adjustments` added to the kid "never" list | ✅ PASS |
 | Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row |
-| 00092 applied to production | ⏳ pending |
+| 00092 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
+| Live: `cash_adjustments` RLS on, `cash_adjustments_owner_all` the only policy (FOR ALL, `member_trip_as('owner')` in USING and WITH CHECK); balance and currency checks present; in `supabase_realtime`; no rows yet | ✅ verified 15/11/2026 |
 
