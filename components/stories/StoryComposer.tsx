@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
-import { CameraIcon, CheckIcon, CloseIcon, PhotosIcon } from "@/components/icons";
+import { CameraIcon, CheckIcon, CloseIcon, PhotosIcon, StarIcon } from "@/components/icons";
 import { listPhotos, uploadPhoto, type PhotoWithUrl } from "@/lib/data/photos";
 import {
   createStory,
@@ -292,7 +292,7 @@ export function StoryComposer({
           <legend className="mb-1 text-sm font-medium text-ink-soft">{s.photosLabel}</legend>
           {photos.length > 0 && (
             <ul className="mb-2 grid grid-cols-3 gap-2">
-              {photos.map((p) => (
+              {photos.map((p, i) => (
                 <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-paper-deep">
                   {p.url && (
                     // eslint-disable-next-line @next/next/no-img-element -- signed / object URL
@@ -306,10 +306,30 @@ export function StoryComposer({
                   >
                     <CloseIcon className="h-4 w-4" />
                   </button>
+                  {i === 0 ? (
+                    photos.length > 1 && (
+                      <span className="absolute bottom-1 start-1 flex items-center gap-1 rounded-full bg-sun-tint px-2 py-0.5 text-xs font-semibold text-ink">
+                        <StarIcon className="h-3 w-3" />
+                        {s.coverBadge}
+                      </span>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPhotos((prev) => [p, ...prev.filter((x) => x.id !== p.id)])
+                      }
+                      aria-label={s.makeCover}
+                      className="absolute bottom-1 start-1 grid h-8 w-8 place-items-center rounded-full bg-ink/70 text-paper"
+                    >
+                      <StarIcon className="h-4 w-4" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
+          {photos.length > 1 && <p className="mb-2 text-xs text-ink-soft">{s.coverHint}</p>}
           <div className="grid grid-cols-2 gap-2">
             <label className="flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-line bg-surface text-sm font-semibold text-ink-soft">
               <CameraIcon className="h-4 w-4" />
