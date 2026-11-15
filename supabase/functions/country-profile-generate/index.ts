@@ -65,6 +65,7 @@ const INPUT_SCHEMA = {
     },
   },
   required: [...FIELDS],
+  additionalProperties: false,
 } as const;
 
 const CORS = {
@@ -132,15 +133,12 @@ Deno.serve(async (req) => {
   try {
     response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 3000,
-      tools: [
-        {
-          name: "emit_country",
-          description: "Return the country card.",
-          input_schema: INPUT_SCHEMA,
-        },
-      ],
-      tool_choice: { type: "tool", name: "emit_country" },
+      // Thinking is always on for this model and counts against max_tokens,
+      // so leave room beyond the card itself.
+      max_tokens: 16000,
+      // Structured output, not a forced tool call: this model rejects
+      // tool_choice "tool" with a 400.
+      output_config: { format: { type: "json_schema", schema: INPUT_SCHEMA } },
       messages: [
         {
           role: "user",
@@ -166,8 +164,7 @@ Deno.serve(async (req) => {
             `- History, including independence and wars, may be mentioned ` +
             `factually and briefly, without graphic detail. Avoid current ` +
             `political controversy.\n` +
-            `- No emoji in the text.\n\n` +
-            `Call emit_country with the card.`,
+            `- No emoji in the text.`,
         },
       ],
     });
@@ -182,11 +179,19 @@ Deno.serve(async (req) => {
 
   await recordAi(gate.memberId, FN, [response]);
 
-  const toolUse = response.content.find((b) => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") {
+  if (response.stop_reason !== "end_turn") {
+    console.error("country-profile: stopped with", response.stop_reason);
+    return reply({ ok: false, error: "ai_failed" }, 502);
+  }
+  const text = response.content
+    .map((b) => (b.type === "text" ? b.text : ""))
+    .join("");
+  let input: Partial<Record<Field, unknown>>;
+  try {
+    input = JSON.parse(text);
+  } catch {
     return reply({ ok: false, error: "empty response" }, 502);
   }
-  const input = toolUse.input as Partial<Record<Field, unknown>>;
   const row: Record<string, string | null> = {};
   for (const f of FIELDS) {
     const v = typeof input[f] === "string" ? (input[f] as string).trim() : "";
