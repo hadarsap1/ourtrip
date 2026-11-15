@@ -5,7 +5,8 @@
 import http from "node:http";
 const PGRST = "http://127.0.0.1:3001";
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*", "access-control-expose-headers": "*" };
-const svg = (label) => `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#8fb9c9"/><circle cx="620" cy="140" r="70" fill="#f4d58d"/><path d="M0 600 L250 300 L420 480 L560 360 L800 600Z" fill="#3d6b5e"/><text x="40" y="80" font-size="40" fill="#fff">${label}</text></svg>`;
+const SKIES = [["#f3c98b", "#e79a6a", "#4d7d7b"], ["#a9c7de", "#7fa8c9", "#3f7a5e"], ["#f6d6a8", "#e8b27a", "#8a6a4a"], ["#c9d8b0", "#9fc3a0", "#3d6b5e"]];
+const svg = (label) => { const [a, b, c] = SKIES[[...label].reduce((n, ch) => n + ch.charCodeAt(0), 0) % SKIES.length]; return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><circle cx="610" cy="150" r="64" fill="#fff3d6" opacity=".9"/><path d="M0 600 L0 430 L210 300 L400 450 L560 350 L800 470 L800 600Z" fill="${c}"/></svg>`; };
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
   if (req.method === "OPTIONS") { res.writeHead(200, CORS); return res.end(); }
@@ -26,5 +27,23 @@ http.createServer(async (req, res) => {
     return json(200, { signedURL: `/object/sign/${u.pathname.split("/").slice(5).join("/")}?token=t` });
   }
   if (u.pathname.startsWith("/storage/v1/object/") && req.method === "GET") { res.writeHead(200, { ...CORS, "content-type": "image/svg+xml" }); return res.end(svg(u.pathname.split("/").pop())); }
+  // The two functions that hand a guest signed photo URLs. As in the real
+  // ones, the rows are read with the CALLER's token, so RLS decides which
+  // photos exist (rule 3); only those get a (placeholder) URL.
+  if (u.pathname === "/functions/v1/guest-media" || u.pathname === "/functions/v1/guest-photos") {
+    const auth = { authorization: req.headers.authorization ?? "", apikey: req.headers.apikey ?? "" };
+    const self = `http://${req.headers.host}`;
+    const url = (id) => `${self}/storage/v1/object/sign/photos/${id}.jpg?token=t`;
+    if (u.pathname.endsWith("guest-photos")) {
+      const r = await fetch(`${PGRST}/photos?select=id,caption,taken_on&order=taken_on.desc`, { headers: auth });
+      const rows = r.ok ? await r.json() : [];
+      return json(200, { ok: true, photos: rows.map((p) => ({ ...p, url: url(p.id), place: null, country_code: null, lat: null, lng: null })) });
+    }
+    let b = {}; try { b = JSON.parse(body.toString()); } catch {}
+    const ids = (b.photo_ids ?? []).filter((x) => /^[0-9a-f-]{36}$/.test(x));
+    const r = ids.length ? await fetch(`${PGRST}/photos?select=id&id=in.(${ids.join(",")})`, { headers: auth }) : null;
+    const seen = r && r.ok ? await r.json() : [];
+    return json(200, { ok: true, photos: seen.map((p) => ({ id: p.id, url: url(p.id) })), episodes: [] });
+  }
   json(404, { error: "not found", message: "local stand-in" });
 }).listen(54321, () => console.log("proxy up"));

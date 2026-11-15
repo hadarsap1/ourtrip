@@ -1941,6 +1941,32 @@ export const strings = {
     latestRead: "לקריאה",
     latestNoTitle: "עדכון מהדרך",
     latestEmpty: "עוד לא שיתפנו עדכון. כשנכתוב מהדרך, הוא יופיע כאן",
+    // The home is a note from the road, to this person (Hadar 15/11/2026:
+    // "whoever gets the link is connected to us"): their name, what is new
+    // since they were last here, the newest update with its photo, the latest
+    // photos, something the kids said, and a way to answer.
+    hello: "היי {name}!",
+    sinceTitle: "מאז שביקרת",
+    newStory: "עדכון חדש",
+    newStories: "{n} עדכונים חדשים",
+    newPhoto: "תמונה חדשה",
+    newPhotos: "{n} תמונות חדשות",
+    newEpisode: "פרק חדש",
+    newEpisodes: "{n} פרקים חדשים",
+    newMessage: "הודעה חדשה",
+    newMessages: "{n} הודעות חדשות",
+    by: "מאת {name}",
+    heart: "אהבתי",
+    hearted: "אהבתי - לחיצה מבטלת",
+    photosTitle: "תמונות אחרונות",
+    photosAll: "לכל התמונות",
+    quoteTitle: "הישר מהצנצנת",
+    quoteAll: "לכל הציטוטים",
+    writeUs: "כתבו לנו משהו...",
+    writeUsCta: "לצ'אט",
+    emptyTitle: "עוד רגע מתחילים לספר",
+    emptyBody: "כשנכתוב את העדכון הראשון מהדרך, הוא יחכה לכם כאן.",
+    more: "עוד",
   },
 
   kidLogin: {
@@ -1982,6 +2008,22 @@ export const strings = {
     tileRoute: "לאן ממשיכים?",
     // the same wall as the bottom tab, first on the home (Hadar 20/10/2026)
     tileWall: "צ'אט עם החברים",
+    // The kids' own home (Hadar 15/11/2026): a passport that fills up, one
+    // big "now", and tiles in colour. The place wears its country's colour.
+    passport: "הדרכון שלי",
+    passportCount: "{n} מתוך {total} מדינות",
+    passportNext: "עוד {n} ימים לחותמת של {country}",
+    passportNextTomorrow: "מחר: חותמת של {country}!",
+    passportDone: "כל החותמות אצלי!",
+    passportOpen: "פתיחת הדרכון",
+    stampGot: "{country} - יש חותמת",
+    stampNext: "{country} - החותמת הבאה",
+    stampLater: "{country} - בהמשך",
+    nowTitle: "עכשיו",
+    nextTitle: "הבא בתור",
+    laterToday: "עוד היום",
+    doneToday: "סיימנו את התוכנית להיום",
+    moreTitle: "עוד דברים",
   },
 
   // the quick paths into the journal (00078: one feed with the stories)

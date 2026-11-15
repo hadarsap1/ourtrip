@@ -1,25 +1,13 @@
 "use client";
 
 import { countryName } from "@/lib/data/emergency";
-import { familyClock, israelClock } from "@/lib/inTrip";
+import { israelClock } from "@/lib/inTrip";
 import { strings } from "@/lib/strings";
 
 /** "בווייטנאם" - the country with its preposition, irregular names spelled out. */
 export function inCountry(code: string): string {
   const up = code.toUpperCase();
   return strings.guestHome.inCountryExceptions[up] ?? strings.guestHome.inCountry.replace("{country}", countryName(up));
-}
-
-/** For guests in Israel (00069): the time where the family is today. Nothing when it would say nothing. */
-export function GuestFamilyClock({ now, countryCode }: { now: Date; countryCode: string | null }) {
-  const time = familyClock(now, countryCode);
-  if (!time || !countryCode) return null;
-  return (
-    <p className="flex items-baseline justify-center gap-2 rounded-card border border-sv-line bg-sv-card px-4 py-2.5 text-sm text-sv-ink-soft">
-      <span>{strings.guestHome.familyTime.replace("{where}", inCountry(countryCode))}</span>
-      <bdi className="text-xl font-extrabold tabular-nums text-sv-ink">{time}</bdi>
-    </p>
-  );
 }
 
 /** For the kids, always: what time it is for the friends at home. */

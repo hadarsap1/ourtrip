@@ -88,3 +88,12 @@ insert into bookings (trip_id, type, title, start_date, end_date, confirmation_c
  (:T,'hotel','Hoi An Riverside','2026-11-10','2026-11-16','HX99231',4200,'ILS','paid'),(:T,'flight','דא נאנג - טוקיו','2026-11-20','2026-11-20','VJ8812',5600,'ILS','booked');
 insert into pocket_money (trip_id, kid_id, allowance, currency) values (:T,'bbbbbbbb-0000-0000-0000-000000000003',50,'ILS');
 insert into guest_join_links (trip_id, token, open_token, created_by) values (:T,'demo1234','open5678','bbbbbbbb-0000-0000-0000-000000000001');
+-- the newest shared update carries a shared, approved photo (rule 3 lets a guest see it)
+insert into post_photos (post_id, photo_id, position)
+select '99999999-0000-0000-0000-000000000001', id, 0 from photos where file_path = 'trip/p2.jpg';
+update posts set entry_date = '2026-11-14', place_label = 'הוי אן', title = 'שבוע שני בוייטנאם', body = 'רכבנו על אופניים בין שדות האורז, ראינו תאו מקרוב, ובערב אכלנו בשוק הלילה מתחת לפנסים הצבעוניים.' where id = '99999999-0000-0000-0000-000000000001';
+insert into episodes (trip_id, recorded_by, title, file_path, status, shared_with_guests, approved_by, created_at)
+values ('11111111-0000-0000-0000-000000000001','bbbbbbbb-0000-0000-0000-000000000003','פרק 1: השוק הצף','ep/1.m4a','approved',true,'bbbbbbbb-0000-0000-0000-000000000001', now());
+-- an insert is forced to "pending" for a kid's recording; a parent approves and shares it
+update episodes set status = 'approved', shared_with_guests = true, approved_by = 'bbbbbbbb-0000-0000-0000-000000000001';
+update posts set published_at = now() - interval '1 day' where id = '99999999-0000-0000-0000-000000000001';

@@ -3058,3 +3058,27 @@ Google-proven requests.
 | Through the UI, signed out: the login screen links to the open token; that page has no typed form; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
 | 00095 applied to production | ⏳ after the app is deployed (see DECISIONS #64 for the order) |
 
+## 15/11/2026 - new guest home and kids' home (DECISIONS #65)
+
+No migration, no policy change. What each home reads, and under which policy:
+
+| Home | Read | Covered by |
+|---|---|---|
+| Guest | newest update + ids/times of updates (`posts`) | `posts` guest select: approved, in the guest's groups |
+| Guest | the update's first photo, the four newest photos (`photos`, `post_photos`) | `photos_guest_select` - rule 3: `approved` AND `shared_with_guests`, audience, album only while shared. The home asks for non-album rows; URLs are signed by `guest-media`, which reads the ids again with the caller's JWT |
+| Guest | one jar quote (`jar_quotes`) | `jar_quotes_guest_select`: `shared_with_guests` only |
+| Guest | episodes' times (`episodes`) | `episodes_guest_select`: approved AND shared |
+| Guest | hearts on the update, add / remove own (`reactions`) | existing reactions policies (own rows only for write) |
+| Guest | names (`trip_member_names`) | 00051: names only, never an address |
+| Kid | the itinerary's dates and countries, for the passport (`itinerary_days`) | kid select (read-only) |
+| Kid | today's day and items | as before (`loadToday`) |
+
+| Check | Result |
+|---|---|
+| Guest home through the real policies (local PostgREST): shows the shared update, 4 photos that are approved + shared and outside albums, the shared quote; nothing of the budget, bookings or unshared photos is requested | ✅ PASS - local stack |
+| Heart from the guest home: adds the guest's own reaction, second tap removes it | ✅ PASS - local stack |
+| Kid home: no request to budget, documents or bookings beyond what the home already made; passport from `itinerary_days` only | ✅ PASS - local stack |
+| Offline: kid home (place, passport, now) opens from the device copy; guest home shows the greeting and the offline banner, each block that could not load is left out | ✅ PASS - local stack, network off |
+| Light + dark, 390 px: no tap target under 44 px, no sideways scroll, no failed request | ✅ PASS |
+| RLS harness unchanged | ✅ 584 PASS, 0 FAIL (no SQL in this change) |
+
