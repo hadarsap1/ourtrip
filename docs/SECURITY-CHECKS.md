@@ -2958,3 +2958,22 @@ that rolls back.
 | 00091 applied to production | ✅ done 15/11/2026 via the Supabase MCP (`00091_jar_quotes`); verified live: RLS on, exactly `jar_quotes_owner_all` / `jar_quotes_kid_select` / `jar_quotes_guest_select`, both triggers, in `supabase_realtime`; anon reads 0 rows |
 | 00089 (cash pool) on production | ✅ checked 15/11/2026: column, `expenses_cash_guard` function + trigger and `expenses_withdrawal_not_paid_in_cash` are live, no `paid_from_expense_id` link left - applied, but missing from the recorded migration history | ✅ (history only) |
 | `backup-weekly` redeployed with `jar_quotes` | ✅ done 15/11/2026, version 17; live v16 matched the repo except that line; deployed content re-read and identical to the repo; verify_jwt stays false (cron secret). First run with the table: next Sunday 03:00 UTC |
+
+## 15/11/2026 - hand corrections of the cash wallet (00092, DECISIONS #62)
+
+New table `cash_adjustments` (trip, currency, counted `balance` >= 0, `delta`).
+One policy, `cash_adjustments_owner_all` (FOR ALL, owners only, once-per-query
+form `member_trip_as('owner')` in USING and WITH CHECK). Kids and guests get no
+policy, so they read and write nothing (rule 2). Added to the realtime
+publication (delivered only to subscribers the SELECT policy admits) and to
+`backup-weekly`'s table list.
+
+| Check | Result |
+|---|---|
+| Owner sets a correction and undoes it | ✅ PASS - local, probe `92_cash_adjustments.sql` |
+| Owner cannot write a correction to another trip; balance below zero and a malformed currency are refused | ✅ PASS - local, probe 92 |
+| Kid / guest read none, cannot add, their updates and deletes change nothing | ✅ PASS - local, probe 92 |
+| Deny matrix (probe 90) on 92 migrations, `cash_adjustments` added to the kid "never" list | ✅ PASS |
+| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row |
+| 00092 applied to production | ⏳ pending |
+

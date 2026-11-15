@@ -41,7 +41,7 @@ select rls.check('kid: cannot write, change or delete a parent''s row anywhere',
   not exists (select 1 from rls_matrix where who = 'kid' and op <> 'select' and result = 'ALLOWED'));
 select rls.check('kid: never documents, bookings, expenses, budget, guests list, devices, AI usage',
   not exists (select 1 from rls_matrix where who = 'kid' and result in ('VISIBLE', 'ALLOWED')
-               and tbl in ('documents', 'document_pin', 'document_passkeys', 'bookings', 'booking_files', 'expenses',
+               and tbl in ('documents', 'document_pin', 'document_passkeys', 'bookings', 'booking_files', 'expenses', 'cash_adjustments',
                            'budget_categories', 'guests_allowlist', 'kid_devices', 'kid_device_registrations', 'ai_usage',
                            'push_subscriptions', 'place_options', 'saved_links', 'visa_requirements',
                            'guest_join_links', 'guest_join_requests')));

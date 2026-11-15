@@ -186,6 +186,18 @@ create table expense_receipts (
   created_at timestamptz not null default now()
 );
 
+-- 00092: hand corrections of the cash wallet of a currency (owners only,
+-- cash_adjustments_owner_all). Moves the wallet only, never the totals.
+create table cash_adjustments (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id) on delete cascade,
+  currency text not null check (currency ~ '^[A-Z]{3}$'),
+  balance numeric(16,2) not null check (balance >= 0), -- what was counted
+  delta numeric(16,2) not null,                        -- counted - computed
+  created_by uuid references members(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 -- ============ DOCUMENTS (OWNERS ONLY) ============
 
 create table documents (

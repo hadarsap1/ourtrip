@@ -73,6 +73,7 @@ const TABLES = [
   "budget_categories",
   "expenses",
   "expense_receipts",
+  "cash_adjustments",
   "documents",
   "document_pin",
   "document_passkeys",

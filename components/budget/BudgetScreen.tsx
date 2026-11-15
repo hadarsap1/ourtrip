@@ -9,11 +9,14 @@ import { currencyForCountry } from "@/lib/currencies";
 import {
   EXPENSES_CHANGED_EVENT,
   getTripTotalBudget,
+  isConnectivityError,
   listCategories,
   listExpenses,
   subscribeBudget,
 } from "@/lib/data/expenses";
 import { listReceipts } from "@/lib/data/receipts";
+import { deleteCashAdjustment, listCashAdjustments } from "@/lib/data/cashAdjustments";
+import { askConfirm } from "@/components/ConfirmSheet";
 import { listBookings } from "@/lib/data/bookings";
 import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
 import {
@@ -29,11 +32,12 @@ import { strings } from "@/lib/strings";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { tripPosition } from "@/lib/tripDay";
-import type { Booking, BudgetCategory, Expense, ExpenseReceipt, Trip } from "@/lib/types";
+import type { Booking, BudgetCategory, CashAdjustment, Expense, ExpenseReceipt, Trip } from "@/lib/types";
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
+import { CashWalletSheet } from "./CashWalletSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
 import { BudgetV2 } from "./BudgetV2";
 import { tripCountries } from "@/lib/budgetInsights";
@@ -76,9 +80,27 @@ function CashNote({
   return null;
 }
 
+/** created_at → the local "2026-11-15" it happened on. */
+function localDay(ts: string): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** The cash left, one wallet per currency (00089). Today's currency first,
- *  then the newest; an older wallet only while cash is left in it. */
-function CashWalletCard({ wallets, localCurrency }: { wallets: CashWallet[]; localCurrency: string | null }) {
+ *  then the newest; an older wallet only while cash is left in it. Each can
+ *  be set by hand to what was counted, and the last correction undone (00092). */
+function CashWalletCard({
+  wallets,
+  localCurrency,
+  onEdit,
+  onUndo,
+}: {
+  wallets: CashWallet[];
+  localCurrency: string | null;
+  onEdit: (wallet: CashWallet) => void;
+  onUndo: (adjustmentId: string) => void;
+}) {
+  const s = strings.budget;
   const ordered = [
     ...wallets.filter((w) => w.currency === localCurrency),
     ...wallets.filter((w) => w.currency !== localCurrency),
@@ -86,20 +108,56 @@ function CashWalletCard({ wallets, localCurrency }: { wallets: CashWallet[]; loc
   const shown = ordered.filter((w, i) => i === 0 || w.left > 0);
   if (shown.length === 0) return null;
   const [main, ...rest] = shown;
+  const editButton = (w: CashWallet) => (
+    <button
+      type="button"
+      onClick={() => onEdit(w)}
+      className="shrink-0 rounded-full border border-line px-3 py-1 text-xs font-semibold text-sea-deep"
+    >
+      {s.cashWalletEdit}
+    </button>
+  );
+  const adjusted = (w: CashWallet) =>
+    w.lastAdjustment && (
+      <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-ink-soft">
+        <bdi>
+          {s.cashWalletAdjusted
+            .replace("{date}", formatShortDate(localDay(w.lastAdjustment.created_at)))
+            .replace("{balance}", formatMoney(Math.round(w.lastAdjustment.balance), w.currency))}
+        </bdi>
+        <button
+          type="button"
+          onClick={() => onUndo(w.lastAdjustment!.id)}
+          className="font-semibold text-sea-deep underline"
+        >
+          {s.cashWalletUndo}
+        </button>
+      </p>
+    );
   return (
     <section className="rounded-card border border-line bg-surface px-3.5 py-3">
-      <p className="text-xs font-bold text-ink">{strings.budget.cashWalletTitle}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold text-ink">{s.cashWalletTitle}</p>
+        {editButton(main)}
+      </div>
       <p className="mt-1 text-2xl font-extrabold leading-none text-ink">
         <bdi>{formatMoney(Math.round(main.left), main.currency)}</bdi>
       </p>
-      <p className="mt-1 text-xs text-ink-soft">
-        {strings.budget.cashWalletOf.replace("{withdrawn}", formatMoney(Math.round(main.withdrawn), main.currency))}
-      </p>
+      {main.withdrawn > 0 && (
+        <p className="mt-1 text-xs text-ink-soft">
+          <bdi>{s.cashWalletOf.replace("{withdrawn}", formatMoney(Math.round(main.withdrawn), main.currency))}</bdi>
+        </p>
+      )}
+      {adjusted(main)}
       {rest.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink">
+        <ul className="mt-3 space-y-2 border-t border-line pt-2">
           {rest.map((w) => (
             <li key={w.currency}>
-              <bdi>{formatMoney(Math.round(w.left), w.currency)}</bdi>
+              <div className="flex items-center justify-between gap-2 text-sm text-ink">
+                <bdi>{formatMoney(Math.round(w.left), w.currency)}</bdi>
+                {editButton(w)}
+              </div>
+              {adjusted(w)}
             </li>
           ))}
         </ul>
@@ -113,6 +171,8 @@ export function BudgetScreen() {
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [receipts, setReceipts] = useState<ExpenseReceipt[]>([]);
+  const [adjustments, setAdjustments] = useState<CashAdjustment[]>([]);
+  const [editingWallet, setEditingWallet] = useState<CashWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -153,7 +213,7 @@ export function BudgetScreen() {
   }, []);
 
   const refresh = useCallback(async (tripId: string) => {
-    const [cats, exps, total, recs, bks] = await Promise.all([
+    const [cats, exps, total, recs, bks, adj] = await Promise.all([
       listCategories(tripId),
       listExpenses(tripId),
       // not fatal: with no total the screen derives one from the categories
@@ -162,13 +222,16 @@ export function BudgetScreen() {
       listReceipts(tripId).catch(() => [] as ExpenseReceipt[]),
       // nor its bookings: without them every expense sits on the day it was paid
       listBookings(tripId).catch(() => null),
+      // nor its hand corrections of the cash wallet (00092)
+      listCashAdjustments(tripId).catch(() => null),
     ]);
     setCategories(cats);
     setExpenses(exps);
     setTotalBudget(total);
     setReceipts(recs);
     if (bks) setBookings(bks);
-    void writeQuery(queryKeys.budget(tripId), { cats, exps, total, recs, ...(bks ? { bks } : {}) });
+    if (adj) setAdjustments(adj);
+    void writeQuery(queryKeys.budget(tripId), { cats, exps, total, recs, ...(bks ? { bks } : {}), ...(adj ? { adj } : {}) });
   }, []);
 
   useEffect(() => {
@@ -205,6 +268,7 @@ export function BudgetScreen() {
         total?: number | null;
         recs?: ExpenseReceipt[];
         bks?: Booking[];
+        adj?: CashAdjustment[];
       }>(queryKeys.budget(activeTrip.id));
       if (cached && !cancelled) {
         setCategories(cached.data.cats);
@@ -212,6 +276,7 @@ export function BudgetScreen() {
         setTotalBudget(cached.data.total ?? null);
         setReceipts(cached.data.recs ?? []);
         setBookings(cached.data.bks ?? []);
+        setAdjustments(cached.data.adj ?? []);
         setLoading(false);
       }
       try {
@@ -267,7 +332,7 @@ export function BudgetScreen() {
   // currency left of it (00089), so that cash is not counted twice. Every sum
   // below runs on `counted`; the expense list shows what was entered.
   const cashUses = cashWithdrawalUses(expenses);
-  const wallets = cashWallets(expenses);
+  const wallets = cashWallets(expenses, adjustments);
   const counted = countedExpenses(expenses);
   const receiptsByExpense = new Map<string, ExpenseReceipt[]>();
   for (const r of receipts) {
@@ -405,7 +470,23 @@ export function BudgetScreen() {
       </div>
       )}
 
-      <CashWalletCard wallets={wallets} localCurrency={localCurrency} />
+      <CashWalletCard
+        wallets={wallets}
+        localCurrency={localCurrency}
+        onEdit={setEditingWallet}
+        onUndo={(id) => {
+          void (async () => {
+            if (!(await askConfirm(strings.budget.cashWalletUndoConfirm))) return;
+            try {
+              await deleteCashAdjustment(id);
+              showToast(strings.budget.cashWalletUndone);
+              refreshNow();
+            } catch (e) {
+              showToast(isConnectivityError(e) ? strings.budget.cashWalletOffline : strings.common.error);
+            }
+          })();
+        }}
+      />
 
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
@@ -719,6 +800,19 @@ export function BudgetScreen() {
             refreshNow();
           }}
           onError={(message) => showToast(message ?? strings.common.error)}
+        />
+      )}
+
+      {editingWallet && (
+        <CashWalletSheet
+          wallet={editingWallet}
+          onClose={() => setEditingWallet(null)}
+          onDone={() => {
+            setEditingWallet(null);
+            showToast(strings.budget.cashWalletSaved);
+            refreshNow();
+          }}
+          onError={showToast}
         />
       )}
 

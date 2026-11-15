@@ -13,7 +13,7 @@
 // So they are never in competition: planned is derived and always in sync,
 // target is declared, and the gap between them is the thing worth looking at.
 
-import type { BudgetCategory, Expense } from "@/lib/types";
+import type { BudgetCategory, CashAdjustment, Expense } from "@/lib/types";
 
 export type BudgetTotals = {
   /** Sum of the category planned amounts. Always in sync with them. */
@@ -94,7 +94,8 @@ export function resolveBudgetProgress(
  * is a new currency, so a new wallet.
  *
  * - The wallet of a currency: its withdrawals minus its cash expenses, in that
- *   currency, shown never below zero.
+ *   currency, plus the hand corrections made on it (00092, #61), shown never
+ *   below zero. A correction moves only the wallet, never the totals.
  * - So no money is counted twice, the cash expenses use up the withdrawals of
  *   their currency oldest first, and a withdrawal counts in the totals only
  *   what is left of it (in ILS at its own rate) - never below zero: cash
@@ -114,8 +115,13 @@ export type CashWallet = {
   withdrawn: number;
   /** Logged as paid in cash in this currency. */
   spent: number;
-  /** withdrawn − spent, at least 0. */
+  /** withdrawn − spent + corrections, unrounded at zero (what a new
+   *  correction is measured from). */
+  raw: number;
+  /** raw, at least 0. */
   left: number;
+  /** The newest hand correction on this wallet, if any. */
+  lastAdjustment: AdjustmentFields | null;
   withdrawals: number;
   /** The newest withdrawal's date, to put the current wallet first. */
   lastWithdrawal: string;
@@ -130,11 +136,13 @@ export type CashWithdrawalUse = {
   countedIls: number;
 };
 
+type AdjustmentFields = Pick<CashAdjustment, "id" | "currency" | "balance" | "delta" | "created_at">;
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const byDate = (a: CashFields, b: CashFields) =>
   a.spent_on < b.spent_on ? -1 : a.spent_on > b.spent_on ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 
-function allocateCash(expenses: CashFields[]) {
+function allocateCash(expenses: CashFields[], adjustments: AdjustmentFields[] = []) {
   const spentBy = new Map<string, number>();
   const withdrawalsBy = new Map<string, CashFields[]>();
   for (const e of expenses) {
@@ -146,6 +154,9 @@ function allocateCash(expenses: CashFields[]) {
   }
   const wallets: CashWallet[] = [];
   const uses = new Map<string, CashWithdrawalUse>();
+  const adjustedBy = new Map<string, AdjustmentFields[]>();
+  for (const a of adjustments) adjustedBy.set(a.currency, [...(adjustedBy.get(a.currency) ?? []), a]);
+  for (const currency of adjustedBy.keys()) if (!withdrawalsBy.has(currency)) withdrawalsBy.set(currency, []);
   for (const [currency, list] of withdrawalsBy) {
     const spent = round2(spentBy.get(currency) ?? 0);
     let toCover = spent;
@@ -163,11 +174,15 @@ function allocateCash(expenses: CashFields[]) {
       });
     }
     withdrawn = round2(withdrawn);
+    const adj = [...(adjustedBy.get(currency) ?? [])].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+    const raw = round2(withdrawn - spent + adj.reduce((sum, a) => sum + a.delta, 0));
     wallets.push({
       currency,
       withdrawn,
       spent,
-      left: Math.max(0, round2(withdrawn - spent)),
+      raw,
+      left: Math.max(0, raw),
+      lastAdjustment: adj.at(-1) ?? null,
       withdrawals: list.length,
       lastWithdrawal: list.reduce((d, w) => (w.spent_on > d ? w.spent_on : d), ""),
     });
@@ -176,9 +191,15 @@ function allocateCash(expenses: CashFields[]) {
   return { wallets, uses };
 }
 
-/** The cash wallets, newest withdrawal first (one per currency withdrawn). */
-export function cashWallets(expenses: CashFields[]): CashWallet[] {
-  return allocateCash(expenses).wallets;
+/** The cash wallets, newest withdrawal first (one per currency withdrawn or
+ *  corrected). */
+export function cashWallets(expenses: CashFields[], adjustments: AdjustmentFields[] = []): CashWallet[] {
+  return allocateCash(expenses, adjustments).wallets;
+}
+
+/** The delta a correction to `balance` makes on a wallet whose balance is now `raw`. */
+export function adjustmentDelta(raw: number, balance: number): number {
+  return round2(balance - raw);
 }
 
 /** How much of each withdrawal the cash expenses used up, oldest first. */
