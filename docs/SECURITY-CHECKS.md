@@ -2894,5 +2894,7 @@ replaced by probe 89 (its link checks no longer apply).
 | Kid / guest read no cash expenses, their updates change nothing, guest cannot add one | ✅ PASS - local, probe 89 |
 | Existing links (applied on 88 migrations with a withdrawal + linked purchase) become `paid_in_cash = true`, link null; the withdrawal untouched | ✅ PASS - local, manual |
 | All probes (incl. deny matrix) on 89 migrations | ✅ PASS |
-| 00089 applied to production | ⏳ pending |
+| Before 00089, production data: the USD withdrawal of 30/10 (exchanged to dong, Hadar) re-entered as 26,002,400 VND and the Tam Coc hotel as 2,661,300 VND, amount_ils unchanged on both | ✅ done 14/11/2026 via the Supabase MCP |
+| 00089 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
+| Live: `paid_in_cash` on 11 expenses, no `paid_from_expense_id` left; `expenses_withdrawal_not_paid_in_cash` present; RLS on with `expenses_owner_all` the only policy; `expenses_cash_guard` not executable by authenticated | ✅ verified 15/11/2026 |
 
