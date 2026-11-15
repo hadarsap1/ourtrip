@@ -2974,7 +2974,24 @@ publication (delivered only to subscribers the SELECT policy admits) and to
 | Owner cannot write a correction to another trip; balance below zero and a malformed currency are refused | ✅ PASS - local, probe 92 |
 | Kid / guest read none, cannot add, their updates and deletes change nothing | ✅ PASS - local, probe 92 |
 | Deny matrix (probe 90) on 92 migrations, `cash_adjustments` added to the kid "never" list | ✅ PASS |
-| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row |
+| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row - fixed by 00093 |
 | 00092 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
 | Live: `cash_adjustments` RLS on, `cash_adjustments_owner_all` the only policy (FOR ALL, `member_trip_as('owner')` in USING and WITH CHECK); balance and currency checks present; in `supabase_realtime`; no rows yet | ✅ verified 15/11/2026 |
+
+## 15/11/2026 - country_profiles in once-per-query form (00093)
+
+Probe 86's guard failed on main since 00090: `country_profiles_owner_all` and
+`country_profiles_kid_select` called `is_owner_of(trip_id)` / `is_kid_of(trip_id)`
+per row. 00093 rewrites both as `trip_id = (select member_trip_as(role))`,
+the form every other read policy has used since 00059 / 00086. Same access:
+`is_owner_of(t) <=> t = member_trip_as('owner')`, `is_kid_of(t) <=> t =
+member_trip_as('kid')`, both through `current_member_id()` (kid device
+revocation still applies). No policy added or removed; guests still have none.
+
+| Check | Result |
+|---|---|
+| Probe 86 guard: no SELECT / FOR ALL policy calls a per-row membership helper | ✅ PASS - local, on 93 migrations |
+| Probe 90 (country card): owner writes and edits, kid only reads, guest and anon read nothing, their writes change nothing | ✅ PASS - local, unchanged |
+| Full probe suite incl. deny matrix | ✅ PASS |
+| 00093 applied to production | ⏳ pending |
 
