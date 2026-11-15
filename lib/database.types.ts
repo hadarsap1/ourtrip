@@ -2538,6 +2538,7 @@ export type Database = {
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
       functions_base_url: { Args: never; Returns: string }
       guest_join_info: { Args: { p_token: string }; Returns: Json }
+      guest_join_open_token: { Args: never; Returns: string | null }
       guest_join_token: {
         Args: { p_reset?: boolean; p_trip_id: string }
         Returns: string

@@ -167,6 +167,15 @@ export async function getJoinToken(tripId: string): Promise<string> {
   return data;
 }
 
+/** Login screen, before anyone is signed in (00093): the active trip's join
+ *  token, so someone never approved can ask to join. null when there is no
+ *  join link yet, or on any failure - the screen just shows no "ask to join". */
+export async function getOpenJoinToken(): Promise<string | null> {
+  const { data, error } = await requireClient().rpc("guest_join_open_token");
+  if (error || typeof data !== "string" || data === "") return null;
+  return data;
+}
+
 /** Open requests, oldest first. Owner-only by RLS. */
 export async function listJoinRequests(tripId: string): Promise<JoinRequestRow[]> {
   const { data, error } = await requireClient()

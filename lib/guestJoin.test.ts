@@ -46,9 +46,13 @@ describe("approvedShareText", () => {
     expect(text).not.toContain(base.link);
   });
 
-  it("a typed address gets the personal link", () => {
+  it("a typed address gets the app's address to keep, their email, and the first sign-in link", () => {
     const text = approvedShareText({ ...base, viaGoogle: false }, "https://ourtrip-umber.vercel.app");
     expect(text).toContain("היי סבתא רחל!");
+    expect(text).toContain("https://ourtrip-umber.vercel.app/\n");
+    expect(text).toContain("savta@example.com");
     expect(text).toContain(base.link);
+    expect(text).not.toContain("לזמן קצר");
+    expect(text.indexOf("https://ourtrip-umber.vercel.app/")).toBeLessThan(text.indexOf(base.link));
   });
 });

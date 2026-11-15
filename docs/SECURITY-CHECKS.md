@@ -2978,3 +2978,24 @@ publication (delivered only to subscribers the SELECT policy admits) and to
 | 00092 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
 | Live: `cash_adjustments` RLS on, `cash_adjustments_owner_all` the only policy (FOR ALL, `member_trip_as('owner')` in USING and WITH CHECK); balance and currency checks present; in `supabase_realtime`; no rows yet | ✅ verified 15/11/2026 |
 
+## 15/11/2026 - the app's address offers "ask to join" (00093, DECISIONS #63)
+
+New function `guest_join_open_token()` (security definer, `search_path = ''`,
+execute for anon + authenticated): the active trip's join token, or null. No
+table or policy changes. It reveals only what the printed QR already gives
+anyone: the means to ask to join. Asking grants nothing - every guest policy
+still needs an allowlist row only a parent can create (`is_active_guest_of`),
+and `submit_guest_join`'s limits (30 an hour, 200 open) stand. The token is
+not a secret in the sense of access: resetting the link still kills the old
+token, and the login screen then gets the new one.
+
+| Check | Result |
+|---|---|
+| No join link yet: null, and calling it creates no row | ✅ PASS - local, probe `93_open_join_token.sql` |
+| Anon / outsider get the active trip's token, still read no `guest_join_links` / `guest_join_requests` | ✅ PASS - local, probe 93 |
+| Asking with it only makes a pending request | ✅ PASS - local, probe 93 |
+| Inactive trip: null | ✅ PASS - local, probe 93 |
+| Probes 54, 57 (join link), 90 (deny matrix) on 93 migrations | ✅ PASS |
+| 00093 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
+| Live: security definer, `search_path=""`, execute for anon + authenticated, returns the active trip's token | ✅ verified 15/11/2026 |
+
