@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cashWallets, cashWithdrawalUses, countedExpenses } from "./budget";
+import { adjustmentDelta, cashWallets, cashWithdrawalUses, countedExpenses } from "./budget";
 
 type E = {
   id: string;
@@ -83,8 +83,51 @@ describe("cashWallets", () => {
       cash("c", 10, "USD", 37),
     ];
     expect(cashWallets(list)).toEqual([
-      { currency: "VND", withdrawn: 3000000, spent: 450000.5, left: 2549999.5, withdrawals: 2, lastWithdrawal: "2026-11-11" },
-      { currency: "JPY", withdrawn: 10000, spent: 12000, left: 0, withdrawals: 1, lastWithdrawal: "2026-11-01" },
+      { currency: "VND", withdrawn: 3000000, spent: 450000.5, raw: 2549999.5, left: 2549999.5, lastAdjustment: null, withdrawals: 2, lastWithdrawal: "2026-11-11" },
+      { currency: "JPY", withdrawn: 10000, spent: 12000, raw: -2000, left: 0, lastAdjustment: null, withdrawals: 1, lastWithdrawal: "2026-11-01" },
     ]);
+  });
+});
+
+describe("cash corrections (00092)", () => {
+  const adj = (id: string, currency: string, balance: number, delta: number, created_at: string) => ({
+    id,
+    currency,
+    balance,
+    delta,
+    created_at,
+  });
+
+  it("moves the wallet to the typed balance, and later cash spending goes on from it", () => {
+    const list = [atm("w", 1000000, "VND", 125), cash("a", 200000, "VND", 25)];
+    const before = cashWallets(list)[0];
+    expect(before.raw).toBe(800000);
+    const delta = adjustmentDelta(before.raw, 650000);
+    expect(delta).toBe(-150000);
+    const after = [...list, cash("b", 50000, "VND", 6)];
+    const w = cashWallets(after, [adj("x", "VND", 650000, delta, "2026-11-15T10:00:00Z")])[0];
+    expect(w.left).toBe(600000);
+    expect(w.lastAdjustment?.id).toBe("x");
+  });
+
+  it("lifts a wallet that went below zero", () => {
+    const list = [atm("w", 1000, "JPY", 25), cash("a", 1500, "JPY", 37)];
+    const raw = cashWallets(list)[0].raw;
+    expect(raw).toBe(-500);
+    expect(cashWallets(list, [adj("x", "JPY", 300, adjustmentDelta(raw, 300), "2026-11-15T10:00:00Z")])[0].left).toBe(300);
+  });
+
+  it("never changes what the withdrawals count in the totals", () => {
+    const list = [atm("w", 1000, "ILS", 1000), cash("a", 100, "ILS", 100)];
+    expect(sum(countedExpenses(list))).toBe(1000);
+  });
+
+  it("keeps a wallet made only by a correction, and the newest correction last", () => {
+    const w = cashWallets([], [
+      adj("b", "THB", 900, 100, "2026-11-15T12:00:00Z"),
+      adj("a", "THB", 800, 800, "2026-11-15T09:00:00Z"),
+    ])[0];
+    expect(w).toMatchObject({ currency: "THB", raw: 900, left: 900, withdrawals: 0 });
+    expect(w.lastAdjustment?.id).toBe("b");
   });
 });

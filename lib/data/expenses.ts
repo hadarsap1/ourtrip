@@ -497,6 +497,7 @@ export function subscribeBudget(onChange: () => void): () => void {
     .on("postgres_changes", { event: "*", schema: "public", table: "budget_categories" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "trip_budget" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "expense_receipts" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "cash_adjustments" }, onChange)
     .subscribe();
   return () => {
     void supabase.removeChannel(channel);

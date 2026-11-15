@@ -187,6 +187,51 @@ export type Database = {
           },
         ]
       }
+      cash_adjustments: {
+        Row: {
+          balance: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          delta: number
+          id: string
+          trip_id: string
+        }
+        Insert: {
+          balance: number
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          delta: number
+          id?: string
+          trip_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          delta?: number
+          id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_adjustments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_adjustments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_items: {
         Row: {
           assigned_to: string | null
