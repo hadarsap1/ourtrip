@@ -43,6 +43,8 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [saving, setSaving] = useState(false);
+  // 00089: paid from the cash wallet of its currency
+  const [paidInCash, setPaidInCash] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -82,7 +84,7 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
     if (!categoryId || !Number.isFinite(value) || value <= 0 || saving) return;
     setSaving(true);
     try {
-      const result = await createExpenseOrQueue({ categoryId, amount: value, currency, spentOn: todayISO() });
+      const result = await createExpenseOrQueue({ categoryId, amount: value, currency, spentOn: todayISO(), paidInCash });
       try {
         localStorage.setItem(LAST_CURRENCY_KEY, currency);
         localStorage.setItem(LAST_CATEGORY_KEY, categoryId);
@@ -90,6 +92,7 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
         // non-essential
       }
       setAmount("");
+      setPaidInCash(false);
       if (result === "saved") notifyExpensesChanged();
       onDone(result === "queued" ? strings.budget.expenseQueued : strings.budget.expenseSaved);
     } catch (e) {
@@ -123,6 +126,17 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
               <bdi>{c}</bdi>
             </button>
           ))}
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            type="button"
+            aria-pressed={paidInCash}
+            onClick={() => setPaidInCash((v) => !v)}
+            className={`rounded-full px-4 py-1.5 text-sm font-bold ${paidInCash ? "border-[1.5px] border-sea bg-sea-tint text-sea-deep" : "border border-line bg-surface text-ink"}`}
+          >
+            {strings.budget.paymentCash}
+          </button>
         </div>
 
         <div role="radiogroup" aria-label={strings.capture.category} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">

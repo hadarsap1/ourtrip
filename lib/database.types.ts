@@ -763,6 +763,7 @@ export type Database = {
           id: string
           is_cash_withdrawal: boolean
           paid_from_expense_id: string | null
+          paid_in_cash: boolean
           spent_on: string
           trip_id: string
           updated_at: string
@@ -780,6 +781,7 @@ export type Database = {
           id?: string
           is_cash_withdrawal?: boolean
           paid_from_expense_id?: string | null
+          paid_in_cash?: boolean
           spent_on?: string
           trip_id: string
           updated_at?: string
@@ -797,6 +799,7 @@ export type Database = {
           id?: string
           is_cash_withdrawal?: boolean
           paid_from_expense_id?: string | null
+          paid_in_cash?: boolean
           spent_on?: string
           trip_id?: string
           updated_at?: string

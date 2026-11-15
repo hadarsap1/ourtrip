@@ -249,7 +249,9 @@ export async function createExpense(input: {
   spentOn?: string;
   /** 00082: this expense is an ATM withdrawal of day-to-day cash. */
   isCashWithdrawal?: boolean;
-  /** 00082: paid from this withdrawal, so the withdrawal counts that much less. */
+  /** 00089: paid from the cash wallet of its currency. */
+  paidInCash?: boolean;
+  /** 00082, legacy: an entry queued by an older app; the DB turns it into paidInCash. */
   paidFromExpenseId?: string | null;
   /** 00088: the country it belongs to; null/absent = placed automatically. */
   countryCode?: string | null;
@@ -275,7 +277,7 @@ export async function createExpense(input: {
     description: input.description?.trim() || null,
     spent_on: spentOn,
     is_cash_withdrawal: input.isCashWithdrawal ?? false,
-    paid_from_expense_id: input.isCashWithdrawal ? null : (input.paidFromExpenseId ?? null),
+    paid_in_cash: !input.isCashWithdrawal && (input.paidInCash ?? !!input.paidFromExpenseId),
     ...(input.countryCode ? { country_code: input.countryCode } : {}),
     created_by: member.id,
   });
@@ -357,7 +359,7 @@ export async function createExpenseOrQueue(input: {
   description?: string | null;
   spentOn?: string;
   isCashWithdrawal?: boolean;
-  paidFromExpenseId?: string | null;
+  paidInCash?: boolean;
   countryCode?: string | null;
 }): Promise<"saved" | "queued"> {
   try {
@@ -375,7 +377,7 @@ export async function createExpenseOrQueue(input: {
         description: input.description?.trim() || null,
         spentOn: input.spentOn ?? todayISO(),
         isCashWithdrawal: input.isCashWithdrawal ?? false,
-        paidFromExpenseId: input.paidFromExpenseId ?? null,
+        paidInCash: input.paidInCash ?? false,
         countryCode: input.countryCode ?? null,
       });
       return "queued";
@@ -389,7 +391,7 @@ export async function updateExpense(
   id: string,
   patch: Pick<
     TablesUpdate<"expenses">,
-    "category_id" | "description" | "is_cash_withdrawal" | "paid_from_expense_id" | "country_code"
+    "category_id" | "description" | "is_cash_withdrawal" | "paid_in_cash" | "country_code"
   > & {
     amount: number;
     currency: string;

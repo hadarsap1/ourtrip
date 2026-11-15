@@ -9,8 +9,8 @@ import {
   getRateToIls,
   updateExpense,
 } from "@/lib/data/expenses";
-import { formatMoney, formatShortDate, todayISO } from "@/lib/format";
-import type { CashWithdrawalSplit } from "@/lib/budget";
+import { formatMoney, todayISO } from "@/lib/format";
+import type { CashWallet } from "@/lib/budget";
 import { addReceiptOrQueue } from "@/lib/data/receipts";
 import { ReceiptsField, type PendingReceipt } from "./ReceiptsField";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -28,8 +28,7 @@ export function ExpenseFormSheet({
   open,
   expense,
   categories,
-  withdrawals = [],
-  cashSplits = new Map(),
+  wallets = [],
   receipts = [],
   localCurrency,
   countries = [],
@@ -41,9 +40,8 @@ export function ExpenseFormSheet({
   open: boolean;
   expense: Expense | null;
   categories: BudgetCategory[];
-  /** Cash withdrawals of the trip, newest first (00082). */
-  withdrawals?: Expense[];
-  cashSplits?: Map<string, CashWithdrawalSplit>;
+  /** The cash wallets, one per currency withdrawn (00089). */
+  wallets?: CashWallet[];
   /** Receipt photos of this expense (00083). */
   receipts?: ExpenseReceipt[];
   /** Currency of the country we're in today, when we know it. */
@@ -63,8 +61,7 @@ export function ExpenseFormSheet({
       key={expense?.id ?? "new"}
       expense={expense}
       categories={categories}
-      withdrawals={withdrawals}
-      cashSplits={cashSplits}
+      wallets={wallets}
       receipts={receipts}
       localCurrency={localCurrency ?? null}
       countries={countries}
@@ -76,14 +73,12 @@ export function ExpenseFormSheet({
   );
 }
 
-/** "regular" | "withdrawal" | the id of the withdrawal it was paid from. */
-type Payment = string;
+type Payment = "regular" | "withdrawal" | "cash";
 
 function ExpenseForm({
   expense,
   categories,
-  withdrawals,
-  cashSplits,
+  wallets,
   receipts,
   localCurrency,
   countries,
@@ -94,8 +89,7 @@ function ExpenseForm({
 }: {
   expense: Expense | null;
   categories: BudgetCategory[];
-  withdrawals: Expense[];
-  cashSplits: Map<string, CashWithdrawalSplit>;
+  wallets: CashWallet[];
   receipts: ExpenseReceipt[];
   onReceiptsChanged: (message: string) => void;
   localCurrency: string | null;
@@ -142,25 +136,19 @@ function ExpenseForm({
     []
   );
   const [payment, setPayment] = useState<Payment>(() =>
-    expense?.is_cash_withdrawal
-      ? "withdrawal"
-      : (expense?.paid_from_expense_id ?? "regular")
+    expense?.is_cash_withdrawal ? "withdrawal" : expense?.paid_in_cash ? "cash" : "regular"
   );
   const isWithdrawal = payment === "withdrawal";
-  const paidFromId = payment !== "regular" && payment !== "withdrawal" ? payment : null;
-  // A withdrawal with purchases paid from it stays one (the DB refuses too):
-  // otherwise those purchases would quietly start counting twice.
-  const withdrawalLocked =
-    !!expense?.is_cash_withdrawal && (cashSplits.get(expense.id)?.count ?? 0) > 0;
-  // What is left of a withdrawal for this expense: an expense already paid
-  // from it does not use up its own room.
-  function leftFor(withdrawalId: string): number {
-    const split = cashSplits.get(withdrawalId);
-    if (!split) return 0;
-    if (expense?.paid_from_expense_id !== withdrawalId) return split.left;
-    return Math.max(0, split.withdrawn - (split.itemized - expense.amount_ils));
-  }
-  const withdrawalOptions = withdrawals.filter((w) => w.id !== expense?.id);
+  const paidInCash = payment === "cash";
+  // What is left in the wallet of this currency for this expense: an expense
+  // already paid in cash in it does not use up its own room. null = no
+  // withdrawal in this currency at all.
+  const wallet = wallets.find((w) => w.currency === currency);
+  const walletLeft = wallet
+    ? wallet.withdrawn -
+      wallet.spent +
+      (expense?.paid_in_cash && expense.currency === currency ? expense.amount : 0)
+    : null;
 
   function rememberCurrency(c: string) {
     try {
@@ -187,7 +175,7 @@ function ExpenseForm({
           description,
           spentOn,
           isCashWithdrawal: isWithdrawal,
-          paidFromExpenseId: paidFromId,
+          paidInCash,
           countryCode: countryCode || null,
         });
         rememberCurrency(currency);
@@ -225,7 +213,7 @@ function ExpenseForm({
         description: description.trim() || null,
         spent_on: spentOn,
         is_cash_withdrawal: isWithdrawal,
-        paid_from_expense_id: paidFromId,
+        paid_in_cash: paidInCash,
         country_code: countryCode || null,
       });
       rememberCurrency(currency);
@@ -286,8 +274,9 @@ function ExpenseForm({
   const rate = rateInfo?.currency === currency ? rateInfo.rate : null;
   const inIls =
     rate !== null && amountValid ? Number(amount) * rate : null;
-  const overWithdrawal =
-    paidFromId !== null && inIls !== null && inIls > leftFor(paidFromId) + 0.5;
+  const leftLabel = formatMoney(Math.max(0, walletLeft ?? 0), currency);
+  const overCash =
+    paidInCash && walletLeft !== null && amountValid && Number(amount) > walletLeft + 0.005;
 
   return (
     <Sheet
@@ -374,32 +363,22 @@ function ExpenseForm({
           <select
             id="exp-payment"
             value={payment}
-            disabled={withdrawalLocked}
-            onChange={(e) => setPayment(e.target.value)}
-            className={`${inputClass} bg-surface disabled:opacity-60`}
+            onChange={(e) => setPayment(e.target.value as Payment)}
+            className={`${inputClass} bg-surface`}
           >
             <option value="regular">{strings.budget.paymentRegular}</option>
+            <option value="cash">{strings.budget.paymentCash}</option>
             <option value="withdrawal">{strings.budget.paymentWithdrawal}</option>
-            {withdrawalOptions.map((w) => (
-              <option key={w.id} value={w.id}>
-                {strings.budget.paymentFromCash
-                  .replace("{date}", formatShortDate(w.spent_on))
-                  .replace("{left}", formatMoney(Math.round(leftFor(w.id)), "ILS"))}
-                {w.description ? ` · ${w.description}` : ""}
-              </option>
-            ))}
           </select>
-          {(withdrawalLocked || overWithdrawal || payment !== "regular") && (
-            <p className={`mt-1 text-xs ${overWithdrawal ? "text-sun-deep" : "text-ink-soft"}`}>
-              {withdrawalLocked
-                ? strings.budget.paymentWithdrawalLocked
-                : overWithdrawal
-                  ? strings.budget.paymentOverWithdrawal
-                  : isWithdrawal
-                    ? strings.budget.paymentWithdrawalHint
-                    : paidFromId
-                      ? strings.budget.paymentFromCashHint
-                      : null}
+          {payment !== "regular" && (
+            <p className={`mt-1 text-xs ${overCash ? "text-sun-deep" : "text-ink-soft"}`}>
+              {isWithdrawal
+                ? strings.budget.paymentWithdrawalHint
+                : walletLeft === null
+                  ? strings.budget.paymentCashNoWallet.replace("{currency}", currency)
+                  : overCash
+                    ? strings.budget.paymentCashOver.replace("{left}", leftLabel)
+                    : strings.budget.paymentCashHint.replace("{left}", leftLabel)}
             </p>
           )}
         </div>

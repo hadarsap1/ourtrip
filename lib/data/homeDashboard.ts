@@ -111,7 +111,7 @@ export async function loadHomeSummary(
       client.from("budget_categories").select("planned_amount").eq("trip_id", tripId),
       client
         .from("expenses")
-        .select("id, amount_ils, spent_on, is_cash_withdrawal, paid_from_expense_id")
+        .select("id, amount, currency, amount_ils, spent_on, is_cash_withdrawal, paid_in_cash")
         .eq("trip_id", tripId),
       // The oldest list is the one the trip was planned around; a list made
       // later is usually a side list (packing, shopping) and not the deadline
@@ -132,7 +132,7 @@ export async function loadHomeSummary(
         .eq("trip_id", tripId),
     ]);
 
-  // a withdrawal counts only what its itemized purchases left of it (00082)
+  // a withdrawal counts only what the cash expenses left of it (00089)
   const counted = countedExpenses(expenses.data ?? []);
   const budget: BudgetSummary = {
     ...resolveBudgetTotals(trip.data?.total_budget ?? null, categories.data ?? []),
