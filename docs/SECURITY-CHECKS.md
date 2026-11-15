@@ -2955,5 +2955,6 @@ that rolls back.
 | Revoked guest, outsider, anon read nothing, even shared | each role, `select` | ✅ PASS |
 | Deny matrix still holds | `probes/90_matrix.sql` (kid allow-list gains `jar_quotes`) | ✅ PASS |
 | Realtime | table added to `supabase_realtime`; delivery follows the SELECT policies above | ✅ by policy |
-| 00091 applied to production | **not run here** (Supabase MCP not connected in this session) | ⚠️ PENDING |
+| 00091 applied to production | ✅ done 15/11/2026 via the Supabase MCP (`00091_jar_quotes`); verified live: RLS on, exactly `jar_quotes_owner_all` / `jar_quotes_kid_select` / `jar_quotes_guest_select`, both triggers, in `supabase_realtime`; anon reads 0 rows |
+| 00089 (cash pool) on production | ✅ checked 15/11/2026: column, `expenses_cash_guard` function + trigger and `expenses_withdrawal_not_paid_in_cash` are live, no `paid_from_expense_id` link left - applied, but missing from the recorded migration history | ✅ (history only) |
 | `backup-weekly` redeployed with `jar_quotes` | **not run here** | ⚠️ PENDING |
