@@ -2901,14 +2901,14 @@ replaced by probe 89 (its link checks no longer apply).
 
 ---
 
-## "הידעת" country card (`country_profiles`, migration 00089)
+## "הידעת" country card (`country_profiles`, migration 00090)
 
 New table, new Edge Function `country-profile-generate`. One card per country
 (flag and its meaning, population, capital, language, currency, size next to
 Israel, national symbol), shown above the facts of every stretch in that
 country. Same access shape as `destination_facts`: owners write, kids read,
-guests have no policy. Probe: `scripts/rls/probes/89_country_profiles.sql`,
-run against a fresh local database with all 89 migrations, inside a
+guests have no policy. Probe: `scripts/rls/probes/90_country_profiles.sql`,
+run against a fresh local database with all migrations, inside a
 transaction that rolls back.
 
 | Check | Method | Result |
@@ -2923,7 +2923,7 @@ transaction that rolls back.
 | Anonymous reads nothing | `anon` | ✅ PASS |
 | Deny matrix still holds | `probes/90_matrix.sql` (kid allow-list gains `country_profiles`) | ✅ PASS |
 | Generation is owner-only | function checks `current_member_role() = 'owner'`, `verify_jwt=true`, AI budget cap 10/day | ✅ PASS - by inspection |
-| 00089 applied to production | ✅ done 15/11/2026 via the Supabase MCP (apply_migration 00089_country_profiles); live was at 00088; verified live: RLS on, exactly `country_profiles_kid_select` and `country_profiles_owner_all` |
+| 00090 applied to production | ✅ done 15/11/2026 via the Supabase MCP (recorded live as `00089_country_profiles`, applied before the cash-pool migration took that number on main; renamed 00090 in the repo); live was at 00088; verified live: RLS on, exactly `country_profiles_kid_select` and `country_profiles_owner_all` |
 | `country-profile-generate` deployed | ✅ done 15/11/2026, version 1, verify_jwt on; `ai_reserve` takes any function name, the cap comes from the bundled `aiCost.ts` |
 | `backup-weekly` redeployed with `country_profiles` | ✅ done 15/11/2026, version 16; live v15 matched the repo except that line; verify_jwt stays false (cron secret) |
 | First real generation | **not run here** | ⚠️ PENDING - a parent presses "יצירת כרטיס מדינה" |

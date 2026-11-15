@@ -1,4 +1,4 @@
--- 00089: the country card of "הידעת". Owners write, kids only read, guests
+-- 00090: the country card of "הידעת". Owners write, kids only read, guests
 -- see nothing; one card per country per trip.
 begin;
 \i scripts/rls/seed.sql

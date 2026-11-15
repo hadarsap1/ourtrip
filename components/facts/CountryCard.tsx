@@ -26,7 +26,7 @@ function emptyDraft(p: CountryProfile | null): Record<ProfileField, string> {
 
 // The country card at the top of "הידעת": the flag, why it looks that way, and
 // a few lines a kid can compare with home. Keyed by country, so every stretch
-// of Japan shows the same card. Kids only read it - RLS (00089) grants them
+// of Japan shows the same card. Kids only read it - RLS (00090) grants them
 // select and nothing else.
 export function CountryCard({
   tripId,

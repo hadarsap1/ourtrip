@@ -1,6 +1,6 @@
 // "הידעת" - the country card: the flag and why it looks that way, population,
 // capital, language, currency, size next to Israel, a national symbol. One row
-// per country (00089), shown above the facts of every stretch in it.
+// per country (00090), shown above the facts of every stretch in it.
 
 import { functionErrorCode } from "@/lib/functionError";
 import { readQuery, writeQuery } from "@/lib/offline/queryCache";

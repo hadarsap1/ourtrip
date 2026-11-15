@@ -1,7 +1,7 @@
 // Generates the country card of "הידעת" for ONE country - the flag and what it
 // means, population, capital, language, currency, size next to Israel and a
 // national animal or flower - and upserts it into country_profiles via the
-// service role. One row per country, shown on every stretch of it (00089).
+// service role. One row per country, shown on every stretch of it (00090).
 //
 // Deployed with verify_jwt=true, and the function additionally checks the
 // caller resolves to an OWNER, like facts-generate.

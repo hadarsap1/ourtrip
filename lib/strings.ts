@@ -1195,7 +1195,7 @@ export const strings = {
     byHand: "נכתב על ידכם",
     verifyHint: "העובדות נוצרו אוטומטית - כדאי לעבור עליהן לפני שהילדים קוראים.",
     // The country card above the facts: one per country, shown on every
-    // stretch of it (00089).
+    // stretch of it (00090).
     country: {
       title: "על {country}",
       flagTitle: "הדגל",
