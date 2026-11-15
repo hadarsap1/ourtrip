@@ -2923,4 +2923,7 @@ transaction that rolls back.
 | Anonymous reads nothing | `anon` | ✅ PASS |
 | Deny matrix still holds | `probes/90_matrix.sql` (kid allow-list gains `country_profiles`) | ✅ PASS |
 | Generation is owner-only | function checks `current_member_role() = 'owner'`, `verify_jwt=true`, AI budget cap 10/day | ✅ PASS - by inspection |
-| Live database | **not applied here** (Supabase MCP not connected from this session) | ⚠️ PENDING - apply 00089 and deploy the function |
+| 00089 applied to production | ✅ done 15/11/2026 via the Supabase MCP (apply_migration 00089_country_profiles); live was at 00088; verified live: RLS on, exactly `country_profiles_kid_select` and `country_profiles_owner_all` |
+| `country-profile-generate` deployed | ✅ done 15/11/2026, version 1, verify_jwt on; `ai_reserve` takes any function name, the cap comes from the bundled `aiCost.ts` |
+| `backup-weekly` redeployed with `country_profiles` | ✅ done 15/11/2026, version 16; live v15 matched the repo except that line; verify_jwt stays false (cron secret) |
+| First real generation | **not run here** | ⚠️ PENDING - a parent presses "יצירת כרטיס מדינה" |
