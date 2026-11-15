@@ -1823,12 +1823,13 @@ export const strings = {
     // approved, but guest-invite could not email the sign-in link
     unsentTitle: "אושר - נשאר לשלוח קישור",
     unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
-    // after approval, by WhatsApp (Hadar 20/10/2026). Google: the app's address,
-    // nothing expires. Typed email: the personal sign-in link, which expires.
+    // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
+    // address is the one link to keep. Typed email: the first sign-in link
+    // too, since this message is sent only when the email did not go out.
     approvedGoogleText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nנכנסים כאן עם חשבון ה-Google שלך ({email}):\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה קישור הכניסה האישי שלך. הוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה:\n{appUrl}\nאם צריך להתחבר שוב, מקלידים שם את המייל ({email}) ומקבלים קישור כניסה.\n\nלכניסה הראשונה, עכשיו:\n{url}",
     // guest card "send a sign-in link", when the email did not go out
     loginUnsentTitle: "קישור הכניסה מוכן",
     loginUnsentBody: "המייל לא נשלח. שלחו את הקישור בוואטסאפ.",
@@ -2169,6 +2170,9 @@ export const strings = {
     emailSending: "שולח…",
     emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם. הקישור עובד פעם אחת.",
     emailError: "משהו השתבש. נסו שוב בעוד דקה.",
+    // the app's address opened by someone never approved (00093)
+    joinPrompt: "עוד לא אושרתם?",
+    joinLink: "בקשו להצטרף לטיול",
   },
 
   // editing text after it was published (00076)

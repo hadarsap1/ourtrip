@@ -21,9 +21,10 @@ export function joinShareText(url: string): string {
 export type ApprovedGuest = { name: string; email: string; link: string; viaGoogle: boolean };
 
 /**
- * The WhatsApp message after approval. A Google sign-up gets the app's address
- * (they sign in with Google - nothing to expire); a typed address gets its
- * personal sign-in link, which expires, so the message says to tap it now.
+ * The WhatsApp message after approval. The app's address is the link to keep
+ * (Hadar 15/11/2026): still signed in, they are in; if not, Google or their
+ * email on the login screen. A typed address also gets its one-time sign-in
+ * link for the first time in, since the email did not go out.
  */
 export function approvedShareText(
   guest: ApprovedGuest,
@@ -32,14 +33,18 @@ export function approvedShareText(
   login = false
 ): string {
   const name = guest.name.trim();
+  const appUrl = `${origin.replace(/\/+$/, "")}/`;
   if (guest.viaGoogle) {
     return (login ? strings.guests.loginGoogleText : strings.guests.approvedGoogleText)
       .replace("{name}", name)
       .replace("{email}", guest.email)
-      .replace("{url}", `${origin.replace(/\/+$/, "")}/`);
+      .replace("{url}", appUrl);
   }
   return (login ? strings.guests.loginLinkText : strings.guests.approvedLinkText)
-    .replace("{name}", name).replace("{url}", guest.link);
+    .replace("{name}", name)
+    .replace("{appUrl}", appUrl)
+    .replace("{email}", guest.email)
+    .replace("{url}", guest.link);
 }
 
 /** What guest_join_info returned, narrowed; anything unexpected is invalid. */

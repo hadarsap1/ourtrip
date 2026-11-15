@@ -8,6 +8,7 @@ import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { getSupabase, storedAuthUserId } from "@/lib/supabase";
 import { offlineNow, TimeoutError, withTimeout } from "@/lib/offline/network";
 import { SuitcaseIcon } from "@/components/icons";
+import { JoinOffer } from "@/components/auth/JoinOffer";
 import { strings } from "@/lib/strings";
 import { memberLinked } from "@/lib/useMember";
 
@@ -160,6 +161,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           {strings.auth.notAllowedTitle}
         </h1>
         <p className="text-ink-soft">{strings.auth.notAllowedBody}</p>
+        <JoinOffer className="mt-6" />
       </div>
     );
   }
