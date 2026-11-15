@@ -2996,5 +2996,6 @@ token, and the login screen then gets the new one.
 | Asking with it only makes a pending request | ✅ PASS - local, probe 93 |
 | Inactive trip: null | ✅ PASS - local, probe 93 |
 | Probes 54, 57 (join link), 90 (deny matrix) on 93 migrations | ✅ PASS |
-| 00093 applied to production | ⏳ pending (SQL editor) |
+| 00093 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
+| Live: security definer, `search_path=""`, execute for anon + authenticated, returns the active trip's token | ✅ verified 15/11/2026 |
 
