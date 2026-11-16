@@ -18,6 +18,19 @@ const noopSubscribe = () => () => {};
 // the capture button sits after this many tabs: היום, מסלול, [+], תקציב, תמונות, עוד
 const CAPTURE_AFTER = 2;
 
+/**
+ * Columns that put the capture slot at the exact centre of the bar. With two
+ * tabs before it and three after, equal-width tabs left it a slot off-centre
+ * (Hadar 16/11/2026, from a phone). Each side gets the same total width: a tab
+ * on the short side is as wide as the long side has tabs, and the other way
+ * round - 2 x 3fr on one side, 3 x 2fr on the other.
+ */
+export function captureColumns(tabCount: number, before: number = CAPTURE_AFTER): string {
+  const after = Math.max(tabCount - before, 0);
+  if (before === 0 || after === 0) return `repeat(${Math.max(tabCount, 1)}, minmax(0, 1fr)) 3.5rem`;
+  return `repeat(${before}, minmax(0, ${after}fr)) 3.5rem repeat(${after}, minmax(0, ${before}fr))`;
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const { member } = useMember();
@@ -56,13 +69,16 @@ export function BottomNav() {
       className="relative z-50 shrink-0 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label={strings.nav.bottomBarLabel}
     >
-      <ul className="flex items-start gap-0.5 px-1.5 pt-[7px] pb-2">
+      <ul
+        className={`items-start gap-0.5 px-1.5 pt-[7px] pb-2 ${captureSlot ? "grid" : "flex"}`}
+        style={captureSlot ? { gridTemplateColumns: captureColumns(tabs.length) } : undefined}
+      >
         {tabs.map((tab, index) => {
           const active = isNavItemActive(pathname, tab.href);
           return (
             <Fragment key={tab.href}>
-            {captureSlot && index === CAPTURE_AFTER && <li id={NAV_CAPTURE_SLOT_ID} className="flex w-14 shrink-0 justify-center" />}
-            <li className="flex-1">
+            {captureSlot && index === CAPTURE_AFTER && <li id={NAV_CAPTURE_SLOT_ID} className="flex justify-center" />}
+            <li className="min-w-0 flex-1">
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
