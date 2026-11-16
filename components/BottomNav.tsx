@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Fragment, useSyncExternalStore } from "react";
+import { NAV_CAPTURE_SLOT_ID } from "@/components/ui/Fab";
+import { isEnabled } from "@/lib/flags";
 import { isNavItemActive, tabsForRole } from "@/components/navItems";
 import { totalPending } from "@/lib/approvals";
 import { strings } from "@/lib/strings";
@@ -11,10 +14,15 @@ import { useNewFeedback } from "@/lib/useNewFeedback";
 import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 
+const noopSubscribe = () => () => {};
+// the capture button sits after this many tabs: היום, מסלול, [+], תקציב, תמונות, עוד
+const CAPTURE_AFTER = 2;
+
 export function BottomNav() {
   const pathname = usePathname();
   const { member } = useMember();
   const isKid = useIsKidDevice();
+  const captureOn = useSyncExternalStore(noopSubscribe, () => isEnabled("captureFab"), () => false);
   const role = member?.role ?? (isKid ? "kid" : "owner");
   const unread = useUnreadWall();
   // A parent's chat sits behind "עוד", as do the approval queues and the
@@ -36,6 +44,9 @@ export function BottomNav() {
   if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
 
   const tabs = tabsForRole(role);
+  // A parent's bar keeps a slot for the capture button, which renders itself
+  // into it (components/ui/Fab.tsx) - in the bar it covers no content.
+  const captureSlot = role === "owner" && captureOn;
 
   return (
     // Opaque, not paper/90 + blur: translucency muddies text over the warm
@@ -45,16 +56,20 @@ export function BottomNav() {
       className="relative z-50 shrink-0 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label={strings.nav.bottomBarLabel}
     >
-      <ul className="flex items-start gap-0.5 px-1.5 pt-[9px] pb-3">
-        {tabs.map((tab) => {
+      <ul className="flex items-start gap-0.5 px-1.5 pt-[7px] pb-2">
+        {tabs.map((tab, index) => {
           const active = isNavItemActive(pathname, tab.href);
           return (
-            <li key={tab.href} className="flex-1">
+            <Fragment key={tab.href}>
+            {captureSlot && index === CAPTURE_AFTER && <li id={NAV_CAPTURE_SLOT_ID} className="flex w-14 shrink-0 justify-center" />}
+            <li className="flex-1">
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center gap-[3px] rounded-xl py-0.5 transition-colors ${
-                  active ? "text-sea-deep" : "text-ink-faint"
+                // the open tab is a filled pill (UI pass 15/11/2026): a 16px
+                // underline and a bolder label were too quiet to find at a glance
+                className={`flex flex-col items-center gap-[3px] rounded-2xl py-1.5 transition-colors ${
+                  active ? "bg-sea-tint text-sea-deep" : "text-ink-faint"
                 }`}
               >
                 <span className="relative">
@@ -95,16 +110,9 @@ export function BottomNav() {
                 >
                   {tab.label}
                 </span>
-                {/* A sun underline instead of a filled blob: the blob read as a
-                    selected chip and competed with the real chips on screen. */}
-                <span
-                  className={`h-[2.5px] w-4 rounded-full bg-sun transition-opacity duration-150 ${
-                    active ? "opacity-100" : "opacity-0"
-                  }`}
-                  aria-hidden="true"
-                />
               </Link>
             </li>
+            </Fragment>
           );
         })}
       </ul>

@@ -63,6 +63,8 @@ export const strings = {
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
     noDay: "אין יום מתוכנן במסלול להיום",
     bookingsToday: "הזמנות להיום",
+    // the home lists only what was booked, not a plan by the hour (Hadar 15/11/2026)
+    bookedToday: "הזמנו להיום",
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
