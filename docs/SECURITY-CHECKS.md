@@ -3111,7 +3111,9 @@ missing function falls back to the separate queries.
 | Full harness | ✅ 599 PASS, 0 FAIL on 96 migrations |
 | Through the UI on the local stack, three roles: the home renders from the one call; with the function dropped the app falls back and renders the same | ✅ PASS |
 | Offline, three roles: homes open from the device copies as before | ✅ PASS - local stack, network off |
-| 00096 applied to production | ⏳ not yet (the app works without it; any order) |
+| 00096 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration), after #207 was merged |
+| Live, as a real member of each role inside a rolled-back transaction: owner gets own row, trip, today's day and one booking; kid gets the day and **no bookings, no confirmation code**; guest gets own row and trip, no day, no bookings | ✅ verified 15/11/2026 |
+| Live: security invoker; anon cannot execute, authenticated can | ✅ verified 15/11/2026 |
 
 Also in this pass: probe 69 failed for two hours a day (15:00-17:00 UTC, when
 Tokyo's date is ahead of Hanoi's) - a fault in the probe, not in
