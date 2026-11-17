@@ -2993,5 +2993,6 @@ revocation still applies). No policy added or removed; guests still have none.
 | Probe 86 guard: no SELECT / FOR ALL policy calls a per-row membership helper | ✅ PASS - local, on 93 migrations |
 | Probe 90 (country card): owner writes and edits, kid only reads, guest and anon read nothing, their writes change nothing | ✅ PASS - local, unchanged |
 | Full probe suite incl. deny matrix | ✅ PASS |
-| 00093 applied to production | ⏳ pending |
+| 00093 applied to production | ✅ done 17/11/2026 via the Supabase MCP (apply_migration 00093_country_profiles_once_per_query) |
+| Live: `country_profiles_owner_all` (ALL) and `_kid_select` (SELECT) now `trip_id = (select member_trip_as(...))`; no SELECT / FOR ALL policy left that calls a per-row membership helper | ✅ verified 17/11/2026 |
 
