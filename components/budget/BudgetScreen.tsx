@@ -23,6 +23,7 @@ import {
   cashWallets,
   cashWithdrawalUses,
   countedExpenses,
+  pickableCategories,
   resolveBudgetTotals,
   resolveBudgetProgress,
   type CashWallet,
@@ -65,7 +66,7 @@ function CashNote({
   const s = strings.budget;
   if (expense.is_cash_withdrawal && use) {
     return (
-      <span className="block text-xs text-sea-deep">
+      <span className="block text-sm text-sea-deep">
         {use.used === 0
           ? s.cashWithdrawalTag
           : s.cashWithdrawalSplit
@@ -137,14 +138,14 @@ function CashWalletCard({
   return (
     <section className="rounded-card border border-line bg-surface px-3.5 py-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold text-ink">{s.cashWalletTitle}</p>
+        <p className="text-sm font-bold text-ink">{s.cashWalletTitle}</p>
         {editButton(main)}
       </div>
       <p className="mt-1 text-2xl font-extrabold leading-none text-ink">
         <bdi>{formatMoney(Math.round(main.left), main.currency)}</bdi>
       </p>
       {main.withdrawn > 0 && (
-        <p className="mt-1 text-xs text-ink-soft">
+        <p className="mt-1 text-sm text-ink-soft">
           <bdi>{s.cashWalletOf.replace("{withdrawn}", formatMoney(Math.round(main.withdrawn), main.currency))}</bdi>
         </p>
       )}
@@ -392,6 +393,7 @@ export function BudgetScreen() {
     }
   }
 
+  const pickable = pickableCategories(categories);
   const categoryLabel = (id: string) =>
     categories.find((c) => c.id === id)?.label_he ?? "";
 
@@ -437,6 +439,7 @@ export function BudgetScreen() {
           budgetForProgress={budgetForProgress}
           remaining={remaining}
           onEditCategory={(category) => setCategoryForm({ category })}
+          pace={{ usedPct: budgetForProgress > 0 ? usedPct : null, projection, preTripSpent, notStarted }}
         />
       )}
 
@@ -501,6 +504,7 @@ export function BudgetScreen() {
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
       <section className="rounded-card border border-line bg-surface px-3.5 py-3">
+        {!v2 && (
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-xs font-bold text-ink">
             {budgetForProgress > 0
@@ -515,7 +519,9 @@ export function BudgetScreen() {
             </span>
           )}
         </div>
+        )}
 
+        {!v2 && (
         <div className="mt-2 flex h-[7px] gap-px overflow-hidden rounded-full bg-line">
           {segments.length === 0 ? null : (
             segments.map((seg, i) => (
@@ -535,8 +541,10 @@ export function BudgetScreen() {
             ))
           )}
         </div>
+        )}
 
-        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs text-ink-soft">
+        {!v2 && (<>
+        <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm text-ink-soft">
           <span>
             {strings.budget.projection}{" "}
             <span className="font-bold text-ink" dir="ltr">
@@ -559,6 +567,7 @@ export function BudgetScreen() {
             {strings.budget.tripNotStarted}
           </p>
         )}
+        </>)}
 
         {/* The declared target, and how the plan sits against it. Tappable
             whether or not one is set - the first one has to start somewhere. */}
@@ -685,7 +694,7 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setCategoryForm({ category: null })}
-          className="self-start rounded-full px-3 text-xs font-bold text-sea"
+          className="min-h-[44px] self-start rounded-full px-3 text-sm font-bold text-sea"
         >
           + {strings.budget.addCategory}
         </button>
@@ -767,7 +776,7 @@ export function BudgetScreen() {
         <button
           type="button"
           onClick={() => setQuickLines(true)}
-          disabled={categories.length === 0}
+          disabled={pickable.length === 0}
           className="rounded-2xl border border-line bg-surface py-3 text-sm font-bold text-ink-soft disabled:opacity-50"
         >
           {strings.budget.quickLines}
@@ -840,13 +849,13 @@ export function BudgetScreen() {
         />
       )}
 
-      {quickLines && categories.length > 0 && (
+      {quickLines && pickable.length > 0 && (
         <QuickLinesSheet
-          categories={categories}
+          categories={pickable}
           defaultCategoryId={
             // default to trip-prep for the pre-departure case (vaccinations,
             // visas…), else the first category
-            (categories.find((c) => c.key === "prep") ?? categories[0]).id
+            (pickable.find((c) => c.key === "prep") ?? pickable[0]).id
           }
           onClose={() => setQuickLines(false)}
           onDone={(message) => {

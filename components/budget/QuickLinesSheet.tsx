@@ -5,6 +5,7 @@ import { Sheet } from "@/components/Sheet";
 import { createExpenses } from "@/lib/data/expenses";
 import { formatMoney, todayISO } from "@/lib/format";
 import { parseExpenseLines } from "@/lib/parseExpenseLines";
+import { pickableCategories } from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory } from "@/lib/types";
 
@@ -77,7 +78,7 @@ export function QuickLinesSheet({
               onChange={(e) => setCategoryId(e.target.value)}
               className={inputClass}
             >
-              {categories.map((c) => (
+              {pickableCategories(categories).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label_he}
                 </option>
