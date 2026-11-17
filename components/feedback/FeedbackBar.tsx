@@ -35,36 +35,50 @@ const LABELS: Record<ReactionKind, string> = {
 };
 
 function ReactionIcon({ kind, filled }: { kind: ReactionKind; filled: boolean }) {
-  const common = { width: 18, height: 18, viewBox: "0 0 24 24", "aria-hidden": true as const };
+  // 24px with a heavier stroke: the old 18px / 1.75 icons were thin and small
+  // on a phone. Faces get bigger eyes and mouths so they read at a glance.
+  const common = {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    "aria-hidden": true as const,
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  const face = (
+    <circle cx="12" cy="12" r="9" fill={filled ? "currentColor" : "none"} fillOpacity={filled ? 0.22 : 0} />
+  );
   switch (kind) {
     case "heart":
       return (
-        <svg {...common} fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.75}>
-          <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" strokeLinejoin="round" />
+        <svg {...common} fill={filled ? "currentColor" : "none"}>
+          <path d="M12 20.5s-8-4.8-8-11a4.5 4.5 0 0 1 8-2.8 4.5 4.5 0 0 1 8 2.8c0 6.2-8 11-8 11z" />
         </svg>
       );
     case "smile":
       return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">
-          <circle cx="12" cy="12" r="8" fill={filled ? "currentColor" : "none"} fillOpacity={filled ? 0.18 : 0} />
-          <path d="M8.5 14a4 4 0 0 0 7 0" />
-          <circle cx="9.5" cy="10" r="0.6" fill="currentColor" />
-          <circle cx="14.5" cy="10" r="0.6" fill="currentColor" />
+        <svg {...common} fill="none">
+          {face}
+          <path d="M7.8 13.5a4.6 4.6 0 0 0 8.4 0" />
+          <circle cx="9" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
         </svg>
       );
     case "wow":
       return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth={1.75}>
-          <circle cx="12" cy="12" r="8" fill={filled ? "currentColor" : "none"} fillOpacity={filled ? 0.18 : 0} />
-          <circle cx="12" cy="14.5" r="2" />
-          <circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" />
-          <circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" />
+        <svg {...common} fill="none">
+          {face}
+          <ellipse cx="12" cy="15.5" rx="2.2" ry="2.8" />
+          <circle cx="9" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
         </svg>
       );
     case "star":
       return (
-        <svg {...common} fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.75}>
-          <path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.5L12 16.2 7 18.9l1.2-5.5L4 9.6l5.6-.6z" strokeLinejoin="round" />
+        <svg {...common} fill={filled ? "currentColor" : "none"}>
+          <path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z" />
         </svg>
       );
   }
@@ -190,7 +204,7 @@ export function FeedbackBar({
 
   return (
     <div ref={rootRef} id={`feedback-${key}`} className="scroll-mt-24 space-y-2.5">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {tallies.map((t) => (
           <button
             key={t.kind}
@@ -198,10 +212,10 @@ export function FeedbackBar({
             onClick={() => void toggle(t.kind, t.mineId)}
             aria-pressed={t.mineId !== null}
             aria-label={`${LABELS[t.kind]}${t.count ? ` (${t.count})` : ""}`}
-            className={`flex h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold ${
+            className={`flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border-2 px-3 text-base font-bold active:scale-95 ${
               t.mineId
                 ? "border-sv-clay bg-sv-clay-soft text-sv-clay"
-                : "border-sv-line bg-sv-card text-sv-ink-soft"
+                : "border-sv-line bg-sv-card text-sv-ink"
             }`}
           >
             <ReactionIcon kind={t.kind} filled={t.mineId !== null} />
@@ -213,7 +227,7 @@ export function FeedbackBar({
         <ul className="space-y-1 text-xs text-sv-ink-soft">
           {whoByKind.map((w) => (
             <li key={w.kind} className="flex items-start gap-1.5">
-              <span className="mt-px shrink-0 [&>svg]:h-3.5 [&>svg]:w-3.5" role="img" aria-label={LABELS[w.kind]}>
+              <span className="mt-px shrink-0 [&>svg]:h-4 [&>svg]:w-4" role="img" aria-label={LABELS[w.kind]}>
                 <ReactionIcon kind={w.kind} filled={false} />
               </span>
               <span>
