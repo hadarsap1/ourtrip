@@ -2974,7 +2974,7 @@ publication (delivered only to subscribers the SELECT policy admits) and to
 | Owner cannot write a correction to another trip; balance below zero and a malformed currency are refused | ✅ PASS - local, probe 92 |
 | Kid / guest read none, cannot add, their updates and deletes change nothing | ✅ PASS - local, probe 92 |
 | Deny matrix (probe 90) on 92 migrations, `cash_adjustments` added to the kid "never" list | ✅ PASS |
-| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row |
+| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row - fixed by 00094 |
 | 00092 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
 | Live: `cash_adjustments` RLS on, `cash_adjustments_owner_all` the only policy (FOR ALL, `member_trip_as('owner')` in USING and WITH CHECK); balance and currency checks present; in `supabase_realtime`; no rows yet | ✅ verified 15/11/2026 |
 
@@ -3119,4 +3119,16 @@ Also in this pass: probe 69 failed for two hours a day (15:00-17:00 UTC, when
 Tokyo's date is ahead of Hanoi's) - a fault in the probe, not in
 `trip_now_country`; fixed. `scripts/rls/run.sh` now really runs every probe
 after a failure (`pipefail` ended it at the first one).
+
+## 17/11/2026 - a duplicate run of the country_profiles fix
+
+The same two `alter policy` statements as 00094 (already applied live on
+15/11/2026) were run once more through the Supabase MCP, from a branch that
+did not yet have 00094. A no-op on the policies (identical text), but it left
+a second history row in production, `00093_country_profiles_once_per_query`;
+no such file exists in the repo.
+
+| Check | Result |
+|---|---|
+| Live: `country_profiles_owner_all` / `_kid_select` in `member_trip_as` form; no SELECT / FOR ALL policy calls a per-row membership helper | ✅ verified 17/11/2026 |
 
