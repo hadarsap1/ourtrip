@@ -665,6 +665,8 @@ export const strings = {
     cashWithdrawalSplit: "משיכת מזומן · הוצאנו מזה {used} · נשאר {left}",
     paidFromCashTag: "שולם במזומן",
     cashCategory: "משיכת מזומן",
+    categoryExpensesCount: "{n} הוצאות",
+    categoryNoExpenses: "עוד אין הוצאות בקטגוריה הזו",
     withdrawalCategoryNote: "משיכות מזומן נרשמות אוטומטית בקטגוריה \"משיכת מזומן\". כשקונים משהו במזומן, מוסיפים אותו בנפרד, מסמנים \"שולם במזומן\" ובוחרים את הקטגוריה שלו.",
     cashWalletTitle: "מזומן בארנק",
     cashWalletOf: "מתוך {withdrawn} שנמשכו",
@@ -2659,6 +2661,11 @@ export const strings = {
     title: "הגדרות",
     back: "חזרה לעוד",
     backHome: "חזרה לדף הבית",
+  },
+  budgetCategoriesSettings: {
+    title: "קטגוריות תקציב",
+    hint: "לחיצה על קטגוריה פותחת עריכה: שם, סכום מתוכנן ומחיקה. בעמוד התקציב לחיצה על קטגוריה מציגה את ההוצאות שלה.",
+    noPlan: "ללא סכום",
   },
   aiBudget: {
     title: "תקציב AI חודשי",

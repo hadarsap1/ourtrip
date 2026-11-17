@@ -37,6 +37,7 @@ import type { Booking, BudgetCategory, CashAdjustment, Expense, ExpenseReceipt, 
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
+import { CategoryExpensesSheet } from "./CategoryExpensesSheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { CashWalletSheet } from "./CashWalletSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
@@ -205,6 +206,8 @@ export function BudgetScreen() {
   const [categoryForm, setCategoryForm] = useState<{
     category: BudgetCategory | null;
   } | null>(null);
+  // the category whose expenses are listed (tap on a category, v2)
+  const [viewCategory, setViewCategory] = useState<BudgetCategory | null>(null);
   const [editingTotal, setEditingTotal] = useState(false);
   // Owner-only (trip_budget, 00056); null = not set, or not a parent.
   const [totalBudget, setTotalBudget] = useState<number | null>(null);
@@ -443,7 +446,7 @@ export function BudgetScreen() {
           bookings={bookings}
           budgetForProgress={budgetForProgress}
           remaining={remaining}
-          onEditCategory={(category) => setCategoryForm({ category })}
+          onOpenCategory={setViewCategory}
           pace={{ usedPct: budgetForProgress > 0 ? usedPct : null, projection, preTripSpent, notStarted }}
         />
       )}
@@ -697,16 +700,6 @@ export function BudgetScreen() {
       </section>
       )}
 
-      {v2 && (
-        <button
-          type="button"
-          onClick={() => setCategoryForm({ category: null })}
-          className="min-h-[44px] self-start rounded-full px-3 text-sm font-bold text-sea"
-        >
-          + {strings.budget.addCategory}
-        </button>
-      )}
-
       <ConverterCard />
 
       {/* recent expenses */}
@@ -814,6 +807,19 @@ export function BudgetScreen() {
         }}
         onError={(message) => showToast(message)}
       />
+
+      {viewCategory && (
+        <CategoryExpensesSheet
+          category={viewCategory}
+          expenses={expenses.filter((e) => e.category_id === viewCategory.id)}
+          total={spentByCategory.get(viewCategory.id) ?? 0}
+          onClose={() => setViewCategory(null)}
+          onOpenExpense={(expense) => {
+            setViewCategory(null);
+            setExpenseForm({ expense });
+          }}
+        />
+      )}
 
       {categoryForm && trip && (
         <CategorySheet

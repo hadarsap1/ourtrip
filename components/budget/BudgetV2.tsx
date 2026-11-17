@@ -35,7 +35,7 @@ export function BudgetV2({
   bookings,
   budgetForProgress,
   remaining,
-  onEditCategory,
+  onOpenCategory,
   pace,
 }: {
   categories: BudgetCategory[];
@@ -47,7 +47,8 @@ export function BudgetV2({
   bookings: Booking[];
   budgetForProgress: number;
   remaining: number;
-  onEditCategory: (c: BudgetCategory) => void;
+  /** Tapping a category lists its expenses; editing it is in Settings. */
+  onOpenCategory: (c: BudgetCategory) => void;
   /** Pace and projection - moved here from the main screen (17/11/2026). */
   pace: PaceInfo;
 }) {
@@ -122,7 +123,7 @@ export function BudgetV2({
             <li key={c.id} className="border-t border-line first:border-t-0">
               <button
                 type="button"
-                onClick={() => onEditCategory(c)}
+                onClick={() => onOpenCategory(c)}
                 className="flex w-full items-baseline justify-between gap-3 px-4 py-3.5 text-start"
               >
                 <span className="min-w-0 truncate text-base font-bold text-ink">{c.label_he}</span>
