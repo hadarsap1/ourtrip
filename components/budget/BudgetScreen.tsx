@@ -439,6 +439,7 @@ export function BudgetScreen() {
           budgetForProgress={budgetForProgress}
           remaining={remaining}
           onEditCategory={(category) => setCategoryForm({ category })}
+          pace={{ usedPct: budgetForProgress > 0 ? usedPct : null, projection, preTripSpent, notStarted }}
         />
       )}
 
@@ -542,6 +543,7 @@ export function BudgetScreen() {
         </div>
         )}
 
+        {!v2 && (<>
         <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm text-ink-soft">
           <span>
             {strings.budget.projection}{" "}
@@ -565,6 +567,7 @@ export function BudgetScreen() {
             {strings.budget.tripNotStarted}
           </p>
         )}
+        </>)}
 
         {/* The declared target, and how the plan sits against it. Tappable
             whether or not one is set - the first one has to start somewhere. */}

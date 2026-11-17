@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { readFxStore } from "@/lib/fxCache";
 import { strings } from "@/lib/strings";
 import type { Booking, BudgetCategory, Expense, ItineraryDay } from "@/lib/types";
-import { BudgetInsights } from "./BudgetInsights";
+import { BudgetInsights, type PaceInfo } from "./BudgetInsights";
 
 const t = strings.budgetV2;
 const ils = (n: number) => formatMoney(Math.round(n), "ILS");
@@ -36,6 +36,7 @@ export function BudgetV2({
   budgetForProgress,
   remaining,
   onEditCategory,
+  pace,
 }: {
   categories: BudgetCategory[];
   /** Counted: each withdrawal reduced by what was itemized out of it. */
@@ -47,6 +48,8 @@ export function BudgetV2({
   budgetForProgress: number;
   remaining: number;
   onEditCategory: (c: BudgetCategory) => void;
+  /** Pace and projection - moved here from the main screen (17/11/2026). */
+  pace: PaceInfo;
 }) {
   const [tab, setTab] = useState<"categories" | "insights">("categories");
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
@@ -57,7 +60,6 @@ export function BudgetV2({
   // No "left today": much is prepaid (flights, hotels, attractions), so a
   // daily share means nothing (Hadar, 06/10/2026). The trip total is the number.
   const over = remaining < 0;
-  const usedPct = budgetForProgress > 0 ? Math.min(100, Math.round((spentTotal / budgetForProgress) * 100)) : 0;
 
   return (
     <div className="space-y-3">
@@ -71,9 +73,6 @@ export function BudgetV2({
             <p className={`mt-1 text-[44px] font-extrabold leading-[50px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
               <bdi>{ils(Math.abs(remaining))}</bdi>
             </p>
-            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-line" aria-hidden>
-              <div className={`h-full rounded-full ${over ? "bg-danger" : "bg-sea"}`} style={{ width: `${usedPct}%` }} />
-            </div>
           </>
         ) : (
           <p className="mt-1 text-base text-ink-soft">{t.noBudget}</p>
@@ -143,7 +142,7 @@ export function BudgetV2({
           })}
         </ul>
       ) : (
-        <BudgetInsights categories={categories} expenses={rawExpenses} days={days} bookings={bookings} />
+        <BudgetInsights categories={categories} expenses={rawExpenses} days={days} bookings={bookings} pace={pace} />
       )}
 
       <p className="text-center text-xs text-ink-soft">{stamp ? t.ratesUpdated.replace("{when}", stamp) : t.ratesNever}</p>

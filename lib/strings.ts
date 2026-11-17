@@ -538,6 +538,8 @@ export const strings = {
   // Budget insights (DECISIONS #59): per country, everyday vs specific, cash.
   budgetInsights: {
     scopeLabel: "טווח הניתוח",
+    paceTitle: "קצב והערכה",
+    paceUsed: "מהתקציב נוצל",
     wholeTrip: "כל הטיול",
     paidTitle: "שולם עבור {scope}",
     used: "נוצל עד היום",
