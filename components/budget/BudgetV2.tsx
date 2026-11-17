@@ -107,39 +107,20 @@ export function BudgetV2({
 
       {tab === "categories" ? (
         <ul className="overflow-hidden rounded-card border border-line bg-surface">
-          {categories.map((c) => {
-            const spent = spentBy.get(c.id) ?? 0;
-            const planned = c.planned_amount;
-            const overCat = planned > 0 && spent > planned;
-            const width = planned > 0 ? Math.min(100, (spent / planned) * 100) : spent > 0 ? 100 : 0;
-            return (
-              <li key={c.id} className="border-t border-line first:border-t-0">
-                <button type="button" onClick={() => onEditCategory(c)} className="block w-full px-4 py-3.5 text-start">
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-base font-bold text-ink">{c.label_he}</span>
-                    <span className="shrink-0 text-base font-extrabold tabular-nums text-ink">
-                      <bdi>{ils(spent)}</bdi>
-                    </span>
-                  </span>
-                  <span className="mt-2 block h-2 overflow-hidden rounded-full bg-line" aria-hidden>
-                    <span className={`block h-full rounded-full ${overCat ? "bg-warning" : "bg-sea"}`} style={{ width: `${width}%` }} />
-                  </span>
-                  {/* the sentence says what the colour says: over, or what is left */}
-                  <span className={`mt-1.5 block text-sm ${overCat ? "font-bold text-sun-deep" : "text-ink-soft"}`}>
-                    {planned > 0 ? (
-                      <bdi>
-                        {overCat
-                          ? t.catOver.replace("{amount}", ils(spent - planned))
-                          : t.catLeft.replace("{amount}", ils(planned - spent)).replace("{planned}", ils(planned))}
-                      </bdi>
-                    ) : (
-                      t.noPlan
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+          {categories.map((c) => (
+            <li key={c.id} className="border-t border-line first:border-t-0">
+              <button
+                type="button"
+                onClick={() => onEditCategory(c)}
+                className="flex w-full items-baseline justify-between gap-3 px-4 py-3.5 text-start"
+              >
+                <span className="min-w-0 truncate text-base font-bold text-ink">{c.label_he}</span>
+                <span className="shrink-0 text-base font-extrabold tabular-nums text-ink">
+                  <bdi>{ils(spentBy.get(c.id) ?? 0)}</bdi>
+                </span>
+              </button>
+            </li>
+          ))}
         </ul>
       ) : (
         <BudgetInsights categories={categories} expenses={rawExpenses} days={days} bookings={bookings} pace={pace} />
