@@ -4,7 +4,7 @@ import { getActiveTrip } from "@/lib/data/trip";
 import { countedExpenses, resolveBudgetTotals } from "@/lib/budget";
 import { todayISO } from "@/lib/format";
 import { tripPosition, type TripPosition } from "@/lib/tripDay";
-import type { PhotoWithUrl } from "@/lib/data/photos";
+import { signFamilyMedia, type PhotoWithUrl } from "@/lib/data/photos";
 
 export type TodayDashboard = {
   /** Where today falls in the trip, or null when the trip has no date range. */
@@ -19,7 +19,6 @@ export type TodayDashboard = {
   photos: PhotoWithUrl[];
 };
 
-const PHOTO_BUCKET = "photos";
 
 /**
  * The numbers the redesigned Today screen puts in its tiles. Deliberately
@@ -82,15 +81,5 @@ export async function listPhotosForDate(
     .is("album_id", null)
     .order("created_at", { ascending: false });
   if (error || !data || data.length === 0) return [];
-
-  const { data: signed } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .createSignedUrls(
-      data.map((p) => p.file_path),
-      60 * 60
-    );
-  const urlByPath = new Map(
-    (signed ?? []).map((s) => [s.path, s.signedUrl ?? null])
-  );
-  return data.map((p) => ({ ...p, url: urlByPath.get(p.file_path) ?? null }));
+  return signFamilyMedia(data);
 }

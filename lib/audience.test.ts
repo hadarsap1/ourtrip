@@ -50,6 +50,10 @@ describe("photoMayGoPublic", () => {
   it("an approved photo shared with every guest may go on the open page", () => {
     expect(photoMayGoPublic(ok)).toBe(true);
   });
+  it("never a video, even approved and shared with everyone (00099)", () => {
+    expect(photoMayGoPublic({ ...ok, media_type: "video" })).toBe(false);
+    expect(photoMayGoPublic({ ...ok, media_type: "image" })).toBe(true);
+  });
   it("never a photo the parent did not share, or did not approve (rule 3)", () => {
     expect(photoMayGoPublic({ ...ok, shared_with_guests: false })).toBe(false);
     expect(photoMayGoPublic({ ...ok, status: "pending" })).toBe(false);

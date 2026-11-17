@@ -5,6 +5,10 @@
 // (for a guest: photos approved AND shared, episodes approved AND shared),
 // and only those get short-lived signed URLs minted with the service role.
 // An id the caller may not see simply comes back missing. verify_jwt=true.
+//
+// A video (00099) is a `photos` row like any other, so the same lookup
+// decides it. `url` is always a picture - the photo, or the video's poster
+// frame - and `video_url` is the video itself, null for a photo.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -13,6 +17,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // so a paused episode still plays on return.
 const PHOTO_TTL_SECONDS = 15 * 60;
 const AUDIO_TTL_SECONDS = 30 * 60;
+// a video is played, not just shown: the same room as audio
+const VIDEO_TTL_SECONDS = 30 * 60;
 const MAX_IDS = 100;
 
 const CORS = {
@@ -33,6 +39,8 @@ function ids(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter((v): v is string => typeof v === "string" && UUID.test(v)))].slice(0, MAX_IDS);
 }
+
+type PhotoRow = { id: string; file_path: string; media_type: string; poster_path: string | null };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -55,8 +63,8 @@ Deno.serve(async (req) => {
   // rows come through the caller's own JWT → RLS decides what exists
   const [photosRes, episodesRes] = await Promise.all([
     photoIds.length
-      ? caller.from("photos").select("id, file_path").in("id", photoIds)
-      : Promise.resolve({ data: [] as { id: string; file_path: string }[], error: null }),
+      ? caller.from("photos").select("id, file_path, media_type, poster_path").in("id", photoIds)
+      : Promise.resolve({ data: [] as PhotoRow[], error: null }),
     episodeIds.length
       ? caller.from("episodes").select("id, file_path").in("id", episodeIds)
       : Promise.resolve({ data: [] as { id: string; file_path: string }[], error: null }),
@@ -64,7 +72,7 @@ Deno.serve(async (req) => {
   if (photosRes.error || episodesRes.error) {
     return json({ ok: false, error: (photosRes.error ?? episodesRes.error)!.message }, 500);
   }
-  const photos = photosRes.data ?? [];
+  const photos = (photosRes.data ?? []) as PhotoRow[];
   const episodes = episodesRes.data ?? [];
 
   const service = createClient(
@@ -81,10 +89,32 @@ Deno.serve(async (req) => {
     return rows.map((r) => ({ id: r.id, url: byPath.get(r.file_path) ?? null }));
   };
 
+  const signPaths = async (paths: string[], ttl: number) => {
+    if (paths.length === 0) return new Map<string, string>();
+    const { data, error } = await service.storage.from("photos").createSignedUrls(paths, ttl);
+    if (error) throw error;
+    return new Map((data ?? []).map((s) => [s.path, s.signedUrl]));
+  };
+  const signPhotos = async () => {
+    const isVideo = (p: PhotoRow) => p.media_type === "video";
+    const [pictures, videos] = await Promise.all([
+      signPaths(
+        photos.flatMap((p) => (isVideo(p) ? (p.poster_path ? [p.poster_path] : []) : [p.file_path])),
+        PHOTO_TTL_SECONDS
+      ),
+      signPaths(photos.filter(isVideo).map((p) => p.file_path), VIDEO_TTL_SECONDS),
+    ]);
+    return photos.map((p) =>
+      isVideo(p)
+        ? { id: p.id, url: (p.poster_path && pictures.get(p.poster_path)) || null, video_url: videos.get(p.file_path) ?? null }
+        : { id: p.id, url: pictures.get(p.file_path) ?? null, video_url: null }
+    );
+  };
+
   try {
     return json({
       ok: true,
-      photos: await sign("photos", photos, PHOTO_TTL_SECONDS),
+      photos: await signPhotos(),
       episodes: await sign("audio", episodes, AUDIO_TTL_SECONDS),
     });
   } catch (e) {

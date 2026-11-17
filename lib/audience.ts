@@ -48,6 +48,9 @@ export function photoMayGoPublic(photo: {
   status: string;
   shared_with_guests: boolean;
   audience: string[];
+  /** a video never goes on the open page (00099, Hadar 17/11/2026) */
+  media_type?: string;
 }): boolean {
+  if (photo.media_type === "video") return false;
   return photo.status === "approved" && photo.shared_with_guests && photo.audience.length === 0;
 }

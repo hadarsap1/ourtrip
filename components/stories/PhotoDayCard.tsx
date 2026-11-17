@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { EditIcon } from "@/components/icons";
 import { FeedbackCount } from "@/components/feedback/FeedbackCount";
+import { VideoBadge } from "@/components/photos/VideoFrame";
 import { feedbackCounts, newFeedback } from "@/lib/feedback";
 import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { formatDate } from "@/lib/format";
@@ -80,6 +81,7 @@ export function PhotoDayCard({
                   className="block w-full"
                 >
                   <Thumb photo={photo} single={shown.length === 1} />
+                  {photo.videoUrl && <VideoBadge className="absolute end-1.5 top-1.5" />}
                   <span className="absolute top-1.5 start-1.5">
                     <FeedbackCount
                       overlay

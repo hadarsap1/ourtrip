@@ -236,6 +236,11 @@ create table photos (
   status photo_status not null default 'pending',
   shared_with_guests boolean not null default false,
   approved_by uuid references members(id),
+  -- a short video in an update (00099, DECISIONS #70): file_path is the MP4,
+  -- poster_path a JPEG frame of it in the same private bucket
+  media_type text not null default 'image' check (media_type in ('image', 'video')),
+  poster_path text,
+  duration_seconds smallint, -- videos only, up to a minute
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

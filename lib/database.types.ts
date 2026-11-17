@@ -1770,8 +1770,11 @@ export type Database = {
           approved_by: string | null
           caption: string | null
           created_at: string
+          duration_seconds: number | null
           file_path: string
           id: string
+          media_type: string
+          poster_path: string | null
           shared_with_guests: boolean
           status: Database["public"]["Enums"]["photo_status"]
           taken_on: string
@@ -1786,8 +1789,11 @@ export type Database = {
           approved_by?: string | null
           caption?: string | null
           created_at?: string
+          duration_seconds?: number | null
           file_path: string
           id?: string
+          media_type?: string
+          poster_path?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
@@ -1802,8 +1808,11 @@ export type Database = {
           approved_by?: string | null
           caption?: string | null
           created_at?: string
+          duration_seconds?: number | null
           file_path?: string
           id?: string
+          media_type?: string
+          poster_path?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
