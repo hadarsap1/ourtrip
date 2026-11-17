@@ -3132,3 +3132,30 @@ no such file exists in the repo.
 |---|---|
 | Live: `country_profiles_owner_all` / `_kid_select` in `member_trip_as` form; no SELECT / FOR ALL policy calls a per-row membership helper | ✅ verified 17/11/2026 |
 
+## 17/11/2026 - short videos in updates (00099, DECISIONS #70)
+
+A video is a `photos` row with `media_type = 'video'`; no policy is added or
+changed. Covered by the existing ones: `photos` select / insert / update
+policies and the 00001 insert trigger (a kid's row lands pending, unshared),
+`photos_guard_update` (extended: a kid cannot change `media_type`,
+`poster_path`, `duration_seconds`), the `photos` bucket policies of 00007
+(family reads and uploads, owners moderate, guests never), and the guest
+functions, which sign only rows the guest's own RLS returns.
+
+| Check | Result |
+|---|---|
+| Kid: a video inserted as approved + shared lands pending and unshared | ✅ PASS - local, probe `99_videos.sql` |
+| Guest: sees no pending video, no approved-but-unshared video; sees one approved AND shared (rule 3) | ✅ PASS - local, probe 99 |
+| Guest: cannot insert a video | ✅ PASS - local, probe 99 |
+| Kid: cannot turn their video into a photo, change its poster or its length; the caption still saves | ✅ PASS - local, probe 99 |
+| Row shape: longer than a minute, no length, unknown media type, a photo with a poster - all refused | ✅ PASS - local, probe 99 |
+| `photos` bucket stays private, 50 MB, takes video/mp4; `public-stories` takes no video type | ✅ PASS - local, probe 99 |
+| Full harness | ✅ 615 PASS, 0 FAIL on 99 migrations |
+| The open blog: `photoMayGoPublic` refuses a video (unit test); `syncPublicCopies` copies neither the file nor the poster | ✅ PASS - vitest |
+| Compression in a real browser (headless Chromium): 20 s 1080p 30 MB -> 4.1 MB, H.264 1280x720 ~1.5 Mbit/s, AAC sound kept, poster 1280x720; a 75 s video refused before any upload | ✅ PASS |
+| 00099 applied to production | ✅ done 17/11/2026 (Supabase MCP, apply_migration), on Hadar's go-ahead, before the merge |
+| Live read-back: the three columns exist, every existing row is an image, the `photos` bucket is 50 MB with the three video types, `photos_guard_update` pins `media_type` | ✅ verified 17/11/2026 |
+| `guest-media` (v2) and `guest-photos` (v11) redeployed, both ACTIVE, verify_jwt = true | ✅ done 17/11/2026 |
+| Live, as a real guest: the two functions still return the photos, and a shared video with its poster | ⏳ not yet - needs a guest session |
+| Through the UI on real phones (Android, iPhone): pick, compress, upload, play as owner / kid / guest | ⏳ not yet |
+

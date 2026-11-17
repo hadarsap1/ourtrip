@@ -2,10 +2,13 @@ import { getSupabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/images";
 import { photoTakenOn } from "@/lib/exifDate";
 import { todayISO } from "@/lib/format";
+import { prepareVideo, videoDay } from "@/lib/video";
 import type { Tables } from "@/lib/database.types";
 
 export type Photo = Tables<"photos">;
-export type PhotoWithUrl = Photo & { url: string | null };
+/** `url` is always a picture: the photo, or a video's poster frame (00099).
+ *  `videoUrl` is the video itself, null for a photo. */
+export type PhotoWithUrl = Photo & { url: string | null; videoUrl: string | null };
 
 const BUCKET = "photos";
 const PUBLIC_BUCKET = "public-stories";
@@ -14,6 +17,29 @@ function requireClient() {
   const supabase = getSupabase();
   if (!supabase) throw new Error("supabase not configured");
   return supabase;
+}
+
+type MediaRow = { file_path: string; media_type: string; poster_path: string | null };
+
+/**
+ * Signed URLs for rows the family may read (owners and kids read the private
+ * bucket directly, 00007). A photo: its file. A video (00099): its poster as
+ * `url`, so every thumbnail shows a picture, and the file as `videoUrl`.
+ */
+export async function signFamilyMedia<T extends MediaRow>(
+  rows: T[],
+  ttlSeconds = 60 * 60
+): Promise<(T & { url: string | null; videoUrl: string | null })[]> {
+  if (rows.length === 0) return [];
+  const paths = rows.flatMap((r) => (r.poster_path ? [r.file_path, r.poster_path] : [r.file_path]));
+  const { data: signed } = await requireClient().storage.from(BUCKET).createSignedUrls(paths, ttlSeconds);
+  const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+  const at = (path: string | null) => (path ? (urlByPath.get(path) ?? null) : null);
+  return rows.map((r) =>
+    r.media_type === "video"
+      ? { ...r, url: at(r.poster_path), videoUrl: at(r.file_path) }
+      : { ...r, url: at(r.file_path), videoUrl: null }
+  );
 }
 
 /** All family-visible photos with signed URLs (RLS scopes rows by role).
@@ -31,15 +57,7 @@ export async function listPhotos(
   else if (albums === "only") query = query.not("album_id", "is", null);
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  if (data.length === 0) return [];
-
-  const { data: signed } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrls(data.map((p) => p.file_path), 60 * 60);
-  const urlByPath = new Map(
-    (signed ?? []).map((s) => [s.path, s.signedUrl ?? null])
-  );
-  return data.map((p) => ({ ...p, url: urlByPath.get(p.file_path) ?? null }));
+  return signFamilyMedia(data);
 }
 
 /**
@@ -87,6 +105,57 @@ export async function uploadPhoto(input: {
       ...(input.isOwner
         ? { status: "approved" as const, approved_by: input.memberId, shared_with_guests: input.share === true }
         : {}),
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * A short video for an update (00099): checked and shrunk on the device
+ * (lib/video.ts), then the file and its poster frame go to the same private
+ * bucket and one `photos` row with media_type 'video'. Everything after that
+ * is a photo's path: a kid's lands pending and unshared (00001 trigger), a
+ * parent's is approved, sharing with guests stays its own step (#5).
+ * Throws VideoError (too long / too big / unreadable) before any upload.
+ */
+export async function uploadVideo(input: {
+  tripId: string;
+  memberId: string;
+  isOwner: boolean;
+  file: File;
+  /** 0..1 while the device re-encodes; the upload itself has no progress */
+  onProgress?: (fraction: number) => void;
+  onUploading?: () => void;
+}): Promise<Photo> {
+  const supabase = requireClient();
+  const video = await prepareVideo(input.file, input.onProgress);
+  input.onUploading?.();
+  const base = `${input.tripId}/${crypto.randomUUID()}`;
+  const path = `${base}.${video.ext}`;
+  const posterPath = `${base}.poster.jpg`;
+
+  const { error: posterError } = await supabase.storage
+    .from(BUCKET)
+    .upload(posterPath, video.poster, { contentType: "image/jpeg" });
+  if (posterError) throw new Error(posterError.message);
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, video.blob, { contentType: video.contentType });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data, error } = await supabase
+    .from("photos")
+    .insert({
+      trip_id: input.tripId,
+      uploaded_by: input.memberId,
+      file_path: path,
+      media_type: "video",
+      poster_path: posterPath,
+      duration_seconds: Math.round(video.durationSeconds),
+      taken_on: videoDay(input.file.lastModified, todayISO()),
+      ...(input.isOwner ? { status: "approved" as const, approved_by: input.memberId } : {}),
     })
     .select()
     .single();
@@ -181,5 +250,6 @@ export async function deletePhoto(photo: Photo): Promise<void> {
   await withdrawPublicCopies(photo.id);
   const { error } = await supabase.from("photos").delete().eq("id", photo.id);
   if (error) throw new Error(error.message);
-  await supabase.storage.from(BUCKET).remove([photo.file_path]);
+  // a video's poster goes with it (00099)
+  await supabase.storage.from(BUCKET).remove(photo.poster_path ? [photo.file_path, photo.poster_path] : [photo.file_path]);
 }

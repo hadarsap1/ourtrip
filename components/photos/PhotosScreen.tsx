@@ -38,6 +38,7 @@ import { AudienceSheet } from "@/components/AudienceSheet";
 import { listMyGroups } from "@/lib/data/groups";
 import { CaptionSheet, PhotoCaption } from "./PhotoCaption";
 import { PhotoView, type ViewedPhoto } from "./PhotoView";
+import { VideoBadge, VideoFrame } from "./VideoFrame";
 import { usePhotoFeedback, type FeedbackBadge } from "./usePhotoFeedback";
 import { PhotoPlacesMap } from "./PhotoPlacesMap";
 import { PlaceHeader } from "./PlaceHeader";
@@ -478,7 +479,16 @@ function FamilyPhotosView() {
           <ul className="space-y-3">
             {pending.map((photo) => (
               <li key={photo.id} className="overflow-hidden rounded-xl bg-surface shadow-sm">
-                {photo.url && (
+                {photo.videoUrl ? (
+                  // a parent watches a kid's video before approving it (00099)
+                  <VideoFrame
+                    poster={photo.url}
+                    src={photo.videoUrl}
+                    alt={photo.caption ?? ""}
+                    className="min-h-40 w-full"
+                    mediaClassName="max-h-72 w-full object-contain"
+                  />
+                ) : photo.url && (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL
                   <img src={photo.url} alt={photo.caption ?? ""} className="max-h-72 w-full object-cover" />
                 )}
@@ -746,7 +756,7 @@ function PhotoTile({
   badge,
   onOpen,
 }: {
-  photo: { url: string | null; caption: string | null };
+  photo: { url: string | null; caption: string | null; videoUrl?: string | null };
   badge: FeedbackBadge;
   onOpen: () => void;
 }) {
@@ -755,6 +765,7 @@ function PhotoTile({
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
       {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
       <img src={photo.url} alt={photo.caption ?? ""} className="aspect-square w-full object-cover" />
+      {photo.videoUrl && <VideoBadge className="absolute end-1.5 top-1.5" />}
       <span className="absolute top-1.5 start-1.5">
         <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />
       </span>

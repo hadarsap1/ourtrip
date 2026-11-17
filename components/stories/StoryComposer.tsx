@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { CameraIcon, CheckIcon, CloseIcon, PhotosIcon, StarIcon } from "@/components/icons";
-import { listPhotos, uploadPhoto, type PhotoWithUrl } from "@/lib/data/photos";
+import { VideoBadge } from "@/components/photos/VideoFrame";
+import { listPhotos, signFamilyMedia, uploadPhoto, uploadVideo, type PhotoWithUrl } from "@/lib/data/photos";
+import { VideoError, isVideoFile } from "@/lib/video";
 import {
   createStory,
   reloadStory,
@@ -20,7 +22,8 @@ import { clearStoryDraft, loadStoryDraft, saveStoryDraft } from "@/lib/storyDraf
 import { strings } from "@/lib/strings";
 import type { Member, Post, PostVisibility, Trip } from "@/lib/types";
 
-type Picked = { id: string; url: string | null };
+/** `url` is a picture either way: a video's is its poster frame (00099). */
+type Picked = { id: string; url: string | null; video?: boolean };
 
 export const MOODS = ["🤩", "😀", "🙂", "😐", "🙁", "😴"];
 
@@ -82,7 +85,7 @@ export function StoryComposer({
   const [mood, setMood] = useState<string | null>(existing?.mood ?? draft?.mood ?? null);
   const [place, setPlace] = useState(existing?.place_label ?? (draft?.place || initialPlace) ?? "");
   const [photos, setPhotos] = useState<Picked[]>(
-    existing?.photos.map((p) => ({ id: p.photoId, url: p.url })) ??
+    existing?.photos.map((p) => ({ id: p.photoId, url: p.url, video: Boolean(p.videoUrl) })) ??
       draft?.photoIds.map((id) => ({ id, url: null })) ??
       []
   );
@@ -97,6 +100,9 @@ export function StoryComposer({
   const [sharePhotos, setSharePhotos] = useState(true);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // a video on its way: the device re-encodes it first (a number, 0..100),
+  // then it uploads ("up") - a minute's video takes a while, so it says so
+  const [videoStage, setVideoStage] = useState<number | "up" | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
 
   const options = audienceOptions(authorRole);
@@ -109,9 +115,15 @@ export function StoryComposer({
     void listPhotos(trip.id)
       .then((all) => {
         if (cancelled) return;
-        const byId = new Map(all.map((p) => [p.id, p.url]));
+        const byId = new Map(all.map((p) => [p.id, p]));
         setPhotos((prev) =>
-          prev.filter((p) => byId.has(p.id)).map((p) => ({ id: p.id, url: p.url ?? byId.get(p.id) ?? null }))
+          prev
+            .filter((p) => byId.has(p.id))
+            .map((p) => ({
+              id: p.id,
+              url: p.url ?? byId.get(p.id)?.url ?? null,
+              video: byId.get(p.id)?.media_type === "video",
+            }))
         );
       })
       .catch(() => {});
@@ -145,6 +157,22 @@ export function StoryComposer({
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
+        if (isVideoFile(file)) {
+          setVideoStage(0);
+          const video = await uploadVideo({
+            tripId: trip.id,
+            memberId: member.id,
+            isOwner,
+            file,
+            onProgress: (fraction) => setVideoStage(Math.round(fraction * 100)),
+            onUploading: () => setVideoStage("up"),
+          });
+          setVideoStage(null);
+          // its poster frame, as the family reads it
+          const [signed] = await signFamilyMedia([video]).catch(() => []);
+          setPhotos((prev) => [...prev, { id: video.id, url: signed?.url ?? null, video: true }]);
+          continue;
+        }
         const photo = await uploadPhoto({
           tripId: trip.id,
           memberId: member.id,
@@ -153,10 +181,19 @@ export function StoryComposer({
         });
         setPhotos((prev) => [...prev, { id: photo.id, url: URL.createObjectURL(file) }]);
       }
-    } catch {
-      onToast(strings.common.error);
+    } catch (e) {
+      onToast(
+        e instanceof VideoError
+          ? e.problem === "too_long"
+            ? s.videoTooLong
+            : e.problem === "too_big"
+              ? s.videoTooBig
+              : s.videoUnreadable
+          : strings.common.error
+      );
     } finally {
       setUploading(false);
+      setVideoStage(null);
     }
   }
 
@@ -298,6 +335,7 @@ export function StoryComposer({
                     // eslint-disable-next-line @next/next/no-img-element -- signed / object URL
                     <img src={p.url} alt="" className="h-full w-full object-cover" />
                   )}
+                  {p.video && <VideoBadge className="absolute start-1 top-1" />}
                   <button
                     type="button"
                     onClick={() => setPhotos((prev) => prev.filter((x) => x.id !== p.id))}
@@ -333,10 +371,18 @@ export function StoryComposer({
           <div className="grid grid-cols-2 gap-2">
             <label className="flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-line bg-surface text-sm font-semibold text-ink-soft">
               <CameraIcon className="h-4 w-4" />
-              {uploading ? strings.photos.uploading : s.addPhotos}
+              <span aria-live="polite">
+                {videoStage === "up"
+                  ? s.videoUploading
+                  : videoStage !== null
+                    ? s.videoPreparing.replace("{pct}", String(videoStage))
+                    : uploading
+                      ? strings.photos.uploading
+                      : s.addPhotos}
+              </span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 multiple
                 className="sr-only"
                 disabled={uploading}
@@ -521,6 +567,7 @@ function GalleryPicker({
                     // eslint-disable-next-line @next/next/no-img-element -- signed URL
                     <img src={p.url} alt="" className="h-full w-full object-cover" />
                   )}
+                  {p.media_type === "video" && <VideoBadge className="absolute bottom-1 start-1" />}
                   {on && (
                     <span className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-sea text-on-sea">
                       <CheckIcon className="h-4 w-4" />
@@ -535,7 +582,12 @@ function GalleryPicker({
       <button
         type="button"
         onClick={() =>
-          onDone(picked.map((id) => ({ id, url: photos?.find((p) => p.id === id)?.url ?? null })))
+          onDone(
+            picked.map((id) => {
+              const photo = photos?.find((p) => p.id === id);
+              return { id, url: photo?.url ?? null, video: photo?.media_type === "video" };
+            })
+          )
         }
         className="mt-4 w-full rounded-xl bg-sea py-3 font-semibold text-on-sea"
       >

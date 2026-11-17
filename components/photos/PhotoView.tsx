@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Sheet } from "@/components/Sheet";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { ViewersChip } from "@/components/feedback/ViewersChip";
+import { VideoFrame } from "@/components/photos/VideoFrame";
 import { useRecordOnOpen } from "@/lib/useRecordView";
 import { formatDate } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -12,7 +13,10 @@ import type { Comment, Member, Reaction } from "@/lib/types";
 /** What both the family's and the guests' photo lists can hand over. */
 export type ViewedPhoto = {
   id: string;
+  /** the photo, or a video's poster frame (00099) */
   url: string | null;
+  /** the video itself; absent or null for a photo */
+  videoUrl?: string | null;
   caption: string | null;
   taken_on: string;
   uploaded_by?: string;
@@ -63,7 +67,15 @@ export function PhotoView({
   return (
     <Sheet open onClose={onClose} title={formatDate(photo.taken_on)}>
       <div className="space-y-3">
-        {photo.url && (
+        {photo.videoUrl ? (
+          <VideoFrame
+            poster={photo.url}
+            src={photo.videoUrl}
+            alt={photo.caption ?? ""}
+            className="min-h-40 w-full overflow-hidden rounded-xl"
+            mediaClassName="max-h-[55dvh] w-full object-contain"
+          />
+        ) : photo.url && (
           // eslint-disable-next-line @next/next/no-img-element -- signed URL
           <img
             src={photo.url}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { VideoFrame } from "@/components/photos/VideoFrame";
 import { strings } from "@/lib/strings";
 
 /**
@@ -13,13 +14,18 @@ import { strings } from "@/lib/strings";
  * takes the first photo's shape, held between 4:5 (tall) and 16:9 (wide) so a
  * very tall photo does not fill the screen; a photo of another shape gets
  * plain margins instead of losing its edges.
+ *
+ * A short video (00099) is one of the slides: its poster frame with a play
+ * button, the video itself only after a tap.
  */
 
 const TALLEST = 4 / 5;
 const WIDEST = 16 / 9;
 const DEFAULT_RATIO = 4 / 3;
-export function PhotoCarousel({ photos }: { photos: { photoId: string; url: string | null }[] }) {
-  const shown = photos.filter((p): p is { photoId: string; url: string } => Boolean(p.url));
+type Slide = { photoId: string; url: string | null; videoUrl?: string | null };
+
+export function PhotoCarousel({ photos }: { photos: Slide[] }) {
+  const shown = photos.filter((p) => Boolean(p.url || p.videoUrl));
   const scroller = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
   // width / height of the frame, from the first photo once it loads
@@ -50,19 +56,39 @@ export function PhotoCarousel({ photos }: { photos: { photoId: string; url: stri
         className="flex snap-x snap-mandatory overflow-x-auto bg-sv-paper [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ aspectRatio: String(ratio) }}
       >
-        {shown.map((p, i) => (
-          // eslint-disable-next-line @next/next/no-img-element -- signed URL
-          <img
-            key={p.photoId}
-            src={p.url}
-            alt={shown.length > 1 ? strings.stories.photoOf.replace("{i}", String(i + 1)).replace("{n}", String(shown.length)) : ""}
-            loading={i === 0 ? "eager" : "lazy"}
-            // a cached photo can finish before React listens, hence the ref too
-            ref={i === 0 ? (img) => { if (img?.complete) onFirstLoad(img); } : undefined}
-            onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
-            className="h-full w-full shrink-0 snap-start object-contain"
-          />
-        ))}
+        {shown.map((p, i) => {
+          const alt =
+            shown.length > 1
+              ? strings.stories.photoOf.replace("{i}", String(i + 1)).replace("{n}", String(shown.length))
+              : "";
+          // a cached photo can finish before React listens, hence the ref too
+          const firstRef = i === 0 ? (img: HTMLImageElement | null) => { if (img?.complete) onFirstLoad(img); } : undefined;
+          if (p.videoUrl) {
+            return (
+              <VideoFrame
+                key={p.photoId}
+                poster={p.url}
+                src={p.videoUrl}
+                alt={alt}
+                posterRef={firstRef}
+                onPosterLoad={i === 0 ? onFirstLoad : undefined}
+                className="h-full w-full shrink-0 snap-start"
+              />
+            );
+          }
+          return (
+            // eslint-disable-next-line @next/next/no-img-element -- signed URL
+            <img
+              key={p.photoId}
+              src={p.url ?? undefined}
+              alt={alt}
+              loading={i === 0 ? "eager" : "lazy"}
+              ref={firstRef}
+              onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
+              className="h-full w-full shrink-0 snap-start object-contain"
+            />
+          );
+        })}
       </div>
       {shown.length > 1 && (
         <>

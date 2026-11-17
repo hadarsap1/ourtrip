@@ -54,11 +54,12 @@ export async function deleteAlbum(id: string): Promise<void> {
   // The paths first, and stop if they did not arrive: deleting the album
   // cascades the rows, and without the paths the files would stay in storage
   // with nothing pointing at them (QA 15/11/2026).
-  const { data: photos, error: readError } = await supabase.from("photos").select("file_path").eq("album_id", id);
+  const { data: photos, error: readError } = await supabase.from("photos").select("file_path, poster_path").eq("album_id", id);
   if (readError) throw new Error(readError.message);
   const { error } = await supabase.from("albums").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  const paths = (photos ?? []).map((p) => p.file_path);
+  // a video's poster goes with it (00099)
+  const paths = (photos ?? []).flatMap((p) => (p.poster_path ? [p.file_path, p.poster_path] : [p.file_path]));
   if (paths.length > 0) await supabase.storage.from("photos").remove(paths);
 }
 

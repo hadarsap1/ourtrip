@@ -10,12 +10,19 @@
 // already see - a past day the family chose to share a photo from - never a
 // day ahead or anything else about the day (00009 still hides the plan).
 
+//
+// A video (00099) is a `photos` row like any other, so the same RLS read
+// decides it. `url` is always a picture - the photo, or the video's poster
+// frame - and `video_url` is the video itself, null for a photo.
+
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Signed URLs need no auth once minted, so a guest can forward one to anyone.
 // An hour was a wide window for photos of the kids; 15 minutes still covers a
 // gallery load with room to spare (review finding L3).
 const SIGNED_URL_TTL_SECONDS = 15 * 60;
+// a video is played, not just shown: the room guest-media gives audio
+const VIDEO_TTL_SECONDS = 30 * 60;
 
 // Browser calls this cross-origin (Vercel -> *.supabase.co), so every response
 // - including the CORS preflight - must carry these headers. Without them the
@@ -47,7 +54,7 @@ Deno.serve(async (req) => {
   // rows come through the caller's own JWT → RLS decides what exists
   const { data: photos, error } = await caller
     .from("photos")
-    .select("id, trip_id, file_path, caption, taken_on")
+    .select("id, trip_id, file_path, caption, taken_on, media_type, poster_path")
     .order("taken_on", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) return json({ ok: false, error: error.message }, 500);
@@ -57,12 +64,23 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-  const { data: signed, error: signError } = await service.storage
-    .from("photos")
-    .createSignedUrls(photos.map((p) => p.file_path), SIGNED_URL_TTL_SECONDS);
+  const isVideo = (p: { media_type: string }) => p.media_type === "video";
+  const picturePaths = photos.flatMap((p) => (isVideo(p) ? (p.poster_path ? [p.poster_path] : []) : [p.file_path]));
+  const videoPaths = photos.filter(isVideo).map((p) => p.file_path);
+  const [signed, signedVideos] = await Promise.all([
+    picturePaths.length
+      ? service.storage.from("photos").createSignedUrls(picturePaths, SIGNED_URL_TTL_SECONDS)
+      : Promise.resolve({ data: [], error: null }),
+    videoPaths.length
+      ? service.storage.from("photos").createSignedUrls(videoPaths, VIDEO_TTL_SECONDS)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const signError = signed.error ?? signedVideos.error;
   if (signError) return json({ ok: false, error: signError.message }, 500);
 
-  const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  const urlByPath = new Map(
+    [...(signed.data ?? []), ...(signedVideos.data ?? [])].map((s) => [s.path, s.signedUrl])
+  );
 
   // where: the day each photo was taken on. A failure here only drops the
   // place; the photos still load.
@@ -87,7 +105,8 @@ Deno.serve(async (req) => {
       id: p.id,
       caption: p.caption,
       taken_on: p.taken_on,
-      url: urlByPath.get(p.file_path) ?? null,
+      url: (isVideo(p) ? p.poster_path && urlByPath.get(p.poster_path) : urlByPath.get(p.file_path)) || null,
+      video_url: isVideo(p) ? (urlByPath.get(p.file_path) ?? null) : null,
       ...(dayOf.get(`${p.trip_id}|${p.taken_on}`) ?? {
         place: null,
         country_code: null,

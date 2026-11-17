@@ -5,7 +5,7 @@
 // back as an error.
 
 import { getSupabase } from "@/lib/supabase";
-import { photoUrls } from "@/lib/data/media";
+import { photoMedia, photoUrls, type PhotoMedia } from "@/lib/data/media";
 import { photoAudienceAfterShare, photoMayGoPublic } from "@/lib/audience";
 import type { TablesUpdate } from "@/lib/database.types";
 import type { MemberRole, Post, PostVisibility } from "@/lib/types";
@@ -21,7 +21,10 @@ function requireClient() {
 export type StoryPhoto = {
   photoId: string;
   position: number;
+  /** the photo, or a video's poster frame (00099) */
   url: string | null;
+  /** the video itself; null for a photo */
+  videoUrl: string | null;
   publicPath: string | null;
 };
 
@@ -47,8 +50,8 @@ export async function listStories(tripId: string, role: MemberRole | undefined):
     .order("position");
   if (linkError) throw new Error(linkError.message);
 
-  const urls = await photoUrls(role, (links ?? []).map((l) => l.photo_id)).catch(
-    () => new Map<string, string | null>()
+  const media = await photoMedia(role, (links ?? []).map((l) => l.photo_id)).catch(
+    () => new Map<string, PhotoMedia>()
   );
   return posts.map((p) => ({
     ...p,
@@ -57,7 +60,8 @@ export async function listStories(tripId: string, role: MemberRole | undefined):
       .map((l) => ({
         photoId: l.photo_id,
         position: l.position,
-        url: urls.get(l.photo_id) ?? null,
+        url: media.get(l.photo_id)?.url ?? null,
+        videoUrl: media.get(l.photo_id)?.videoUrl ?? null,
         publicPath: l.public_path,
       })),
   }));
@@ -292,11 +296,12 @@ export async function syncPublicCopies(story: Story): Promise<void> {
   if (missing.length === 0) return;
   const { data: rows, error } = await supabase
     .from("photos")
-    .select("id, file_path, audience, status, shared_with_guests")
+    .select("id, file_path, audience, status, shared_with_guests, media_type")
     .in("id", missing.map((p) => p.photoId));
   if (error) throw new Error(error.message);
   // Only an approved, shared, everyone photo goes on the open page: one the
   // parent left unshared, or kept for some groups (00064), stays in the app.
+  // A video never does, nor its poster (00099): videos stay inside the app.
   for (const row of (rows ?? []).filter(photoMayGoPublic)) {
     const { data: blob, error: downloadError } = await supabase.storage.from("photos").download(row.file_path);
     if (downloadError || !blob) throw new Error(downloadError?.message ?? "download failed");
@@ -332,13 +337,16 @@ export async function reloadStory(id: string, role: MemberRole | undefined): Pro
   const { data: post } = await supabase.from("posts").select("*").eq("id", id).maybeSingle();
   if (!post) return null;
   const { data: links } = await supabase.from("post_photos").select("*").eq("post_id", id).order("position");
-  const urls = await photoUrls(role, (links ?? []).map((l) => l.photo_id)).catch(() => new Map());
+  const media = await photoMedia(role, (links ?? []).map((l) => l.photo_id)).catch(
+    () => new Map<string, PhotoMedia>()
+  );
   return {
     ...post,
     photos: (links ?? []).map((l) => ({
       photoId: l.photo_id,
       position: l.position,
-      url: urls.get(l.photo_id) ?? null,
+      url: media.get(l.photo_id)?.url ?? null,
+      videoUrl: media.get(l.photo_id)?.videoUrl ?? null,
       publicPath: l.public_path,
     })),
   };

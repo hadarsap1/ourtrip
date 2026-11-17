@@ -1,6 +1,6 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
-import { photoUrls } from "@/lib/data/media";
+import { photoMedia } from "@/lib/data/media";
 import type { Tables } from "@/lib/database.types";
 import { parseJoinInfo, parseSubmitResult, type JoinInfo, type SubmitResult } from "@/lib/guestJoin";
 
@@ -230,7 +230,10 @@ export type GuestPhoto = {
   id: string;
   caption: string | null;
   taken_on: string;
+  /** the photo, or a video's poster frame (00099) */
   url: string | null;
+  /** the video itself; null for a photo */
+  videoUrl: string | null;
   // where it was taken (guest-photos, 01/11/2026); absent from an older
   // deployment of the function, so optional
   place?: string | null;
@@ -259,7 +262,10 @@ export async function listGuestPhotosWithAlbums(): Promise<{ photos: GuestPhoto[
   if (!fn.data?.ok) throw new Error(fn.data?.error ?? "failed");
   if (inAlbums.error) throw new Error(inAlbums.error.message);
   const albumOf = new Map(inAlbums.data.map((r) => [r.id, r.album_id as string]));
-  const photos = fn.data.photos as GuestPhoto[];
+  // video_url: absent from a deployment of the function older than 00099
+  const photos = (fn.data.photos as (Omit<GuestPhoto, "videoUrl"> & { video_url?: string | null })[]).map(
+    ({ video_url, ...p }) => ({ ...p, videoUrl: video_url ?? null })
+  );
   return {
     photos: photos.filter((p) => !albumOf.has(p.id)),
     albumPhotos: photos.filter((p) => albumOf.has(p.id)).map((p) => ({ ...p, album_id: albumOf.get(p.id)! })),
@@ -281,8 +287,14 @@ export async function latestGuestPhotos(limit: number): Promise<GuestPhoto[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
-  const urls = await photoUrls("guest", data.map((p) => p.id));
-  return data.map((p) => ({ id: p.id, caption: p.caption, taken_on: p.taken_on ?? "", url: urls.get(p.id) ?? null }));
+  const media = await photoMedia("guest", data.map((p) => p.id));
+  return data.map((p) => ({
+    id: p.id,
+    caption: p.caption,
+    taken_on: p.taken_on ?? "",
+    url: media.get(p.id)?.url ?? null,
+    videoUrl: media.get(p.id)?.videoUrl ?? null,
+  }));
 }
 
 export type GuestGooglePhoto = {
