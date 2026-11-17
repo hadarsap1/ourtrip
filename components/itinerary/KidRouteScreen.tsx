@@ -8,6 +8,9 @@ import { findCountry } from "@/lib/countries";
 import { formatShortDate, formatTime, todayISO } from "@/lib/format";
 import { PinIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
+import { Banner } from "@/components/ui/Banner";
+import { readQuery, writeQuery } from "@/lib/offline/queryCache";
+import type { ItineraryDay, ItineraryItem } from "@/lib/types";
 
 /**
  * The route for the kids' tablet: where we are now and where we go next,
@@ -17,6 +20,7 @@ import { strings } from "@/lib/strings";
 export function KidRouteScreen() {
   const [stops, setStops] = useState<KidStop[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,9 +32,25 @@ export function KidRouteScreen() {
           return;
         }
         const today = todayISO();
-        const days = (await listDays(trip.id)).filter((d) => d.date >= today);
-        const items = await listItems(days.map((d) => d.id));
-        if (!cancelled) setStops(buildKidRoute(days, items, today));
+        // The route is what a kid opens in the car: the last one fetched is
+        // kept on the tablet and shown with no network (QA 15/11/2026).
+        const cacheKey = `kid-route:${trip.id}`;
+        try {
+          const days = (await listDays(trip.id)).filter((d) => d.date >= today);
+          const items = await listItems(days.map((d) => d.id));
+          if (!cancelled) setStops(buildKidRoute(days, items, today));
+          void writeQuery(cacheKey, { days, items });
+        } catch (err) {
+          const cached = await readQuery<{ days: ItineraryDay[]; items: ItineraryItem[] }>(cacheKey);
+          if (!cached) throw err;
+          if (!cancelled) {
+            // days that have passed since the copy was saved drop out
+            const days = cached.data.days.filter((d) => d.date >= today);
+            const ids = new Set(days.map((d) => d.id));
+            setStops(buildKidRoute(days, cached.data.items.filter((i) => ids.has(i.day_id)), today));
+            setFromCache(true);
+          }
+        }
       } catch {
         if (!cancelled) setFailed(true);
       }
@@ -48,6 +68,8 @@ export function KidRouteScreen() {
         <h1 className="text-3xl font-bold">{strings.kidRoute.title}</h1>
         <p className="mt-1 text-ink-soft">{strings.kidRoute.subtitle}</p>
       </header>
+
+      {fromCache && <Banner tone="warning">{strings.offline.fromCache}</Banner>}
 
       {failed ? (
         <p className="rounded-card border border-line bg-surface p-6 text-center text-ink-soft">

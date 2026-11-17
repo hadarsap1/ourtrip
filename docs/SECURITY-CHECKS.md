@@ -2974,25 +2974,161 @@ publication (delivered only to subscribers the SELECT policy admits) and to
 | Owner cannot write a correction to another trip; balance below zero and a malformed currency are refused | ✅ PASS - local, probe 92 |
 | Kid / guest read none, cannot add, their updates and deletes change nothing | ✅ PASS - local, probe 92 |
 | Deny matrix (probe 90) on 92 migrations, `cash_adjustments` added to the kid "never" list | ✅ PASS |
-| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row - fixed by 00093 |
+| Probe 86 guard | ❌ FAIL, not from this change: `country_profiles_owner_all` / `_kid_select` (00090, already on main) call `is_owner_of` / `is_kid_of` per row - fixed by 00094 |
 | 00092 applied to production | ✅ done 15/11/2026 (SQL editor, by Hadar) |
 | Live: `cash_adjustments` RLS on, `cash_adjustments_owner_all` the only policy (FOR ALL, `member_trip_as('owner')` in USING and WITH CHECK); balance and currency checks present; in `supabase_realtime`; no rows yet | ✅ verified 15/11/2026 |
 
-## 15/11/2026 - country_profiles in once-per-query form (00093)
+## 15/11/2026 - the app's address offers "ask to join" (00093, DECISIONS #63)
 
-Probe 86's guard failed on main since 00090: `country_profiles_owner_all` and
-`country_profiles_kid_select` called `is_owner_of(trip_id)` / `is_kid_of(trip_id)`
-per row. 00093 rewrites both as `trip_id = (select member_trip_as(role))`,
-the form every other read policy has used since 00059 / 00086. Same access:
-`is_owner_of(t) <=> t = member_trip_as('owner')`, `is_kid_of(t) <=> t =
-member_trip_as('kid')`, both through `current_member_id()` (kid device
-revocation still applies). No policy added or removed; guests still have none.
+New function `guest_join_open_token()` (security definer, `search_path = ''`,
+execute for anon + authenticated): the active trip's join token, or null. No
+table or policy changes. It reveals only what the printed QR already gives
+anyone: the means to ask to join. Asking grants nothing - every guest policy
+still needs an allowlist row only a parent can create (`is_active_guest_of`),
+and `submit_guest_join`'s limits (30 an hour, 200 open) stand. The token is
+not a secret in the sense of access: resetting the link still kills the old
+token, and the login screen then gets the new one.
 
 | Check | Result |
 |---|---|
-| Probe 86 guard: no SELECT / FOR ALL policy calls a per-row membership helper | ✅ PASS - local, on 93 migrations |
-| Probe 90 (country card): owner writes and edits, kid only reads, guest and anon read nothing, their writes change nothing | ✅ PASS - local, unchanged |
-| Full probe suite incl. deny matrix | ✅ PASS |
-| 00093 applied to production | ✅ done 17/11/2026 via the Supabase MCP (apply_migration 00093_country_profiles_once_per_query) |
-| Live: `country_profiles_owner_all` (ALL) and `_kid_select` (SELECT) now `trip_id = (select member_trip_as(...))`; no SELECT / FOR ALL policy left that calls a per-row membership helper | ✅ verified 17/11/2026 |
+| No join link yet: null, and calling it creates no row | ✅ PASS - local, probe `93_open_join_token.sql` |
+| Anon / outsider get the active trip's token, still read no `guest_join_links` / `guest_join_requests` | ✅ PASS - local, probe 93 |
+| Asking with it only makes a pending request | ✅ PASS - local, probe 93 |
+| Inactive trip: null | ✅ PASS - local, probe 93 |
+| Probes 54, 57 (join link), 90 (deny matrix) on 93 migrations | ✅ PASS |
+| 00093 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
+| Live: security definer, `search_path=""`, execute for anon + authenticated, returns the active trip's token | ✅ verified 15/11/2026 |
+
+
+## 15/11/2026 - `country_profiles` in once-per-query form (00094), QA pass
+
+00090 wrote `country_profiles_owner_all` / `_kid_select` with
+`is_owner_of(trip_id)` / `is_kid_of(trip_id)` - the per-row form 00086
+removed everywhere else. The guard in probe 86 failed on it (noted under
+00092 above), and because `scripts/rls/run.sh` stops at the first failing
+probe, a full harness pass never reached probes 87-93. 00094 alters the two
+policies to `trip_id = (select member_trip_as('owner' | 'kid'))`. No change in
+who sees what: parents read and write their trip's cards, kids read them,
+guests / revoked guests / anon / another trip get nothing.
+
+Client changes in the same pass are cosmetic role gates only (kids no longer
+see the emergency / phrasebook edit buttons, the vault tile or the planning
+rows; kids and guests no longer see the map's bookings tab). RLS already
+refused every one of those writes and reads; nothing here is a boundary.
+
+| Check | Result |
+|---|---|
+| Probe 86 guard: no SELECT / FOR ALL policy calls a per-row helper | ✅ PASS - local, 94 migrations |
+| Probe 90 (`country_profiles`): owner all, kid read-only, guest / revoked / anon / other trip nothing | ✅ PASS - local |
+| Full harness, all probes in one run | ✅ 569 PASS, 0 FAIL |
+| Through the UI on a local PostgREST with the real policies: kid opens /budget, /documents, /pocket - "reserved for parents", no rows fetched; guest opens /budget, /documents, /itinerary, /facts - same; guest /jar shows only the 2 shared quotes of 3 | ✅ PASS - local |
+| 00094 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration) |
+| Live: both policies read `trip_id = (select member_trip_as(...))`; 0 SELECT / ALL policies in `public` call a per-row helper | ✅ verified 15/11/2026 |
+| Live security advisor after the apply | nothing new: the SECURITY DEFINER helpers callable by anon / authenticated (by design), `pg_net` in public, leaked-password protection off, RLS-without-policy on the 00078 archive and two `private` tables (intended) |
+
+## 15/11/2026 - the login screen's join token is Google only (00095, DECISIONS #64)
+
+`guest_join_links.open_token` (unique, not null, own default). Changed
+functions, all still security definer with a fixed `search_path`:
+`guest_join_open_token()` returns the open token; `guest_join_info()` accepts
+either token and reports `google_only`; `submit_guest_join()` refuses a request
+through the open token that is not signed in (`'google_only'`, nothing
+written) and no longer lets an unsigned request rewrite a waiting or declined
+one; `guest_join_token(reset)` renews both tokens. No table policy changed:
+`guest_join_links` and `guest_join_requests` stay unreadable to anon, kids and
+guests. Asking still grants nothing - every guest policy needs the allowlist
+row only a parent writes.
+
+Client, cosmetic only: the open page shows the Google button alone and an
+same note from the family as the handed-out link, names included (Hadar's
+choice, 15/11/2026; no places or dates); "approve all" sends only
+Google-proven requests.
+
+| Check | Result |
+|---|---|
+| The two tokens differ; the login screen gets the open one, never the handed-out one | ✅ PASS - local, probe `95_open_join_google_only.sql` |
+| Anon + typed address through the open token: `google_only`, no row written | ✅ PASS - local, probe 95 |
+| Signed-in outsider through the open token: a pending request under the login's own address | ✅ PASS - local, probe 95 |
+| Handed-out token: a typed address still asks | ✅ PASS - local, probe 95 |
+| Unsigned retype of a waiting address (its own or a signed-in person's): name and kid names unchanged | ✅ PASS - local, probe 95 |
+| The signed-in owner of the address can still update their own request | ✅ PASS - local, probe 95 |
+| Reset: both old tokens invalid | ✅ PASS - local, probe 95 |
+| Anon still reads no `guest_join_links` | ✅ PASS - local, probes 93, 95 |
+| Probes 54, 57, 93 (join link) and the deny matrix on 95 migrations | ✅ PASS - full harness 584 PASS, 0 FAIL |
+| Through the UI, signed out: the login screen links to the open token; that page has no typed form; the handed-out link still has both | ✅ PASS - local stack (`scripts/uicrawl`) |
+| 00095 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration), after #205 was deployed (Vercel READY, 0 runtime errors) |
+| Live: the two tokens differ; `guest_join_open_token()` returns the open one; `guest_join_info` says `google_only` for the open token and not for the handed-out one | ✅ verified 15/11/2026 |
+| Live: an unsigned request through the open token answers `google_only` and writes no row | ✅ verified 15/11/2026 |
+| Live: anon may execute `guest_join_open_token` and `submit_guest_join`, not `guest_join_token`; the join tables' policies are unchanged (2) | ✅ verified 15/11/2026 |
+
+## 15/11/2026 - new guest home and kids' home (DECISIONS #65)
+
+No migration, no policy change. What each home reads, and under which policy:
+
+| Home | Read | Covered by |
+|---|---|---|
+| Guest | newest update + ids/times of updates (`posts`) | `posts` guest select: approved, in the guest's groups |
+| Guest | the update's first photo, the four newest photos (`photos`, `post_photos`) | `photos_guest_select` - rule 3: `approved` AND `shared_with_guests`, audience, album only while shared. The home asks for non-album rows; URLs are signed by `guest-media`, which reads the ids again with the caller's JWT |
+| Guest | one jar quote (`jar_quotes`) | `jar_quotes_guest_select`: `shared_with_guests` only |
+| Guest | episodes' times (`episodes`) | `episodes_guest_select`: approved AND shared |
+| Guest | hearts on the update, add / remove own (`reactions`) | existing reactions policies (own rows only for write) |
+| Guest | names (`trip_member_names`) | 00051: names only, never an address |
+| Kid | the itinerary's dates and countries, for the passport (`itinerary_days`) | kid select (read-only) |
+| Kid | today's day and items | as before (`loadToday`) |
+
+| Check | Result |
+|---|---|
+| Guest home through the real policies (local PostgREST): shows the shared update, 4 photos that are approved + shared and outside albums, the shared quote; nothing of the budget, bookings or unshared photos is requested | ✅ PASS - local stack |
+| Heart from the guest home: adds the guest's own reaction, second tap removes it | ✅ PASS - local stack |
+| Kid home: no request to budget, documents or bookings beyond what the home already made; passport from `itinerary_days` only | ✅ PASS - local stack |
+| Offline: kid home (place, passport, now) opens from the device copy; guest home shows the greeting and the offline banner, each block that could not load is left out | ✅ PASS - local stack, network off |
+| Light + dark, 390 px: no tap target under 44 px, no sideways scroll, no failed request | ✅ PASS |
+| RLS harness unchanged | ✅ 584 PASS, 0 FAIL (no SQL in this change) |
+
+## 15/11/2026 - one request to open the app (`app_boot`, 00096, DECISIONS #66)
+
+New function `app_boot(p_today date)`: **SECURITY INVOKER**, `search_path =
+public`, execute for `authenticated` only. It calls
+`link_member_to_auth_user()` (00055, unchanged, already the app's first call)
+and then reads, as the caller: the caller's own member row, the active trip,
+today's day and items, today's bookings and four pending counts. No table,
+policy or grant on a table changes. Because it runs as the caller, it cannot
+return a row the caller's own queries would not: it is the same reads in one
+round trip.
+
+Client: no new access. The gate still treats "no role" as before; a failed or
+missing function falls back to the separate queries.
+
+| Check | Result |
+|---|---|
+| anon cannot execute; the function is security invoker | ✅ PASS - local, probe `96_app_boot.sql` |
+| Owner: role, own row, trip, today's day and items in order (the item of a cancelled booking left out), today's bookings (range + single day, not cancelled, not tomorrow), the waiting counts | ✅ PASS - local, probe 96 |
+| Kid: day and items; **no bookings, no price, no confirmation code**; no join requests in the counts | ✅ PASS - local, probe 96 |
+| Guest: role and own row; no bookings or codes; no pending photo; never the unshared item | ✅ PASS - local, probe 96 |
+| Revoked guest: a role and own row but no trip, so no day, items, bookings or counts | ✅ PASS - local, probe 96 |
+| Outsider (signed in, no member row): `{"role": null}` and nothing else | ✅ PASS - local, probe 96 |
+| Another (inactive) trip never comes back | ✅ PASS - local, probe 96 |
+| Full harness | ✅ 599 PASS, 0 FAIL on 96 migrations |
+| Through the UI on the local stack, three roles: the home renders from the one call; with the function dropped the app falls back and renders the same | ✅ PASS |
+| Offline, three roles: homes open from the device copies as before | ✅ PASS - local stack, network off |
+| 00096 applied to production | ✅ done 15/11/2026 (Supabase MCP, apply_migration), after #207 was merged |
+| Live, as a real member of each role inside a rolled-back transaction: owner gets own row, trip, today's day and one booking; kid gets the day and **no bookings, no confirmation code**; guest gets own row and trip, no day, no bookings | ✅ verified 15/11/2026 |
+| Live: security invoker; anon cannot execute, authenticated can | ✅ verified 15/11/2026 |
+
+Also in this pass: probe 69 failed for two hours a day (15:00-17:00 UTC, when
+Tokyo's date is ahead of Hanoi's) - a fault in the probe, not in
+`trip_now_country`; fixed. `scripts/rls/run.sh` now really runs every probe
+after a failure (`pipefail` ended it at the first one).
+
+## 17/11/2026 - a duplicate run of the country_profiles fix
+
+The same two `alter policy` statements as 00094 (already applied live on
+15/11/2026) were run once more through the Supabase MCP, from a branch that
+did not yet have 00094. A no-op on the policies (identical text), but it left
+a second history row in production, `00093_country_profiles_once_per_query`;
+no such file exists in the repo.
+
+| Check | Result |
+|---|---|
+| Live: `country_profiles_owner_all` / `_kid_select` in `member_trip_as` form; no SELECT / FOR ALL policy calls a per-row membership helper | ✅ verified 17/11/2026 |
 

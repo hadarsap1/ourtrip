@@ -1129,18 +1129,21 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          open_token: string
           token: string
           trip_id: string
         }
         Insert: {
           created_at?: string
           created_by: string
+          open_token?: string
           token?: string
           trip_id: string
         }
         Update: {
           created_at?: string
           created_by?: string
+          open_token?: string
           token?: string
           trip_id?: string
         }
@@ -2538,6 +2541,7 @@ export type Database = {
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
       functions_base_url: { Args: never; Returns: string }
       guest_join_info: { Args: { p_token: string }; Returns: Json }
+      guest_join_open_token: { Args: never; Returns: string | null }
       guest_join_token: {
         Args: { p_reset?: boolean; p_trip_id: string }
         Returns: string

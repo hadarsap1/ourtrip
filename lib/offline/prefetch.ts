@@ -31,6 +31,11 @@ export async function prefetchOfflineEssentials(force = false): Promise<void> {
     const { getActiveTrip } = await import("@/lib/data/trip");
     const trip = await getActiveTrip();
     if (!trip) return;
+    // A guest has no offline screens to fill: every read below is refused to
+    // them by RLS, so it was eight requests for nothing on each open (QA
+    // 15/11/2026). Kids keep theirs (today, the route, emergency, phrasebook).
+    const { getCurrentMember: whoAmI } = await import("@/lib/data/trip");
+    if ((await whoAmI().catch(() => null))?.role === "guest") return;
     const steps: Promise<unknown>[] = [
       import("@/lib/data/today").then((m) => m.loadToday()),
       import("@/lib/data/itineraryBundle").then((m) => m.fetchItineraryBundle(trip.id)),

@@ -10,6 +10,14 @@ import { strings } from "@/lib/strings";
 import type { Booking, BudgetCategory, Expense, ItineraryDay } from "@/lib/types";
 
 const t = strings.budgetInsights;
+
+export type PaceInfo = {
+  /** Share of the budget used, null when no budget is set. */
+  usedPct: number | null;
+  projection: number | null;
+  preTripSpent: number;
+  notStarted: boolean;
+};
 const ils = (n: number) => formatMoney(Math.round(n), "ILS");
 const money = (n: number | null) => (n === null ? t.none : ils(n));
 const countryName = (code: string | null) => (code ? (findCountry(code)?.he ?? code) : t.noCountry);
@@ -26,7 +34,9 @@ export function BudgetInsights({
   expenses,
   days,
   bookings,
+  pace,
 }: {
+  pace?: PaceInfo;
   categories: BudgetCategory[];
   /** As entered - withdrawals are reduced inside, never pass counted ones. */
   expenses: Expense[];
@@ -68,6 +78,31 @@ export function BudgetInsights({
             </Chip>
           ))}
         </div>
+      )}
+
+      {scope === null && pace && (
+        <section className={card}>
+          <h2 className="text-sm font-bold text-ink">{t.paceTitle}</h2>
+          <dl className="mt-2 space-y-1.5 text-sm">
+            {pace.usedPct !== null && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-soft">{t.paceUsed}</dt>
+                <dd className="font-bold tabular-nums text-ink">{pace.usedPct}%</dd>
+              </div>
+            )}
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink-soft">{strings.budget.projection}</dt>
+              <dd className="font-bold tabular-nums text-ink"><bdi>{pace.projection === null ? t.none : ils(pace.projection)}</bdi></dd>
+            </div>
+            {pace.preTripSpent > 0 && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-soft">{strings.budget.beforeTrip}</dt>
+                <dd className="font-bold tabular-nums text-ink"><bdi>{ils(pace.preTripSpent)}</bdi></dd>
+              </div>
+            )}
+          </dl>
+          {pace.notStarted && <p className="mt-1.5 text-xs text-ink-faint">{strings.budget.tripNotStarted}</p>}
+        </section>
       )}
 
       {ins.total === 0 ? (

@@ -605,6 +605,7 @@ export function MapScreen() {
         noKey={noKey}
         days={days}
         bookings={bookings}
+        showBookings={!member || member.role === "owner"}
         dayFilter={dayFilter}
         onDayFilter={setDayFilter}
         onFocusStretch={focusStretch}

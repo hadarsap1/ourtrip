@@ -8,8 +8,10 @@ import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { getSupabase, storedAuthUserId } from "@/lib/supabase";
 import { offlineNow, TimeoutError, withTimeout } from "@/lib/offline/network";
 import { SuitcaseIcon } from "@/components/icons";
+import { JoinOffer } from "@/components/auth/JoinOffer";
 import { strings } from "@/lib/strings";
 import { memberLinked } from "@/lib/useMember";
+import { invalidateBoot, requestBoot } from "@/lib/boot";
 
 // "joining": signed in, not a member yet, and this phone came through the
 // join link - back to that page (it shows "waiting for approval").
@@ -37,6 +39,8 @@ const SESSION_TIMEOUT_MS = 5000;
 export function resetAuthGate(): void {
   decided = null;
   inFlight = null;
+  // the answer held belongs to whoever was (or was not) signed in before
+  invalidateBoot();
 }
 
 function redirectTarget(verdict: "redirecting" | "joining"): string {
@@ -68,8 +72,16 @@ async function decide(): Promise<Exclude<GateState, "loading">> {
     return couldNotAsk && storedAuthUserId() ? "allowed" : "redirecting";
   }
 
-  // Link auth user ↔ seeded member row; null role = not allowed.
-  const { data: role, error } = await supabase.rpc("link_member_to_auth_user");
+  // Link auth user ↔ seeded member row; null role = not allowed. The opening
+  // request (00096) does the link and brings the member, the trip, today and
+  // the approval counts with it; a database without it gets the link alone.
+  const boot = await requestBoot();
+  const { data: role, error } =
+    boot.kind === "ok"
+      ? { data: boot.boot.role, error: null }
+      : boot.kind === "unsupported"
+        ? await supabase.rpc("link_member_to_auth_user")
+        : { data: null, error: boot.error };
 
   // Network failure (offline etc.) - can't verify. A locally stored session is
   // enough to render the shell: real security is RLS, and the offline-critical
@@ -160,6 +172,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           {strings.auth.notAllowedTitle}
         </h1>
         <p className="text-ink-soft">{strings.auth.notAllowedBody}</p>
+        <JoinOffer className="mt-6" />
       </div>
     );
   }

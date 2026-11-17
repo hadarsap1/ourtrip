@@ -67,7 +67,7 @@ export function StepsCard({ tripId }: { tripId: string }) {
   const place = stay ? findCountry(stay.code)?.he ?? stay.code : null;
 
   return (
-    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
+    <section className="rounded-card bg-surface shadow-card px-3.5 py-3">
       <p className="ot-kicker">{t.title}</p>
       <div className="mt-2 grid grid-cols-2 gap-3">
         {data.parents.map((p, i) => {

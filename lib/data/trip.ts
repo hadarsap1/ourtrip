@@ -1,3 +1,4 @@
+import { freshBoot } from "@/lib/boot";
 import { getSupabase, storedAuthUserId } from "@/lib/supabase";
 import { offlineNow, withTimeout } from "@/lib/offline/network";
 import type { Member, Trip } from "@/lib/types";
@@ -142,6 +143,19 @@ async function fetchCurrentMember(): Promise<Member | null> {
   // enforces access, and it validates the token server-side anyway.
   const uid = await sessionUid();
   if (!uid) return null;
+
+  // The opening request (00096) carries this row; ask separately only when
+  // it has nothing fresh for this login.
+  const boot = await freshBoot();
+  if (boot?.member && boot.member.auth_user_id === uid) {
+    cachedMember = boot.member;
+    if (typeof window !== "undefined") storeMember(uid, boot.member);
+    if (boot.trip && !cachedTrip) {
+      cachedTrip = boot.trip;
+      storeTrip(boot.trip);
+    }
+    return boot.member;
+  }
 
   const { data, error } = await supabase
     .from("members")

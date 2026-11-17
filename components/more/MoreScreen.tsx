@@ -126,6 +126,11 @@ export function MoreScreen() {
     };
   }, []);
 
+  // A kid gets here from the settings screen's back arrow. The vault and the
+  // planning rows are the parents' (RoleGate turns a kid away from each), so
+  // they are not offered (QA 15/11/2026). Cosmetic: RLS is the boundary.
+  const isKid = member?.role === "kid";
+
   const n = (value: number | undefined) => (counts ? (value ?? 0) : null);
 
   // Grouped by when you reach for them (UX pass 06/11/2026): "בדרך" is what
@@ -282,7 +287,7 @@ export function MoreScreen() {
 
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupOnTheRoad}</p>
-        <TileGrid tiles={onTheRoad} />
+        <TileGrid tiles={isKid ? onTheRoad.filter((t) => t.href !== "/documents") : onTheRoad} />
       </section>
 
       <section>
@@ -290,6 +295,7 @@ export function MoreScreen() {
         <TileGrid tiles={memories} />
       </section>
 
+      {!isKid && (
       <section>
         <p className="ot-kicker mb-2 px-0.5">{strings.more.groupFamily}</p>
         <ul className="overflow-hidden rounded-card border border-line bg-surface">
@@ -324,6 +330,7 @@ export function MoreScreen() {
           ))}
         </ul>
       </section>
+      )}
 
       {/* Emergency stays visually separate and unmistakable. Naming the country
           you'd land on is the difference between a link and an answer - and it

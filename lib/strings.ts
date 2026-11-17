@@ -63,6 +63,8 @@ export const strings = {
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
     noDay: "אין יום מתוכנן במסלול להיום",
     bookingsToday: "הזמנות להיום",
+    // the home lists only what was booked, not a plan by the hour (Hadar 15/11/2026)
+    bookedToday: "הזמנו להיום",
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
@@ -507,18 +509,22 @@ export const strings = {
   },
 
   budgetV2: {
-    leftTrip: "נשאר לכל הטיול",
-    overTrip: "חריגה מהתקציב",
-    spentTotal: "הוצאנו",
+    leftTrip: "נשאר לנו לכל הטיול",
+    overTrip: "עברנו את התקציב ב-",
+    spentTotal: "הוצאנו עד עכשיו",
+    budgetTotal: "התקציב שלנו",
+    cashTotal: "מזה במזומן",
+    catLeft: "נשאר {amount} מתוך {planned}",
+    catOver: "עברנו ב-{amount}",
     noBudget: "קובעים יעד תקציב כדי לראות כמה נשאר",
     last14: "14 הימים האחרונים",
     spentTodayLabel: "היום: {amount}",
     tabsLabel: "תצוגת תקציב",
     tabCategories: "קטגוריות",
     tabCountries: "מדינות",
-    tabInsights: "ניתוח",
+    tabInsights: "ניתוח מפורט",
     ofPlanned: "מתוך {amount}",
-    noPlan: "ללא תכנון",
+    noPlan: "לא נקבע סכום לקטגוריה",
     perDay: "{amount} ליום",
     daysSoFar: "{n} מתוך {total} ימים",
     notYet: "עוד לא הגענו",
@@ -533,6 +539,8 @@ export const strings = {
   // Budget insights (DECISIONS #59): per country, everyday vs specific, cash.
   budgetInsights: {
     scopeLabel: "טווח הניתוח",
+    paceTitle: "קצב והערכה",
+    paceUsed: "מהתקציב נוצל",
     wholeTrip: "כל הטיול",
     paidTitle: "שולם עבור {scope}",
     used: "נוצל עד היום",
@@ -580,7 +588,7 @@ export const strings = {
     byCategory: "לפי קטגוריה",
     noBudgetSet: "עוד לא נקבע תקציב - כל הסכומים כאן הם מה שהוצאנו בפועל",
     burnRate: "קצב יומי",
-    projection: "צפי לסוף הטיול",
+    projection: "בקצב הזה נסיים את הטיול על",
     tripNotStarted: "הטיול טרם התחיל",
     perDay: "ליום",
     categories: "קטגוריות",
@@ -638,7 +646,7 @@ export const strings = {
     quickLinesSomeFx: "‏{n} שורות לא נוספו - אין שער המרה למטבע",
     quickLinesNone: "לא נמצאו שורות עם סכום",
     // pre-trip spending
-    beforeTrip: "לפני הטיול",
+    beforeTrip: "מתוכם לפני הטיול",
     beforeTripHint: "לא נכלל בקצב היומי",
     fxError: "לא הצלחנו להמיר את המטבע - נסו שוב",
     // cash: withdrawals and a wallet per currency (00082, 00089)
@@ -646,7 +654,7 @@ export const strings = {
     paymentRegular: "הוצאה רגילה",
     paymentWithdrawal: "משיכת מזומן (כספומט)",
     paymentCash: "שולם במזומן",
-    paymentWithdrawalHint: "הוצאות שתסמן \"שולם במזומן\" במטבע הזה יורדות מהמזומן אוטומטית",
+    paymentWithdrawalHint: "קניות שתסמנו \"שולם במזומן\" במטבע הזה יורדות מהמזומן אוטומטית",
     paymentCashHint: "נשארו {left} במזומן - הסכום יורד מהמזומן, כך שהוא לא נספר פעמיים",
     paymentCashNoWallet: "אין משיכת מזומן ב-{currency} - ההוצאה תיספר במלואה",
     paymentCashOver: "יותר ממה שנשאר במזומן ({left}) - אולי חסרה משיכה?",
@@ -654,8 +662,10 @@ export const strings = {
     country: "מדינה",
     countryAuto: "אוטומטי (לפי ההזמנה או יום התשלום)",
     countryManualHint: "ההוצאה תיספר במדינה הזו בניתוח התקציב",
-    cashWithdrawalSplit: "משיכת מזומן · נוצל {used} · נותר {left}",
+    cashWithdrawalSplit: "משיכת מזומן · הוצאנו מזה {used} · נשאר {left}",
     paidFromCashTag: "שולם במזומן",
+    cashCategory: "מזומן",
+    withdrawalCategoryNote: "משיכות מזומן נרשמות אוטומטית בקטגוריה \"מזומן\". כשקונים משהו במזומן, מוסיפים אותו בנפרד, מסמנים \"שולם במזומן\" ובוחרים את הקטגוריה שלו.",
     cashWalletTitle: "מזומן בארנק",
     cashWalletOf: "מתוך {withdrawn} שנמשכו",
     cashWalletEdit: "עדכון יתרה",
@@ -1818,17 +1828,21 @@ export const strings = {
     approve: "אישור",
     decline: "דחייה",
     approveAll: "אישור כולם ({n})",
+    // "approve all" takes only requests whose address Google proved (QA 15/11/2026)
+    approveAllProven: "אישור המאומתים ({n})",
+    approveAllSkipped: "{n} בקשות עם מייל שהוקלד נשארו לאישור אחת-אחת",
     approved: "{name} אושר/ה ויקבל/תקבל מייל כניסה",
     approvedAll: "אושרו {ok} מתוך {total}",
     // approved, but guest-invite could not email the sign-in link
     unsentTitle: "אושר - נשאר לשלוח קישור",
     unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
-    // after approval, by WhatsApp (Hadar 20/10/2026). Google: the app's address,
-    // nothing expires. Typed email: the personal sign-in link, which expires.
+    // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
+    // address is the one link to keep. Typed email: the first sign-in link
+    // too, since this message is sent only when the email did not go out.
     approvedGoogleText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nנכנסים כאן עם חשבון ה-Google שלך ({email}):\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה קישור הכניסה האישי שלך. הוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה:\n{appUrl}\nאם צריך להתחבר שוב, מקלידים שם את המייל ({email}) ומקבלים קישור כניסה.\n\nלכניסה הראשונה, עכשיו:\n{url}",
     // guest card "send a sign-in link", when the email did not go out
     loginUnsentTitle: "קישור הכניסה מוכן",
     loginUnsentBody: "המייל לא נשלח. שלחו את הקישור בוואטסאפ.",
@@ -1852,19 +1866,29 @@ export const strings = {
 
   // the public page behind the join link
   join: {
-    title: "רוצים לעקוב אחרי הטיול?",
+    // The page reads as a note from the four of us to someone who knows us
+    // (Hadar 15/11/2026: "whoever gets the link is connected to us, and it
+    // feels cold"). Names by Hadar's choice (20/10: so class parents know whose
+    // sticker it is), on the login screen's page too - it is Google only there
+    // (00095). Still no places and no dates on a page anyone can open.
+    title: "בואו איתנו לטיול",
+    postcardLine: "הטיול של משפחת ספיר ורדי מסביב לעולם",
     body: "עדכונים, תמונות והפודקאסט של הילדים מהדרך. נרשמים פעם אחת, ואחרי שנאשר תקבלו גישה.",
-    // for a parent who scanned the sticker and has no idea what this is (Hadar 20/10/2026).
-    // The page is open to anyone with the link: names by Hadar's choice (so class
-    // parents know whose sticker it is), but no places or dates.
-    aboutIntro: "אנחנו משפחת ספיר ורדי: סיון, הדר, אלה ועומר. אנחנו יוצאים לטיול של כמה חודשים מסביב לעולם, ובנינו אפליקציה קטנה כדי לשתף את החברים והמשפחה בדרך:",
+    hello: "היי, איזה כיף שהגעתם!",
+    // short on purpose: the whole page, button included, fits one phone
+    // screen with no scrolling (Hadar 15/11/2026)
+    aboutIntro: "יצאנו לטיול של כמה חודשים מסביב לעולם, ואנחנו רוצים שתהיו איתנו בדרך. בנינו בשביל זה אפליקציה קטנה, רק למשפחה ולחברים.",
     aboutItems: [
-      { icon: "📖", text: "עדכונים מהדרך - מה ראינו ומה עשינו, עם מפה של איפה היינו" },
-      { icon: "📷", text: "תמונות מהטיול" },
-      { icon: "🎙️", text: "הפודקאסט של הילדים - פרקים קצרים מהדרך" },
-      { icon: "💬", text: "צ'אט - אפשר לכתוב לילדים, והם קוראים" },
+      { icon: "📖", text: "עדכונים ומפה" },
+      { icon: "📷", text: "תמונות מהדרך" },
+      { icon: "🎙️", text: "הפודקאסט של אלה ועומר" },
+      { icon: "💬", text: "צ'אט איתנו" },
     ],
-    aboutPrivacy: "רק מי שאישרנו רואה את התוכן. בלי פרסומות ובלי עלות.",
+    aboutPrivacy: "מבקשים להצטרף, אנחנו מאשרים, ואתם בפנים. רק מי שאישרנו רואה את התוכן.",
+    signOff: "מחכים לכם,",
+    signature: "סיון, הדר, אלה ועומר",
+    googleOnlyHint: "קיבלתם מאיתנו קישור בוואטסאפ? דרכו אפשר להצטרף גם עם מייל.",
+    kidsToggle: "+ של מי אתם ההורים? (לא חובה)",
     google: "הצטרפות עם Google",
     googleHint: "הכי מהיר - לחיצה אחת, בלי להקליד",
     or: "או עם מייל",
@@ -1873,11 +1897,13 @@ export const strings = {
     send: "שליחת בקשה",
     joinAs: "הצטרפות בתור {email}",
     otherAccount: "חשבון אחר",
-    pendingTitle: "הבקשה התקבלה 🙌",
-    pendingBodyGoogle: "נעדכן ברגע שנאשר. אחרי האישור פשוט נכנסים לאפליקציה עם אותו חשבון Google.",
-    pendingBodyEmail: "אחרי שנאשר יגיע אליכם מייל עם קישור כניסה. כדאי להציץ גם בתיקיית הספאם.",
+    pendingTitle: "הבקשה אצלנו 🙌",
+    // true of a family on the road: so a slow approval does not read as a no
+    pendingWait: "נאשר ברגע שנראה אותה. לפעמים אנחנו בלי קליטה או ישנים כשאצלכם יום, אז אם זה לוקח קצת - זה לא אתם, זה אנחנו.",
+    pendingBodyGoogle: "אחרי האישור פשוט נכנסים לאפליקציה עם אותו חשבון Google.",
+    pendingBodyEmail: "אחרי האישור יגיע אליכם מייל עם קישור כניסה. כדאי להציץ גם בתיקיית הספאם.",
     checkAgain: "בדיקה אם אושרתי",
-    memberTitle: "אתם כבר בפנים!",
+    memberTitle: "אתם כבר איתנו!",
     enter: "כניסה לאפליקציה",
     invalidTitle: "הקישור לא בתוקף",
     invalidBody: "ייתכן שנוצר קישור חדש. בקשו אותו ממי ששלח לכם.",
@@ -1925,6 +1951,32 @@ export const strings = {
     latestRead: "לקריאה",
     latestNoTitle: "עדכון מהדרך",
     latestEmpty: "עוד לא שיתפנו עדכון. כשנכתוב מהדרך, הוא יופיע כאן",
+    // The home is a note from the road, to this person (Hadar 15/11/2026:
+    // "whoever gets the link is connected to us"): their name, what is new
+    // since they were last here, the newest update with its photo, the latest
+    // photos, something the kids said, and a way to answer.
+    hello: "היי {name}!",
+    sinceTitle: "מאז שביקרת",
+    newStory: "עדכון חדש",
+    newStories: "{n} עדכונים חדשים",
+    newPhoto: "תמונה חדשה",
+    newPhotos: "{n} תמונות חדשות",
+    newEpisode: "פרק חדש",
+    newEpisodes: "{n} פרקים חדשים",
+    newMessage: "הודעה חדשה",
+    newMessages: "{n} הודעות חדשות",
+    by: "מאת {name}",
+    heart: "אהבתי",
+    hearted: "אהבתי - לחיצה מבטלת",
+    photosTitle: "תמונות אחרונות",
+    photosAll: "לכל התמונות",
+    quoteTitle: "הישר מהצנצנת",
+    quoteAll: "לכל הציטוטים",
+    writeUs: "כתבו לנו משהו...",
+    writeUsCta: "לצ'אט",
+    emptyTitle: "עוד רגע מתחילים לספר",
+    emptyBody: "כשנכתוב את העדכון הראשון מהדרך, הוא יחכה לכם כאן.",
+    more: "עוד",
   },
 
   kidLogin: {
@@ -1966,6 +2018,21 @@ export const strings = {
     tileRoute: "לאן ממשיכים?",
     // the same wall as the bottom tab, first on the home (Hadar 20/10/2026)
     tileWall: "צ'אט עם החברים",
+    // The kids' own home (Hadar 15/11/2026): a passport that fills up, one
+    // list of what was booked for today, and tiles in colour. The place wears
+    // its country's colour.
+    passport: "הדרכון שלי",
+    passportCount: "{n} מתוך {total} מדינות",
+    passportNext: "עוד {n} ימים לחותמת של {country}",
+    passportNextTomorrow: "מחר: חותמת של {country}!",
+    passportDone: "כל החותמות אצלי!",
+    passportOpen: "פתיחת הדרכון",
+    stampGot: "{country} - יש חותמת",
+    stampNext: "{country} - החותמת הבאה",
+    stampLater: "{country} - בהמשך",
+    // no day plan by the hour for the kids, only what was booked (Hadar 15/11/2026)
+    bookedToday: "הזמנו להיום",
+    moreTitle: "עוד דברים",
   },
 
   // the quick paths into the journal (00078: one feed with the stories)
@@ -2169,6 +2236,9 @@ export const strings = {
     emailSending: "שולח…",
     emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם. הקישור עובד פעם אחת.",
     emailError: "משהו השתבש. נסו שוב בעוד דקה.",
+    // the app's address opened by someone never approved (00093)
+    joinPrompt: "עוד לא אושרתם?",
+    joinLink: "בקשו להצטרף לטיול",
   },
 
   // editing text after it was published (00076)
@@ -2352,6 +2422,9 @@ export const strings = {
     galleryEmpty: "עוד אין תמונות בגלריה",
     galleryDone: "סיום",
     removePhoto: "הסרת התמונה",
+    coverBadge: "מובילה",
+    makeCover: "הפיכה לתמונה המובילה",
+    coverHint: "התמונה המובילה מופיעה ראשונה בעדכון. לחיצה על הכוכב בתמונה אחרת תחליף אותה.",
     audienceLabel: "מי רואה?",
     // "משפחה" read as including grandparents (20/10/2026); it is only the four of us
     audienceFamily: "רק אנחנו",

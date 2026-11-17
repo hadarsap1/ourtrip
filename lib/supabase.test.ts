@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { guardedFetch, REQUEST_LIMIT_MS, requestLimitFor, storedAuthUserId } from "./supabase";
+import { guardedFetch, REQUEST_LIMIT_MS, requestLimitFor, sharedReadFetch, storedAuthUserId } from "./supabase";
 import { PostgrestClient } from "@supabase/postgrest-js";
 import { markReachable, offlineNow } from "./offline/network";
 
@@ -106,5 +106,56 @@ describe("storedAuthUserId", () => {
 
   it("is null when signed out", () => {
     expect(storedAuthUserId()).toBeNull();
+  });
+});
+
+describe("sharedReadFetch", () => {
+  const slowFetch = () => {
+    let release: (res: Response) => void = () => {};
+    const spy = vi.fn(
+      () =>
+        new Promise<Response>((res) => {
+          release = res;
+        })
+    );
+    vi.stubGlobal("fetch", spy);
+    vi.stubGlobal("navigator", { onLine: true });
+    return { spy, release: (body: string) => release(new Response(body, { headers: { "content-range": "0-0/7" } })) };
+  };
+  const as = (token: string): RequestInit => ({ headers: { Authorization: `Bearer ${token}` } });
+
+  it("sends identical reads that overlap once, and each caller reads its own body", async () => {
+    const { spy, release } = slowFetch();
+    const a = sharedReadFetch(REST + "?select=*", as("t1"));
+    const b = sharedReadFetch(REST + "?select=*", as("t1"));
+    release('[{"id":1}]');
+    const [ra, rb] = await Promise.all([a, b]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(await ra.json()).toEqual([{ id: 1 }]);
+    expect(await rb.json()).toEqual([{ id: 1 }]);
+    expect(rb.headers.get("content-range")).toBe("0-0/7");
+  });
+
+  it("does not share across people, addresses, count options or writes", async () => {
+    const { spy } = slowFetch();
+    void sharedReadFetch(REST + "?select=tag", as("t1"));
+    void sharedReadFetch(REST + "?select=tag", as("t2"));
+    void sharedReadFetch(REST + "?select=id", as("t1"));
+    void sharedReadFetch(REST + "?select=tag", { headers: { Authorization: "Bearer t1", Prefer: "count=exact" } });
+    void sharedReadFetch(REST, { method: "POST", ...as("t1") });
+    void sharedReadFetch(REST, { method: "POST", ...as("t1") });
+    void sharedReadFetch("https://abcd.supabase.co/functions/v1/recommend", as("t1"));
+    void sharedReadFetch("https://abcd.supabase.co/functions/v1/recommend", as("t1"));
+    expect(spy).toHaveBeenCalledTimes(8);
+  });
+
+  it("asks again once the first answer has arrived (nothing is cached)", async () => {
+    const { spy, release } = slowFetch();
+    const first = sharedReadFetch(REST + "?select=title", as("t1"));
+    release("[]");
+    await first;
+    await Promise.resolve();
+    void sharedReadFetch(REST + "?select=title", as("t1"));
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 });

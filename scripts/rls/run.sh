@@ -27,11 +27,21 @@ for f in supabase/migrations/*.sql; do
 done
 echo "applied $(ls supabase/migrations/*.sql | wc -l) migrations to $DB"
 
+failed=()
 probes=("$@")
 if [ ${#probes[@]} -eq 0 ]; then probes=(scripts/rls/probes/*.sql); fi
 for p in "${probes[@]}"; do
   echo "== $p"
   # query output is noise here; the probes report through PASS/FAIL notices
+  set +e # a failing probe must not end the run (pipefail would, before the check below)
   "${PSQL[@]}" -d "$DB" -o /dev/null -f "$p" 2>&1 | sed -nE 's/.*NOTICE:  ((PASS|FAIL).*)/\1/p; /ERROR/p'
-  [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "probe failed: $p" >&2; exit 1; }
+  status=${PIPESTATUS[0]}
+  set -e
+  # keep going: stopping at the first failure hid seven probe files behind
+  # one failing guard (QA 15/11/2026)
+  [ "$status" -eq 0 ] || { echo "probe failed: $p" >&2; failed+=("$p"); }
 done
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "FAILED probes (${#failed[@]}): ${failed[*]}" >&2
+  exit 1
+fi

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { invalidateBoot } from "@/lib/boot";
 import { forgetCurrentMember, getCurrentMember } from "@/lib/data/trip";
 import type { Member } from "@/lib/types";
 
@@ -84,6 +85,7 @@ export function memberLinked(role: string): void {
 /** The member's own row was just changed (a guest's kids' names, 00067):
  *  read it again quietly, without the loading state refreshMember shows. */
 export function memberChanged(): void {
+  invalidateBoot(); // it holds the row as it was before the edit
   forgetCurrentMember();
   resolve();
 }

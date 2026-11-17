@@ -119,3 +119,11 @@ describe("resolveBudgetProgress", () => {
     expect(resolveBudgetProgress(nothing, 0).usedPct).toBe(0);
   });
 });
+
+describe("pickableCategories (00097)", () => {
+  it("leaves out the cash category, which only withdrawals use", async () => {
+    const { pickableCategories, CASH_CATEGORY_KEY } = await import("@/lib/budget");
+    const list = [{ key: "food" }, { key: CASH_CATEGORY_KEY }, { key: "prep" }];
+    expect(pickableCategories(list).map((c) => c.key)).toEqual(["food", "prep"]);
+  });
+});

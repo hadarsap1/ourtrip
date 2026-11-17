@@ -280,16 +280,9 @@ h1:not([data-plain]) {
   color: var(--text);
 }
 
-/* The capture button floats above the bottom bar on phones and tablets; give
-   the scroller room for it so the last card can scroll clear (UX pass 14/10). */
-@media (max-width: 1023.98px) {
-  body[data-fab] main {
-    padding-bottom: 9rem;
-  }
-}
-
-/* A screen whose composer is sticky at the bottom of <main> (the chat):
-   no bottom room, or the composer floats above the bar (MessagesScreen). */
+/* A screen whose composer is sticky at the bottom of <main> (the chat, and
+   the budget's "add expense" bar): no bottom room, or it floats above the
+   bar (MessagesScreen, BudgetScreen). */
 body[data-chat] main {
   padding-bottom: 0;
 }

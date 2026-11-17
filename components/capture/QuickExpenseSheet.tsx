@@ -8,6 +8,7 @@ import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
 import { queryKeys, readQuery } from "@/lib/offline/queryCache";
 import { todayISO } from "@/lib/format";
+import { pickableCategories } from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory } from "@/lib/types";
 
@@ -71,8 +72,9 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
       if (!alive) return;
       setChips(list);
       setCurrency(list[0]);
-      setCategories(cats);
-      setCategoryId(cats.some((c) => c.id === lastCat) ? (lastCat as string) : (cats[0]?.id ?? ""));
+      const pickable = pickableCategories(cats);
+      setCategories(pickable);
+      setCategoryId(pickable.some((c) => c.id === lastCat) ? (lastCat as string) : (pickable[0]?.id ?? ""));
     })();
     return () => {
       alive = false;

@@ -15,6 +15,16 @@
 
 import type { BudgetCategory, CashAdjustment, Expense } from "@/lib/types";
 
+/** Key of the category cash withdrawals live in (00097). Itemised purchases
+ *  paid from the cash keep their real category; only withdrawals go here. */
+export const CASH_CATEGORY_KEY = "cash";
+
+/** Categories a person picks for an ordinary expense: everything but the cash
+ *  one, which is set automatically on a cash withdrawal. */
+export function pickableCategories<T extends { key: string }>(categories: T[]): T[] {
+  return categories.filter((c) => c.key !== CASH_CATEGORY_KEY);
+}
+
 export type BudgetTotals = {
   /** Sum of the category planned amounts. Always in sync with them. */
   planned: number;

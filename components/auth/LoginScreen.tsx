@@ -5,6 +5,7 @@ import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { requestGuestLoginLink } from "@/lib/data/guests";
 import { strings } from "@/lib/strings";
+import { JoinOffer } from "@/components/auth/JoinOffer";
 
 export function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +104,7 @@ export function LoginScreen() {
       {error && (
         <p className="mt-5 text-center text-sm text-alert">{error}</p>
       )}
+      <JoinOffer className="mt-6" />
       <Link
         href="/kid-login"
         className="mt-8 inline-flex min-h-[44px] items-center justify-center self-center text-sm text-ink-soft underline"

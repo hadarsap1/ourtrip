@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Fab } from "@/components/ui/Fab";
 import { Sheet } from "@/components/Sheet";
@@ -15,15 +15,16 @@ import { uploadPhoto } from "@/lib/data/photos";
 import { failureText } from "@/lib/failureText";
 import { strings } from "@/lib/strings";
 
-// Screens where a capture button would be in the way or wrong. The wall and
-// the journal have their own composer, right where the
-// button floats (UX pass 14/10). Photos has its own button that opens the
-// picker straight away (Hadar 04/11/2026).
-const HIDDEN_ON = ["/photos", "/login", "/auth/confirm", "/kid-login", "/offline", "/kids", "/guests", "/s/", "/join/", "/messages", "/stories"];
+// Where there is no capture menu: photos has its own button in the same slot
+// that opens the picker straight away (Hadar 04/11/2026), and the signed-out
+// and public pages have no bottom bar. Everywhere else a parent has it - in
+// the bar it is in nobody's way, so the list of screens it used to cover
+// (chat, updates, map, budget, kids, guests) is gone (UI pass 15/11/2026).
+const HIDDEN_ON = ["/photos", "/login", "/auth/confirm", "/kid-login", "/offline", "/s/", "/join/"];
 const noop = () => () => {};
 
 /**
- * 1.7: the capture FAB on every owner screen - expense, note, photo, scan -
+ * 1.7: the capture button in the bottom bar on every owner screen - expense, note, photo, scan -
  * so any capture is two taps away. Expense and note work offline (both queue).
  */
 export function CaptureFab() {
@@ -37,16 +38,6 @@ export function CaptureFab() {
   const [uploading, setUploading] = useState(false);
 
   const visible = enabled && member?.role === "owner" && !HIDDEN_ON.some((p) => pathname?.startsWith(p));
-
-  // While the button floats over the bottom of the screen, the scroller gets
-  // room for it (globals.css: body[data-fab]) so the last card is never under it.
-  useEffect(() => {
-    if (!visible) return;
-    document.body.dataset.fab = "1";
-    return () => {
-      delete document.body.dataset.fab;
-    };
-  }, [visible]);
 
   if (!visible || !member) return null;
 
