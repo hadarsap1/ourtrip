@@ -503,6 +503,7 @@ export function BudgetScreen() {
 
       {/* pace: how much is gone, how far through the trip we are, and what it
           projects to */}
+      {!v2 && (
       <section className="rounded-card border border-line bg-surface px-3.5 py-3">
         {!v2 && (
         <div className="flex items-baseline justify-between gap-2">
@@ -594,6 +595,7 @@ export function BudgetScreen() {
           )}
         </button>
       </section>
+      )}
 
       {/* category rows, ruled rather than carded; tap → edit planned amount */}
       {!v2 && (

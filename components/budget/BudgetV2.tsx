@@ -55,6 +55,11 @@ export function BudgetV2({
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
 
   const spentTotal = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
+  // Everything paid in cash: the withdrawals (what is left of them, i.e. the
+  // unitemised cash) plus the purchases marked "paid in cash".
+  const cashTotal = expenses
+    .filter((e) => e.is_cash_withdrawal || e.paid_in_cash)
+    .reduce((sum, e) => sum + e.amount_ils, 0);
   const spentBy = new Map<string, number>();
   for (const e of expenses) spentBy.set(e.category_id, (spentBy.get(e.category_id) ?? 0) + e.amount_ils);
   // No "left today": much is prepaid (flights, hotels, attractions), so a
@@ -82,6 +87,12 @@ export function BudgetV2({
             <dt className="text-ink-soft">{t.spentTotal}</dt>
             <dd className="text-xl font-extrabold tabular-nums text-ink">
               <bdi>{ils(spentTotal)}</bdi>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-soft">{t.cashTotal}</dt>
+            <dd className="text-xl font-extrabold tabular-nums text-ink">
+              <bdi>{ils(cashTotal)}</bdi>
             </dd>
           </div>
           {budgetForProgress > 0 && (
