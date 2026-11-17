@@ -37,7 +37,6 @@ import type { Booking, BudgetCategory, CashAdjustment, Expense, ExpenseReceipt, 
 import { ConverterCard } from "./ConverterCard";
 import { ExpenseFormSheet } from "./ExpenseFormSheet";
 import { CategorySheet } from "./CategorySheet";
-import { CategoryExpensesSheet } from "./CategoryExpensesSheet";
 import { TotalBudgetSheet } from "./TotalBudgetSheet";
 import { CashWalletSheet } from "./CashWalletSheet";
 import { QuickLinesSheet } from "./QuickLinesSheet";
@@ -206,8 +205,9 @@ export function BudgetScreen() {
   const [categoryForm, setCategoryForm] = useState<{
     category: BudgetCategory | null;
   } | null>(null);
-  // the category whose expenses are listed (tap on a category, v2)
-  const [viewCategory, setViewCategory] = useState<BudgetCategory | null>(null);
+  // tapping a category filters the expense list below to it; tap again to clear
+  const [filterId, setFilterId] = useState<string | null>(null);
+  const listRef = useRef<HTMLElement>(null);
   const [editingTotal, setEditingTotal] = useState(false);
   // Owner-only (trip_budget, 00056); null = not set, or not a parent.
   const [totalBudget, setTotalBudget] = useState<number | null>(null);
@@ -353,6 +353,7 @@ export function BudgetScreen() {
   const byEntry = [...expenses].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
+  const listed = filterId ? byEntry.filter((e) => e.category_id === filterId) : byEntry;
   const receiptsByExpense = new Map<string, ExpenseReceipt[]>();
   for (const r of receipts) {
     receiptsByExpense.set(r.expense_id, [...(receiptsByExpense.get(r.expense_id) ?? []), r]);
@@ -402,6 +403,7 @@ export function BudgetScreen() {
   }
 
   const pickable = pickableCategories(categories);
+  const filtered = filterId ? (categories.find((c) => c.id === filterId) ?? null) : null;
   const categoryLabel = (id: string) =>
     categories.find((c) => c.id === id)?.label_he ?? "";
 
@@ -446,7 +448,12 @@ export function BudgetScreen() {
           bookings={bookings}
           budgetForProgress={budgetForProgress}
           remaining={remaining}
-          onOpenCategory={setViewCategory}
+          selectedId={filterId}
+          onPickCategory={(c) => {
+            const next = filterId === c.id ? null : c.id;
+            setFilterId(next);
+            if (next) requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+          }}
           pace={{ usedPct: budgetForProgress > 0 ? usedPct : null, projection, preTripSpent, notStarted }}
         />
       )}
@@ -703,19 +710,28 @@ export function BudgetScreen() {
       <ConverterCard />
 
       {/* recent expenses */}
-      <section className="overflow-hidden rounded-card border border-line bg-surface">
-        <header className="bg-paper-deep px-3.5 py-2.5">
-          <h2 className="text-xs font-bold text-ink">
-            {strings.budget.recentExpenses}
+      <section ref={listRef} className="scroll-mt-3 overflow-hidden rounded-card border border-line bg-surface">
+        <header className="flex items-center justify-between gap-2 bg-paper-deep px-3.5 py-2.5">
+          <h2 className="min-w-0 truncate text-sm font-bold text-ink">
+            {filtered ? `${filtered.label_he} · ${strings.budget.categoryExpensesCount.replace("{n}", String(listed.length))}` : strings.budget.recentExpenses}
           </h2>
+          {filtered && (
+            <button
+              type="button"
+              onClick={() => setFilterId(null)}
+              className="min-h-[44px] shrink-0 rounded-full px-3 text-sm font-bold text-sea"
+            >
+              {strings.budget.showAllExpenses}
+            </button>
+          )}
         </header>
-        {expenses.length === 0 ? (
+        {listed.length === 0 ? (
           <p className="px-3.5 py-4 text-sm text-ink-faint">
-            {strings.budget.emptyExpenses}
+            {filtered ? strings.budget.categoryNoExpenses : strings.budget.emptyExpenses}
           </p>
         ) : (
           <ul>
-            {byEntry.map((expense) => (
+            {listed.map((expense) => (
               <li key={expense.id} className="border-t border-line">
                 <button
                   type="button"
@@ -807,19 +823,6 @@ export function BudgetScreen() {
         }}
         onError={(message) => showToast(message)}
       />
-
-      {viewCategory && (
-        <CategoryExpensesSheet
-          category={viewCategory}
-          expenses={expenses.filter((e) => e.category_id === viewCategory.id)}
-          total={spentByCategory.get(viewCategory.id) ?? 0}
-          onClose={() => setViewCategory(null)}
-          onOpenExpense={(expense) => {
-            setViewCategory(null);
-            setExpenseForm({ expense });
-          }}
-        />
-      )}
 
       {categoryForm && trip && (
         <CategorySheet
