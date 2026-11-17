@@ -35,7 +35,8 @@ export function BudgetV2({
   bookings,
   budgetForProgress,
   remaining,
-  onEditCategory,
+  onPickCategory,
+  selectedId,
   pace,
 }: {
   categories: BudgetCategory[];
@@ -47,7 +48,9 @@ export function BudgetV2({
   bookings: Booking[];
   budgetForProgress: number;
   remaining: number;
-  onEditCategory: (c: BudgetCategory) => void;
+  /** Tapping a category filters the expense list; editing one is in Settings. */
+  onPickCategory: (c: BudgetCategory) => void;
+  selectedId: string | null;
   /** Pace and projection - moved here from the main screen (17/11/2026). */
   pace: PaceInfo;
 }) {
@@ -122,8 +125,9 @@ export function BudgetV2({
             <li key={c.id} className="border-t border-line first:border-t-0">
               <button
                 type="button"
-                onClick={() => onEditCategory(c)}
-                className="flex w-full items-baseline justify-between gap-3 px-4 py-3.5 text-start"
+                onClick={() => onPickCategory(c)}
+                aria-pressed={selectedId === c.id}
+                className={`flex w-full items-baseline justify-between gap-3 px-4 py-3.5 text-start ${selectedId === c.id ? "bg-sea-tint" : ""}`}
               >
                 <span className="min-w-0 truncate text-base font-bold text-ink">{c.label_he}</span>
                 <span className="shrink-0 text-base font-extrabold tabular-nums text-ink">
