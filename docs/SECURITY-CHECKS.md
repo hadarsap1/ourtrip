@@ -3131,4 +3131,5 @@ no such file exists in the repo.
 | Check | Result |
 |---|---|
 | Live: `country_profiles_owner_all` / `_kid_select` in `member_trip_as` form; no SELECT / FOR ALL policy calls a per-row membership helper | ✅ verified 17/11/2026 |
+| Stray history row `00093_country_profiles_once_per_query` (version 20261117015914) deleted from `supabase_migrations.schema_migrations`; `00094_country_profiles_once_per_query` kept; both policies still in `member_trip_as` form | ✅ done 17/11/2026 (SQL editor, by Hadar), verified |
 
