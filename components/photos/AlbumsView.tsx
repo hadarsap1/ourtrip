@@ -78,6 +78,7 @@ export function AlbumsView<P extends AlbumViewPhoto>({
   initialAlbumId,
   onUpload,
   onPhotosChanged,
+  onDeletePhoto,
   onToast,
 }: {
   tripId: string;
@@ -94,6 +95,8 @@ export function AlbumsView<P extends AlbumViewPhoto>({
   onUpload?: (files: File[], album: Album) => Promise<number>;
   /** reload the photos after a share or a delete */
   onPhotosChanged?: () => Promise<void>;
+  /** parent only: deletes one photo (the DB lets only the owner) */
+  onDeletePhoto?: (photo: P) => Promise<void>;
   onToast: (message: string) => void;
 }) {
   const isOwner = role === "owner";
@@ -311,6 +314,18 @@ export function AlbumsView<P extends AlbumViewPhoto>({
                     open.shared_with_guests &&
                     photo.status === "approved" &&
                     !photo.shared_with_guests && <span className="block text-ink-soft">{strings.albums.notShared}</span>
+                  )}
+                  {isOwner && onDeletePhoto && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!(await askConfirm(strings.photos.deleteConfirm))) return;
+                        void run(() => onDeletePhoto(photo));
+                      }}
+                      className="block font-semibold text-alert"
+                    >
+                      {strings.common.delete}
+                    </button>
                   )}
                 </div>
               </li>
