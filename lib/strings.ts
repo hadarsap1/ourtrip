@@ -77,7 +77,6 @@ export const strings = {
     tileWeather: "מזג אוויר",
     tileTonight: "הלילה",
     tileSpentToday: "הוצאות היום",
-    tileRemaining: "נותר בתקציב",
     agenda: "לוח היום",
     agendaCount: "{n} פעילויות",
     noLodging: "לא נרשמה לינה",
