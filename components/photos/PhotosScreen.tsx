@@ -550,6 +550,7 @@ function FamilyPhotosView() {
           stats={albumStats}
           onUpload={uploadForAlbum}
           onPhotosChanged={() => refresh(trip.id)}
+          onDeletePhoto={(photo) => deletePhoto(photo)}
           onToast={showToast}
         />
       ) : visible.length === 0 && pending.filter((p) => p.album_id === null).length === 0 ? (
