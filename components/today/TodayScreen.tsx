@@ -82,24 +82,6 @@ function Tile({
   );
 }
 
-function ProgressBar({
-  ratio,
-  tone = "sea",
-}: {
-  ratio: number;
-  tone?: "sea" | "sun";
-}) {
-  const pct = Math.max(0, Math.min(1, ratio)) * 100;
-  return (
-    <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-line">
-      <div
-        className={`h-full rounded-full ${tone === "sun" ? "bg-sun" : "bg-sea"}`}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
-
 export function TodayScreen() {
   const [result, setResult] = useState<{
     data: TodayData;
@@ -274,7 +256,6 @@ export function TodayScreen() {
   // grid keeps its three columns.
   const evening = now >= EVENING_FROM_MINUTES;
   const lodging = data ? tonightsLodging(data.bookings) : null;
-  const remaining = dashboard ? dashboard.budget - dashboard.spentTotal : null;
   // No day plan by the hour on the home (Hadar 15/11/2026, as on the kids'
   // home): only what was BOOKED for today. The full plan is on the itinerary
   // screen, which works offline. A booking with an item on today's plan shows
@@ -466,36 +447,16 @@ export function TodayScreen() {
                 )}
               </Tile>
 
+              {/* Alone in its row when the weather tile sits beside tonight's
+                  lodging, so three tiles do not leave one orphaned half-row. */}
               {dashboard && (
-                <Tile label={strings.today.tileSpentToday}>
-                  <p className="text-lg font-extrabold leading-none text-ink">
-                    {formatMoney(Math.round(dashboard.spentToday), "ILS")}
-                  </p>
-                  {dashboard.budget > 0 && (
-                    <ProgressBar
-                      ratio={dashboard.spentTotal / dashboard.budget}
-                    />
-                  )}
-                </Tile>
-              )}
-
-              {/* The screen's single sun-filled surface. One per screen. */}
-              {dashboard && remaining !== null && (
-                <Tile label={strings.today.tileRemaining} tone="sun">
-                  {dashboard.budget > 0 ? (
-                    <p
-                      className={`text-lg font-extrabold leading-none ${
-                        remaining < 0 ? "text-alert" : "text-sun-deep"
-                      }`}
-                    >
-                      {formatMoney(Math.round(remaining), "ILS")}
+                <div className={weather ? "col-span-2 sm:col-span-1" : ""}>
+                  <Tile label={strings.today.tileSpentToday}>
+                    <p className="text-lg font-extrabold leading-none text-ink">
+                      {formatMoney(Math.round(dashboard.spentToday), "ILS")}
                     </p>
-                  ) : (
-                    <p className="text-sm text-sun-deep/70">
-                      {strings.today.noBudget}
-                    </p>
-                  )}
-                </Tile>
+                  </Tile>
+                </div>
               )}
             </div>
 
