@@ -713,7 +713,7 @@ export function BudgetScreen() {
       <section ref={listRef} className="scroll-mt-3 overflow-hidden rounded-card border border-line bg-surface">
         <header className="flex items-center justify-between gap-2 bg-paper-deep px-3.5 py-2.5">
           <h2 className="min-w-0 truncate text-sm font-bold text-ink">
-            {filtered ? `${filtered.label_he} · ${strings.budget.categoryExpensesCount.replace("{n}", String(listed.length))}` : strings.budget.recentExpenses}
+            {filtered ? `${filtered.label_he} · ${strings.budget.categoryExpensesCount(listed.length)}` : strings.budget.recentExpenses}
           </h2>
           {filtered && (
             <button

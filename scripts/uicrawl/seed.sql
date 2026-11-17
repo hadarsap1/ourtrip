@@ -40,6 +40,8 @@ insert into budget_categories (id, trip_id, key, label_he, planned_amount) value
  ('cccccccc-0000-0000-0000-000000000002',:T,'lodging','לינה',90000),
  ('cccccccc-0000-0000-0000-000000000003',:T,'transport','תחבורה',60000),
  ('cccccccc-0000-0000-0000-000000000004',:T,'fun','אטרקציות',30000);
+-- the trip is made after the migrations ran, so 00097/00098's cash category is seeded by hand
+insert into budget_categories (id, trip_id, key, label_he) values ('cccccccc-0000-0000-0000-000000000005',:T,'cash','משיכת מזומן');
 insert into trip_budget (trip_id, total_budget) values (:T, 250000);
 insert into fx_rates (day, currency, rate_to_ils) select d::date, c, r from generate_series(date '2026-11-01', date '2026-11-15', '1 day') d, (values ('VND',0.000142),('USD',3.61),('JPY',0.0236),('EUR',3.95)) v(c,r);
 insert into expenses (trip_id, category_id, amount, currency, amount_ils, description, spent_on, created_by, country_code, paid_in_cash, is_cash_withdrawal)
@@ -47,7 +49,7 @@ select :T, ('cccccccc-0000-0000-0000-00000000000' || (1 + g % 4))::uuid, 150000 
  (array['פו בוקר','מונית לשדה','כניסה למקדש','קפה קוקוס','כביסה','ארוחת ערב משפחתית במסעדה על הנהר עם דגים'])[1 + g % 6], date '2026-11-01' + (g % 15),
  'bbbbbbbb-0000-0000-0000-000000000001','VN', g % 3 = 0, false from generate_series(1, 40) g;
 insert into expenses (trip_id, category_id, amount, currency, amount_ils, description, spent_on, created_by, country_code, is_cash_withdrawal)
-values (:T,'cccccccc-0000-0000-0000-000000000001',5000000,'VND',710,'משיכה מכספומט','2026-11-02','bbbbbbbb-0000-0000-0000-000000000001','VN',true),
+values (:T,'cccccccc-0000-0000-0000-000000000005',5000000,'VND',710,'משיכה מכספומט','2026-11-02','bbbbbbbb-0000-0000-0000-000000000001','VN',true),
  (:T,'cccccccc-0000-0000-0000-000000000002',1234567.89,'JPY',29135.80,'מלון בטוקיו - שולם מראש','2026-11-05','bbbbbbbb-0000-0000-0000-000000000002','JP',false);
 
 insert into albums (id, trip_id, name, shared_with_guests, created_by) values

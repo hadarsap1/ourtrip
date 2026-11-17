@@ -664,7 +664,7 @@ export const strings = {
     cashWithdrawalSplit: "משיכת מזומן · הוצאנו מזה {used} · נשאר {left}",
     paidFromCashTag: "שולם במזומן",
     cashCategory: "משיכת מזומן",
-    categoryExpensesCount: "{n} הוצאות",
+    categoryExpensesCount: (n: number) => (n === 1 ? "הוצאה אחת" : `${n} הוצאות`),
     showAllExpenses: "הצגת הכל",
     categoryNoExpenses: "עוד אין הוצאות בקטגוריה הזו",
     withdrawalCategoryNote: "משיכות מזומן נרשמות אוטומטית בקטגוריה \"משיכת מזומן\". כשקונים משהו במזומן, מוסיפים אותו בנפרד, מסמנים \"שולם במזומן\" ובוחרים את הקטגוריה שלו.",
