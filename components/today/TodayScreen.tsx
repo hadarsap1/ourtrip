@@ -516,12 +516,6 @@ export function TodayScreen() {
                 </Link>
               )}
 
-              {data.day.notes && (
-                <p className="rounded-card bg-sea-tint px-4 py-3 text-sm text-sea-deep">
-                  {data.day.notes}
-                </p>
-              )}
-
             </div>
           </>
         )}
