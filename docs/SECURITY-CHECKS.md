@@ -3154,7 +3154,7 @@ functions, which sign only rows the guest's own RLS returns.
 | The open blog: `photoMayGoPublic` refuses a video (unit test); `syncPublicCopies` copies neither the file nor the poster | ✅ PASS - vitest |
 | Compression in a real browser (headless Chromium): 20 s 1080p 30 MB -> 4.1 MB, H.264 1280x720 ~1.5 Mbit/s, AAC sound kept, poster 1280x720; a 75 s video refused before any upload | ✅ PASS |
 | 00099 applied to production | ✅ done 17/11/2026 (Supabase MCP, apply_migration), on Hadar's go-ahead, before the merge |
-| Live read-back: the three columns exist, all 194 existing rows are images, the `photos` bucket is 50 MB with the three video types, `photos_guard_update` pins `media_type` | ✅ verified 17/11/2026 |
+| Live read-back: the three columns exist, every existing row is an image, the `photos` bucket is 50 MB with the three video types, `photos_guard_update` pins `media_type` | ✅ verified 17/11/2026 |
 | `guest-media` (v2) and `guest-photos` (v11) redeployed, both ACTIVE, verify_jwt = true | ✅ done 17/11/2026 |
 | Live, as a real guest: the two functions still return the photos, and a shared video with its poster | ⏳ not yet - needs a guest session |
 | Through the UI on real phones (Android, iPhone): pick, compress, upload, play as owner / kid / guest | ⏳ not yet |
