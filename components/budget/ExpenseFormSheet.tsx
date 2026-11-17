@@ -6,11 +6,12 @@ import { CURRENCIES } from "@/lib/currencies";
 import {
   createExpenseOrQueue,
   deleteExpense,
+  ensureCashCategory,
   getRateToIls,
   updateExpense,
 } from "@/lib/data/expenses";
 import { formatMoney, todayISO } from "@/lib/format";
-import type { CashWallet } from "@/lib/budget";
+import { CASH_CATEGORY_KEY, pickableCategories, type CashWallet } from "@/lib/budget";
 import { addReceiptOrQueue } from "@/lib/data/receipts";
 import { ReceiptsField, type PendingReceipt } from "./ReceiptsField";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -158,11 +159,14 @@ function ExpenseForm({
     }
   }
 
-  async function save(catId: string) {
+  async function save(pickedId: string) {
     const value = Number(amount);
-    if (!catId || !Number.isFinite(value) || value <= 0 || saving) return;
+    if (!Number.isFinite(value) || value <= 0 || saving) return;
+    if (!isWithdrawal && !pickedId) return;
     setSaving(true);
     try {
+      // A withdrawal always goes under "מזומן" (00097), whatever was tapped.
+      const catId = isWithdrawal ? await ensureCashCategory(categories[0].trip_id) : pickedId;
       if (isNew) {
         // the id is chosen here so receipts can point at the expense even
         // when both wait in the offline queue
@@ -363,7 +367,15 @@ function ExpenseForm({
           <select
             id="exp-payment"
             value={payment}
-            onChange={(e) => setPayment(e.target.value as Payment)}
+            onChange={(e) => {
+              const next = e.target.value as Payment;
+              setPayment(next);
+              // the "מזומן" category belongs to withdrawals only: leaving
+              // "withdrawal" clears it so a real category gets picked
+              if (next !== "withdrawal" && categories.find((c) => c.id === categoryId)?.key === CASH_CATEGORY_KEY) {
+                setCategoryId("");
+              }
+            }}
             className={`${inputClass} bg-surface`}
           >
             <option value="regular">{strings.budget.paymentRegular}</option>
@@ -416,7 +428,25 @@ function ExpenseForm({
           onMessage={onError}
         />
 
-        {/* 3. category - on a new expense, tapping saves immediately */}
+        {/* 3. category - on a new expense, tapping saves immediately. A
+            withdrawal has no choice to make: it goes under "מזומן" (00097). */}
+        {isWithdrawal ? (
+          <div className="space-y-3">
+            <p className="rounded-xl bg-paper-deep px-3 py-2.5 text-sm text-ink">
+              {strings.budget.withdrawalCategoryNote}
+            </p>
+            {isNew && (
+              <button
+                type="button"
+                disabled={saving || !amountValid}
+                onClick={() => void save("")}
+                className="w-full rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
+              >
+                {strings.common.save}
+              </button>
+            )}
+          </div>
+        ) : (
         <div>
           <span className={labelClass}>
             {strings.budget.category}
@@ -427,7 +457,7 @@ function ExpenseForm({
             )}
           </span>
           <div className="grid grid-cols-3 gap-1.5">
-            {categories.map((cat) => (
+            {pickableCategories(categories).map((cat) => (
               <button
                 key={cat.id}
                 type="button"
@@ -447,6 +477,7 @@ function ExpenseForm({
             ))}
           </div>
         </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -480,7 +511,7 @@ function ExpenseForm({
           <div className="flex gap-2 pt-1">
             <button
               type="button"
-              disabled={saving || !amountValid || !categoryId}
+              disabled={saving || !amountValid || (!categoryId && !isWithdrawal)}
               onClick={() => void save(categoryId)}
               className="flex-1 rounded-xl bg-sea py-3 font-semibold text-on-sea hover:bg-sea-deep disabled:opacity-60"
             >

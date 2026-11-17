@@ -5,6 +5,8 @@ import { getActiveTrip, getCurrentMember } from "@/lib/data/trip";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import type { Booking, BudgetCategory, Expense } from "@/lib/types";
 import { cachedFxRate, saveFxRate } from "@/lib/fxCache";
+import { CASH_CATEGORY_KEY } from "@/lib/budget";
+import { strings } from "@/lib/strings";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -196,6 +198,27 @@ export async function createCategory(
     planned_amount: plannedAmount,
   });
   if (error) throw new Error(error.message);
+}
+
+/** The trip's "מזומן" category (00097), created on the spot for a trip made
+ *  after the migration. Cash withdrawals are filed under it. */
+export async function ensureCashCategory(tripId: string): Promise<string> {
+  const supabase = requireClient();
+  const found = await supabase
+    .from("budget_categories")
+    .select("id")
+    .eq("trip_id", tripId)
+    .eq("key", CASH_CATEGORY_KEY)
+    .maybeSingle();
+  if (found.error) throw new Error(found.error.message);
+  if (found.data) return found.data.id;
+  const created = await supabase
+    .from("budget_categories")
+    .insert({ trip_id: tripId, key: CASH_CATEGORY_KEY, label_he: strings.budget.cashCategory })
+    .select("id")
+    .single();
+  if (created.error) throw new Error(created.error.message);
+  return created.data.id;
 }
 
 export async function renameCategory(

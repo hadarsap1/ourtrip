@@ -2,9 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { Ring } from "@/components/ui/Progress";
-import { dailySpend, sparkPoints } from "@/lib/budgetV2";
-import { formatMoney, todayISO } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { readFxStore } from "@/lib/fxCache";
 import { strings } from "@/lib/strings";
 import type { Booking, BudgetCategory, Expense, ItineraryDay } from "@/lib/types";
@@ -52,45 +50,50 @@ export function BudgetV2({
 }) {
   const [tab, setTab] = useState<"categories" | "insights">("categories");
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
-  const today = todayISO();
 
-  const spentToday = expenses.filter((e) => e.spent_on === today).reduce((s, e) => s + e.amount_ils, 0);
   const spentTotal = expenses.reduce((sum, e) => sum + e.amount_ils, 0);
-  const series = dailySpend(expenses, today, 14);
   const spentBy = new Map<string, number>();
   for (const e of expenses) spentBy.set(e.category_id, (spentBy.get(e.category_id) ?? 0) + e.amount_ils);
   // No "left today": much is prepaid (flights, hotels, attractions), so a
   // daily share means nothing (Hadar, 06/10/2026). The trip total is the number.
   const over = remaining < 0;
+  const usedPct = budgetForProgress > 0 ? Math.min(100, Math.round((spentTotal / budgetForProgress) * 100)) : 0;
 
   return (
     <div className="space-y-3">
-      {/* hero: what is left for the whole trip */}
-      <section className="rounded-card border border-line bg-surface px-4 py-3.5 shadow-[var(--e1)]">
-        <p className="ot-kicker">{over ? t.overTrip : t.leftTrip}</p>
+      {/* hero: one number (what is left), and the two it comes from. The
+          14-day sparkline and "today" line went: Sivan could not read the
+          screen (17/11/2026), and neither answered a question she asks. */}
+      <section className="rounded-card border border-line bg-surface px-4 py-4 shadow-[var(--e1)]">
+        <p className="text-base font-bold text-ink">{over ? t.overTrip : t.leftTrip}</p>
         {budgetForProgress > 0 ? (
-          <p className={`mt-1 text-[40px] font-extrabold leading-[46px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
-            <bdi>{ils(Math.abs(remaining))}</bdi>
-          </p>
-        ) : (
-          <p className="mt-1 text-sm text-ink-soft">{t.noBudget}</p>
-        )}
-        <div className="mt-3 flex items-end justify-between gap-3 border-t border-line pt-3">
-          <div>
-            <p className="text-xs text-ink-soft">{t.spentTotal}</p>
-            <p className="text-lg font-extrabold tabular-nums text-ink">
-              <bdi>{ils(spentTotal)}</bdi>
+          <>
+            <p className={`mt-1 text-[44px] font-extrabold leading-[50px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
+              <bdi>{ils(Math.abs(remaining))}</bdi>
             </p>
+            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-line" aria-hidden>
+              <div className={`h-full rounded-full ${over ? "bg-danger" : "bg-sea"}`} style={{ width: `${usedPct}%` }} />
+            </div>
+          </>
+        ) : (
+          <p className="mt-1 text-base text-ink-soft">{t.noBudget}</p>
+        )}
+        <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-base">
+          <div>
+            <dt className="text-ink-soft">{t.spentTotal}</dt>
+            <dd className="text-xl font-extrabold tabular-nums text-ink">
+              <bdi>{ils(spentTotal)}</bdi>
+            </dd>
           </div>
-          <figure className="text-end">
-            <svg viewBox="0 0 120 32" width={120} height={32} role="img" aria-label={t.last14} className="text-sea">
-              <polyline points={sparkPoints(series, 120, 32)} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-            </svg>
-            <figcaption className="text-xs text-ink-soft">
-              {t.last14} · <bdi>{t.spentTodayLabel.replace("{amount}", ils(spentToday))}</bdi>
-            </figcaption>
-          </figure>
-        </div>
+          {budgetForProgress > 0 && (
+            <div>
+              <dt className="text-ink-soft">{t.budgetTotal}</dt>
+              <dd className="text-xl font-extrabold tabular-nums text-ink">
+                <bdi>{ils(budgetForProgress)}</bdi>
+              </dd>
+            </div>
+          )}
+        </dl>
       </section>
 
       <SegmentedControl
@@ -104,29 +107,35 @@ export function BudgetV2({
       />
 
       {tab === "categories" ? (
-        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <ul className="overflow-hidden rounded-card border border-line bg-surface">
           {categories.map((c) => {
             const spent = spentBy.get(c.id) ?? 0;
-            const overCat = c.planned_amount > 0 && spent > c.planned_amount;
-            const pct = c.planned_amount > 0 ? Math.round((spent / c.planned_amount) * 100) : null;
+            const planned = c.planned_amount;
+            const overCat = planned > 0 && spent > planned;
+            const width = planned > 0 ? Math.min(100, (spent / planned) * 100) : spent > 0 ? 100 : 0;
             return (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => onEditCategory(c)}
-                  className="flex w-full items-center gap-2.5 rounded-card border border-line bg-surface p-3 text-start"
-                >
-                  <Ring value={spent} max={c.planned_amount || Math.max(spent, 1)} size={52} stroke={6} colorVar={overCat ? "var(--warning)" : "var(--brand)"}>
-                    <span className="text-xs font-bold tabular-nums">{pct === null ? "-" : `${pct}%`}</span>
-                  </Ring>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-ink">{c.label_he}</span>
-                    <span className="block text-xs tabular-nums text-ink-soft">
+              <li key={c.id} className="border-t border-line first:border-t-0">
+                <button type="button" onClick={() => onEditCategory(c)} className="block w-full px-4 py-3.5 text-start">
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-base font-bold text-ink">{c.label_he}</span>
+                    <span className="shrink-0 text-base font-extrabold tabular-nums text-ink">
                       <bdi>{ils(spent)}</bdi>
                     </span>
-                    <span className="block text-xs text-ink-soft">
-                      {c.planned_amount > 0 ? <bdi>{t.ofPlanned.replace("{amount}", ils(c.planned_amount))}</bdi> : t.noPlan}
-                    </span>
+                  </span>
+                  <span className="mt-2 block h-2 overflow-hidden rounded-full bg-line" aria-hidden>
+                    <span className={`block h-full rounded-full ${overCat ? "bg-warning" : "bg-sea"}`} style={{ width: `${width}%` }} />
+                  </span>
+                  {/* the sentence says what the colour says: over, or what is left */}
+                  <span className={`mt-1.5 block text-sm ${overCat ? "font-bold text-sun-deep" : "text-ink-soft"}`}>
+                    {planned > 0 ? (
+                      <bdi>
+                        {overCat
+                          ? t.catOver.replace("{amount}", ils(spent - planned))
+                          : t.catLeft.replace("{amount}", ils(planned - spent)).replace("{planned}", ils(planned))}
+                      </bdi>
+                    ) : (
+                      t.noPlan
+                    )}
                   </span>
                 </button>
               </li>
