@@ -2,12 +2,16 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { currentPushState, disablePush, enablePush, isIos, isStandalone, type PushState } from "@/lib/push";
+import { ShareIcon } from "@/components/icons";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
 const t = strings.guestPush;
 // per device: "not now" on the home invite. The settings card stays.
 const DISMISS_KEY = "ot.guestPushInviteDismissed";
+// its own key: "not now" on the install steps in Safari must not hide the
+// push invite once the app is opened from the home screen
+const IOS_DISMISS_KEY = "ot.guestPushIosInviteDismissed";
 
 /**
  * A guest's push switch (00100, DECISIONS #71). On = this device has a
@@ -104,16 +108,68 @@ function GuestPushSettings() {
 
 const noop = () => () => {};
 
-function readDismissed(): boolean {
+function readFlag(key: string): boolean {
   try {
-    return window.localStorage.getItem(DISMISS_KEY) === "1";
+    return window.localStorage.getItem(key) === "1";
   } catch {
     return false;
   }
 }
+const readDismissed = () => readFlag(DISMISS_KEY);
+const readIosDismissed = () => readFlag(IOS_DISMISS_KEY);
+const readIosNeedsInstall = () => isIos() && !isStandalone();
 
-/** The guest home: asks once, until the guest says yes or "not now". */
+function storeFlag(key: string) {
+  try {
+    window.localStorage.setItem(key, "1");
+  } catch {
+    // the card comes back next visit; settings still has the switch
+  }
+}
+
+/** The guest home: asks once, until the guest says yes or "not now". On an
+ *  iPhone or iPad in Safari, where push needs the app on the home screen
+ *  first, it shows those steps instead (DECISIONS #71). */
 export function GuestPushInvite() {
+  const iosNeedsInstall = useSyncExternalStore(noop, readIosNeedsInstall, () => false);
+  return iosNeedsInstall ? <IosInstallInvite /> : <PushInvite />;
+}
+
+function IosInstallInvite() {
+  const stored = useSyncExternalStore(noop, readIosDismissed, () => true);
+  const [dismissedNow, setDismissedNow] = useState(false);
+  if (stored || dismissedNow) return null;
+
+  return (
+    <section className="rounded-card border border-sv-line bg-sv-card px-4 py-3.5">
+      <p className="text-base font-bold text-sv-ink">{t.iosInviteTitle}</p>
+      <p className="mt-0.5 text-sm text-sv-ink-soft">{t.iosInviteBody}</p>
+      <ol className="mt-2.5 space-y-1.5 text-sm text-sv-ink">
+        <li className="flex items-center gap-2">
+          <span className="font-bold">1.</span>
+          <span className="flex items-center gap-1">
+            {t.iosInviteStep1}
+            <ShareIcon className="h-4 w-4 shrink-0 text-sv-sage" aria-hidden="true" />
+          </span>
+        </li>
+        <li className="flex gap-2"><span className="font-bold">2.</span>{t.iosInviteStep2}</li>
+        <li className="flex gap-2"><span className="font-bold">3.</span>{t.iosInviteStep3}</li>
+      </ol>
+      <button
+        type="button"
+        onClick={() => {
+          setDismissedNow(true);
+          storeFlag(IOS_DISMISS_KEY);
+        }}
+        className="mt-2 min-h-[44px] rounded-full px-3 text-sm font-semibold text-sv-ink-soft"
+      >
+        {t.later}
+      </button>
+    </section>
+  );
+}
+
+function PushInvite() {
   const { state, busy, error, turnOn } = useGuestPush();
   // stored: read on the device only (the server render shows nothing)
   const stored = useSyncExternalStore(noop, readDismissed, () => true);
@@ -122,15 +178,10 @@ export function GuestPushInvite() {
 
   const later = useCallback(() => {
     setDismissedNow(true);
-    try {
-      window.localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      // the card comes back next visit; settings still has the switch
-    }
+    storeFlag(DISMISS_KEY);
   }, []);
 
-  // only where it can work right now; iOS before install and a blocked
-  // permission are explained in settings
+  // only where it can work right now; a blocked permission is explained in settings
   if (dismissed || state !== "default") return null;
 
   return (
