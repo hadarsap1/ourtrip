@@ -40,6 +40,11 @@ verify_jwt = false
 [functions.backup-weekly]
 verify_jwt = false
 
+# Invoked hourly by pg_cron (00101), checks the shared cron secret, sends the
+# guests' daily email in the 08:00 hour in Israel. Returns only counts.
+[functions.guest-digest]
+verify_jwt = false
+
 # Pre-auth by nature: the tablet has no JWT until `register` succeeds, and
 # `unlock` is the PIN gate itself. Security comes from the one-time code, the
 # 256-bit device token and the server-side PIN lockout — not from a JWT.

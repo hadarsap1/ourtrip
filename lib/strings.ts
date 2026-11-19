@@ -1096,6 +1096,51 @@ export const strings = {
     iosStep4: "פותחים את סו-בב עולם! מהמסך הבית - ואז מפעילים כאן התראות",
   },
 
+  // a guest's own push switch (00100, DECISIONS #71): updates and episodes only
+  guestPush: {
+    title: "התראה על עדכון חדש",
+    hint: "נשלח לך התראה לטלפון כשנעלה עדכון חדש מהדרך או פרק חדש בפודקאסט. לא בלילה - מה שעולה אחרי 22:00 מגיע ב-07:00.",
+    inviteTitle: "רוצים לדעת מיד כשיש עדכון חדש?",
+    inviteBody: "התראה לטלפון על כל עדכון ופרק חדש. אפשר לכבות בכל רגע בהגדרות.",
+    enable: "כן, לשלוח לי התראות",
+    later: "לא עכשיו",
+    working: "רגע…",
+    on: "ההתראות פעילות במכשיר הזה",
+    off: "ההתראות כבויות במכשיר הזה",
+    turnOff: "כיבוי",
+    denied: "ההתראות חסומות במכשיר הזה. כדי לקבל אותן, צריך לאפשר התראות לאתר בהגדרות הדפדפן.",
+    unsupported: "הדפדפן הזה לא יכול לקבל התראות.",
+    iosInstall: "ב-iPhone ו-iPad התראות עובדות רק אחרי הוספה למסך הבית: בכפתור השיתוף ב-Safari בוחרים ״הוספה למסך הבית״, פותחים משם ומפעילים כאן.",
+    error: "לא הצלחנו להפעיל התראות. אפשר לנסות שוב.",
+    iosInviteTitle: "רוצים התראה על כל עדכון חדש?",
+    iosInviteBody: "באייפון ובאייפד זה עובד אחרי שמוסיפים את האתר למסך הבית. לוקח חצי דקה:",
+    iosInviteStep1: "מקישים ב-Safari על כפתור השיתוף",
+    iosInviteStep2: "בוחרים ״הוספה למסך הבית״",
+    iosInviteStep3: "פותחים מהאייקון החדש ומאשרים התראות בכרטיס שיופיע",
+    // the daily email (00101, DECISIONS #72)
+    iosInviteEmail: "או: סיכום יומי במייל במקום",
+    iosInviteEmailDone: "מעולה. מחר ב-08:00 יגיע מייל, אם יהיה משהו חדש.",
+    emailTitle: "סיכום יומי במייל",
+    emailHint: "מייל אחד ב-08:00 עם העדכונים והפרקים החדשים מאז המייל הקודם. ביום בלי חדש לא נשלח כלום.",
+    emailTo: "נשלח אל {email}",
+    emailOn: "הסיכום היומי פעיל",
+    emailOff: "הסיכום היומי כבוי",
+    emailEnable: "כן, לשלוח לי",
+    emailDisable: "כיבוי",
+  },
+
+  // /email-off/<token>: the link at the bottom of the guests' daily email
+  emailOff: {
+    title: "הפסקת הסיכום היומי במייל",
+    body: "בלחיצה על הכפתור לא יישלחו יותר מיילים עם עדכונים מהטיול. אפשר להפעיל שוב בכל רגע מההגדרות באפליקציה.",
+    button: "להפסיק את המייל",
+    working: "רגע…",
+    done: "זהו, המיילים הופסקו.",
+    already: "המייל הזה כבר הופסק, או שהקישור לא תקין.",
+    error: "משהו השתבש. אפשר לנסות שוב.",
+    home: "לאפליקציה",
+  },
+
   weather: {
     clear: "בהיר",
     partlyCloudy: "מעונן חלקית",
@@ -1833,14 +1878,16 @@ export const strings = {
     // "approve all" takes only requests whose address Google proved (QA 15/11/2026)
     approveAllProven: "אישור המאומתים ({n})",
     approveAllSkipped: "{n} בקשות עם מייל שהוקלד נשארו לאישור אחת-אחת",
-    approved: "{name} אושר/ה ויקבל/תקבל מייל כניסה",
     approvedAll: "אושרו {ok} מתוך {total}",
     // approved, but guest-invite could not email the sign-in link
     unsentTitle: "אושר - נשאר לשלוח קישור",
     unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
+    // approved and emailed from Gmail (DECISIONS #73): WhatsApp is optional
+    emailedTitle: "אושר - המייל נשלח",
+    emailedBody: "יצא מייל עם הקישור לכניסה. אם רוצים, אפשר לשלוח גם הודעה בוואטסאפ.",
     // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
     // address is the one link to keep. Typed email: the first sign-in link
-    // too, since this message is sent only when the email did not go out.
+    // too (the same one-use link the welcome email carries, DECISIONS #73).
     approvedGoogleText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:

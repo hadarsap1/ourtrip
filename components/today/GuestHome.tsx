@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
+import { GuestPushInvite } from "@/components/settings/GuestPushCard";
 import { HeartIcon } from "@/components/icons";
 import { inCountry } from "@/components/today/FamilyClock";
 import { flagEmoji } from "@/lib/data/countryProfile";
@@ -229,6 +230,8 @@ export function GuestHome({
             </div>
           </div>
         ) : null}
+
+        <GuestPushInvite />
 
         {loaded && loaded.photos.length > 0 && (
           <section className="space-y-2">

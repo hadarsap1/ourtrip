@@ -427,8 +427,12 @@ create table visa_requirements (
 --         SELECT only where shared_with_guests = true (done itinerary items),
 --         posts only once a parent published them to guests (00043/00078),
 --         photos where status = 'approved' AND shared_with_guests = true,
---         messages SELECT + INSERT, message_reads: own rows.
+--         messages SELECT + INSERT, message_reads: own rows,
+--         push_subscriptions: own rows (opt-in push for updates/episodes, 00100).
 --         NO access to everything else.
+-- guest_update_pushes (00100): no role at all - push-send (service role) only.
+-- guest_email_optins (00101): an active guest selects / inserts (member_id, trip_id) / deletes
+--         their own row only; no role reads anyone else's. unsubscribe_guest_email(token) for anon.
 --
 -- Storage buckets: documents (owners only), booking-files (owners only),
 --                  photos (family read; guest read only via signed URLs issued for

@@ -70,6 +70,8 @@ export function GuestsAdminScreen() {
   const [unsent, setUnsent] = useState<ApprovedGuest[] | null>(null);
   // the unsent links are sign-in links for guests already in, not approvals
   const [unsentLogin, setUnsentLogin] = useState(false);
+  // every one of them was emailed: WhatsApp is optional (DECISIONS #73)
+  const [unsentEmailed, setUnsentEmailed] = useState(false);
   const { member } = useMember();
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -135,8 +137,9 @@ export function GuestsAdminScreen() {
     try {
       // the same call as a manual invite; the allowlist trigger closes the request
       const { link, emailed } = await inviteGuest(request.email, request.display_name, labels);
-      if (emailed) showToast(strings.guests.approved.replace("{name}", request.display_name));
-      else setUnsent([{ name: request.display_name, email: request.email, link, viaGoogle: request.auth_user_id !== null }]);
+      // emailed or not, WhatsApp stays one tap away (DECISIONS #73)
+      setUnsentEmailed(emailed);
+      setUnsent([{ name: request.display_name, email: request.email, link, viaGoogle: request.auth_user_id !== null }]);
       await refresh(trip.id);
     } catch {
       showToast(strings.common.error);
@@ -166,12 +169,16 @@ export function GuestsAdminScreen() {
           .replace("{total}", String(results.length))
       );
       // inviteMany keeps the order it was given, so each result pairs with its request
-      const notEmailed = results.flatMap((r, i) =>
-        r.ok && !r.emailed && r.link
+      // all of them, emailed or not: WhatsApp stays one tap away (DECISIONS #73)
+      const approvedNow = results.flatMap((r, i) =>
+        r.ok && r.link
           ? [{ name: r.name, email: r.email, link: r.link, viaGoogle: batch[i]?.auth_user_id != null }]
           : []
       );
-      if (notEmailed.length > 0) setUnsent(notEmailed);
+      if (approvedNow.length > 0) {
+        setUnsentEmailed(results.every((r) => !r.ok || r.emailed));
+        setUnsent(approvedNow);
+      }
       const typed = requests.length - batch.length;
       if (typed > 0) showToast(strings.guests.approveAllSkipped.replace("{n}", String(typed)));
       await refresh(trip.id);
@@ -431,9 +438,11 @@ export function GuestsAdminScreen() {
         <UnsentLinksSheet
           links={unsent}
           login={unsentLogin}
+          emailed={unsentEmailed}
           onClose={() => {
             setUnsent(null);
             setUnsentLogin(false);
+            setUnsentEmailed(false);
           }}
           onToast={showToast}
         />
@@ -458,8 +467,8 @@ export function GuestsAdminScreen() {
             try {
               // guest-invite clears revoked_at and keeps the guest's groups
               const { link, emailed } = await inviteGuest(row.email, name);
-              if (emailed) showToast(strings.guests.emailed);
-              else setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
+              setUnsentEmailed(emailed);
+              setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
               if (trip) await refresh(trip.id);
             } catch {
               showToast(strings.common.error);
@@ -886,18 +895,24 @@ function BulkInviteSheet({
 function UnsentLinksSheet({
   links,
   login = false,
+  emailed = false,
   onClose,
   onToast,
 }: {
   links: ApprovedGuest[];
   login?: boolean;
+  /** every guest here already got the email; WhatsApp is optional */
+  emailed?: boolean;
   onClose: () => void;
   onToast: (message: string) => void;
 }) {
+  const g = strings.guests;
+  const title = login ? g.loginUnsentTitle : emailed ? g.emailedTitle : g.unsentTitle;
+  const body = login ? g.loginUnsentBody : emailed ? g.emailedBody : g.unsentBody;
   return (
-    <Sheet open onClose={onClose} title={login ? strings.guests.loginUnsentTitle : strings.guests.unsentTitle}>
+    <Sheet open onClose={onClose} title={title}>
       <div className="space-y-4">
-        <p className="text-sm text-ink-soft">{login ? strings.guests.loginUnsentBody : strings.guests.unsentBody}</p>
+        <p className="text-sm text-ink-soft">{body}</p>
         <ul className="space-y-2">
           {links.map((guest) => (
             <li

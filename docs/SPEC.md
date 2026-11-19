@@ -113,6 +113,8 @@
 
 ### 2.14 Notifications (Web Push)
 - Weather alert (rain on outdoor day), flight check-in reminder (24h before flight booking), new message on the family wall, new photo pending approval (owners)
+- Guests (opt-in per device, from the guest home or settings): a new update or podcast episode they may see; never 22:00-07:00 Israel time (sent at 07:00). Nothing else goes to guests by push (DECISIONS #71, 00100)
+- Guests (opt-in, from settings or the iPhone card): a daily email at 08:00 Israel time with the updates and episodes shared with them since the last one, only when there is something new; one-press unsubscribe link (DECISIONS #72, 00101)
 - Note: on iOS, Web Push requires the PWA installed to home screen (iOS 16.4+) - include install instructions screen
 
 ### 2.15 Where's the car

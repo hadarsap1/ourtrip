@@ -1,16 +1,19 @@
 // Guest invitation (SPEC 2.10, DECISIONS #17). Owner-gated (in-function).
 // Adds/re-activates the allowlist row + guest member, ensures an auth user,
-// and generates a magic sign-in link. If RESEND_API_KEY is configured the
-// link is emailed via Resend (custom SMTP per DECISIONS #17 - Supabase's
-// built-in SMTP is rate-limited); otherwise the link is returned to the
-// owner UI for manual sharing (WhatsApp etc.) - the feature degrades,
-// never blocks.
+// and generates a magic sign-in link. The guest gets it by email the moment a
+// parent approves (DECISIONS #73): from the family's Gmail when GMAIL_USER and
+// GMAIL_APP_PASSWORD are set, else through Resend if RESEND_API_KEY is (which
+// reaches only the Resend account's own address without a verified domain).
+// The link is always returned too, so the parent can also send it on
+// WhatsApp - the feature degrades, never blocks.
 //
 // login: true is the guest card's "send a sign-in link" for a guest who is
 // already in and lost their way back: the guest must be on the allowlist and
 // not revoked, nothing is written, and the email says sign-in, not invitation.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { gmailAuth, sendGmail } from "../_shared/gmail.ts";
+import { signInEmail, welcomeEmail } from "../_shared/guestMail.ts";
 
 // Browser calls this cross-origin (Vercel -> *.supabase.co), so every response
 // - including the CORS preflight - must carry these headers. Without them the
@@ -188,15 +191,29 @@ Deno.serve(async (req) => {
     email,
     options: { redirectTo: body.redirect_to ?? undefined },
   });
-  const link = confirmUrl(linkData?.properties);
+  const link = confirmUrl(linkData?.properties ?? undefined);
   if (linkError || !link) {
     return json({ ok: false, error: linkError?.message ?? "link failed" }, 500);
   }
 
-  // optional email delivery via Resend
+  // the email: Gmail first (DECISIONS #73), Resend as before otherwise
   let emailed = false;
+  const gmail = gmailAuth();
+  const appOrigin = linkData?.properties?.redirect_to ? new URL(linkData.properties.redirect_to).origin : null;
+  if (gmail) {
+    try {
+      const mail = loginOnly
+        ? signInEmail(displayName, link)
+        : welcomeEmail(displayName, email, appOrigin ?? new URL(link).origin, link);
+      const r = await sendGmail(gmail, [{ to: email, ...mail }]);
+      emailed = r.sent === 1;
+      if (!emailed) console.log(`guest-invite: gmail refused (${r.failed[0]?.error ?? "unknown"})`);
+    } catch (err) {
+      console.log(`guest-invite: gmail failed: ${(err as Error).message}`);
+    }
+  }
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (resendKey) {
+  if (!emailed && !gmail && resendKey) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",

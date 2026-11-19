@@ -3159,3 +3159,81 @@ functions, which sign only rows the guest's own RLS returns.
 | Live, as a real guest: the two functions still return the photos, and a shared video with its poster | ⏳ not yet - needs a guest session |
 | Through the UI on real phones (Android, iPhone): pick, compress, upload, play as owner / kid / guest | ⏳ not yet |
 
+
+## 19/11/2026 - guests opt in to push on new updates and episodes (00100, DECISIONS #71)
+
+A guest turns push on for their device from the guest home or settings: that
+is a `push_subscriptions` row, under the existing `push_subscriptions_self_all`
+policy (own `member_id` only). New table `guest_update_pushes` (what guests
+were already told): RLS on, no policy, and `revoke all` from `anon` and
+`authenticated`, so only push-send (service role) reads or writes it. Who gets
+a push is decided in push-send by `_shared/guestUpdates.ts`, the same rule as
+`posts_guest_select` (00063: approved, visibility guests/public, past
+`publish_after`, audience `{}` or one of the guest's groups) and
+`episodes_guest_select` (00059: approved AND shared), and only active
+(un-revoked) guests. Guests no longer get wall pushes. The triggers and the
+15-minute job send no id, and push-send reads everything itself, so a forged
+call can only send a due push a little earlier.
+
+| Check | Result |
+|---|---|
+| Owner, guest, kid: cannot read `guest_update_pushes` (permission denied) | ✅ PASS - local, probe 100 |
+| Guest: cannot write `guest_update_pushes` | ✅ PASS - local, probe 100 |
+| `anon` / `authenticated`: no privilege on the table | ✅ PASS - local, probe 100 |
+| Guest: stores their own push subscription, cannot store one for a parent | ✅ PASS - local, probe 100 |
+| Deny matrix with the new table (every role x every op) | ✅ PASS - local, probe 90 |
+| Recipients: a group story only to that group, a revoked guest gets nothing, parents and kids never | ✅ PASS - vitest (`guestUpdates.test.ts`) |
+| Quiet hours by Israel time 22:00-07:00 | ✅ PASS - vitest |
+| Full harness | ✅ PASS, 0 FAIL on 100 migrations |
+| 00100 applied to production, push-send redeployed | ✅ done 19/11/2026 (Supabase MCP), on Hadar's go-ahead: push-send v23; backfill 27 rows (23 updates + 4 episodes already open to guests); job `push-guest-updates` */15 and both triggers present; RLS on |
+| Live call `guest-updates` | ✅ 200 `{"ok":true,"sent":0}` (nothing new, no guest subscribed yet) |
+| On a real guest phone: turn on, publish an update, push arrives and opens it | ⏳ not yet |
+
+## 19/11/2026 - guests' daily email (00101, DECISIONS #72)
+
+New table `guest_email_optins`: select / insert / delete own row for an active
+guest (`member_id = current_member_id()` and `trip_id = active_guest_trip()`),
+no update policy, insert granted on `(member_id, trip_id)` only, nothing for
+`anon`. `unsubscribe_guest_email(uuid)` is security definer and deletes only
+the row holding that random token. `guest-digest` (verify_jwt = false) checks
+the shared cron secret like push-send, reads with the service role, and sends
+a guest only items they may see now (`guestUpdateRecipients`, same rule as
+the guest policies) and only while the guest is active. It returns counts,
+never addresses. Gmail credentials are function secrets, never in code.
+
+| Check | Result |
+|---|---|
+| Guest: turns the email on, sees own row; cannot update it, choose the token, or sign anyone else up | ✅ PASS - local, probe 101 |
+| Revoked guest: cannot turn it on | ✅ PASS - local, probe 101 |
+| Owner, kid: read no opt-ins (and so no tokens); anon: no privilege | ✅ PASS - local, probe 101 |
+| Unsubscribe: anon with the right token stops it; a wrong token stops nothing | ✅ PASS - local, probe 101 |
+| Deny matrix with the new table | ✅ PASS - local, probe 90 |
+| Full harness | ✅ 636 PASS, 0 FAIL on 101 migrations |
+| SMTP sender and email body (unit tests: login, refusals, Hebrew subject, escaping, links) | ✅ PASS - vitest |
+| Real TLS SMTP session from Deno to a local implicit-TLS server: sent, Hebrew subject and RTL HTML arrive intact | ✅ PASS |
+| `deno check` push-send and guest-digest | ✅ PASS |
+| Live against Gmail | ✅ 19/11/2026: `{"test": true}` sent one sample email to GMAIL_USER only (`sent: 1`) |
+| 00101 applied to production; guest-digest v1, backup-weekly v19 deployed | ✅ done 19/11/2026 (Supabase MCP), on Hadar's go-ahead |
+| Live read-back: RLS on, the three self policies, anon cannot select, authenticated cannot update or set the token, anon may call unsubscribe_guest_email, job `guest-email-digest` hourly | ✅ verified 19/11/2026 |
+| Live forced run (no opt-ins yet) | ✅ 200 `{"ok":true,"guests":0,"sent":0}` |
+| `guestEmailDigest` flag on | ✅ in code; reaches guests with the next deploy of the app |
+| A real guest turns it on and gets the 08:00 email; unsubscribe link from a real email | ⏳ not yet |
+
+## 19/11/2026 - welcome email on approval, sign-in links from Gmail (DECISIONS #73)
+
+No schema or policy change. `guest-invite` (verify_jwt = true, owner gate in
+the function unchanged) and `guest-login-link` (verify_jwt = false; who gets a
+link is still `claim_guest_login_link`, once a minute, same reply either way)
+now send through `_shared/gmail.ts`. The email carries only what the WhatsApp
+message already carried: the guest's own one-use sign-in link and the app's
+address. The typed name is escaped in the HTML (`guestMail.test.ts`).
+
+| Check | Result |
+|---|---|
+| Email content: link, address to keep, typed address, escaped name, daily-email line only mentioned | ✅ PASS - vitest (`guestMail.test.ts`) |
+| `deno check` guest-invite, guest-login-link, guest-digest | ✅ PASS |
+| Deployed 19/11/2026 on Hadar's go-ahead: guest-invite v14 (verify_jwt true), guest-login-link v4 (verify_jwt false); both matched the repo before the change | ✅ done |
+| Live: guest-login-link for an address that is not a guest -> 200 `{"ok":true}`, nothing sent | ✅ |
+| Live: guest-invite with the anon key and an empty body -> 400 `bad input` (boots; the owner gate comes after) | ✅ |
+| A real approval: the guest receives the welcome email | ⏳ not yet - the next guest approved |
+| guest-digest in the repo now imports `_shared/gmail.ts` (no behaviour change); the deployed v1 still has the same code inline until its next deploy | note |

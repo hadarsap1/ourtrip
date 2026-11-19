@@ -39,6 +39,10 @@ export const FLAG_DEFAULTS = {
   // Hidden 14/10/2026 until the family decides to use it (Hadar). The data
   // and its policies stay; this only removes the screens' entry points.
   pocketMoney: false,
+  // The guests' daily email (00101, DECISIONS #72). On since 19/11/2026: the
+  // Gmail secrets are set on guest-digest and a test email went through.
+  // Turn off here to hide the switch; GUEST_EMAIL=off stops the sending.
+  guestEmailDigest: true,
   // Phase 3 (off by default)
   cameraTranslate: false,
   receiptScan: false,
