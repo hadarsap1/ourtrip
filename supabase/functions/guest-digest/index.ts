@@ -22,7 +22,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { localNow } from "../_shared/notifyPolicy.ts";
 import { GUEST_ZONE, guestUpdateRecipients, type AllowRow, type GuestRow } from "../_shared/guestUpdates.ts";
 import { buildDigest, type DigestItem } from "../_shared/guestDigest.ts";
-import { buildMessage, ReplyReader, smtpSend, type LineConn } from "../_shared/mail.ts";
+import { buildMessage, smtpSend } from "../_shared/mail.ts";
+import { gmailConn } from "../_shared/gmail.ts";
 
 const SEND_HOUR = 8;
 
@@ -46,33 +47,6 @@ async function cronAuthorized(req: Request): Promise<boolean> {
   }
   const { data, error } = await service.rpc("cron_secret_matches", { p_secret: got });
   return !error && data === true;
-}
-
-/** Gmail's SMTPS socket as a line connection for _shared/mail.ts. */
-async function gmailConn(): Promise<LineConn & { close(): void }> {
-  const sock = await Deno.connectTls({ hostname: "smtp.gmail.com", port: 465 });
-  const dec = new TextDecoder();
-  const enc = new TextEncoder();
-  const buf = new Uint8Array(8192);
-  const reader = new ReplyReader(async () => {
-    const n = await sock.read(buf);
-    return n === null ? null : dec.decode(buf.subarray(0, n), { stream: true });
-  });
-  return {
-    write: async (d: string) => {
-      const bytes = enc.encode(d);
-      let off = 0;
-      while (off < bytes.length) off += await sock.write(bytes.subarray(off));
-    },
-    reply: () => reader.reply(),
-    close: () => {
-      try {
-        sock.close();
-      } catch {
-        // already closed
-      }
-    },
-  };
 }
 
 type Optin = { member_id: string; trip_id: string; unsubscribe_token: string; last_sent_at: string };

@@ -3,11 +3,15 @@
 //
 // claim_guest_login_link (service role only) decides: an approved, unrevoked
 // guest of the active trip, at most once a minute. Then a magic link is
-// generated and emailed via Resend, like guest-invite (DECISIONS #17: not
-// Supabase's built-in SMTP). The reply is the same whether or not a link
-// went out, so the endpoint does not tell anyone who is on the guest list.
+// generated and emailed from the family's Gmail (DECISIONS #73; GMAIL_USER and
+// GMAIL_APP_PASSWORD), or through Resend when only RESEND_API_KEY is set, like
+// guest-invite (DECISIONS #17: not Supabase's built-in SMTP). The reply is the
+// same whether or not a link went out, so the endpoint does not tell anyone
+// who is on the guest list.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { gmailAuth, sendGmail } from "../_shared/gmail.ts";
+import { signInEmail } from "../_shared/guestMail.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -66,9 +70,10 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
 
+  const gmail = gmailAuth();
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendKey) {
-    console.log("guest-login-link: not sent, RESEND_API_KEY is not set");
+  if (!gmail && !resendKey) {
+    console.log("guest-login-link: not sent, neither Gmail nor Resend is set");
     return json({ ok: true });
   }
 
@@ -83,8 +88,18 @@ Deno.serve(async (req) => {
     email,
     options: { redirectTo: body.redirect_to ?? undefined },
   });
-  const link = confirmUrl(linkData?.properties);
+  const link = confirmUrl(linkData?.properties ?? undefined);
   if (linkError || !link) return json({ ok: false, error: "failed" }, 500);
+
+  if (gmail) {
+    try {
+      const r = await sendGmail(gmail, [{ to: email, ...signInEmail(null, link) }]);
+      console.log(`guest-login-link: gmail ${r.sent === 1 ? "sent" : "refused"}`);
+    } catch (err) {
+      console.log(`guest-login-link: gmail failed: ${(err as Error).message}`);
+    }
+    return json({ ok: true });
+  }
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

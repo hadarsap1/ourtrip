@@ -3218,3 +3218,22 @@ never addresses. Gmail credentials are function secrets, never in code.
 | Live forced run (no opt-ins yet) | ✅ 200 `{"ok":true,"guests":0,"sent":0}` |
 | `guestEmailDigest` flag on | ✅ in code; reaches guests with the next deploy of the app |
 | A real guest turns it on and gets the 08:00 email; unsubscribe link from a real email | ⏳ not yet |
+
+## 19/11/2026 - welcome email on approval, sign-in links from Gmail (DECISIONS #73)
+
+No schema or policy change. `guest-invite` (verify_jwt = true, owner gate in
+the function unchanged) and `guest-login-link` (verify_jwt = false; who gets a
+link is still `claim_guest_login_link`, once a minute, same reply either way)
+now send through `_shared/gmail.ts`. The email carries only what the WhatsApp
+message already carried: the guest's own one-use sign-in link and the app's
+address. The typed name is escaped in the HTML (`guestMail.test.ts`).
+
+| Check | Result |
+|---|---|
+| Email content: link, address to keep, typed address, escaped name, daily-email line only mentioned | ✅ PASS - vitest (`guestMail.test.ts`) |
+| `deno check` guest-invite, guest-login-link, guest-digest | ✅ PASS |
+| Deployed 19/11/2026 on Hadar's go-ahead: guest-invite v14 (verify_jwt true), guest-login-link v4 (verify_jwt false); both matched the repo before the change | ✅ done |
+| Live: guest-login-link for an address that is not a guest -> 200 `{"ok":true}`, nothing sent | ✅ |
+| Live: guest-invite with the anon key and an empty body -> 400 `bad input` (boots; the owner gate comes after) | ✅ |
+| A real approval: the guest receives the welcome email | ⏳ not yet - the next guest approved |
+| guest-digest in the repo now imports `_shared/gmail.ts` (no behaviour change); the deployed v1 still has the same code inline until its next deploy | note |

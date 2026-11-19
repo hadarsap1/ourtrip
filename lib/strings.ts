@@ -1878,14 +1878,16 @@ export const strings = {
     // "approve all" takes only requests whose address Google proved (QA 15/11/2026)
     approveAllProven: "אישור המאומתים ({n})",
     approveAllSkipped: "{n} בקשות עם מייל שהוקלד נשארו לאישור אחת-אחת",
-    approved: "{name} אושר/ה ויקבל/תקבל מייל כניסה",
     approvedAll: "אושרו {ok} מתוך {total}",
     // approved, but guest-invite could not email the sign-in link
     unsentTitle: "אושר - נשאר לשלוח קישור",
     unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
+    // approved and emailed from Gmail (DECISIONS #73): WhatsApp is optional
+    emailedTitle: "אושר - המייל נשלח",
+    emailedBody: "יצא מייל עם הקישור לכניסה. אם רוצים, אפשר לשלוח גם הודעה בוואטסאפ.",
     // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
     // address is the one link to keep. Typed email: the first sign-in link
-    // too, since this message is sent only when the email did not go out.
+    // too (the same one-use link the welcome email carries, DECISIONS #73).
     approvedGoogleText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
