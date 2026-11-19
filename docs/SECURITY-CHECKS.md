@@ -3237,3 +3237,46 @@ address. The typed name is escaped in the HTML (`guestMail.test.ts`).
 | Live: guest-invite with the anon key and an empty body -> 400 `bad input` (boots; the owner gate comes after) | ✅ |
 | A real approval: the guest receives the welcome email | ⏳ not yet - the next guest approved |
 | guest-digest in the repo now imports `_shared/gmail.ts` (no behaviour change); the deployed v1 still has the same code inline until its next deploy | note |
+
+## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00102)
+
+Found in the security review of 19/11, read back from production first:
+every account `guest-invite` creates with `auth.admin.createUser` carries a
+random password, so 00055's "no password = invited" never held. A guest who
+signed in only by the emailed link was never linked and AuthGate signed them
+out (one guest on 15/11). Production showed no self-registered account for a
+guest's address (every password account belongs to an approved guest; all 25
+accounts older than their allowlist row are Google), so nothing was exploited.
+
+What changed:
+- `link_member_to_auth_user`: links by email for a Google account or a session
+  whose JWT `amr` is `magiclink` / `otp` / `invite`. A password session never
+  links. On the first link the account's password is cleared and every other
+  session ends, so an account a stranger registered beforehand (sign-ups open,
+  "Confirm email" off) does not stay open to them.
+- `submit_guest_join`: only a Google account counts as signed in, so "via
+  Google" / "approve all" can no longer be earned by a password account. A
+  caller already linked as a member is told `member` however they signed in.
+- `kid_unlock_attempt` (service role only): a PIN attempt is reserved under a
+  row lock before the PIN is checked; parallel requests no longer each get a
+  guess past the 5-attempt lockout.
+- `kid_register_allowed` / `kid_register_failed` (service role only): 30 wrong
+  registration codes per 15 minutes project-wide, then 429.
+- kid-auth, guest-media, guest-photos, guest-gphotos reply with fixed step
+  codes; raw database/auth messages go to the function log only.
+
+| Check | Result |
+|---|---|
+| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 102 |
+| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 102 |
+| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 102 |
+| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 102 |
+| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 102 |
+| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 102 |
+| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 102 |
+| Probes 54, 55, 95 updated to the new rule (the seeded outsider signs in with Google) | ✅ PASS |
+| Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations |
+| lint, vitest, build | ✅ PASS |
+| `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session |
+| 00102 applied to production; the four functions deployed | ⏳ waiting for Hadar's go-ahead |
+| A real guest signs in by the emailed link only and is in | ⏳ after deploy |

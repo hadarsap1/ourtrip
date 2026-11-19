@@ -1,5 +1,6 @@
 -- 00055: a members row is linked by email only to a Google account or a
--- password-less (invited) account, never to a self-registered password account.
+-- session opened by the emailed link (00102 - it used to be "an account with
+-- no password"), never to a self-registered password account.
 begin;
 \i scripts/rls/seed.sql
 
@@ -28,7 +29,7 @@ reset role;
 select rls.check('the victim''s row stays unlinked', (select auth_user_id is null from members where email = 'victim@probe.test'));
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f1","email":"invited@probe.test","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f1","email":"invited@probe.test","role":"authenticated","amr":[{"method":"magiclink","timestamp":1}]}', true);
 select rls.check('invited (magic link, no password): linked as guest', public.link_member_to_auth_user() = 'guest');
 select rls.check('invited: guest access', public.is_active_guest_of('00000000-0000-0000-0000-0000000000a1'));
 reset role;

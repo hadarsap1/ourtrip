@@ -2035,6 +2035,7 @@ export const strings = {
     codePlaceholder: "הקוד",
     connect: "חיבור",
     invalidCode: "הקוד לא נכון או שפג תוקפו - מבקשים קוד חדש",
+    tooManyAttempts: "היו יותר מדי ניסיונות עם קוד לא נכון - מחכים רבע שעה ומנסים שוב",
     // The code was accepted and the server failed anyway. A new code will not
     // help, so it must not say "ask for another one".
     registerFailed: "הקוד בסדר, אבל החיבור נכשל בצד השרת - מראים את ההודעה הזאת לאמא או אבא",
