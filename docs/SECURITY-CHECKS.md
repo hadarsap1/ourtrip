@@ -3185,7 +3185,8 @@ call can only send a due push a little earlier.
 | Recipients: a group story only to that group, a revoked guest gets nothing, parents and kids never | ✅ PASS - vitest (`guestUpdates.test.ts`) |
 | Quiet hours by Israel time 22:00-07:00 | ✅ PASS - vitest |
 | Full harness | ✅ PASS, 0 FAIL on 100 migrations |
-| 00100 applied to production, push-send redeployed | ⏳ not yet - needs Hadar's go-ahead |
+| 00100 applied to production, push-send redeployed | ✅ done 19/11/2026 (Supabase MCP), on Hadar's go-ahead: push-send v23; backfill 27 rows (23 updates + 4 episodes already open to guests); job `push-guest-updates` */15 and both triggers present; RLS on |
+| Live call `guest-updates` | ✅ 200 `{"ok":true,"sent":0}` (nothing new, no guest subscribed yet) |
 | On a real guest phone: turn on, publish an update, push arrives and opens it | ⏳ not yet |
 
 ## 19/11/2026 - guests' daily email (00101, DECISIONS #72)
@@ -3211,5 +3212,9 @@ never addresses. Gmail credentials are function secrets, never in code.
 | SMTP sender and email body (unit tests: login, refusals, Hebrew subject, escaping, links) | ✅ PASS - vitest |
 | Real TLS SMTP session from Deno to a local implicit-TLS server: sent, Hebrew subject and RTL HTML arrive intact | ✅ PASS |
 | `deno check` push-send and guest-digest | ✅ PASS |
-| Live against Gmail | ⏳ not yet - needs the app password as a secret |
-| 00100 + 00101 applied, functions deployed, flag on | ⏳ not yet - needs Hadar's go-ahead |
+| Live against Gmail | ✅ 19/11/2026: `{"test": true}` sent one sample email to GMAIL_USER only (`sent: 1`) |
+| 00101 applied to production; guest-digest v1, backup-weekly v19 deployed | ✅ done 19/11/2026 (Supabase MCP), on Hadar's go-ahead |
+| Live read-back: RLS on, the three self policies, anon cannot select, authenticated cannot update or set the token, anon may call unsubscribe_guest_email, job `guest-email-digest` hourly | ✅ verified 19/11/2026 |
+| Live forced run (no opt-ins yet) | ✅ 200 `{"ok":true,"guests":0,"sent":0}` |
+| `guestEmailDigest` flag on | ✅ in code; reaches guests with the next deploy of the app |
+| A real guest turns it on and gets the 08:00 email; unsubscribe link from a real email | ⏳ not yet |

@@ -13,7 +13,10 @@
 // Without them it sends nothing. APP_URL is the app's address for the links.
 // Kill switch: GUEST_EMAIL=off.
 //
-// Body: {} from the cron job; {"force": true} skips the hour check (testing).
+// Body: {} from the cron job; {"force": true} skips the hour check;
+// {"test": true} sends one sample email, with the three latest items shared
+// with guests, to GMAIL_USER itself and to no one else (checking the Gmail
+// connection without waiting for 08:00 or writing to any guest).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { localNow } from "../_shared/notifyPolicy.ts";
@@ -82,13 +85,20 @@ Deno.serve(async (req) => {
   const pass = Deno.env.get("GMAIL_APP_PASSWORD");
   if (!user || !pass) return json({ ok: true, skipped: "GMAIL_USER / GMAIL_APP_PASSWORD not set" });
 
-  let body: { force?: boolean } = {};
+  let body: { force?: boolean; test?: boolean } = {};
   try {
     body = await req.json();
   } catch {
     // the cron job sends {}; an empty body is fine too
   }
   const now = new Date();
+  if (body.test) {
+    try {
+      return json({ ok: true, ...(await sendTest(now, user, pass)) });
+    } catch (err) {
+      return json({ ok: false, error: (err as Error).message }, 500);
+    }
+  }
   const hour = Math.floor(localNow(now, GUEST_ZONE).minutes / 60);
   if (!body.force && hour !== SEND_HOUR) return json({ ok: true, skipped: `not ${SEND_HOUR}:00 in Israel` });
 
@@ -210,6 +220,39 @@ async function run(now: Date, user: string, pass: string) {
   await giveBack(outgoing.filter((x) => failedTo.has(x.to)).map((x) => x.optin));
   // addresses are not echoed back: counts only
   return { guests: optins.length, sent: result.sent, failed: result.failed.length, nothingNew: quiet };
+}
+
+/** One sample email to the sending account itself (see the header). */
+async function sendTest(now: Date, user: string, pass: string) {
+  const appUrl = (Deno.env.get("APP_URL") ?? "https://ourtrip-umber.vercel.app").replace(/\/+$/, "");
+  const { data: told } = await service
+    .from("guest_update_pushes")
+    .select("target_id, kind")
+    .order("sent_at", { ascending: false })
+    .limit(3);
+  const rows = (told ?? []) as { target_id: string; kind: "story" | "episode" }[];
+  const ids = (k: string) => rows.filter((r) => r.kind === k).map((r) => r.target_id);
+  const [{ data: posts }, { data: episodes }] = await Promise.all([
+    service.from("posts").select("id, title").in("id", ids("story").length ? ids("story") : ["00000000-0000-0000-0000-000000000000"]),
+    service.from("episodes").select("id, title").in("id", ids("episode").length ? ids("episode") : ["00000000-0000-0000-0000-000000000000"]),
+  ]);
+  const titles = new Map([...(posts ?? []), ...(episodes ?? [])].map((r) => [r.id as string, (r.title as string | null) ?? null]));
+  const items: DigestItem[] = rows.map((r) => ({ kind: r.kind, id: r.target_id, title: titles.get(r.target_id) ?? null }));
+  if (items.length === 0) items.push({ kind: "story", id: "test", title: "בדיקה" });
+
+  const digest = buildDigest("בדיקה", items, appUrl, `${appUrl}/settings`);
+  const data = buildMessage(
+    { name: "סו-בב עולם!", address: user },
+    { to: user, ...digest, subject: `[בדיקה] ${digest.subject}` },
+    { boundary: `ot-${crypto.randomUUID()}`, date: now, messageId: `${crypto.randomUUID()}@ourtrip` }
+  );
+  const conn = await gmailConn();
+  try {
+    const r = await smtpSend(conn, { user, pass }, [{ to: user, data }]);
+    return { test: true, sent: r.sent, failed: r.failed.map((f) => f.error) };
+  } finally {
+    conn.close();
+  }
 }
 
 async function giveBack(optins: Optin[]): Promise<void> {
