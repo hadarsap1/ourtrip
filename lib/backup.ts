@@ -49,6 +49,8 @@ export const EXCLUDED_TABLES = [
   "push_subscriptions",
   // push-send's own record (00100): no role can read it from the app
   "guest_update_pushes",
+  // each guest reads only their own (00101): not trip content
+  "guest_email_optins",
   "kid_devices",
   "kid_device_registrations",
   "guests_allowlist",

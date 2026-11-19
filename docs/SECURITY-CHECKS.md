@@ -3187,3 +3187,29 @@ call can only send a due push a little earlier.
 | Full harness | ✅ PASS, 0 FAIL on 100 migrations |
 | 00100 applied to production, push-send redeployed | ⏳ not yet - needs Hadar's go-ahead |
 | On a real guest phone: turn on, publish an update, push arrives and opens it | ⏳ not yet |
+
+## 19/11/2026 - guests' daily email (00101, DECISIONS #72)
+
+New table `guest_email_optins`: select / insert / delete own row for an active
+guest (`member_id = current_member_id()` and `trip_id = active_guest_trip()`),
+no update policy, insert granted on `(member_id, trip_id)` only, nothing for
+`anon`. `unsubscribe_guest_email(uuid)` is security definer and deletes only
+the row holding that random token. `guest-digest` (verify_jwt = false) checks
+the shared cron secret like push-send, reads with the service role, and sends
+a guest only items they may see now (`guestUpdateRecipients`, same rule as
+the guest policies) and only while the guest is active. It returns counts,
+never addresses. Gmail credentials are function secrets, never in code.
+
+| Check | Result |
+|---|---|
+| Guest: turns the email on, sees own row; cannot update it, choose the token, or sign anyone else up | ✅ PASS - local, probe 101 |
+| Revoked guest: cannot turn it on | ✅ PASS - local, probe 101 |
+| Owner, kid: read no opt-ins (and so no tokens); anon: no privilege | ✅ PASS - local, probe 101 |
+| Unsubscribe: anon with the right token stops it; a wrong token stops nothing | ✅ PASS - local, probe 101 |
+| Deny matrix with the new table | ✅ PASS - local, probe 90 |
+| Full harness | ✅ 636 PASS, 0 FAIL on 101 migrations |
+| SMTP sender and email body (unit tests: login, refusals, Hebrew subject, escaping, links) | ✅ PASS - vitest |
+| Real TLS SMTP session from Deno to a local implicit-TLS server: sent, Hebrew subject and RTL HTML arrive intact | ✅ PASS |
+| `deno check` push-send and guest-digest | ✅ PASS |
+| Live against Gmail | ⏳ not yet - needs the app password as a secret |
+| 00100 + 00101 applied, functions deployed, flag on | ⏳ not yet - needs Hadar's go-ahead |

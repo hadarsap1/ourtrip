@@ -39,6 +39,10 @@ export const FLAG_DEFAULTS = {
   // Hidden 14/10/2026 until the family decides to use it (Hadar). The data
   // and its policies stay; this only removes the screens' entry points.
   pocketMoney: false,
+  // The guests' daily email (00101, DECISIONS #72). Off until GMAIL_USER and
+  // GMAIL_APP_PASSWORD are set on guest-digest, so no guest turns on an email
+  // that cannot be sent. Try on one device first: ?test=guestEmailDigest.
+  guestEmailDigest: false,
   // Phase 3 (off by default)
   cameraTranslate: false,
   receiptScan: false,

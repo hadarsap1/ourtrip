@@ -54,7 +54,7 @@ export function BottomNav() {
       (pending ? totalPending(pending) - pending.photos > 0 : false) ||
       fresh.stories + fresh.episodes > 0);
 
-  if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/")) return null;
+  if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/") || pathname.startsWith("/email-off/")) return null;
 
   const tabs = tabsForRole(role);
   // A parent's bar keeps a slot for the capture button, which renders itself

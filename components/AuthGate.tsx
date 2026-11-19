@@ -119,6 +119,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/s/") ||
     // the join link (00054): opened before there is any account
     pathname.startsWith("/join/") ||
+    // stopping the guests' daily email from its link (00101): no account needed
+    pathname.startsWith("/email-off/") ||
     !getSupabase();
 
   const [state, setState] = useState<GateState>(() => decided ?? "loading");

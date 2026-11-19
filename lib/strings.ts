@@ -1117,6 +1117,28 @@ export const strings = {
     iosInviteStep1: "מקישים ב-Safari על כפתור השיתוף",
     iosInviteStep2: "בוחרים ״הוספה למסך הבית״",
     iosInviteStep3: "פותחים מהאייקון החדש ומאשרים התראות בכרטיס שיופיע",
+    // the daily email (00101, DECISIONS #72)
+    iosInviteEmail: "או: סיכום יומי במייל במקום",
+    iosInviteEmailDone: "מעולה. מחר ב-08:00 יגיע מייל, אם יהיה משהו חדש.",
+    emailTitle: "סיכום יומי במייל",
+    emailHint: "מייל אחד ב-08:00 עם העדכונים והפרקים החדשים מאז המייל הקודם. ביום בלי חדש לא נשלח כלום.",
+    emailTo: "נשלח אל {email}",
+    emailOn: "הסיכום היומי פעיל",
+    emailOff: "הסיכום היומי כבוי",
+    emailEnable: "כן, לשלוח לי",
+    emailDisable: "כיבוי",
+  },
+
+  // /email-off/<token>: the link at the bottom of the guests' daily email
+  emailOff: {
+    title: "הפסקת הסיכום היומי במייל",
+    body: "בלחיצה על הכפתור לא יישלחו יותר מיילים עם עדכונים מהטיול. אפשר להפעיל שוב בכל רגע מההגדרות באפליקציה.",
+    button: "להפסיק את המייל",
+    working: "רגע…",
+    done: "זהו, המיילים הופסקו.",
+    already: "המייל הזה כבר הופסק, או שהקישור לא תקין.",
+    error: "משהו השתבש. אפשר לנסות שוב.",
+    home: "לאפליקציה",
   },
 
   weather: {

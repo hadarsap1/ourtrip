@@ -1125,6 +1125,45 @@ export type Database = {
           },
         ]
       }
+      guest_email_optins: {
+        Row: {
+          created_at: string
+          last_sent_at: string
+          member_id: string
+          trip_id: string
+          unsubscribe_token: string
+        }
+        Insert: {
+          created_at?: string
+          last_sent_at?: string
+          member_id: string
+          trip_id: string
+          unsubscribe_token?: string
+        }
+        Update: {
+          created_at?: string
+          last_sent_at?: string
+          member_id?: string
+          trip_id?: string
+          unsubscribe_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_email_optins_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_email_optins_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_join_links: {
         Row: {
           created_at: string
@@ -1214,6 +1253,35 @@ export type Database = {
           },
           {
             foreignKeyName: "guest_join_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_update_pushes: {
+        Row: {
+          kind: string
+          sent_at: string
+          target_id: string
+          trip_id: string
+        }
+        Insert: {
+          kind?: string
+          sent_at?: string
+          target_id: string
+          trip_id: string
+        }
+        Update: {
+          kind?: string
+          sent_at?: string
+          target_id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_update_pushes_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
@@ -2589,6 +2657,7 @@ export type Database = {
         Returns: string
       }
       trip_now_country: { Args: { p_trip_id: string }; Returns: string }
+      unsubscribe_guest_email: { Args: { p_token: string }; Returns: boolean }
       trip_member_names: {
         Args: { p_trip_id: string }
         Returns: {

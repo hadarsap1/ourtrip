@@ -16,7 +16,8 @@ const OWNER_ONLY = [
 // flag is on, and the screen shows a kid their own row (pocket RLS). Listed, it
 // sent a kid from their own tab to "reserved for parents" (QA 15/11/2026).
 // what a guest can open at all (the guest home's tiles and tabs)
-const GUEST_ALLOWED = ["/", "/stories", "/podcast", "/photos", "/messages", "/map", "/settings", "/jar"];
+// /email-off: the daily email's own unsubscribe link (00101)
+const GUEST_ALLOWED = ["/", "/stories", "/podcast", "/photos", "/messages", "/map", "/settings", "/jar", "/email-off"];
 
 function blocked(path: string, role: string): boolean {
   const under = (p: string) => path === p || path.startsWith(p + "/");

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { currentPushState, disablePush, enablePush, isIos, isStandalone, type PushState } from "@/lib/push";
 import { ShareIcon } from "@/components/icons";
+import { getMyEmailDigest, setMyEmailDigest } from "@/lib/data/guestEmail";
+import { isEnabled } from "@/lib/flags";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
@@ -135,10 +137,51 @@ export function GuestPushInvite() {
   return iosNeedsInstall ? <IosInstallInvite /> : <PushInvite />;
 }
 
+const readEmailFlag = () => isEnabled("guestEmailDigest");
+
 function IosInstallInvite() {
   const stored = useSyncExternalStore(noop, readIosDismissed, () => true);
+  const emailOffered = useSyncExternalStore(noop, readEmailFlag, () => false);
   const [dismissedNow, setDismissedNow] = useState(false);
-  if (stored || dismissedNow) return null;
+  // a guest who already chose the email has their answer: no card
+  const [emailOn, setEmailOn] = useState<boolean | null>(null);
+  const [emailDone, setEmailDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!emailOffered) return;
+    let alive = true;
+    getMyEmailDigest()
+      .then((on) => alive && setEmailOn(on))
+      .catch(() => alive && setEmailOn(false));
+    return () => {
+      alive = false;
+    };
+  }, [emailOffered]);
+
+  const chooseEmail = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await setMyEmailDigest(true);
+      setEmailDone(true);
+      storeFlag(IOS_DISMISS_KEY);
+    } catch {
+      setError(strings.common.error);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  if (emailDone) {
+    return (
+      <section className="rounded-card border border-sv-line bg-sv-card px-4 py-3.5">
+        <p className="text-sm font-semibold text-sv-sage" role="status">{t.iosInviteEmailDone}</p>
+      </section>
+    );
+  }
+  if (stored || dismissedNow || emailOn === true) return null;
 
   return (
     <section className="rounded-card border border-sv-line bg-sv-card px-4 py-3.5">
@@ -155,16 +198,97 @@ function IosInstallInvite() {
         <li className="flex gap-2"><span className="font-bold">2.</span>{t.iosInviteStep2}</li>
         <li className="flex gap-2"><span className="font-bold">3.</span>{t.iosInviteStep3}</li>
       </ol>
-      <button
-        type="button"
-        onClick={() => {
-          setDismissedNow(true);
-          storeFlag(IOS_DISMISS_KEY);
-        }}
-        className="mt-2 min-h-[44px] rounded-full px-3 text-sm font-semibold text-sv-ink-soft"
-      >
-        {t.later}
-      </button>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {emailOffered && emailOn === false && (
+          <button
+            type="button"
+            onClick={() => void chooseEmail()}
+            disabled={busy}
+            className="min-h-[44px] rounded-full border border-sv-sage px-4 text-sm font-bold text-sv-sage disabled:opacity-50"
+          >
+            {busy ? t.working : t.iosInviteEmail}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setDismissedNow(true);
+            storeFlag(IOS_DISMISS_KEY);
+          }}
+          className="min-h-[44px] rounded-full px-3 text-sm font-semibold text-sv-ink-soft"
+        >
+          {t.later}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-alert" role="alert">{error}</p>}
+    </section>
+  );
+}
+
+/** Settings: the daily email, for a guest, once the flag is on. */
+export function GuestEmailCard() {
+  const { member } = useMember();
+  const offered = useSyncExternalStore(noop, readEmailFlag, () => false);
+  if (member?.role !== "guest" || !offered) return null;
+  return <GuestEmailSettings email={member.email} />;
+}
+
+function GuestEmailSettings({ email }: { email: string | null }) {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getMyEmailDigest()
+      .then((v) => alive && setOn(v))
+      .catch(() => alive && setError(strings.common.error));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const toggle = useCallback(async (next: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await setMyEmailDigest(next);
+      setOn(next);
+    } catch {
+      setError(strings.common.error);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  return (
+    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
+      <h2 className="text-sm font-bold text-ink">{t.emailTitle}</h2>
+      <p className="mt-1 text-xs text-ink-soft">{t.emailHint}</p>
+      {email && (
+        <p className="mt-1 mb-3 text-xs text-ink-soft">
+          {t.emailTo.split("{email}")[0]}
+          <bdi dir="ltr">{email}</bdi>
+        </p>
+      )}
+      {on !== null && (
+        <div className="flex items-center justify-between gap-3">
+          <p className={`text-sm ${on ? "font-semibold text-sea" : "text-ink-soft"}`}>{on ? t.emailOn : t.emailOff}</p>
+          <button
+            type="button"
+            onClick={() => void toggle(!on)}
+            disabled={busy}
+            className={
+              on
+                ? "min-h-[44px] rounded-xl border border-line px-4 text-sm font-bold text-ink-soft disabled:opacity-50"
+                : "min-h-[44px] rounded-xl bg-sea px-4 text-sm font-bold text-on-sea disabled:opacity-50"
+            }
+          >
+            {busy ? t.working : on ? t.emailDisable : t.emailEnable}
+          </button>
+        </div>
+      )}
+      {error && <p className="mt-2 text-sm text-alert" role="alert">{error}</p>}
     </section>
   );
 }
