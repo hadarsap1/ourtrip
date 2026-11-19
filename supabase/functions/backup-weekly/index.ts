@@ -100,6 +100,9 @@ const TABLES = [
   "emergency_info",
   "phrasebook_entries",
   "push_subscriptions",
+  // what guests were already told by push (00100): restored with it, a
+  // restore does not push every old update again
+  "guest_update_pushes",
   "fx_rates",
   // sharing (00043-00045) and steps (00041-00042) - lib/backupTables.test.ts
   // now fails the build when a table is missing here

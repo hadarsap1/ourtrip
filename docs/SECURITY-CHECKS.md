@@ -3159,3 +3159,31 @@ functions, which sign only rows the guest's own RLS returns.
 | Live, as a real guest: the two functions still return the photos, and a shared video with its poster | ⏳ not yet - needs a guest session |
 | Through the UI on real phones (Android, iPhone): pick, compress, upload, play as owner / kid / guest | ⏳ not yet |
 
+
+## 19/11/2026 - guests opt in to push on new updates and episodes (00100, DECISIONS #71)
+
+A guest turns push on for their device from the guest home or settings: that
+is a `push_subscriptions` row, under the existing `push_subscriptions_self_all`
+policy (own `member_id` only). New table `guest_update_pushes` (what guests
+were already told): RLS on, no policy, and `revoke all` from `anon` and
+`authenticated`, so only push-send (service role) reads or writes it. Who gets
+a push is decided in push-send by `_shared/guestUpdates.ts`, the same rule as
+`posts_guest_select` (00063: approved, visibility guests/public, past
+`publish_after`, audience `{}` or one of the guest's groups) and
+`episodes_guest_select` (00059: approved AND shared), and only active
+(un-revoked) guests. Guests no longer get wall pushes. The triggers and the
+15-minute job send no id, and push-send reads everything itself, so a forged
+call can only send a due push a little earlier.
+
+| Check | Result |
+|---|---|
+| Owner, guest, kid: cannot read `guest_update_pushes` (permission denied) | ✅ PASS - local, probe 100 |
+| Guest: cannot write `guest_update_pushes` | ✅ PASS - local, probe 100 |
+| `anon` / `authenticated`: no privilege on the table | ✅ PASS - local, probe 100 |
+| Guest: stores their own push subscription, cannot store one for a parent | ✅ PASS - local, probe 100 |
+| Deny matrix with the new table (every role x every op) | ✅ PASS - local, probe 90 |
+| Recipients: a group story only to that group, a revoked guest gets nothing, parents and kids never | ✅ PASS - vitest (`guestUpdates.test.ts`) |
+| Quiet hours by Israel time 22:00-07:00 | ✅ PASS - vitest |
+| Full harness | ✅ PASS, 0 FAIL on 100 migrations |
+| 00100 applied to production, push-send redeployed | ⏳ not yet - needs Hadar's go-ahead |
+| On a real guest phone: turn on, publish an update, push arrives and opens it | ⏳ not yet |

@@ -47,6 +47,8 @@ export const EXCLUDED_TABLES = [
   "document_pin",
   "document_passkeys",
   "push_subscriptions",
+  // push-send's own record (00100): no role can read it from the app
+  "guest_update_pushes",
   "kid_devices",
   "kid_device_registrations",
   "guests_allowlist",

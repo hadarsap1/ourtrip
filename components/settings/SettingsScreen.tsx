@@ -9,13 +9,14 @@ import { BackupCard } from "@/components/settings/BackupCard";
 import { BudgetCategoriesCard } from "@/components/settings/BudgetCategoriesCard";
 import { AiBudgetCard } from "@/components/settings/AiBudgetCard";
 import { MyKidsCard } from "@/components/settings/MyKidsCard";
+import { GuestPushCard } from "@/components/settings/GuestPushCard";
 import { PreviewCard } from "@/components/settings/PreviewCard";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
 /**
  * Settings, reached from the gear on More. Each card decides for itself who
- * sees it (steps, AI budget and backup: parents only; my kids: guests only; view as: parents only);
+ * sees it (steps, AI budget and backup: parents only; my kids and push: guests only; view as: parents only);
  * access is still RLS.
  */
 export function SettingsScreen() {
@@ -34,6 +35,7 @@ export function SettingsScreen() {
           disappears for good once it is on the home screen. */}
       <InstallPrompt />
       <MyKidsCard />
+      <GuestPushCard />
       <PreviewCard />
       <ThemePicker />
       <StepsSettings />

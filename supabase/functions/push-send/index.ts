@@ -15,6 +15,11 @@
 //   - leave-now (cron every 15 min, 1.11): the next placed item's leave-by
 //                     time falls in the coming 15 minutes → owners.
 //   Kill switch for both: set NOTIFY_V2=off on the function.
+//   - guest-updates (00100): a new update or podcast episode → the guests
+//                     who may see it and turned push on. Called by the
+//                     publish triggers and a 15-minute sweep; each item is
+//                     claimed once in guest_update_pushes. Held 22:00-07:00
+//                     Israel time. Kill switch: NOTIFY_GUESTS=off.
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
 // so it is deployed verify_jwt=false. A forged call leaks no content - the
@@ -38,6 +43,7 @@ import {
 } from "../_shared/notifyPolicy.ts";
 import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from "../_shared/travel.ts";
 import { canReadWallMessage, type WallReader } from "../_shared/wallAudience.ts";
+import { guestQuietNow, guestUpdateRecipients } from "../_shared/guestUpdates.ts";
 
 // Since 00052 the secret is generated and kept in the database (it never
 // passes through a file or a dashboard): the jobs send it, and this asks the
@@ -118,7 +124,7 @@ async function ownerIds(tripId: string): Promise<string[]> {
 }
 
 async function familyIds(tripId: string): Promise<string[]> {
-  // owners + kids (not guests) - guests get the wall via the portal, not push
+  // owners + kids (not guests) - guests get only updates and episodes by push (00100)
   const { data } = await service
     .from("members")
     .select("id")
@@ -157,7 +163,9 @@ async function handleWallMessage(messageId: string): Promise<number> {
   const recipients = (members ?? [])
     .filter((m) => {
       if (m.id === msg.sender_id || m.id === msg.approved_by) return false;
-      if (m.role === "guest" && msg.channel !== "guests") return false;
+      // a guest turns push on for updates and episodes only (00100,
+      // DECISIONS #71); the wall waits for them in the app
+      if (m.role === "guest") return false;
       const guestLabels = m.role === "guest" && m.email ? activeGuests.get(m.email.toLowerCase()) : undefined;
       return canReadWallMessage(
         {
@@ -179,6 +187,97 @@ async function handleWallMessage(messageId: string): Promise<number> {
     many: pending ? "{n} הודעות ממתינות לאישור שלכם ✋" : "{n} הודעות חדשות בצ'אט 💬",
   });
 }
+
+/** New updates and episodes guests may see and were not told about yet → the
+ *  guests who may see each one (00100). Everything is read here; the caller
+ *  only says "look". */
+async function handleGuestUpdates(): Promise<number | string> {
+  if (guestQuietNow(new Date())) return "quiet";
+  const nowIso = new Date().toISOString();
+  const [{ data: posts }, { data: episodes }] = await Promise.all([
+    service
+      .from("posts")
+      .select("id, trip_id, title, audience")
+      .eq("status", "approved")
+      .in("visibility", ["guests", "public"])
+      .or(`publish_after.is.null,publish_after.lte.${nowIso}`),
+    service
+      .from("episodes")
+      .select("id, trip_id, title")
+      .eq("status", "approved")
+      .eq("shared_with_guests", true),
+  ]);
+  const items = [
+    ...(posts ?? []).map((p) => ({
+      kind: "story" as const,
+      id: p.id as string,
+      tripId: p.trip_id as string,
+      title: (p.title as string | null) ?? null,
+      audience: (p.audience ?? []) as string[],
+    })),
+    ...(episodes ?? []).map((e) => ({
+      kind: "episode" as const,
+      id: e.id as string,
+      tripId: e.trip_id as string,
+      title: (e.title as string | null) ?? null,
+      audience: [] as string[],
+    })),
+  ];
+  if (items.length === 0) return 0;
+
+  // one row per update or episode ever shared: small, and no long id list
+  const { data: told } = await service.from("guest_update_pushes").select("target_id");
+  const done = new Set((told ?? []).map((t) => t.target_id as string));
+  const fresh = items.filter((i) => !done.has(i.id));
+
+  const guestsByTrip = new Map<string, Promise<[GuestMember[], GuestAllow[]]>>();
+  const guestsOf = (tripId: string) => {
+    let p = guestsByTrip.get(tripId);
+    if (!p) {
+      p = Promise.all([
+        service.from("members").select("id, role, email").eq("trip_id", tripId).eq("role", "guest"),
+        service.from("guests_allowlist").select("email, labels").eq("trip_id", tripId).is("revoked_at", null),
+      ]).then(([m, a]) => [(m.data ?? []) as GuestMember[], (a.data ?? []) as GuestAllow[]]);
+      guestsByTrip.set(tripId, p);
+    }
+    return p;
+  };
+
+  let sent = 0;
+  for (const item of fresh) {
+    // claim first: a trigger call and the sweep may run together
+    const { data: claimed } = await service
+      .from("guest_update_pushes")
+      .upsert({ target_id: item.id, kind: item.kind, trip_id: item.tripId }, { onConflict: "target_id", ignoreDuplicates: true })
+      .select("target_id");
+    if (!claimed || claimed.length === 0) continue;
+
+    const [members, allowlist] = await guestsOf(item.tripId);
+    const recipients = guestUpdateRecipients(members, allowlist, { kind: item.kind, audience: item.audience });
+    sent += await pushToMembers(
+      recipients,
+      item.kind === "story"
+        ? {
+            title: "עדכון חדש מהדרך ✍️",
+            body: item.title || "כתבנו עדכון חדש - בואו לקרוא",
+            url: `/stories#story-${item.id}`,
+            tag: "guest-story",
+            many: "{n} עדכונים חדשים מהדרך ✍️",
+          }
+        : {
+            title: "פרק חדש בפודקאסט 🎙️",
+            body: item.title || "הקלטנו פרק חדש - בואו להקשיב",
+            url: `/podcast#episode-${item.id}`,
+            tag: "guest-episode",
+            many: "{n} פרקים חדשים בפודקאסט 🎙️",
+          }
+    );
+  }
+  return sent;
+}
+
+type GuestMember = { id: string; role: string; email: string | null };
+type GuestAllow = { email: string; labels: string[] | null };
 
 async function handlePendingPhoto(photoId: string): Promise<number> {
   const { data: photo } = await service
@@ -520,6 +619,10 @@ Deno.serve(async (req) => {
         return body.type === "hourly"
           ? json({ ok: true, ...(await handleHourly()) })
           : json({ ok: true, sent: await handleLeaveNow() });
+      }
+      case "guest-updates": {
+        if (Deno.env.get("NOTIFY_GUESTS") === "off") return json({ ok: true, skipped: "NOTIFY_GUESTS=off" });
+        return json({ ok: true, sent: await handleGuestUpdates() });
       }
       case "backup-stale": {
         const age = typeof body.age_days === "number" ? body.age_days : -1;
