@@ -22,7 +22,7 @@ export async function inviteGuest(
   labels: string[] = [],
   /** Sign-in link for a guest already in: nothing on the list changes. */
   loginOnly = false
-): Promise<{ link: string; emailed: boolean }> {
+): Promise<{ link: string; emailed: boolean; already: boolean }> {
   const { data, error } = await requireClient().functions.invoke(
     "guest-invite",
     {
@@ -45,7 +45,8 @@ export async function inviteGuest(
     throw new Error(error.message);
   }
   if (!data?.ok) throw new Error(data?.error ?? "invite failed");
-  return { link: data.link as string, emailed: Boolean(data.emailed) };
+  // already: the guest was in before this call, so no welcome email went out
+  return { link: data.link as string, emailed: Boolean(data.emailed), already: data.already === true };
 }
 
 /** Owner, from the guest card: a fresh sign-in link for an active guest who
@@ -53,7 +54,7 @@ export async function inviteGuest(
 export function sendGuestLoginLink(
   email: string,
   displayName: string
-): Promise<{ link: string; emailed: boolean }> {
+): Promise<{ link: string; emailed: boolean; already: boolean }> {
   return inviteGuest(email, displayName, [], true);
 }
 
@@ -100,6 +101,8 @@ export type BulkInviteResult = {
   ok: boolean;
   link?: string;
   emailed?: boolean;
+  /** was already an active guest: nothing new to tell them */
+  already?: boolean;
 };
 
 /**
@@ -116,8 +119,8 @@ export async function inviteMany(
   const results: BulkInviteResult[] = [];
   for (const [i, guest] of guests.entries()) {
     try {
-      const { link, emailed } = await inviteGuest(guest.email, guest.name, labels);
-      results.push({ ...guest, ok: true, link, emailed });
+      const { link, emailed, already } = await inviteGuest(guest.email, guest.name, labels);
+      results.push({ ...guest, ok: true, link, emailed, already });
     } catch {
       results.push({ ...guest, ok: false });
     }

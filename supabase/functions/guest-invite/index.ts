@@ -10,6 +10,10 @@
 // login: true is the guest card's "send a sign-in link" for a guest who is
 // already in and lost their way back: the guest must be on the allowlist and
 // not revoked, nothing is written, and the email says sign-in, not invitation.
+//
+// Approving a guest who is already in (a second tap, a second open window, or
+// both parents at once) writes as before but sends no second welcome email:
+// the reply says already: true and still carries the link (20/11/2026).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { gmailAuth, sendGmail } from "../_shared/gmail.ts";
@@ -130,6 +134,7 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "email belongs to a family member" }, 400);
   }
 
+  let alreadyActive = false;
   if (loginOnly) {
     // only a guest who is already in: on the list, not removed, a guest member
     const { data: row } = await service
@@ -142,14 +147,15 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: "not an active guest" }, 409);
     }
   } else {
+    const { data: existing } = await service
+      .from("guests_allowlist")
+      .select("labels, revoked_at")
+      .eq("trip_id", trip.id)
+      .eq("email", email)
+      .maybeSingle();
+    alreadyActive = existing !== null && existing.revoked_at === null && existingMember !== null;
     let labels: string[] | undefined;
     if (addLabels.length > 0) {
-      const { data: existing } = await service
-        .from("guests_allowlist")
-        .select("labels")
-        .eq("trip_id", trip.id)
-        .eq("email", email)
-        .maybeSingle();
       labels = [...new Set([...((existing?.labels as string[] | undefined) ?? []), ...addLabels])].slice(0, 10);
     }
 
@@ -200,11 +206,11 @@ Deno.serve(async (req) => {
   let emailed = false;
   const gmail = gmailAuth();
   const appOrigin = linkData?.properties?.redirect_to ? new URL(linkData.properties.redirect_to).origin : null;
-  if (gmail) {
+  if (gmail && !alreadyActive) {
     try {
       const mail = loginOnly
         ? signInEmail(displayName, link)
-        : welcomeEmail(displayName, email, appOrigin ?? new URL(link).origin, link);
+        : welcomeEmail(displayName, email, appOrigin ?? new URL(link).origin);
       const r = await sendGmail(gmail, [{ to: email, ...mail }]);
       emailed = r.sent === 1;
       if (!emailed) console.log(`guest-invite: gmail refused (${r.failed[0]?.error ?? "unknown"})`);
@@ -213,7 +219,7 @@ Deno.serve(async (req) => {
     }
   }
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (!emailed && !gmail && resendKey) {
+  if (!emailed && !gmail && resendKey && !alreadyActive) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -242,5 +248,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ ok: true, link, emailed });
+  return json({ ok: true, link, emailed, already: alreadyActive });
 });

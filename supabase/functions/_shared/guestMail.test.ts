@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import { signInEmail, welcomeEmail } from "./guestMail";
 
 describe("welcomeEmail", () => {
-  const m = welcomeEmail("סבתא <רותי>", "ruti@x.test", "https://app.test", "https://app.test/auth/confirm?token_hash=abc");
+  const m = welcomeEmail("סבתא <רותי>", "ruti@x.test", "https://app.test");
 
-  it("carries the sign-in link, the app address to keep, and the address to type", () => {
-    expect(m.text).toContain("https://app.test/auth/confirm?token_hash=abc");
+  it("opens the login screen with the email filled in, and holds no sign-in token", () => {
+    expect(m.text).toContain("https://app.test/login?email=ruti%40x.test");
+    expect(m.html).toContain('href="https://app.test/login?email=ruti%40x.test"');
     expect(m.text).toContain("https://app.test/");
     expect(m.text).toContain("ruti@x.test");
-    expect(m.html).toContain('href="https://app.test/auth/confirm?token_hash=abc"');
+    expect(m.text).not.toContain("token_hash");
     expect(m.html).toContain('dir="rtl"');
   });
 

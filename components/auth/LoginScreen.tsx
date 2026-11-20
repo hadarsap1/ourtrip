@@ -1,18 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { requestGuestLoginLink } from "@/lib/data/guests";
 import { strings } from "@/lib/strings";
 import { JoinOffer } from "@/components/auth/JoinOffer";
 
 export function LoginScreen() {
+  // The welcome email's button lands here as /login?email=...: the address
+  // comes filled in, so the guest only presses Google or "send me a link".
+  const emailFromLink = useSearchParams().get("email")?.trim().slice(0, 254) ?? "";
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailFromLink);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const supabase = getSupabase();
+  const router = useRouter();
+
+  // A guest who is already signed in and taps that button again goes
+  // straight to the app (only on that link, so no other path changes).
+  useEffect(() => {
+    if (!emailFromLink || !supabase) return;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/");
+    });
+  }, [emailFromLink, supabase, router]);
 
   async function signIn() {
     if (!supabase) {

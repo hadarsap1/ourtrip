@@ -1,5 +1,5 @@
 // The guest emails besides the daily one (DECISIONS #73): the welcome sent
-// the moment a parent approves a guest, and a sign-in link (from the guest
+// the moment a parent approves a guest (no token in it), and a sign-in link (from the guest
 // card, or asked for on the login screen). Hebrew, right to left, text + HTML.
 //
 // No imports on purpose: Deno and Next both compile this file as is.
@@ -15,32 +15,32 @@ function page(inner: string): string {
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0;background:#f7ecd8"><div dir="rtl" ${WRAP}>${inner}</div></body></html>`;
 }
 
-/** After approval: the app's address to keep, how to get in, and the first
- *  sign-in link (one use). The daily email is mentioned, never turned on. */
+/** After approval: the app's address to keep and how to get in. The button
+ *  opens the login screen with the guest's email filled in - it holds no
+ *  sign-in token, so it never runs out and a forwarded copy lets nobody in.
+ *  The daily email is mentioned, never turned on. */
 export function welcomeEmail(
   name: string,
   email: string,
-  appUrl: string,
-  signInLink: string
+  appUrl: string
 ): { subject: string; text: string; html: string } {
   const app = `${appUrl.replace(/\/+$/, "")}/`;
+  const login = `${app}login?email=${encodeURIComponent(email)}`;
   const subject = "אישרנו אותך ל-סו-בב עולם! 🌍";
   const hello = `היי ${name}!`;
   const approved = "אישרנו אותך לעקוב אחרי הטיול שלנו: העדכונים, התמונות והפודקאסט מהדרך.";
-  const first = "לכניסה הראשונה, עכשיו (הכפתור עובד פעם אחת):";
-  const keep = "זו הכתובת שאיתה נכנסים מעכשיו, כדאי לשמור את המייל:";
-  const again = `אם צריך להתחבר שוב: נכנסים לכתובת, ובוחרים Google או מקלידים את המייל (${email}) ומקבלים קישור כניסה.`;
+  const how = `לוחצים על הכפתור, ובוחרים Google, או שולחים לעצמך קישור כניסה למייל (${email}).`;
+  const keep = "זו כתובת האפליקציה, כדאי לשמור את המייל:";
   const digest = "רוצים סיכום יומי במייל עם מה שחדש? מפעילים בהגדרות באפליקציה.";
 
-  const text = [hello, "", approved, "", first, signInLink, "", keep, app, "", again, "", digest].join("\n");
+  const text = [hello, "", approved, "", how, login, "", keep, app, "", digest].join("\n");
   const html = page(
     `<p style="font-size:18px;font-weight:bold;margin:0 0 8px">${esc(hello)}</p>` +
       `<p style="font-size:16px;margin:0 0 16px">${esc(approved)}</p>` +
-      `<p style="font-size:15px;margin:0 0 10px">${esc(first)}</p>` +
-      `<p style="margin:0 0 20px"><a href="${esc(signInLink)}" ${BUTTON}>כניסה</a></p>` +
+      `<p style="font-size:15px;margin:0 0 10px">${esc(how)}</p>` +
+      `<p style="margin:0 0 20px"><a href="${esc(login)}" ${BUTTON}>כניסה</a></p>` +
       `<p style="font-size:15px;margin:0 0 4px">${esc(keep)}</p>` +
       `<p style="font-size:16px;margin:0 0 16px"><a href="${esc(app)}" style="color:#4f6b45;font-weight:bold" dir="ltr">${esc(app)}</a></p>` +
-      `<p style="font-size:14px;color:#6b6157;margin:0 0 16px">${esc(again)}</p>` +
       `<p style="font-size:14px;color:#6b6157;margin:0">${esc(digest)}</p>`
   );
   return { subject, text, html };

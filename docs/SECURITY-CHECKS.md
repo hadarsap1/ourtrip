@@ -3238,6 +3238,41 @@ address. The typed name is escaped in the HTML (`guestMail.test.ts`).
 | A real approval: the guest receives the welcome email | ⏳ not yet - the next guest approved |
 | guest-digest in the repo now imports `_shared/gmail.ts` (no behaviour change); the deployed v1 still has the same code inline until its next deploy | note |
 
+### Welcome email without a sign-in token (20/11/2026)
+
+The welcome email sent on approval no longer carries the one-use sign-in link.
+Its button opens `/login?email=<guest>` with the address filled in; the guest
+then picks Google or asks for a sign-in link as before. The email now holds no
+credential, so a forwarded copy lets nobody in. The parent still gets the
+one-use link back from `guest-invite` for WhatsApp, and the guest card's
+"send a sign-in link" email (`signInEmail`) is unchanged. No policy changes.
+
+| Check | Result |
+|---|---|
+| Welcome email: button goes to `/login?email=`, no `token_hash` in it, name escaped | ✅ PASS - vitest (`guestMail.test.ts`) |
+| `/login?email=` at 390px: email field filled in | ✅ PASS - Playwright |
+| `/login` with no `?email=`: unchanged (no redirect added) | ✅ by code |
+| Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v15 (verify_jwt true); v14 matched the repo before the change, v15 files read back after deploy | ✅ done |
+| Live smoke call to the new version | ⏳ not run - this session's network blocks the Supabase host; the next guest approved is the real check |
+
+### No second welcome email when a guest is approved twice (20/11/2026)
+
+A guest got the welcome email twice: two approve calls 18 seconds apart from
+the same phone and session, one join request (function logs + the request
+row). `guest-invite` now reads the guest's allowlist row before writing; if
+the guest was already active (row not revoked and a guest member), it writes
+as before but sends no email and replies `already: true`. The approve button
+says "מאשרים..." while the call runs, and an `already` reply shows a toast
+instead of the "send on WhatsApp" sheet. No policy changes; the owner gate is
+unchanged. A join request writes only `guest_join_requests` (00095), so the
+first approval is never mistaken for a repeat.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (777), build | ✅ PASS |
+| Pending join request has no allowlist or member row (00095 `request_guest_join`) | ✅ by code |
+| Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v16 (verify_jwt true), shared files unchanged since v15 | ✅ done |
+
 ## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00102)
 
 Found in the security review of 19/11, read back from production first:
