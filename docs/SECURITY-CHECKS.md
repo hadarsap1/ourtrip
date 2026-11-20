@@ -3252,4 +3252,5 @@ one-use link back from `guest-invite` for WhatsApp, and the guest card's
 | Welcome email: button goes to `/login?email=`, no `token_hash` in it, name escaped | ✅ PASS - vitest (`guestMail.test.ts`) |
 | `/login?email=` at 390px: email field filled in | ✅ PASS - Playwright |
 | `/login` with no `?email=`: unchanged (no redirect added) | ✅ by code |
-| Deploy guest-invite with the new email | ⏳ waiting for Hadar's go-ahead |
+| Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v15 (verify_jwt true); v14 matched the repo before the change, v15 files read back after deploy | ✅ done |
+| Live smoke call to the new version | ⏳ not run - this session's network blocks the Supabase host; the next guest approved is the real check |
