@@ -3237,3 +3237,19 @@ address. The typed name is escaped in the HTML (`guestMail.test.ts`).
 | Live: guest-invite with the anon key and an empty body -> 400 `bad input` (boots; the owner gate comes after) | ✅ |
 | A real approval: the guest receives the welcome email | ⏳ not yet - the next guest approved |
 | guest-digest in the repo now imports `_shared/gmail.ts` (no behaviour change); the deployed v1 still has the same code inline until its next deploy | note |
+
+### Welcome email without a sign-in token (20/11/2026)
+
+The welcome email sent on approval no longer carries the one-use sign-in link.
+Its button opens `/login?email=<guest>` with the address filled in; the guest
+then picks Google or asks for a sign-in link as before. The email now holds no
+credential, so a forwarded copy lets nobody in. The parent still gets the
+one-use link back from `guest-invite` for WhatsApp, and the guest card's
+"send a sign-in link" email (`signInEmail`) is unchanged. No policy changes.
+
+| Check | Result |
+|---|---|
+| Welcome email: button goes to `/login?email=`, no `token_hash` in it, name escaped | ✅ PASS - vitest (`guestMail.test.ts`) |
+| `/login?email=` at 390px: email field filled in | ✅ PASS - Playwright |
+| `/login` with no `?email=`: unchanged (no redirect added) | ✅ by code |
+| Deploy guest-invite with the new email | ⏳ waiting for Hadar's go-ahead |

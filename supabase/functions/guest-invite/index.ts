@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
     try {
       const mail = loginOnly
         ? signInEmail(displayName, link)
-        : welcomeEmail(displayName, email, appOrigin ?? new URL(link).origin, link);
+        : welcomeEmail(displayName, email, appOrigin ?? new URL(link).origin);
       const r = await sendGmail(gmail, [{ to: email, ...mail }]);
       emailed = r.sent === 1;
       if (!emailed) console.log(`guest-invite: gmail refused (${r.failed[0]?.error ?? "unknown"})`);
