@@ -136,7 +136,13 @@ export function GuestsAdminScreen() {
     setApproving(request.id);
     try {
       // the same call as a manual invite; the allowlist trigger closes the request
-      const { link, emailed } = await inviteGuest(request.email, request.display_name, labels);
+      const { link, emailed, already } = await inviteGuest(request.email, request.display_name, labels);
+      if (already) {
+        // approved a moment ago (another tap or window): no second email
+        showToast(strings.guests.alreadyApproved);
+        await refresh(trip.id);
+        return;
+      }
       // emailed or not, WhatsApp stays one tap away (DECISIONS #73)
       setUnsentEmailed(emailed);
       setUnsent([{ name: request.display_name, email: request.email, link, viaGoogle: request.auth_user_id !== null }]);
@@ -171,12 +177,12 @@ export function GuestsAdminScreen() {
       // inviteMany keeps the order it was given, so each result pairs with its request
       // all of them, emailed or not: WhatsApp stays one tap away (DECISIONS #73)
       const approvedNow = results.flatMap((r, i) =>
-        r.ok && r.link
+        r.ok && r.link && !r.already
           ? [{ name: r.name, email: r.email, link: r.link, viaGoogle: batch[i]?.auth_user_id != null }]
           : []
       );
       if (approvedNow.length > 0) {
-        setUnsentEmailed(results.every((r) => !r.ok || r.emailed));
+        setUnsentEmailed(results.every((r) => !r.ok || r.already || r.emailed));
         setUnsent(approvedNow);
       }
       const typed = requests.length - batch.length;
@@ -317,7 +323,7 @@ export function GuestsAdminScreen() {
                     onClick={() => setApproveFor(request)}
                     className="rounded-lg bg-sea px-3 py-1.5 text-sm font-semibold text-on-sea disabled:opacity-60"
                   >
-                    {strings.guests.approve}
+                    {approving === request.id ? strings.guests.approving : strings.guests.approve}
                   </button>
                   <button
                     type="button"
