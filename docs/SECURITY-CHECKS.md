@@ -3271,4 +3271,4 @@ first approval is never mistaken for a repeat.
 |---|---|
 | tsc, lint, vitest (777), build | ✅ PASS |
 | Pending join request has no allowlist or member row (00095 `request_guest_join`) | ✅ by code |
-| Deploy guest-invite | see below |
+| Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v16 (verify_jwt true), shared files unchanged since v15 | ✅ done |
