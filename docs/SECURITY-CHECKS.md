@@ -3254,3 +3254,21 @@ one-use link back from `guest-invite` for WhatsApp, and the guest card's
 | `/login` with no `?email=`: unchanged (no redirect added) | ✅ by code |
 | Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v15 (verify_jwt true); v14 matched the repo before the change, v15 files read back after deploy | ✅ done |
 | Live smoke call to the new version | ⏳ not run - this session's network blocks the Supabase host; the next guest approved is the real check |
+
+### No second welcome email when a guest is approved twice (20/11/2026)
+
+A guest got the welcome email twice: two approve calls 18 seconds apart from
+the same phone and session, one join request (function logs + the request
+row). `guest-invite` now reads the guest's allowlist row before writing; if
+the guest was already active (row not revoked and a guest member), it writes
+as before but sends no email and replies `already: true`. The approve button
+says "מאשרים..." while the call runs, and an `already` reply shows a toast
+instead of the "send on WhatsApp" sheet. No policy changes; the owner gate is
+unchanged. A join request writes only `guest_join_requests` (00095), so the
+first approval is never mistaken for a repeat.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (777), build | ✅ PASS |
+| Pending join request has no allowlist or member row (00095 `request_guest_join`) | ✅ by code |
+| Deploy guest-invite | see below |

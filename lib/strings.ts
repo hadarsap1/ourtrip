@@ -1879,6 +1879,10 @@ export const strings = {
     approveAllProven: "אישור המאומתים ({n})",
     approveAllSkipped: "{n} בקשות עם מייל שהוקלד נשארו לאישור אחת-אחת",
     approvedAll: "אושרו {ok} מתוך {total}",
+    // the approve call takes several seconds (guest-invite sends the email)
+    approving: "מאשרים...",
+    // approved again (a second tap or window): no second welcome email
+    alreadyApproved: "כבר אושר, לא נשלח מייל נוסף",
     // approved, but guest-invite could not email the sign-in link
     unsentTitle: "אושר - נשאר לשלוח קישור",
     unsentBody: "המייל לא נשלח. שלחו לכל אחד הודעה בוואטסאפ - בלי זה לא ידעו שאושרו.",
@@ -1887,7 +1891,7 @@ export const strings = {
     emailedBody: "יצא מייל עם הקישור לכניסה. אם רוצים, אפשר לשלוח גם הודעה בוואטסאפ.",
     // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
     // address is the one link to keep. Typed email: the first sign-in link
-    // too (the same one-use link the welcome email carries, DECISIONS #73).
+    // too (one use; the welcome email no longer carries it, 20/11/2026).
     approvedGoogleText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
