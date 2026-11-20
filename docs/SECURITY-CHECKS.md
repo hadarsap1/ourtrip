@@ -3277,6 +3277,10 @@ What changed:
 | Probes 54, 55, 95 updated to the new rule (the seeded outsider signs in with Google) | ✅ PASS |
 | Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations |
 | lint, vitest, build | ✅ PASS |
-| `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session |
-| 00102 applied to production; the four functions deployed | ⏳ waiting for Hadar's go-ahead |
-| A real guest signs in by the emailed link only and is in | ⏳ after deploy |
+| `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session; the deploy bundled and the functions are ACTIVE |
+| 00102 applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
+| Live read-back: the four functions exist, the link function reads `amr`, submit_guest_join has the member-by-account check; anon cannot run kid_unlock_attempt, authenticated cannot run kid_register_failed; authenticated can still run link_member_to_auth_user, anon cannot | ✅ 20/11/2026 |
+| Live, in a transaction rolled back: emailed-link session for an uninvited address -> null; password session -> null; kid_unlock_attempt unknown device -> unknown, real device -> attempt 1; kid_register_allowed -> true; afterwards no device carries a failed attempt and no failure row exists | ✅ 20/11/2026 |
+| Deployed: kid-auth v12 (verify_jwt false), guest-gphotos v7, guest-photos v13, guest-media v4 (verify_jwt true); each matched the repo before the change | ✅ 20/11/2026 |
+| HTTP calls to the deployed functions | ⏳ not run - this session's network does not reach the project host |
+| A real guest signs in by the emailed link only and is in | ⏳ the one guest it hit (15/11) is linked on her next sign-in. 14 Google guests show unlinked too: all signed in only before approval, and link on their next visit |
