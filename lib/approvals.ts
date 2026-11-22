@@ -50,7 +50,7 @@ export type AttentionRow = {
 export function attentionRows(
   p: PendingApprovals,
   unreadChat: number,
-  fresh: { stories: number; photos: number; episodes: number }
+  fresh: { stories: number; photos: number; episodes: number; newestPhotoId?: string | null }
 ): AttentionRow[] {
   const a = strings.attention;
   const rows: AttentionRow[] = pendingRows(p).map((r) => ({
@@ -63,9 +63,11 @@ export function attentionRows(
   if (unreadChat > 0) {
     rows.push({ key: "chat", href: "/messages", label: a.chat, count: unreadChat, tone: "news" });
   }
-  const feedback: [keyof typeof fresh, string, string][] = [
+  const feedback: ["stories" | "photos" | "episodes", string, string][] = [
     ["stories", "/stories", a.feedbackStories],
-    ["photos", "/photos", a.feedbackPhotos],
+    // straight to the photo with the latest comment, not the whole grid
+    // (Hadar 22/11/2026); with several, the next tap opens the next one
+    ["photos", fresh.newestPhotoId ? `/photos?photo=${encodeURIComponent(fresh.newestPhotoId)}` : "/photos", a.feedbackPhotos],
     ["episodes", "/podcast", a.feedbackEpisodes],
   ];
   for (const [key, href, label] of feedback) {

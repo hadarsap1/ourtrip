@@ -137,7 +137,7 @@ describe("newFeedbackByKind", () => {
       ],
       since
     );
-    expect(got).toEqual({ stories: 1, photos: 1, episodes: 0 });
+    expect(got).toEqual({ stories: 1, photos: 1, episodes: 0, newestPhotoId: "ph1" });
   });
 
   it("is nothing while the seen marks are unknown", () => {
@@ -145,6 +145,20 @@ describe("newFeedbackByKind", () => {
       stories: 0,
       photos: 0,
       episodes: 0,
+      newestPhotoId: null,
     });
+  });
+
+  it("names the photo with the latest new feedback", () => {
+    const got = newFeedbackByKind(
+      [
+        stamp("photo_id", "ph1", "2026-11-03T00:00:00Z"),
+        stamp("photo_id", "ph2", "2026-11-04T00:00:00Z"),
+        stamp("photo_id", "ph3", "2026-10-30T00:00:00Z"), // already seen
+      ],
+      since
+    );
+    expect(got.photos).toBe(2);
+    expect(got.newestPhotoId).toBe("ph2");
   });
 });

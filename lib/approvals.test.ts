@@ -38,4 +38,9 @@ describe("attention rows", () => {
       ["/podcast", 4, "news"],
     ]);
   });
+
+  it("new photo comments open that photo", () => {
+    const rows = attentionRows(NO_PENDING, 0, { stories: 0, photos: 2, episodes: 0, newestPhotoId: "ph9" });
+    expect(rows.map((r) => r.href)).toEqual(["/photos?photo=ph9"]);
+  });
 });

@@ -68,6 +68,23 @@ function albumFromUrl(): string | null {
 // map of where they were taken, then one section per stretch of the trip,
 // newest first, photos in the order they were taken.
 
+/** /photos?photo=<id> - "מחכה לך"'s new-comment pill opens that photo
+ *  (Hadar 22/11/2026). Takes the id off the URL, so closing the photo or a
+ *  reload does not open it again. */
+function takePhotoFromUrl(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("photo");
+    if (id) {
+      url.searchParams.delete("photo");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 const sectionId = (key: string) => `place-${encodeURIComponent(key)}`;
 
 function scrollToPlace(key: string) {
@@ -303,6 +320,12 @@ function FamilyPhotosView() {
   // names for the approval queue ("לאלבום: אווירה") and its share-in-one-tap
   const [albums, setAlbums] = useState<Album[]>([]);
 
+  const openLinkedPhoto = useCallback((list: PhotoWithUrl[]) => {
+    const id = takePhotoFromUrl();
+    const hit = id ? list.find((p) => p.id === id) : undefined;
+    if (hit) setViewing(hit);
+  }, []);
+
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -319,6 +342,7 @@ function FamilyPhotosView() {
         .catch(() => {}),
     ]);
     setPhotos(list);
+    return list;
   }, []);
   const feedback = usePhotoFeedback(trip?.id ?? null, true);
   // guests' views of album photos (00085): parents only, null for the rest
@@ -338,7 +362,8 @@ function FamilyPhotosView() {
         .then((d) => !cancelled && setDays(d))
         .catch(() => {});
       try {
-        await refresh(activeTrip.id);
+        const list = await refresh(activeTrip.id);
+        if (!cancelled) openLinkedPhoto(list);
       } catch {
         if (!cancelled) setLoadFailed(true);
       } finally {
@@ -348,7 +373,7 @@ function FamilyPhotosView() {
     return () => {
       cancelled = true;
     };
-  }, [refresh]);
+  }, [refresh, openLinkedPhoto]);
 
   const retryLoad = useCallback(async () => {
     if (!trip) return;
@@ -559,7 +584,9 @@ function FamilyPhotosView() {
           tile={(photo) => <PhotoTile photo={photo} badge={NO_BADGE} onOpen={() => setViewing(photo)} />}
           stats={albumStats}
           onUpload={uploadForAlbum}
-          onPhotosChanged={() => refresh(trip.id)}
+          onPhotosChanged={async () => {
+            await refresh(trip.id);
+          }}
           onDeletePhoto={(photo) => deletePhoto(photo)}
           onToast={showToast}
         />
