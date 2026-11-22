@@ -39,8 +39,13 @@ describe("attention rows", () => {
     ]);
   });
 
-  it("new photo comments open that photo", () => {
-    const rows = attentionRows(NO_PENDING, 0, { stories: 0, photos: 2, episodes: 0, newestPhotoId: "ph9" });
-    expect(rows.map((r) => r.href)).toEqual(["/photos?photo=ph9"]);
+  it("new likes and comments link straight to the item", () => {
+    const rows = attentionRows(NO_PENDING, 0, {
+      stories: 1,
+      photos: 2,
+      episodes: 1,
+      newest: { stories: "s1", photos: "ph9", episodes: "e3" },
+    });
+    expect(rows.map((r) => r.href)).toEqual(["/stories#feedback-s1", "/photos?photo=ph9", "/podcast#feedback-e3"]);
   });
 });

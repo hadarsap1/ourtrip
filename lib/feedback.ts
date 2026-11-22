@@ -113,12 +113,19 @@ export type NewFeedbackByKind = {
   stories: number;
   photos: number;
   episodes: number;
-  /** The photo with the latest new like or comment, so "מחכה לך" can open it
-   *  directly (Hadar 22/11/2026). Null when no photo has anything new. */
-  newestPhotoId: string | null;
+  /** Per kind, the item with the latest new like or comment, so "מחכה לך"
+   *  can open it directly (Hadar 22/11/2026). Null when nothing is new. */
+  newest: NewestByKind;
 };
 
-export const NO_NEW_FEEDBACK: NewFeedbackByKind = { stories: 0, photos: 0, episodes: 0, newestPhotoId: null };
+export type NewestByKind = { stories: string | null; photos: string | null; episodes: string | null };
+
+export const NO_NEW_FEEDBACK: NewFeedbackByKind = {
+  stories: 0,
+  photos: 0,
+  episodes: 0,
+  newest: { stories: null, photos: null, episodes: null },
+};
 
 /** How many updates, photos and episodes have a like or comment from someone
  *  else that is new to me. `stamps` are already someone else's; `since` is
@@ -130,22 +137,20 @@ export function newFeedbackByKind(
   const stories = new Set<string>();
   const photos = new Set<string>();
   const episodes = new Set<string>();
-  let newestPhotoId: string | null = null;
-  let newestPhotoAt = -Infinity;
+  const newest: NewestByKind = { stories: null, photos: null, episodes: null };
+  const newestAt = { stories: -Infinity, photos: -Infinity, episodes: -Infinity };
   for (const s of stamps) {
     const id = s.post_id ?? s.photo_id ?? s.episode_id;
     if (!id) continue;
     const from = since(id);
-    if (from === null || Date.parse(s.created_at) <= Date.parse(from)) continue;
-    if (s.post_id) stories.add(id);
-    else if (s.photo_id) {
-      photos.add(id);
-      const at = Date.parse(s.created_at);
-      if (at > newestPhotoAt) {
-        newestPhotoAt = at;
-        newestPhotoId = id;
-      }
-    } else episodes.add(id);
+    const at = Date.parse(s.created_at);
+    if (from === null || at <= Date.parse(from)) continue;
+    const kind: keyof NewestByKind = s.post_id ? "stories" : s.photo_id ? "photos" : "episodes";
+    (kind === "stories" ? stories : kind === "photos" ? photos : episodes).add(id);
+    if (at > newestAt[kind]) {
+      newestAt[kind] = at;
+      newest[kind] = id;
+    }
   }
-  return { stories: stories.size, photos: photos.size, episodes: episodes.size, newestPhotoId };
+  return { stories: stories.size, photos: photos.size, episodes: episodes.size, newest };
 }

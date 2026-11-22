@@ -137,7 +137,12 @@ describe("newFeedbackByKind", () => {
       ],
       since
     );
-    expect(got).toEqual({ stories: 1, photos: 1, episodes: 0, newestPhotoId: "ph1" });
+    expect(got).toEqual({
+      stories: 1,
+      photos: 1,
+      episodes: 0,
+      newest: { stories: "p2", photos: "ph1", episodes: null },
+    });
   });
 
   it("is nothing while the seen marks are unknown", () => {
@@ -145,20 +150,22 @@ describe("newFeedbackByKind", () => {
       stories: 0,
       photos: 0,
       episodes: 0,
-      newestPhotoId: null,
+      newest: { stories: null, photos: null, episodes: null },
     });
   });
 
-  it("names the photo with the latest new feedback", () => {
+  it("names the item with the latest new feedback, per kind", () => {
     const got = newFeedbackByKind(
       [
         stamp("photo_id", "ph1", "2026-11-03T00:00:00Z"),
         stamp("photo_id", "ph2", "2026-11-04T00:00:00Z"),
         stamp("photo_id", "ph3", "2026-10-30T00:00:00Z"), // already seen
+        stamp("episode_id", "e1", "2026-11-05T00:00:00Z"),
+        stamp("episode_id", "e2", "2026-11-03T00:00:00Z"),
       ],
       since
     );
     expect(got.photos).toBe(2);
-    expect(got.newestPhotoId).toBe("ph2");
+    expect(got.newest).toEqual({ stories: null, photos: "ph2", episodes: "e1" });
   });
 });
