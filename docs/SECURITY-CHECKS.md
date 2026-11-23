@@ -3325,4 +3325,4 @@ the message, so both branches fail.
 | tsc, lint, vitest (785), build | ✅ PASS |
 | Dry run on the live project in a rolled-back transaction: like on a comment and on an approved message insert; a second like of the same kind is refused; a waiting message is not a visible target; every existing row still has exactly one target | ✅ PASS |
 | Guest reacting to another group's message | ✅ by policy (invoker lookup under `messages_guest_select`) |
-| Migration 00103 applied to the live project | X not yet: waiting for Hadar's go-ahead |
+| Migration 00103 applied to the live project (23/11/2026, on Hadar's go-ahead); columns, 4 policies and execute grant verified, 124 existing likes intact | ✅ done |
