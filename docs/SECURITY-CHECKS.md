@@ -3272,3 +3272,18 @@ first approval is never mistaken for a repeat.
 | tsc, lint, vitest (777), build | ✅ PASS |
 | Pending join request has no allowlist or member row (00095 `request_guest_join`) | ✅ by code |
 | Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v16 (verify_jwt true), shared files unchanged since v15 | ✅ done |
+
+## Guest sign-in link: WhatsApp option kept, no one-time wording (23/11/2026)
+
+The guest card's "send a sign-in link" now always opens the sheet, with the
+WhatsApp button, as after approval (DECISIONS #73). The sign-in email, the
+WhatsApp messages and the login screen no longer say the link works once.
+Wording only: the links, the owner gate in `guest-invite` and the
+`claim_guest_login_link` gate in `guest-login-link` are unchanged. No policy
+changes.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (780), build | ✅ PASS |
+| Deployed 23/11/2026 on Hadar's go-ahead: guest-invite v17 (verify_jwt true), guest-login-link v5 (verify_jwt false); both matched the repo before the change | ✅ done |
+| Live smoke call from this session | X not run: the session's network blocks the Supabase functions host |

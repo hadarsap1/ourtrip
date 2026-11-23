@@ -486,11 +486,10 @@ export function GuestsAdminScreen() {
             setDetailFor(null);
             try {
               const { link, emailed } = await sendGuestLoginLink(row.email, name);
-              if (emailed) showToast(strings.guests.loginLinkEmailed);
-              else {
-                setUnsentLogin(true);
-                setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
-              }
+              // emailed or not, WhatsApp stays one tap away, as after approval (DECISIONS #73)
+              setUnsentLogin(true);
+              setUnsentEmailed(emailed);
+              setUnsent([{ name, email: row.email, link, viaGoogle: memberOf(row.email)?.auth_user_id != null }]);
             } catch {
               showToast(strings.common.error);
             }
@@ -897,7 +896,7 @@ function BulkInviteSheet({
   );
 }
 
-/** Approved, but the sign-in email did not go out: one WhatsApp per person. */
+/** After approval or a sign-in link: one WhatsApp per person, optional when the email went out. */
 function UnsentLinksSheet({
   links,
   login = false,
@@ -913,8 +912,20 @@ function UnsentLinksSheet({
   onToast: (message: string) => void;
 }) {
   const g = strings.guests;
-  const title = login ? g.loginUnsentTitle : emailed ? g.emailedTitle : g.unsentTitle;
-  const body = login ? g.loginUnsentBody : emailed ? g.emailedBody : g.unsentBody;
+  const title = login
+    ? emailed
+      ? g.loginLinkEmailed
+      : g.loginUnsentTitle
+    : emailed
+      ? g.emailedTitle
+      : g.unsentTitle;
+  const body = login
+    ? emailed
+      ? g.loginEmailedBody
+      : g.loginUnsentBody
+    : emailed
+      ? g.emailedBody
+      : g.unsentBody;
   return (
     <Sheet open onClose={onClose} title={title}>
       <div className="space-y-4">

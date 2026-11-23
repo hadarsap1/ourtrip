@@ -29,4 +29,10 @@ describe("signInEmail", () => {
     expect(signInEmail(null, "https://l.test").text.startsWith("שלום!")).toBe(true);
     expect(signInEmail(null, "https://l.test").html).toContain('href="https://l.test"');
   });
+
+  it("says nothing about the link working once", () => {
+    const m = signInEmail("דני", "https://l.test");
+    expect(m.text).not.toContain("פעם אחת");
+    expect(m.html).not.toContain("פעם אחת");
+  });
 });

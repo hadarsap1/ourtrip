@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
           `<h2 style="margin:0 0 8px">שלום!</h2>` +
           `<p>ביקשתם קישור כניסה ל"סו-בב עולם!".</p>` +
           `<p><a href="${link}" style="background:#4E6B45;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold">כניסה</a></p>` +
-          `<p style="color:#6B5A4E;font-size:12px">הקישור אישי ועובד פעם אחת. לא ביקשתם? אפשר להתעלם מהמייל.</p>` +
+          `<p style="color:#6B5A4E;font-size:12px">לא ביקשתם? אפשר להתעלם מהמייל.</p>` +
           `</div>`,
       }),
     });

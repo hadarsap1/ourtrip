@@ -52,7 +52,8 @@ export function signInEmail(name: string | null, signInLink: string): { subject:
   const subject = "קישור כניסה ל-סו-בב עולם! 🌍";
   const hello = name ? `היי ${name}!` : "שלום!";
   const body = "הנה קישור כניסה ל\"סו-בב עולם!\". לוחצים, ואתם בפנים.";
-  const note = "הקישור אישי ועובד פעם אחת. לא ביקשתם? אפשר להתעלם מהמייל.";
+  // no "one use" wording: it only confused (Hadar 23/11/2026)
+  const note = "לא ביקשתם? אפשר להתעלם מהמייל.";
   const text = [hello, "", body, signInLink, "", note].join("\n");
   const html = page(
     `<p style="font-size:18px;font-weight:bold;margin:0 0 8px">${esc(hello)}</p>` +
