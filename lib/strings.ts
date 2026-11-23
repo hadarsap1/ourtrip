@@ -1899,6 +1899,8 @@ export const strings = {
     // guest card "send a sign-in link", when the email did not go out
     loginUnsentTitle: "קישור הכניסה מוכן",
     loginUnsentBody: "המייל לא נשלח. שלחו את הקישור בוואטסאפ.",
+    // emailed (DECISIONS #73): WhatsApp stays as an option, as after approval
+    loginEmailedBody: "יצא מייל עם קישור הכניסה. אם רוצים, אפשר לשלוח אותו גם בוואטסאפ.",
     loginGoogleText:
       "היי {name}! נכנסים ל\"סו-בב עולם!\" 🌍 עם חשבון ה-Google שלך ({email}):\n{url}",
     loginLinkText:
