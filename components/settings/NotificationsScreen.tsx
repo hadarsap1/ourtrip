@@ -13,6 +13,7 @@ import {
 } from "@/lib/push";
 import {
   CameraIcon,
+  HeartIcon,
   MessagesIcon,
   PlaneIcon,
   RainIcon,
@@ -88,6 +89,10 @@ export function NotificationsScreen() {
           <li className="flex items-center gap-2">
             <CameraIcon className="h-4 w-4 shrink-0 text-sea" />
             {s.whatPhoto}
+          </li>
+          <li className="flex items-center gap-2">
+            <HeartIcon className="h-4 w-4 shrink-0 text-sea" />
+            {s.whatFeedback}
           </li>
         </ul>
       </section>

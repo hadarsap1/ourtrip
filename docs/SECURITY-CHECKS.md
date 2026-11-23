@@ -3326,3 +3326,24 @@ the message, so both branches fail.
 | Dry run on the live project in a rolled-back transaction: like on a comment and on an approved message insert; a second like of the same kind is refused; a waiting message is not a visible target; every existing row still has exactly one target | ✅ PASS |
 | Guest reacting to another group's message | ✅ by policy (invoker lookup under `messages_guest_select`) |
 | Migration 00103 applied to the live project (23/11/2026, on Hadar's go-ahead); columns, 4 policies and execute grant verified, 124 existing likes intact | ✅ done |
+
+## Quiet push to parents on comments and likes (23/11/2026, 00104)
+
+New table `feedback_pushes` (which comments and likes were already pushed):
+RLS on, no policies, `revoke all` from anon and authenticated - push-send
+(service role) only. `notify_feedback()` is security definer with execute
+revoked from every client role; it sends no id, only `{"type": "feedback"}`,
+and push-send reads everything itself, so a forged call (it still needs the
+cron secret) can at most send a due push a little earlier. Recipients are the
+trip's owners except the item's author; owners already read every comment and
+like (`comments_owner_all`, `reactions_owner_all`), so a push preview never
+shows them anything they could not open. Kids and guests get nothing from
+this - no recipient query touches their rows.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (792), build | ✅ PASS |
+| Guest / kid / anon select or insert on `feedback_pushes` | ✅ by policy (RLS on, no policy, no grant) |
+| Guest or kid as a recipient | ✅ by code (`role = 'owner'` only, `feedbackPush.test.ts`) |
+| Migration 00104 applied to the live project (23/11/2026, on Hadar's go-ahead): RLS on, 0 policies, no select for anon/authenticated, both triggers and the `push-feedback` cron present, 165 existing comments and likes marked as told | ✅ done |
+| push-send v24 deployed with the `feedback` type; a manual call returned `200 {"ok":true,"sent":0}` (nothing new, as expected) | ✅ done |

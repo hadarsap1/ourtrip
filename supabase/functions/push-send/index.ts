@@ -20,6 +20,12 @@
 //                     publish triggers and a 15-minute sweep; each item is
 //                     claimed once in guest_update_pushes. Held 22:00-07:00
 //                     Israel time. Kill switch: NOTIFY_GUESTS=off.
+//   - feedback (00104): a new comment or like → the parents but its author,
+//                     as one quiet, folded notification that also sets the
+//                     number on the app icon. Called by the insert triggers
+//                     and a 15-minute sweep; each item is claimed once in
+//                     feedback_pushes. Held 22:00-07:00 in the family's local
+//                     time. Kill switch: NOTIFY_FEEDBACK=off.
 //
 // Invoked by pg_net (message/photo AFTER-INSERT triggers) and pg_cron (daily),
 // so it is deployed verify_jwt=false. A forged call leaks no content - the
@@ -33,6 +39,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   addDays,
   cancelDeadline,
+  inQuietHours,
   isReminderDay,
   leaveNowDue,
   localNow,
@@ -44,6 +51,7 @@ import {
 import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from "../_shared/travel.ts";
 import { canReadWallMessage, type WallReader } from "../_shared/wallAudience.ts";
 import { guestQuietNow, guestUpdateRecipients } from "../_shared/guestUpdates.ts";
+import { feedbackPayloadFor, type FeedbackItem } from "../_shared/feedbackPush.ts";
 
 // Since 00052 the secret is generated and kept in the database (it never
 // passes through a file or a dashboard): the jobs send it, and this asks the
@@ -82,7 +90,20 @@ const service = createClient(
 // `many` folds repeats into one notification on the device (public/sw.js): a
 // push whose tag is already showing replaces it, titled with the count
 // ("{n}" is filled in there). The app itself still lists every item.
-type Payload = { title: string; body: string; url: string; tag?: string; many?: string };
+// `count` (default 1) is how many items this one push stands for, `silent`
+// never rings, `badge` adds the count to the number on the app icon, and
+// `manyUrl` is where a folded notification opens.
+type Payload = {
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+  many?: string;
+  count?: number;
+  silent?: boolean;
+  badge?: boolean;
+  manyUrl?: string;
+};
 
 /** Sends one payload to every push subscription owned by the given members.
  *  Prunes subscriptions the push service reports as gone (404/410). */
@@ -272,6 +293,105 @@ async function handleGuestUpdates(): Promise<number | string> {
             many: "{n} פרקים חדשים בפודקאסט 🎙️",
           }
     );
+  }
+  return sent;
+}
+
+/** New comments and likes of the last day not yet told → the parents but
+ *  each one's author (00104). Owners read every comment and like, so nothing
+ *  here shows them what they could not open. Held in the family's quiet hours;
+ *  the 15-minute sweep sends it at 07:00. */
+async function handleFeedback(): Promise<number | string> {
+  const tripId = await activeTripId();
+  if (!tripId) return 0;
+  if (inQuietHours((await familyLocalNow(tripId)).minutes)) return "quiet";
+
+  const since = new Date(Date.now() - 864e5).toISOString();
+  const [{ data: comments }, { data: reactions }, { data: told }] = await Promise.all([
+    service
+      .from("comments")
+      .select("id, author_id, body, created_at, post_id, episode_id, photo_id")
+      .eq("trip_id", tripId)
+      .gte("created_at", since),
+    service
+      .from("reactions")
+      .select("id, member_id, kind, created_at, post_id, episode_id, photo_id, comment_id, message_id")
+      .eq("trip_id", tripId)
+      .gte("created_at", since),
+    // a row for anything created since `since` was written after it
+    service.from("feedback_pushes").select("target_id").eq("trip_id", tripId).gte("sent_at", since),
+  ]);
+  const done = new Set((told ?? []).map((t) => t.target_id as string));
+  const items: FeedbackItem[] = [
+    ...(comments ?? []).map((c) => ({
+      id: c.id as string,
+      kind: "comment" as const,
+      authorId: c.author_id as string,
+      createdAt: c.created_at as string,
+      body: c.body as string,
+      postId: c.post_id as string | null,
+      episodeId: c.episode_id as string | null,
+      photoId: c.photo_id as string | null,
+    })),
+    ...(reactions ?? []).map((r) => ({
+      id: r.id as string,
+      kind: "reaction" as const,
+      authorId: r.member_id as string,
+      createdAt: r.created_at as string,
+      reaction: r.kind as string,
+      postId: r.post_id as string | null,
+      episodeId: r.episode_id as string | null,
+      photoId: r.photo_id as string | null,
+      commentId: r.comment_id as string | null,
+      messageId: r.message_id as string | null,
+    })),
+  ];
+  const fresh = items.filter((i) => !done.has(i.id));
+  if (fresh.length === 0) return 0;
+
+  // claim first: a trigger call and the sweep may run together; only what
+  // this call inserted is this call's to send
+  const { data: claimed } = await service
+    .from("feedback_pushes")
+    .upsert(
+      fresh.map((i) => ({ target_id: i.id, kind: i.kind, trip_id: tripId })),
+      { onConflict: "target_id", ignoreDuplicates: true }
+    )
+    .select("target_id");
+  const mine = new Set((claimed ?? []).map((c) => c.target_id as string));
+  const toSend = fresh.filter((i) => mine.has(i.id));
+  if (toSend.length === 0) return 0;
+
+  const { data: members } = await service.from("members").select("id, display_name, role").eq("trip_id", tripId);
+  const names = new Map((members ?? []).map((m) => [m.id as string, m.display_name as string]));
+  const owners = (members ?? []).filter((m) => m.role === "owner").map((m) => m.id as string);
+  // a like on a comment opens what that comment is on
+  const commentTargets = new Map(items.filter((i) => i.kind === "comment").map((i) => [i.id, i]));
+  const missing = toSend
+    .map((i) => i.commentId)
+    .filter((id): id is string => !!id && !commentTargets.has(id));
+  if (missing.length > 0) {
+    const { data: parents } = await service
+      .from("comments")
+      .select("id, author_id, created_at, post_id, episode_id, photo_id")
+      .in("id", missing);
+    for (const c of parents ?? []) {
+      commentTargets.set(c.id as string, {
+        id: c.id as string,
+        kind: "comment",
+        authorId: c.author_id as string,
+        createdAt: c.created_at as string,
+        postId: c.post_id as string | null,
+        episodeId: c.episode_id as string | null,
+        photoId: c.photo_id as string | null,
+      });
+    }
+  }
+
+  let sent = 0;
+  for (const owner of owners) {
+    const payload = feedbackPayloadFor(owner, toSend, names, commentTargets);
+    if (payload) sent += await pushToMembers([owner], payload);
   }
   return sent;
 }
@@ -623,6 +743,10 @@ Deno.serve(async (req) => {
       case "guest-updates": {
         if (Deno.env.get("NOTIFY_GUESTS") === "off") return json({ ok: true, skipped: "NOTIFY_GUESTS=off" });
         return json({ ok: true, sent: await handleGuestUpdates() });
+      }
+      case "feedback": {
+        if (Deno.env.get("NOTIFY_FEEDBACK") === "off") return json({ ok: true, skipped: "NOTIFY_FEEDBACK=off" });
+        return json({ ok: true, sent: await handleFeedback() });
       }
       case "backup-stale": {
         const age = typeof body.age_days === "number" ? body.age_days : -1;
