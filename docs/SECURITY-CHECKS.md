@@ -3345,5 +3345,5 @@ this - no recipient query touches their rows.
 | tsc, lint, vitest (792), build | ✅ PASS |
 | Guest / kid / anon select or insert on `feedback_pushes` | ✅ by policy (RLS on, no policy, no grant) |
 | Guest or kid as a recipient | ✅ by code (`role = 'owner'` only, `feedbackPush.test.ts`) |
-| Migration 00104 applied to the live project | ⏳ pending Hadar's go-ahead (Supabase connector was down in this session) |
-| push-send redeployed with the `feedback` type | ⏳ pending, same |
+| Migration 00104 applied to the live project (23/11/2026, on Hadar's go-ahead): RLS on, 0 policies, no select for anon/authenticated, both triggers and the `push-feedback` cron present, 165 existing comments and likes marked as told | ✅ done |
+| push-send v24 deployed with the `feedback` type; a manual call returned `200 {"ok":true,"sent":0}` (nothing new, as expected) | ✅ done |
