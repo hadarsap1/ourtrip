@@ -20,16 +20,17 @@ export type PlaceGroup<P> = {
   /** First and last day of the stretch (YYYY-MM-DD). */
   from: string;
   to: string;
-  /** In the order they were taken. */
+  /** Newest first: latest day on top, and within a day the latest upload
+   *  (Hadar 23/11/2026). */
   photos: P[];
 };
 
 /**
  * Group photos into stretches: consecutive days in the same place are one
  * section; coming back to a place later is a new one, so the screen stays in
- * trip order. `photos` may come in any order; ties on a day keep their order.
+ * trip order. `photos` may come in any order; within a place the newest photo comes first.
  */
-export function groupByPlace<P extends { taken_on: string }>(
+export function groupByPlace<P extends { taken_on: string; created_at?: string | null }>(
   photos: P[],
   placeOf: (photo: P) => PhotoPlaceInfo | null | undefined
 ): PlaceGroup<P>[] {
@@ -66,6 +67,18 @@ export function groupByPlace<P extends { taken_on: string }>(
       photos: [photo],
     };
     groups.push(current);
+  }
+  // newest first inside a place too: the latest day on top, and within a day
+  // the latest upload (Hadar 23/11/2026); without an upload time (an older
+  // guest-photos) the incoming order, which is already newest upload first
+  const order = new Map(photos.map((p, i) => [p, i]));
+  for (const group of groups) {
+    group.photos.sort(
+      (a, b) =>
+        b.taken_on.localeCompare(a.taken_on) ||
+        (b.created_at ?? "").localeCompare(a.created_at ?? "") ||
+        order.get(a)! - order.get(b)!
+    );
   }
   // newest stretch first, like the updates
   return groups.reverse();
