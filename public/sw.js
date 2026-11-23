@@ -213,15 +213,42 @@ self.addEventListener("fetch", (event) => {
 });
 
 // ---- Web Push (Sprint 8) ----
-// Payload shape from the push-send Edge Function: { title, body, url, tag, many }.
+// Payload shape from the push-send Edge Function:
+//   { title, body, url, tag, many, count, silent, badge, manyUrl }.
 //
-// Repeats of one kind (wall messages, approvals waiting) fold into a single
-// notification instead of piling up: when a push carries `many` and one with
-// its tag is still showing, that one is replaced by a notification titled
-// with the running count ("{n} הודעות חדשות בקיר") and the latest preview,
-// and the update is silent - only the first one rings. The app lists them all.
+// Repeats of one kind (wall messages, approvals waiting, comments and likes)
+// fold into a single notification instead of piling up: when a push carries
+// `many` and one with its tag is still showing, that one is replaced by a
+// notification titled with the running count ("{n} הודעות חדשות בקיר") and the
+// latest preview, and the update is silent - only the first one rings. The app
+// lists them all. `count` is how many items one push stands for (default 1).
+//
+// `silent` never rings at all (comments and likes, 00104). `badge` counts
+// toward the number on the app icon (Badging API - iPhone/iPad home-screen app
+// and desktop; Android shows its own dot from the notification). The app
+// clears both when it is opened (components/RegisterSW.tsx).
+async function badgeCount() {
+  const showing = await self.registration.getNotifications().catch(() => []);
+  return showing.reduce(
+    (n, shown) => n + (shown.data && shown.data.badge ? shown.data.count || 1 : 0),
+    0
+  );
+}
+
+async function refreshBadge() {
+  if (!("setAppBadge" in self.navigator)) return;
+  const n = await badgeCount();
+  try {
+    if (n > 0) await self.navigator.setAppBadge(n);
+    else await self.navigator.clearAppBadge();
+  } catch {
+    // not allowed on this platform - the notification itself still shows
+  }
+}
+
 async function showPush(data) {
   const title = data.title || "סו-בב עולם!";
+  const count = Number(data.count) > 0 ? Number(data.count) : 1;
   const options = {
     body: data.body || "",
     icon: "/icons/icon-192.png",
@@ -229,7 +256,8 @@ async function showPush(data) {
     dir: "rtl",
     lang: "he",
     tag: data.tag || undefined,
-    data: { url: data.url || "/", count: 1 },
+    silent: data.silent === true,
+    data: { url: data.url || "/", count, badge: data.badge === true },
   };
   if (data.tag && data.many) {
     const showing = await self.registration.getNotifications({ tag: data.tag }).catch(() => []);
@@ -237,12 +265,15 @@ async function showPush(data) {
     if (before > 0) {
       // closed first: not every platform replaces by tag on its own
       for (const shown of showing) shown.close();
-      options.data.count = before + 1;
+      options.data.count = before + count;
+      options.data.url = data.manyUrl || options.data.url;
       options.silent = true;
-      return self.registration.showNotification(data.many.replace("{n}", String(before + 1)), options);
+      await self.registration.showNotification(data.many.replace("{n}", String(before + count)), options);
+      return refreshBadge();
     }
   }
-  return self.registration.showNotification(title, options);
+  await self.registration.showNotification(title, options);
+  return refreshBadge();
 }
 
 self.addEventListener("push", (event) => {
@@ -255,18 +286,22 @@ self.addEventListener("push", (event) => {
   event.waitUntil(showPush(data));
 });
 
+self.addEventListener("notificationclose", (event) => {
+  event.waitUntil(refreshBadge());
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const target = (event.notification.data && event.notification.data.url) || "/";
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ("focus" in client) {
-          client.navigate(target);
-          return client.focus();
-        }
+  // the window first: openWindow must run while the tap still counts
+  const open = self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    for (const client of clients) {
+      if ("focus" in client) {
+        client.navigate(target);
+        return client.focus();
       }
-      return self.clients.openWindow(target);
-    })
-  );
+    }
+    return self.clients.openWindow(target);
+  });
+  event.waitUntil(Promise.all([open, refreshBadge()]));
 });

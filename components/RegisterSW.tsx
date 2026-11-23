@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { startInstallCapture } from "@/lib/install";
+import { clearFeedbackBadge } from "@/lib/push";
 import { strings } from "@/lib/strings";
 
 // A stale chunk reference is the classic PWA white screen: the page was loaded
@@ -53,6 +54,14 @@ export function RegisterSW() {
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
 
+    // Opening the app (or coming back to it) is seeing what the number on
+    // the app icon was counting: clear it (00104).
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void clearFeedbackBadge();
+    };
+    onVisible();
+    document.addEventListener("visibilitychange", onVisible);
+
     // A new service worker calls skipWaiting(), so it activates and claims this
     // page immediately - but the JS already running here is still the old
     // build. Reloading unasked would drop half-typed forms, so say so and let
@@ -91,6 +100,7 @@ export function RegisterSW() {
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
+      document.removeEventListener("visibilitychange", onVisible);
       if (hasSW) {
         navigator.serviceWorker.removeEventListener(
           "controllerchange",

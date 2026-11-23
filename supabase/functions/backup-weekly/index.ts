@@ -103,6 +103,9 @@ const TABLES = [
   // what guests were already told by push (00100): restored with it, a
   // restore does not push every old update again
   "guest_update_pushes",
+  // comments and likes parents were already told about (00104): restored
+  // with it, a restore does not push every old comment again
+  "feedback_pushes",
   // guests who asked for the daily email (00101)
   "guest_email_optins",
   "fx_rates",

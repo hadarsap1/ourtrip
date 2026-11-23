@@ -1015,6 +1015,35 @@ export type Database = {
           },
         ]
       }
+      feedback_pushes: {
+        Row: {
+          kind: string
+          sent_at: string
+          target_id: string
+          trip_id: string
+        }
+        Insert: {
+          kind: string
+          sent_at?: string
+          target_id: string
+          trip_id: string
+        }
+        Update: {
+          kind?: string
+          sent_at?: string
+          target_id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_pushes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_seen: {
         Row: {
           member_id: string
