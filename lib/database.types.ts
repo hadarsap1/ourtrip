@@ -328,6 +328,7 @@ export type Database = {
           photo_id: string | null
           id: string
           post_id: string | null
+          reply_to: string | null
           shown_by: string | null
           shown_to_kids_at: string | null
           trip_id: string
@@ -340,6 +341,7 @@ export type Database = {
           photo_id?: string | null
           id?: string
           post_id?: string | null
+          reply_to?: string | null
           shown_by?: string | null
           shown_to_kids_at?: string | null
           trip_id: string
@@ -352,6 +354,7 @@ export type Database = {
           photo_id?: string | null
           id?: string
           post_id?: string | null
+          reply_to?: string | null
           shown_by?: string | null
           shown_to_kids_at?: string | null
           trip_id?: string
@@ -383,6 +386,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {

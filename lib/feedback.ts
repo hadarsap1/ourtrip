@@ -154,3 +154,32 @@ export function newFeedbackByKind(
   }
   return { stories: stories.size, photos: photos.size, episodes: episodes.size, newest };
 }
+
+// ---------- replies (00102) ----------
+
+export type CommentThread = { comment: Comment; replies: Comment[] };
+
+/** Comments in order, each with its replies under it (one level deep, like
+ *  the wall). A reply whose comment is not in the list stands on its own, so
+ *  nothing is ever hidden. */
+export function commentThreads(comments: Comment[]): CommentThread[] {
+  const ids = new Set(comments.map((c) => c.id));
+  // the database keeps threads one deep; a reply that points at a reply (or at
+  // nothing here) still shows, as a comment of its own
+  const isReply = (c: Comment) => {
+    const parent = c.reply_to && ids.has(c.reply_to) ? comments.find((p) => p.id === c.reply_to) : null;
+    return !!parent && !parent.reply_to;
+  };
+  const threads: CommentThread[] = [];
+  const byId = new Map<string, CommentThread>();
+  for (const c of comments) {
+    if (isReply(c)) continue;
+    const thread: CommentThread = { comment: c, replies: [] };
+    threads.push(thread);
+    byId.set(c.id, thread);
+  }
+  for (const c of comments) {
+    if (isReply(c)) byId.get(c.reply_to!)?.replies.push(c);
+  }
+  return threads;
+}
