@@ -59,6 +59,7 @@ describe("approvedShareText", () => {
     expect(text).toContain("savta@example.com");
     expect(text).toContain(base.link);
     expect(text).not.toContain("לזמן קצר");
+    expect(text).not.toContain("עכשיו:");
     expect(text.indexOf("https://ourtrip-umber.vercel.app/")).toBeLessThan(text.indexOf(base.link));
   });
 });

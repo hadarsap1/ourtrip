@@ -1891,11 +1891,12 @@ export const strings = {
     emailedBody: "יצא מייל עם הקישור לכניסה. אם רוצים, אפשר לשלוח גם הודעה בוואטסאפ.",
     // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
     // address is the one link to keep. Typed email: the first sign-in link
-    // too (one use; the welcome email no longer carries it, 20/11/2026).
+    // too (the welcome email no longer carries it, 20/11/2026). No "one use" /
+    // "short-lived" wording in either message: it only confused (Hadar 23/11/2026).
     approvedGoogleText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה:\n{appUrl}\nאם צריך להתחבר שוב, מקלידים שם את המייל ({email}) ומקבלים קישור כניסה.\n\nלכניסה הראשונה, עכשיו:\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה:\n{appUrl}\nאם צריך להתחבר שוב, מקלידים שם את המייל ({email}) ומקבלים קישור כניסה.\n\nלכניסה הראשונה:\n{url}",
     // guest card "send a sign-in link", when the email did not go out
     loginUnsentTitle: "קישור הכניסה מוכן",
     loginUnsentBody: "המייל לא נשלח. שלחו את הקישור בוואטסאפ.",
@@ -1904,7 +1905,7 @@ export const strings = {
     loginGoogleText:
       "היי {name}! נכנסים ל\"סו-בב עולם!\" 🌍 עם חשבון ה-Google שלך ({email}):\n{url}",
     loginLinkText:
-      "היי {name}! הנה קישור כניסה חדש ל\"סו-בב עולם!\" 🌍\nהוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+      "היי {name}! הנה קישור כניסה ל\"סו-בב עולם!\" 🌍\nלוחצים, ואתם בפנים:\n{url}",
     viaGoogleShort: "Google",
     declined: "הבקשה נדחתה",
     declineConfirm: "לדחות את הבקשה? הפונה לא יקבל הודעה על כך",
