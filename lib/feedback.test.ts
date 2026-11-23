@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedbackCounts, namesSummary, newBaseline, newFeedback, newFeedbackByKind, tallyReactions } from "./feedback";
+import { commentThreads, feedbackCounts, namesSummary, newBaseline, newFeedback, newFeedbackByKind, tallyReactions } from "./feedback";
 import type { Comment, Reaction } from "./types";
 
 const r = (over: Partial<Reaction>): Reaction => ({
@@ -167,5 +167,32 @@ describe("newFeedbackByKind", () => {
     );
     expect(got.photos).toBe(2);
     expect(got.newest).toEqual({ stories: null, photos: "ph2", episodes: "e1" });
+  });
+});
+
+describe("commentThreads (00102)", () => {
+  const at = (n: number) => `2026-11-23T10:0${n}:00Z`;
+  it("puts replies under their comment, in order", () => {
+    const list = [
+      c({ id: "a", created_at: at(1) }),
+      c({ id: "b", created_at: at(2) }),
+      c({ id: "a1", reply_to: "a", created_at: at(3) }),
+      c({ id: "a2", reply_to: "a", created_at: at(4) }),
+    ];
+    const threads = commentThreads(list);
+    expect(threads.map((t) => t.comment.id)).toEqual(["a", "b"]);
+    expect(threads[0].replies.map((r) => r.id)).toEqual(["a1", "a2"]);
+    expect(threads[1].replies).toEqual([]);
+  });
+  it("never hides a reply whose comment is missing or is itself a reply", () => {
+    const list = [
+      c({ id: "a" }),
+      c({ id: "a1", reply_to: "a" }),
+      c({ id: "x", reply_to: "a1" }),
+      c({ id: "y", reply_to: "gone" }),
+    ];
+    const threads = commentThreads(list);
+    expect(threads.map((t) => t.comment.id)).toEqual(["a", "x", "y"]);
+    expect(threads.flatMap((t) => [t.comment, ...t.replies])).toHaveLength(4);
   });
 });

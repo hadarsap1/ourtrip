@@ -67,11 +67,22 @@ export async function addComment(
   tripId: string,
   authorId: string,
   target: FeedbackTarget,
-  body: string
+  body: string,
+  /** the comment answered (00102); the database pins a reply to its comment's
+   *  target and to the top-level comment of a thread */
+  replyTo: string | null = null
 ): Promise<void> {
   const { error } = await requireClient()
     .from("comments")
-    .insert({ trip_id: tripId, author_id: authorId, body: body.trim(), ...targetColumns(target) });
+    .insert({
+      trip_id: tripId,
+      author_id: authorId,
+      body: body.trim(),
+      ...targetColumns(target),
+      // sent only for a reply, so a plain comment keeps working on a database
+      // that does not have the column yet
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    });
   if (error) throw new Error(error.message);
 }
 

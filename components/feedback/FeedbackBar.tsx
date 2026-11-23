@@ -14,6 +14,7 @@ import {
   updateComment,
 } from "@/lib/data/feedback";
 import {
+  commentThreads,
   matchesTarget,
   namesSummary,
   newFeedback,
@@ -110,6 +111,12 @@ export function FeedbackBar({
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<Comment | null>(null);
+  // answering a comment (00102): the comment tapped, shown above the input
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  // threads opened or closed by hand; otherwise a thread opens by itself
+  // when it has a reply that is new to me
+  const [openThreads, setOpenThreads] = useState<Record<string, boolean>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
   const memberOf = (id: string) => members.find((m) => m.id === id);
   const nameOf = (id: string) => (id === member.id ? strings.wall.me : (memberOf(id)?.display_name ?? ""));
 
@@ -192,8 +199,13 @@ export function FeedbackBar({
     if (!text || busy) return;
     setBusy(true);
     try {
-      await addComment(tripId, member.id, target, text);
+      // a reply to a reply answers the comment at the top of its thread, as
+      // the database does anyway (00102)
+      const root = replyTo ? (replyTo.reply_to ?? replyTo.id) : null;
+      await addComment(tripId, member.id, target, text, root);
       setDraft("");
+      if (root) setOpenThreads((open) => ({ ...open, [root]: true }));
+      setReplyTo(null);
       onChanged();
     } catch {
       onToast(strings.common.error);
@@ -201,6 +213,67 @@ export function FeedbackBar({
       setBusy(false);
     }
   }
+
+  /** One comment or reply; `replyCount` makes deleting it say its replies go
+   *  too (on delete cascade, 00102). */
+  const commentItem = (c: Comment, replyCount: number) => (
+    <div className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}>
+      <p className="text-xs font-bold text-sv-ink">
+        {nameOf(c.author_id)}
+        {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
+        <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
+          {formatShortDate(c.created_at.slice(0, 10))}
+        </span>
+        {highlighted.has(c.id) && (
+          <span className="ms-1.5 align-middle">
+            <NewDot />
+          </span>
+        )}
+      </p>
+      <p className="whitespace-pre-wrap break-words text-sm text-sv-ink">{c.body}</p>
+      {(canComment || isOwner || c.author_id === member.id) && (
+        <div className="mt-1 flex items-center gap-2">
+          {canComment && (
+            <button
+              type="button"
+              onClick={() => {
+                setReplyTo(c);
+                inputRef.current?.focus();
+              }}
+              className="min-h-8 text-xs font-semibold text-sv-ink-soft underline underline-offset-2"
+            >
+              {strings.feedback.reply}
+            </button>
+          )}
+          {(isOwner || c.author_id === member.id) && (
+            <>
+              <button
+                type="button"
+                aria-label={strings.common.edit}
+                onClick={() => setEditing(c)}
+                className="ms-auto grid place-items-center rounded-full text-sv-ink-soft"
+              >
+                <EditIcon className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={strings.common.delete}
+                onClick={async () => {
+                  const ask = replyCount > 0 ? strings.feedback.deleteWithRepliesConfirm : strings.feedback.deleteConfirm;
+                  if (!(await askConfirm(ask))) return;
+                  if (replyTo && (replyTo.id === c.id || replyTo.reply_to === c.id)) setReplyTo(null);
+                  void deleteComment(c.id).then(onChanged).catch(() => onToast(strings.common.error));
+                }}
+                className="grid place-items-center rounded-full text-sv-ink-soft"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div ref={rootRef} id={`feedback-${key}`} className="scroll-mt-24 space-y-2.5">
@@ -254,52 +327,58 @@ export function FeedbackBar({
         <div className="space-y-2 border-t border-sv-line pt-2.5">
           {mine.length > 0 && (
             <ul className="space-y-2">
-              {mine.map((c) => {
+              {commentThreads(mine).map(({ comment, replies }) => {
+                const open = openThreads[comment.id] ?? replies.some((r) => highlighted.has(r.id));
                 return (
-                  <li
-                    key={c.id}
-                    className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}
-                  >
-                    <p className="text-xs font-bold text-sv-ink">
-                      {nameOf(c.author_id)}
-                      {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
-                      <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
-                        {formatShortDate(c.created_at.slice(0, 10))}
-                      </span>
-                      {highlighted.has(c.id) && (
-                        <span className="ms-1.5 align-middle">
-                          <NewDot />
-                        </span>
-                      )}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-sm text-sv-ink">{c.body}</p>
-                    {(isOwner || c.author_id === member.id) && (
-                      <div className="mt-1 flex items-center justify-end gap-2">
+                  <li key={comment.id} className="space-y-1.5">
+                    {commentItem(comment, replies.length)}
+                    {replies.length > 0 && (
+                      <>
                         <button
                           type="button"
-                          aria-label={strings.common.edit}
-                          onClick={() => setEditing(c)}
-                          className="grid place-items-center rounded-full text-sv-ink-soft"
+                          aria-expanded={open}
+                          onClick={() => setOpenThreads((all) => ({ ...all, [comment.id]: !open }))}
+                          className="ms-3 flex min-h-8 items-center gap-1.5 text-xs font-semibold text-sv-ink-soft underline underline-offset-2"
                         >
-                          <EditIcon className="h-4 w-4" />
+                          {open
+                            ? strings.feedback.hideReplies
+                            : replies.length === 1
+                              ? strings.feedback.replyOne
+                              : strings.feedback.repliesN.replace("{n}", String(replies.length))}
+                          {!open && replies.some((r) => highlighted.has(r.id)) && <NewDot />}
                         </button>
-                        <button
-                          type="button"
-                          aria-label={strings.common.delete}
-                          onClick={async () => {
-                            if (!(await askConfirm(strings.feedback.deleteConfirm))) return;
-                            void deleteComment(c.id).then(onChanged).catch(() => onToast(strings.common.error));
-                          }}
-                          className="grid place-items-center rounded-full text-sv-ink-soft"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+                        {open && (
+                          <ul className="ms-3 space-y-1.5 border-s-2 border-sv-line ps-3">
+                            {replies.map((r) => (
+                              <li key={r.id}>{commentItem(r, 0)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
                     )}
                   </li>
                 );
               })}
             </ul>
+          )}
+          {canComment && replyTo && (
+            <div className="flex items-start gap-2 rounded-xl bg-sv-paper px-3 py-2 text-xs text-sv-ink-soft">
+              <p className="min-w-0 flex-1">
+                <span className="font-semibold text-sv-ink">
+                  {replyTo.author_id === member.id
+                    ? strings.feedback.replyingToMine
+                    : strings.feedback.replyingTo.replace("{name}", nameOf(replyTo.author_id))}
+                </span>{" "}
+                <span className="line-clamp-1">{replyTo.body}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="min-h-8 shrink-0 font-semibold text-sea underline"
+              >
+                {strings.feedback.cancelReply}
+              </button>
+            </div>
           )}
           {canComment && (
           <form onSubmit={(e) => void send(e)} className="flex gap-2">
@@ -307,12 +386,13 @@ export function FeedbackBar({
               {strings.feedback.commentLabel}
             </label>
             <input
+              ref={inputRef}
               id={inputId}
               type="text"
               maxLength={1000}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder={strings.feedback.commentPlaceholder}
+              placeholder={replyTo ? strings.feedback.replyPlaceholder : strings.feedback.commentPlaceholder}
               className="min-w-0 flex-1 rounded-2xl border border-sv-line bg-sv-card px-3 py-2.5 text-sv-ink placeholder:text-sv-ink-soft focus:border-sv-sage focus:outline-none"
             />
             <button

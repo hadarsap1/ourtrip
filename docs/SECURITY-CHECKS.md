@@ -3287,3 +3287,24 @@ changes.
 | tsc, lint, vitest (780), build | ✅ PASS |
 | Deployed 23/11/2026 on Hadar's go-ahead: guest-invite v17 (verify_jwt true), guest-login-link v5 (verify_jwt false); both matched the repo before the change | ✅ done |
 | Live smoke call from this session | X not run: the session's network blocks the Supabase functions host |
+
+## Replies to comments (23/11/2026, 00102)
+
+A comment on an update, episode or photo can answer another comment
+(`comments.reply_to`), shown under it as a one-deep thread like wall replies
+(00066). No new policies: `comments_reply_guard` (before insert/update,
+security definer) moves a reply to a reply onto the top-level comment, refuses
+a parent on another trip, refuses moving a reply, and copies the parent's
+`post_id` / `episode_id` / `photo_id` onto the reply. RLS `with check` runs
+after the trigger, so a guest answering a comment on a target they cannot see
+is refused by `comments_guest_insert` (`feedback_target_visible`). Kids still
+have select only (00050) and get no reply button. Deleting a comment deletes
+its replies (`on delete cascade`).
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (782), build | ✅ PASS |
+| Guest reply to a comment on an update outside their groups is refused | ✅ by policy (target forced from parent, then `with check`) |
+| Kid insert of a reply | ✅ by policy (no kid insert policy on comments) |
+| Migration 00102 applied to the live project (23/11/2026, on Hadar's go-ahead) | ✅ done |
+| Live trigger test in a rolled-back transaction: reply takes the parent's target, a reply to a reply attaches to the top-level comment, moving a reply is refused | ✅ PASS |

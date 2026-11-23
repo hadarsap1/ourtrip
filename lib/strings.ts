@@ -2655,6 +2655,16 @@ export const strings = {
     commentsHint: "גם הילדים קוראים את התגובות",
     commentsGoTo: "התגובה תגיע רק ל: {to}",
     deleteConfirm: "למחוק את התגובה?",
+    // replies to a comment (00102)
+    reply: "להגיב",
+    replyingTo: "תגובה ל{name}:",
+    replyingToMine: "תגובה לתגובה שלי:",
+    replyPlaceholder: "כתבו תגובה",
+    cancelReply: "ביטול",
+    repliesN: "{n} תגובות לתגובה",
+    replyOne: "תגובה אחת לתגובה",
+    hideReplies: "הסתרת התגובות",
+    deleteWithRepliesConfirm: "למחוק את התגובה ואת התגובות אליה?",
     // what is new since I last looked (00081)
     newTag: "חדש",
     newSummary: "חדש: {what}",
