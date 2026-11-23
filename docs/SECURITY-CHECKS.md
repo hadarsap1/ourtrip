@@ -3306,4 +3306,5 @@ its replies (`on delete cascade`).
 | tsc, lint, vitest (782), build | ✅ PASS |
 | Guest reply to a comment on an update outside their groups is refused | ✅ by policy (target forced from parent, then `with check`) |
 | Kid insert of a reply | ✅ by policy (no kid insert policy on comments) |
-| Migration 00102 applied to the live project | X not run: the session's Supabase connection failed |
+| Migration 00102 applied to the live project (23/11/2026, on Hadar's go-ahead) | ✅ done |
+| Live trigger test in a rolled-back transaction: reply takes the parent's target, a reply to a reply attaches to the top-level comment, moving a reply is refused | ✅ PASS |
