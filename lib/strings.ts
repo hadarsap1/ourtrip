@@ -2645,6 +2645,7 @@ export const strings = {
     reactionSmile: "מצחיק",
     reactionWow: "וואו",
     reactionStar: "כוכב",
+    reactionsLabel: "תגובות אמוג׳י",
     reactedBy: "{names}",
     andMoreN: "ועוד {n}",
     comments: "תגובות",

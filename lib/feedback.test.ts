@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commentThreads, feedbackCounts, namesSummary, newBaseline, newFeedback, newFeedbackByKind, tallyReactions } from "./feedback";
+import { commentThreads, matchesTarget, feedbackCounts, namesSummary, newBaseline, newFeedback, newFeedbackByKind, tallyReactions } from "./feedback";
 import type { Comment, Reaction } from "./types";
 
 const r = (over: Partial<Reaction>): Reaction => ({
@@ -9,6 +9,8 @@ const r = (over: Partial<Reaction>): Reaction => ({
   post_id: "p1",
   episode_id: null,
   photo_id: null,
+  comment_id: null,
+  message_id: null,
   kind: "heart",
   created_at: "2026-11-01T00:00:00Z",
   ...over,
@@ -194,5 +196,28 @@ describe("commentThreads (00102)", () => {
     const threads = commentThreads(list);
     expect(threads.map((t) => t.comment.id)).toEqual(["a", "x", "y"]);
     expect(threads.flatMap((t) => [t.comment, ...t.replies])).toHaveLength(4);
+  });
+});
+
+describe("emoji on comments and wall messages (00103)", () => {
+  const onComment = r({ id: "rc", post_id: null, comment_id: "c1", member_id: "me" });
+  const onMessage = r({ id: "rm", post_id: null, message_id: "w1", kind: "star" });
+  const all = [r({}), onComment, onMessage];
+  it("matches only its own comment or message", () => {
+    expect(matchesTarget(onComment, { commentId: "c1" })).toBe(true);
+    expect(matchesTarget(onComment, { commentId: "c2" })).toBe(false);
+    expect(matchesTarget(onMessage, { messageId: "w1" })).toBe(true);
+    expect(matchesTarget(onMessage, { postId: "p1" })).toBe(false);
+  });
+  it("tallies a comment's likes apart from its update's", () => {
+    const comment = tallyReactions(all, { commentId: "c1" }, "me").tallies.find((t) => t.kind === "heart")!;
+    expect(comment).toMatchObject({ count: 1, mineId: "rc" });
+    const post = tallyReactions(all, { postId: "p1" }, "me").tallies.find((t) => t.kind === "heart")!;
+    expect(post.count).toBe(1);
+    expect(feedbackCounts({ postId: "p1" }, [], all).likes).toBe(1);
+  });
+  it("a like on a comment is not new feedback on any update, photo or episode", () => {
+    const stamps = [{ post_id: null, episode_id: null, photo_id: null, created_at: "2026-11-23T10:00:00Z" }];
+    expect(newFeedbackByKind(stamps, () => "2026-11-01T00:00:00Z")).toMatchObject({ stories: 0, photos: 0, episodes: 0 });
   });
 });
