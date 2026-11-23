@@ -2290,7 +2290,7 @@ export const strings = {
     emailLabel: "כתובת מייל",
     emailSend: "שלחו לי קישור",
     emailSending: "שולח…",
-    emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם. הקישור עובד פעם אחת.",
+    emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם.",
     emailError: "משהו השתבש. נסו שוב בעוד דקה.",
     // the app's address opened by someone never approved (00093)
     joinPrompt: "עוד לא אושרתם?",
