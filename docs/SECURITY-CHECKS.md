@@ -3308,3 +3308,21 @@ its replies (`on delete cascade`).
 | Kid insert of a reply | ✅ by policy (no kid insert policy on comments) |
 | Migration 00102 applied to the live project (23/11/2026, on Hadar's go-ahead) | ✅ done |
 | Live trigger test in a rolled-back transaction: reply takes the parent's target, a reply to a reply attaches to the top-level comment, moving a reply is refused | ✅ PASS |
+
+## Emoji on comments and wall messages (23/11/2026, 00103)
+
+`reactions` gets `comment_id` and `message_id` (one target per row, once per
+member and kind, `on delete cascade`). Insert checks use the new
+`reaction_target_visible` (security invoker, so the caller's own RLS on
+`comments` / `messages` decides; a wall message must be approved). The kid and
+guest select policy gets the same two branches. Kids may react (decided with
+Hadar 23/11/2026); they still cannot write comments (00050). A guest cannot see
+or add likes on another group's wall message: `messages_guest_select` hides
+the message, so both branches fail.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (785), build | ✅ PASS |
+| Dry run on the live project in a rolled-back transaction: like on a comment and on an approved message insert; a second like of the same kind is refused; a waiting message is not a visible target; every existing row still has exactly one target | ✅ PASS |
+| Guest reacting to another group's message | ✅ by policy (invoker lookup under `messages_guest_select`) |
+| Migration 00103 applied to the live project (23/11/2026, on Hadar's go-ahead); columns, 4 policies and execute grant verified, 124 existing likes intact | ✅ done |

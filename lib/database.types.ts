@@ -2331,36 +2331,56 @@ export type Database = {
       }
       reactions: {
         Row: {
+          comment_id: string | null
           created_at: string
           episode_id: string | null
           photo_id: string | null
           id: string
           kind: Database["public"]["Enums"]["reaction_kind"]
           member_id: string
+          message_id: string | null
           post_id: string | null
           trip_id: string
         }
         Insert: {
+          comment_id?: string | null
           created_at?: string
           episode_id?: string | null
           photo_id?: string | null
           id?: string
           kind: Database["public"]["Enums"]["reaction_kind"]
           member_id: string
+          message_id?: string | null
           post_id?: string | null
           trip_id: string
         }
         Update: {
+          comment_id?: string | null
           created_at?: string
           episode_id?: string | null
           photo_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["reaction_kind"]
           member_id?: string
+          message_id?: string | null
           post_id?: string | null
           trip_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reactions_photo_id_fkey"
             columns: ["photo_id"]

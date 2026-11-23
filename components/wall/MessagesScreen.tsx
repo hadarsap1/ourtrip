@@ -22,6 +22,8 @@ import {
   type WallMessage,
 } from "@/lib/data/messages";
 import { listMyGroups } from "@/lib/data/groups";
+import { listMessageReactions, pollFeedback } from "@/lib/data/feedback";
+import { ReactionRow } from "@/components/feedback/ReactionRow";
 import { audienceText } from "@/lib/audience";
 import { AudienceSheet } from "@/components/AudienceSheet";
 import { askConfirm } from "@/components/ConfirmSheet";
@@ -32,7 +34,7 @@ import { LoadFailed } from "@/components/LoadFailed";
 import { strings } from "@/lib/strings";
 import { spreadDelay } from "@/lib/realtimeTopic";
 import { useMember } from "@/lib/useMember";
-import type { Member, Trip } from "@/lib/types";
+import type { Member, Reaction, Trip } from "@/lib/types";
 
 export function MessagesScreen() {
   const { member, memberLoading, memberFailed } = useMember();
@@ -50,6 +52,8 @@ export function MessagesScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<WallMessage[]>([]);
+  // emoji on messages (00103): polled like likes elsewhere, not realtime
+  const [reactions, setReactions] = useState<Reaction[]>([]);
   const [loading, setLoading] = useState(true);
   // The list did not arrive (no signal): that is not "nothing here yet"
   // (QA 15/11/2026).
@@ -88,6 +92,20 @@ export function MessagesScreen() {
     },
     []
   );
+
+  const reloadReactions = useCallback(() => {
+    if (!trip) return;
+    void listMessageReactions(trip.id)
+      .then(setReactions)
+      // a missed refresh keeps the last likes; the next one tries again
+      .catch(() => {});
+  }, [trip]);
+
+  useEffect(() => {
+    if (!trip) return;
+    reloadReactions();
+    return pollFeedback(reloadReactions);
+  }, [trip, reloadReactions]);
 
   const retryLoad = useCallback(async () => {
     if (!trip) return;
@@ -338,18 +356,31 @@ export function MessagesScreen() {
             )}
           </p>
         )}
-        {!pending && (
-          <button
-            type="button"
-            onClick={() => {
-              // a reply to a reply answers the message itself (00066)
-              setReplyTo(isReply ? (messages.find((m) => m.id === message.reply_to) ?? null) : message);
-              inputRef.current?.focus();
-            }}
-            className={`mt-1 min-h-8 text-xs font-semibold underline ${soft}`}
-          >
-            {strings.wall.reply}
-          </button>
+        {/* emoji and "answer" once a message is out - a waiting one can
+            get neither (00066, 00103) */}
+        {!pending && trip && (
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <ReactionRow
+              tripId={trip.id}
+              memberId={member.id}
+              target={{ messageId: message.id }}
+              reactions={reactions}
+              onChanged={reloadReactions}
+              onToast={showToast}
+              tone={mine ? "onSea" : "plain"}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                // a reply to a reply answers the message itself (00066)
+                setReplyTo(isReply ? (messages.find((m) => m.id === message.reply_to) ?? null) : message);
+                inputRef.current?.focus();
+              }}
+              className={`ms-auto min-h-8 text-xs font-semibold underline ${soft}`}
+            >
+              {strings.wall.reply}
+            </button>
+          </div>
         )}
         {pending && (
           <div className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold ${soft}`}>

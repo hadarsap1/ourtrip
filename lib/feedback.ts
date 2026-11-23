@@ -4,22 +4,41 @@ import type { Comment, Reaction, ReactionKind } from "@/lib/types";
 
 export const REACTION_KINDS: ReactionKind[] = ["heart", "smile", "wow", "star"];
 
-export type FeedbackTarget = { postId: string } | { episodeId: string } | { photoId: string };
+export type FeedbackTarget =
+  | { postId: string }
+  | { episodeId: string }
+  | { photoId: string }
+  // emoji on a comment or a wall message (00103) - likes only, no comments
+  | { commentId: string }
+  | { messageId: string };
+
+/** What a comment can be written on: not on a comment or a message. */
+export type CommentTarget = Extract<FeedbackTarget, { postId: string } | { episodeId: string } | { photoId: string }>;
 
 export function matchesTarget(
-  row: { post_id: string | null; episode_id: string | null; photo_id: string | null },
+  row: {
+    post_id: string | null;
+    episode_id: string | null;
+    photo_id: string | null;
+    comment_id?: string | null;
+    message_id?: string | null;
+  },
   target: FeedbackTarget
 ): boolean {
   if ("postId" in target) return row.post_id === target.postId;
   if ("episodeId" in target) return row.episode_id === target.episodeId;
-  return row.photo_id === target.photoId;
+  if ("photoId" in target) return row.photo_id === target.photoId;
+  if ("commentId" in target) return row.comment_id === target.commentId;
+  return row.message_id === target.messageId;
 }
 
 /** A stable id for the target, for element ids. */
 export function targetKey(target: FeedbackTarget): string {
   if ("postId" in target) return target.postId;
   if ("episodeId" in target) return target.episodeId;
-  return target.photoId;
+  if ("photoId" in target) return target.photoId;
+  if ("commentId" in target) return target.commentId;
+  return target.messageId;
 }
 
 export type ReactionTally = {
