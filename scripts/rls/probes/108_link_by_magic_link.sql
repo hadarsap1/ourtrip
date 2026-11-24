@@ -1,4 +1,4 @@
--- 00107: a guest who signs in by the emailed link is linked even though
+-- 00108: a guest who signs in by the emailed link is linked even though
 -- guest-invite's account has a (random) password; a password session is not;
 -- the first link cleans the account; only Google counts on a join request;
 -- PIN attempts are reserved atomically; wrong registration codes are capped.

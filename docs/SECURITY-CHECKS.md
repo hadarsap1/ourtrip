@@ -3409,7 +3409,25 @@ Those are public by design (00046), so caching them shows nobody anything new.
 | Migration 00106 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, RLS on, `google_photos` still has its 3 policies | ✅ done |
 | gphotos v5 and guest-gphotos v8 deployed (verify_jwt on), guest-gphotos signing `thumb_path` for RLS-returned rows only | ✅ done |
 
-## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00107)
+## 24/11/2026 - home_dashboard (00107)
+
+One request for the parents' home: categories, trip total, expenses (totals
+columns only), today's photos, the parents and their steps. SECURITY INVOKER:
+every read runs under the caller's own policies, exactly as the separate
+queries it replaces. Execute revoked from anon and public, granted to
+authenticated. Probe: scripts/rls/probes/107_home_dashboard.sql.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (807), build | ✅ PASS |
+| Live, as the owner (pg_temp copy, nothing persisted): 40 expenses, 9 categories, total, 24 step rows | ✅ |
+| Live, as a guest and as a kid: 0 categories, no total, 0 expenses, 0 steps (parents' names only, as trip_member_names already allows) | ✅ |
+| Expenses carry no description or other columns | ✅ by function (explicit column list) |
+| anon cannot execute; function is SECURITY INVOKER | ✅ verified on the live project after apply |
+| Supabase security advisor: no new finding for home_dashboard | ✅ |
+| Migration 00107 applied to the live project (24/11/2026, on Hadar's request "make an RPC for the home") | ✅ done |
+
+## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00108)
 
 Found in the security review of 19/11, read back from production first:
 every account `guest-invite` creates with `auth.admin.createUser` carries a
@@ -3438,18 +3456,18 @@ What changed:
 
 | Check | Result |
 |---|---|
-| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 107 |
-| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 107 |
-| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 107 |
-| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 107 |
-| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 107 |
-| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 107 |
-| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 107 |
+| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 108 |
+| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 108 |
+| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 108 |
+| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 108 |
+| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 108 |
+| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 108 |
+| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 108 |
 | Probes 54, 55, 95 updated to the new rule (the seeded outsider signs in with Google) | ✅ PASS |
 | Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations (before renumbering) |
 | lint, vitest, build | ✅ PASS |
 | `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session; the deploy bundled and the functions are ACTIVE |
-| 00107 (written as 00102 until main took that number for comment replies) applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
+| 00108 (written as 00102, then 00107; main took both numbers, for comment replies and home_dashboard) applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
 | Live read-back: the four functions exist, the link function reads `amr`, submit_guest_join has the member-by-account check; anon cannot run kid_unlock_attempt, authenticated cannot run kid_register_failed; authenticated can still run link_member_to_auth_user, anon cannot | ✅ 20/11/2026 |
 | Live, in a transaction rolled back: emailed-link session for an uninvited address -> null; password session -> null; kid_unlock_attempt unknown device -> unknown, real device -> attempt 1; kid_register_allowed -> true; afterwards no device carries a failed attempt and no failure row exists | ✅ 20/11/2026 |
 | Deployed: kid-auth v12 (verify_jwt false), guest-gphotos v7, guest-photos v13, guest-media v4 (verify_jwt true); each matched the repo before the change | ✅ 20/11/2026 |

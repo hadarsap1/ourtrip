@@ -81,6 +81,12 @@ const CSP_REPORT_ONLY = [
 const CSP_ENFORCED = ["frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"].join("; ");
 
 const nextConfig: NextConfig = {
+  // Which deploy this page came from, so the service worker can warm this
+  // build's screens once per deploy (RegisterSW, public/sw.js). Vercel sets
+  // VERCEL_GIT_COMMIT_SHA at build time; locally it is empty.
+  env: {
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+  },
   // Next 16.3 appends a block of its own to CLAUDE.md on every `next dev`.
   // CLAUDE.md here is the hand-written brief for this project, and a file the
   // framework rewrites underneath you shows up as a dirty tree on every run.

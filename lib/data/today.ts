@@ -18,6 +18,15 @@ export type TodayData = {
  * (acceptance: today's itinerary renders with network disabled).
  * Offline/failure: served from the snapshot, which carries its own date.
  */
+// The last live answer, so coming back to the home tab paints at once while a
+// fresh one is fetched (perf, 24/11/2026). Today's only, never across midnight.
+let lastLive: TodayData | null = null;
+
+/** Today's plan as last loaded live this session, or null. */
+export function peekToday(): TodayData | null {
+  return lastLive && lastLive.date === todayISO() ? lastLive : null;
+}
+
 export async function loadToday(): Promise<{
   data: TodayData;
   fromCache: boolean;
@@ -34,17 +43,37 @@ export async function loadToday(): Promise<{
     const boot = await freshBoot();
     if (boot?.today && boot.today.date === date && boot.trip?.id === trip.id) {
       const data: TodayData = { date, day: boot.today.day, items: boot.today.items, bookings: boot.today.bookings };
+      lastLive = data;
       await saveTodaySnapshot(data);
       return { data, fromCache: false };
     }
 
-    const { data: day, error: dayError } = await supabase
-      .from("itinerary_days")
-      .select("*")
-      .eq("trip_id", trip.id)
-      .eq("date", date)
-      .maybeSingle();
-    if (dayError) throw new Error(dayError.message);
+    // The day and today's bookings do not depend on each other: asked
+    // together, the fallback costs the slowest round trip, not the sum
+    // (perf review 24/11/2026). Items need the day's id, so they follow.
+    const [dayRes, rangedRes, singleRes] = await Promise.all([
+      supabase.from("itinerary_days").select("*").eq("trip_id", trip.id).eq("date", date).maybeSingle(),
+      // bookings relevant today: ranges covering today + single-day bookings
+      supabase
+        .from("bookings")
+        .select("*")
+        .eq("trip_id", trip.id)
+        .lte("start_date", date)
+        .gte("end_date", date)
+        .neq("status", "cancelled"),
+      supabase
+        .from("bookings")
+        .select("*")
+        .eq("trip_id", trip.id)
+        .eq("start_date", date)
+        .is("end_date", null)
+        .neq("status", "cancelled"),
+    ]);
+    if (dayRes.error) throw new Error(dayRes.error.message);
+    if (rangedRes.error) throw new Error(rangedRes.error.message);
+    const day = dayRes.data;
+    const ranged = rangedRes.data;
+    const single = singleRes.data;
 
     const dayItems = day ? await listItems([day.id]) : [];
     // An entry made from a booking that was later cancelled is not today's
@@ -62,25 +91,9 @@ export async function loadToday(): Promise<{
     }
     const items = dayItems.filter((i) => !i.booking_id || !cancelledIds.has(i.booking_id));
 
-    // bookings relevant today: ranges covering today + single-day bookings
-    const { data: ranged, error: bookingsError } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("trip_id", trip.id)
-      .lte("start_date", date)
-      .gte("end_date", date)
-      .neq("status", "cancelled");
-    if (bookingsError) throw new Error(bookingsError.message);
-    const { data: single } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("trip_id", trip.id)
-      .eq("start_date", date)
-      .is("end_date", null)
-      .neq("status", "cancelled");
-
     const bookings = [...(ranged ?? []), ...(single ?? [])];
     const data: TodayData = { date, day: day ?? null, items, bookings };
+    lastLive = data;
     await saveTodaySnapshot(data);
     return { data, fromCache: false };
   } catch {
