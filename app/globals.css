@@ -256,15 +256,14 @@ body {
   --sv-sage: var(--brand);
   --sv-sage-soft: var(--brand-soft);
   /* clay: the accent for "waiting" headings and the record button */
-  --sv-sage-fill: #4e6b45;
-  --sv-clay: #a84e2e;
-  --sv-clay-fill: #a84e2e;
-  --sv-clay-soft: #f6ddd2;
+  --sv-sage-fill: #3d6a3a;
+  /* clay is the redesign's coral since 24/11/2026 */
+  --sv-clay: var(--coral);
+  --sv-clay-fill: #c4471f; /* under white text in both themes, 4.9:1 */
+  --sv-clay-soft: var(--coral-soft);
   --sv-wood: #c9a46a; /* decoration only */
 }
 :root[data-theme="dark"] {
-  --sv-clay: #e8a486;
-  --sv-clay-soft: #4a2c20;
   --sv-wood: #a88449;
 }
 
@@ -361,6 +360,12 @@ body[data-chat] main {
 @media (max-width: 1023.98px) {
   body:not([data-chat]) main {
     padding-bottom: var(--nav-room);
+  }
+  /* A sticky composer at the bottom of <main> (data-chat screens): its
+     ground runs on behind the floating bar, so its controls end 12px above
+     it and nothing scrolls into the gap. */
+  .ot-dock {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
 }
 

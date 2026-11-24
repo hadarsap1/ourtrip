@@ -145,7 +145,7 @@ export function RegisterSW() {
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-20 z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-paper shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
+      className="fixed inset-x-4 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-paper shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
     >
       <span className="flex-1 text-sm font-medium">{strings.update.ready}</span>
       <button

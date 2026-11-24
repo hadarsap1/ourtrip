@@ -50,20 +50,20 @@ export function ReactionRow({
 
   const onSea = tone === "onSea";
   return (
-    <div className="flex flex-wrap gap-1" role="group" aria-label={strings.feedback.reactionsLabel}>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={strings.feedback.reactionsLabel}>
       {tallies.map((t) => {
         const mine = t.mineId !== null;
         const color = mine
           ? onSea
             ? "border-on-sea bg-on-sea/20 text-on-sea"
-            : "border-sv-clay bg-sv-clay-soft text-sv-clay"
+            : "border-coral bg-coral-soft text-coral-ink"
           : t.count > 0
             ? onSea
               ? "border-on-sea/40 text-on-sea"
-              : "border-sv-line text-sv-ink"
+              : "border-line text-ink"
             : onSea
               ? "border-transparent text-on-sea/60"
-              : "border-transparent text-sv-ink-soft";
+              : "border-transparent text-muted";
         return (
           <button
             key={t.kind}
@@ -71,10 +71,13 @@ export function ReactionRow({
             onClick={() => void toggle(t.kind, t.mineId)}
             aria-pressed={mine}
             aria-label={`${LABELS[t.kind]}${t.count ? ` (${t.count})` : ""}`}
-            className={`flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-1.5 text-xs font-bold active:scale-95 [&>svg]:h-4 [&>svg]:w-4 ${color}`}
+            // compact (קרם חם chat): 40px visual, the global floor makes the box 44
+            className={`flex h-10 min-w-10 items-center justify-center gap-1 rounded-full border px-2 text-[15px] font-bold motion-safe:active:scale-95 [&_svg]:h-5 [&_svg]:w-5 ${color}`}
           >
-            <ReactionIcon kind={t.kind} filled={mine} />
             {t.count > 0 && <span>{t.count}</span>}
+            <span className={mine && !onSea ? "text-coral" : ""}>
+              <ReactionIcon kind={t.kind} filled={mine} />
+            </span>
           </button>
         );
       })}

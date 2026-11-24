@@ -162,11 +162,11 @@ export function FeedbackBar({
   /** One comment or reply; `replyCount` makes deleting it say its replies go
    *  too (on delete cascade, 00102). */
   const commentItem = (c: Comment, replyCount: number) => (
-    <div className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}>
-      <p className="text-xs font-bold text-sv-ink">
+    <div className={`rounded-[18px] bg-bg px-3.5 py-2.5 ${highlighted.has(c.id) ? "ring-1 ring-coral" : ""}`}>
+      <p className="text-sm font-bold text-green">
         {nameOf(c.author_id)}
         {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
-        <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
+        <span className="ms-2 font-medium text-muted" dir="ltr">
           {formatShortDate(c.created_at.slice(0, 10))}
         </span>
         {highlighted.has(c.id) && (
@@ -175,7 +175,7 @@ export function FeedbackBar({
           </span>
         )}
       </p>
-      <p className="whitespace-pre-wrap break-words text-sm text-sv-ink">{c.body}</p>
+      <p className="whitespace-pre-wrap break-words text-base text-ink">{c.body}</p>
       {/* emoji for everyone, kids too (00103); reply, edit, delete at the end */}
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         <ReactionRow
@@ -194,7 +194,7 @@ export function FeedbackBar({
                 setReplyTo(c);
                 inputRef.current?.focus();
               }}
-              className="min-h-8 text-xs font-semibold text-sv-ink-soft underline underline-offset-2"
+              className="min-h-10 px-1 text-[15px] font-bold text-green underline underline-offset-2"
             >
               {strings.feedback.reply}
             </button>
@@ -239,14 +239,16 @@ export function FeedbackBar({
             onClick={() => void toggle(t.kind, t.mineId)}
             aria-pressed={t.mineId !== null}
             aria-label={`${LABELS[t.kind]}${t.count ? ` (${t.count})` : ""}`}
-            className={`flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border-2 px-3 text-base font-bold active:scale-95 ${
+            // 48x44 round pills (קרם חם); mine is coral-soft with a coral
+            // border and a filled icon, so the state is never colour alone
+            className={`flex h-11 min-w-12 items-center justify-center gap-1.5 rounded-full border-2 px-3 text-base font-bold motion-safe:active:scale-95 [&>svg]:h-[22px] [&>svg]:w-[22px] ${
               t.mineId
-                ? "border-sv-clay bg-sv-clay-soft text-sv-clay"
-                : "border-sv-line bg-sv-card text-sv-ink"
+                ? "border-coral bg-coral-soft text-coral"
+                : "border-line bg-surface text-ink"
             }`}
           >
             <ReactionIcon kind={t.kind} filled={t.mineId !== null} />
-            {t.count > 0 && <span>{t.count}</span>}
+            {t.count > 0 && <span className={t.mineId ? "text-coral-ink" : ""}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -278,7 +280,7 @@ export function FeedbackBar({
       )}
 
       {showComments && (
-        <div className="space-y-2 border-t border-sv-line pt-2.5">
+        <div className="space-y-2.5 border-t border-line pt-3">
           {mine.length > 0 && (
             <ul className="space-y-2">
               {commentThreads(mine).map(({ comment, replies }) => {
@@ -335,7 +337,7 @@ export function FeedbackBar({
             </div>
           )}
           {canComment && (
-          <form onSubmit={(e) => void send(e)} className="flex gap-2">
+          <form onSubmit={(e) => void send(e)} className="flex items-center gap-2">
             <label htmlFor={inputId} className="sr-only">
               {strings.feedback.commentLabel}
             </label>
@@ -347,12 +349,12 @@ export function FeedbackBar({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={replyTo ? strings.feedback.replyPlaceholder : strings.feedback.commentPlaceholder}
-              className="min-w-0 flex-1 rounded-2xl border border-sv-line bg-sv-card px-3 py-2.5 text-sv-ink placeholder:text-sv-ink-soft focus:border-sv-sage focus:outline-none"
+              className="min-h-12 min-w-0 flex-1 rounded-full border border-line bg-bg px-4 text-ink placeholder:text-muted focus:border-green focus:outline-none"
             />
             <button
               type="submit"
               disabled={busy || !draft.trim()}
-              className="shrink-0 rounded-2xl bg-sea px-4 font-bold text-on-sea disabled:opacity-50"
+              className="min-h-12 shrink-0 rounded-full bg-green px-[18px] text-[15px] font-bold text-on-green disabled:opacity-50"
             >
               {strings.feedback.send}
             </button>
@@ -364,7 +366,7 @@ export function FeedbackBar({
             </p>
           )}
           {member.role === "guest" && (
-            <p className="text-xs text-sv-ink-soft">{strings.feedback.commentsHint}</p>
+            <p className="text-[13px] font-medium text-muted">{strings.feedback.commentsHint}</p>
           )}
         </div>
       )}

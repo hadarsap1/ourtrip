@@ -48,6 +48,7 @@ export const strings = {
     // side rail from lg up. They need distinct accessible names.
     bottomBarLabel: "ניווט ראשי",
     moreHasNews: "יש חדש בעוד",
+    unreadMessages: "יש הודעות חדשות בצ'אט",
     photosWaiting: "{n} תמונות ממתינות לאישור",
     railLabel: "ניווט צדדי",
     today: "היום",
@@ -2779,5 +2780,15 @@ export const strings = {
   aiLimit: {
     budget: "תקציב ה-AI של החודש נוצל. אפשר להגדיל אותו בהגדרות, או לחכות לתחילת החודש",
     daily: "הגעתם למכסה היומית של הפעולה הזו - נסו שוב מחר",
+  },
+  // "קרם חם" redesign (24/11/2026): shared parts
+  player: {
+    play: "ניגון",
+    pause: "השהיה",
+    seek: "מיקום בפרק",
+    elapsed: "{now} מתוך {total}",
+  },
+  composer: {
+    send: "שליחה",
   },
 } as const;

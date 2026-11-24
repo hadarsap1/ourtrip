@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 export function Card({ children, highlighted = false, dashed = false, className = "" }: { children: ReactNode; highlighted?: boolean; dashed?: boolean; className?: string }) {
-  const edge = highlighted ? "border-2 border-sea shadow-card" : dashed ? "border-[1.5px] border-dashed border-line bg-transparent" : "border border-line shadow-card";
-  return <div className={`rounded-2xl ${dashed ? "" : "bg-surface"} p-4 ${edge} ${className}`}>{children}</div>;
+  const edge = highlighted ? "border-2 border-green shadow-card" : dashed ? "border-[1.5px] border-dashed border-line bg-transparent" : "border border-line shadow-card";
+  return <div className={`rounded-card ${dashed ? "" : "bg-surface"} p-4 ${edge} ${className}`}>{children}</div>;
 }
 
 /** Icon tile + label + big count (bookings by type, More grid). */
@@ -12,7 +12,7 @@ export function Tile({ href, icon, label, count, toneClass = "bg-sea-tint text-s
   return (
     <Link
       href={href}
-      className={`flex min-h-[96px] flex-col gap-2.5 rounded-2xl p-3 ${empty ? "border border-dashed border-line bg-paper" : "border border-line bg-surface"}`}
+      className={`flex min-h-[96px] flex-col gap-2.5 rounded-card p-3 ${empty ? "border border-dashed border-line bg-paper" : "border border-line bg-surface shadow-card"}`}
     >
       <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${empty ? "bg-paper-deep text-ink-soft" : toneClass}`}>{icon}</span>
       <span className="flex items-baseline justify-between gap-2">
@@ -62,11 +62,28 @@ export function ListRow({
 /** Small illustration slot + one line + exactly one CTA. */
 export function EmptyState({ illustration, title, body, action }: { illustration?: ReactNode; title: string; body?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border-[1.5px] border-dashed border-line px-6 py-8 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-card border-[1.5px] border-dashed border-line px-6 py-8 text-center">
       {illustration}
       <p className="text-base font-bold text-ink">{title}</p>
       {body && <p className="max-w-xs text-sm text-ink-soft">{body}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>
+  );
+}
+
+/**
+ * A redesign tile (קרם חם, "עוד"): white card, a 40px green-soft icon circle
+ * and a 17px / 800 label. Optional dot for "something new inside".
+ */
+export function IconTile({ href, icon, label, badge }: { href: string; icon: ReactNode; label: string; badge?: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="relative flex min-h-[96px] flex-col justify-between gap-3 rounded-[20px] border border-line bg-surface p-3.5 shadow-card active:bg-paper-deep"
+    >
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-green-soft text-green [&>svg]:h-[22px] [&>svg]:w-[22px]">{icon}</span>
+      <span className="text-[17px] font-extrabold leading-tight text-ink">{label}</span>
+      {badge && <span className="absolute end-3 top-3">{badge}</span>}
+    </Link>
   );
 }
