@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { isEnabled } from "@/lib/flags";
 import { listParents, listSteps, type Parent } from "@/lib/data/steps";
+import { requestHome } from "@/lib/data/homeRpc";
 import { countryVisits } from "@/lib/budgetV2";
 import { findCountry } from "@/lib/countries";
 import { queryKeys, readQuery, writeQuery } from "@/lib/offline/queryCache";
@@ -44,8 +45,14 @@ export function StepsCard({ tripId }: { tripId: string }) {
     });
     void (async () => {
       try {
-        const parents = await listParents(tripId);
-        const rows = await listSteps(parents.map((p) => p.id), since, today);
+        // the home's one request (00107) carries the parents and their steps;
+        // asked on its own only when it reaches back less far than this stay
+        const home = await requestHome();
+        const fromHome = home && home.tripId === tripId && home.stepsFrom <= since ? home : null;
+        const parents = fromHome ? fromHome.parents : await listParents(tripId);
+        const rows = fromHome
+          ? fromHome.steps.filter((r) => r.date >= since)
+          : await listSteps(parents.map((p) => p.id), since, today);
         if (!alive) return;
         setData({ parents, rows });
         void writeQuery(queryKeys.steps(tripId), { parents, rows });
