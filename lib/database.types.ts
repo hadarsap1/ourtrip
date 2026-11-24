@@ -1882,6 +1882,7 @@ export type Database = {
           id: string
           media_type: string
           poster_path: string | null
+          thumb_path: string | null
           shared_with_guests: boolean
           status: Database["public"]["Enums"]["photo_status"]
           taken_on: string
@@ -1901,6 +1902,7 @@ export type Database = {
           id?: string
           media_type?: string
           poster_path?: string | null
+          thumb_path?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
@@ -1920,6 +1922,7 @@ export type Database = {
           id?: string
           media_type?: string
           poster_path?: string | null
+          thumb_path?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string

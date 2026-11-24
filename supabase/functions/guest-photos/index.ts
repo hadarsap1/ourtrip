@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
   // rows come through the caller's own JWT → RLS decides what exists
   const { data: photos, error } = await caller
     .from("photos")
-    .select("id, trip_id, file_path, caption, taken_on, media_type, poster_path")
+    .select("id, trip_id, file_path, caption, taken_on, media_type, poster_path, thumb_path")
     .order("taken_on", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) return json({ ok: false, error: error.message }, 500);
@@ -65,7 +65,10 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
   const isVideo = (p: { media_type: string }) => p.media_type === "video";
-  const picturePaths = photos.flatMap((p) => (isVideo(p) ? (p.poster_path ? [p.poster_path] : []) : [p.file_path]));
+  // each picture and its grid thumbnail (00105), only for rows RLS returned
+  const picturePaths = photos.flatMap((p) =>
+    [isVideo(p) ? p.poster_path : p.file_path, p.thumb_path].filter((x): x is string => !!x)
+  );
   const videoPaths = photos.filter(isVideo).map((p) => p.file_path);
   const [signed, signedVideos] = await Promise.all([
     picturePaths.length
@@ -107,6 +110,7 @@ Deno.serve(async (req) => {
       taken_on: p.taken_on,
       url: (isVideo(p) ? p.poster_path && urlByPath.get(p.poster_path) : urlByPath.get(p.file_path)) || null,
       video_url: isVideo(p) ? (urlByPath.get(p.file_path) ?? null) : null,
+      thumb_url: (p.thumb_path && urlByPath.get(p.thumb_path)) || null,
       ...(dayOf.get(`${p.trip_id}|${p.taken_on}`) ?? {
         place: null,
         country_code: null,

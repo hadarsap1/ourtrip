@@ -246,7 +246,7 @@ export function GuestHome({
                 // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
                 <img
                   key={p.id}
-                  src={p.url ?? ""}
+                  src={p.thumbUrl ?? p.url ?? ""}
                   alt={p.caption ?? ""}
                   className="aspect-square w-full rounded-md border-[3px] border-white object-cover shadow-card"
                   style={{ transform: `rotate(${[-2, 1.5, -1, 2][i % 4]}deg)` }}

@@ -20,8 +20,9 @@ function requireClient() {
 
 type UrlMap = Map<string, string | null>;
 /** `url` is always a picture: the photo, or a video's poster frame (00099).
- *  `videoUrl` is the video itself, null for a photo. */
-export type PhotoMedia = { url: string | null; videoUrl: string | null };
+ *  `videoUrl` is the video itself, null for a photo. `thumbUrl`: the small
+ *  copy for tiles (00105), null when there is none - use `thumbUrl ?? url`. */
+export type PhotoMedia = { url: string | null; videoUrl: string | null; thumbUrl: string | null };
 type MediaMap = Map<string, PhotoMedia>;
 
 async function familySignEpisodes(ids: string[]): Promise<UrlMap> {
@@ -39,11 +40,11 @@ async function familySignEpisodes(ids: string[]): Promise<UrlMap> {
 async function familySignPhotos(ids: string[]): Promise<MediaMap> {
   const { data, error } = await requireClient()
     .from("photos")
-    .select("id, file_path, media_type, poster_path")
+    .select("id, file_path, media_type, poster_path, thumb_path")
     .in("id", ids);
   if (error) throw new Error(error.message);
   const signed = await signFamilyMedia(data ?? [], FAMILY_TTL_SECONDS);
-  return new Map(signed.map((r) => [r.id, { url: r.url, videoUrl: r.videoUrl }]));
+  return new Map(signed.map((r) => [r.id, { url: r.url, videoUrl: r.videoUrl, thumbUrl: r.thumbUrl }]));
 }
 
 async function guestSign(photoIds: string[], episodeIds: string[]): Promise<{ photos: MediaMap; episodes: UrlMap }> {
@@ -53,9 +54,10 @@ async function guestSign(photoIds: string[], episodeIds: string[]): Promise<{ ph
   if (error) throw new Error(error.message);
   if (!data?.ok) throw new Error(data?.error ?? "failed");
   const toMap = (rows: { id: string; url: string | null }[]) => new Map(rows.map((r) => [r.id, r.url]));
-  const photos = (data.photos ?? []) as { id: string; url: string | null; video_url?: string | null }[];
+  // thumb_url: absent from a deployment of the function older than 00105
+  const photos = (data.photos ?? []) as { id: string; url: string | null; video_url?: string | null; thumb_url?: string | null }[];
   return {
-    photos: new Map(photos.map((r) => [r.id, { url: r.url, videoUrl: r.video_url ?? null }])),
+    photos: new Map(photos.map((r) => [r.id, { url: r.url, videoUrl: r.video_url ?? null, thumbUrl: r.thumb_url ?? null }])),
     episodes: toMap(data.episodes ?? []),
   };
 }
