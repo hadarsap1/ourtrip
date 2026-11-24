@@ -2592,6 +2592,9 @@ export const strings = {
     morePhotos: "+{n}",
     // the photos of an update, swiped through (Hadar 01/11/2026)
     photoOf: "תמונה {i} מתוך {n}",
+    // a photo of an update opened on the whole screen (Hadar 24/11/2026)
+    openPhoto: "הגדלת התמונה",
+    photoBig: "התמונה בגדול",
     mapCard: "איפה היינו",
     mapCardHint: "כל המקומות שעברנו, על המפה",
   },

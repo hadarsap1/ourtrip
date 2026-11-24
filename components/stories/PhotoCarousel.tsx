@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { VideoFrame } from "@/components/photos/VideoFrame";
+import { PhotoLightbox } from "@/components/stories/PhotoLightbox";
 import { strings } from "@/lib/strings";
 
 /**
@@ -17,6 +18,8 @@ import { strings } from "@/lib/strings";
  *
  * A short video (00099) is one of the slides: its poster frame with a play
  * button, the video itself only after a tap.
+ *
+ * A tap on a photo opens it big, on the whole screen (Hadar 24/11/2026).
  */
 
 const TALLEST = 4 / 5;
@@ -30,6 +33,9 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
   const [index, setIndex] = useState(0);
   // width / height of the frame, from the first photo once it loads
   const [ratio, setRatio] = useState(DEFAULT_RATIO);
+  // the slide opened big, or null
+  const [big, setBig] = useState<number | null>(null);
+  const closeBig = useCallback(() => setBig(null), []);
   if (shown.length === 0) return null;
 
   const onFirstLoad = (img: HTMLImageElement) => {
@@ -77,16 +83,23 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
             );
           }
           return (
-            // eslint-disable-next-line @next/next/no-img-element -- signed URL
-            <img
+            <button
               key={p.photoId}
-              src={p.url ?? undefined}
-              alt={alt}
-              loading={i === 0 ? "eager" : "lazy"}
-              ref={firstRef}
-              onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
-              className="h-full w-full shrink-0 snap-start object-contain"
-            />
+              type="button"
+              onClick={() => setBig(i)}
+              aria-label={strings.stories.openPhoto}
+              className="h-full w-full shrink-0 snap-start cursor-zoom-in"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
+              <img
+                src={p.url ?? undefined}
+                alt={alt}
+                loading={i === 0 ? "eager" : "lazy"}
+                ref={firstRef}
+                onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
+                className="h-full w-full object-contain"
+              />
+            </button>
           );
         })}
       </div>
@@ -114,6 +127,7 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
           </div>
         </>
       )}
+      {big !== null && <PhotoLightbox photos={shown} start={big} onClose={closeBig} />}
     </div>
   );
 }
