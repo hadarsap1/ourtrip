@@ -781,7 +781,7 @@ export function BudgetScreen() {
       {/* The action the screen exists for, pinned within thumb reach: as the
           last block it sat below every expense of the trip, off screen after
           the first week (UX pass 06/11/2026). */}
-      <div className="sticky bottom-0 z-10 -mx-4 mt-auto grid grid-cols-2 gap-2.5 border-t border-line bg-paper px-4 pt-2.5 pb-2.5">
+      <div className="ot-dock sticky bottom-0 z-10 -mx-4 mt-auto grid grid-cols-2 gap-2.5 border-t border-line bg-paper px-4 pt-2.5 pb-2.5">
         <button
           type="button"
           onClick={() => setExpenseForm({ expense: null })}

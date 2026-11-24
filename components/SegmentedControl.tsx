@@ -30,16 +30,16 @@ export function SegmentedControl<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className="relative isolate grid rounded-xl bg-paper-deep p-[3px]"
+      className="relative isolate grid rounded-2xl bg-track p-1"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))` }}
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-[3px] -z-10 rounded-xl bg-surface transition-[inset-inline-start] duration-[180ms] ease-out"
+        className="absolute inset-y-1 -z-10 rounded-xl bg-surface transition-[inset-inline-start] duration-[180ms] ease-out"
         style={{
-          width: `calc(${width}% - 6px)`,
-          insetInlineStart: `calc(${index * width}% + 3px)`,
-          boxShadow: "0 2px 5px -2px rgba(34,49,46,.2)",
+          width: `calc(${width}% - 8px)`,
+          insetInlineStart: `calc(${index * width}% + 4px)`,
+          boxShadow: "0 2px 8px rgba(43,33,24,.12)",
         }}
       />
       {options.map((option) => {
@@ -51,8 +51,8 @@ export function SegmentedControl<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(option.value)}
-            className={`min-h-[44px] rounded-xl py-[7px] text-xs transition-colors ${
-              active ? "font-bold text-sea-deep" : "font-semibold text-ink-soft"
+            className={`min-h-[44px] rounded-xl px-1 py-2 text-base leading-tight transition-colors ${
+              active ? "font-bold text-ink" : "font-medium text-nav-idle"
             }`}
           >
             {option.label}

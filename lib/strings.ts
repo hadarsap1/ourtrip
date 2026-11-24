@@ -48,6 +48,7 @@ export const strings = {
     // side rail from lg up. They need distinct accessible names.
     bottomBarLabel: "ניווט ראשי",
     moreHasNews: "יש חדש בעוד",
+    unreadMessages: "יש הודעות חדשות בצ'אט",
     photosWaiting: "{n} תמונות ממתינות לאישור",
     railLabel: "ניווט צדדי",
     today: "היום",
@@ -79,6 +80,7 @@ export const strings = {
     tileWeather: "מזג אוויר",
     tileTonight: "הלילה",
     tileSpentToday: "הוצאות היום",
+    nothingSpent: "עוד לא נרשם",
     agenda: "לוח היום",
     agendaCount: "{n} פעילויות",
     noLodging: "לא נרשמה לינה",
@@ -364,7 +366,9 @@ export const strings = {
   steps: {
     title: "צעדים היום",
     notReported: "עוד לא דווח",
+    notReportedToday: "עוד לא דווח היום",
     stay: "בשהות ב{place}: {n}",
+    stayShort: "בשהות ב{place}",
     week: "השבוע",
     weekAria: "צעדים ב-7 הימים האחרונים",
     settingsTitle: "ספירת צעדים מהאייפון",
@@ -778,6 +782,9 @@ export const strings = {
     groupOnTheRoad: "בדרך",
     groupMemories: "זיכרונות",
     groupFamily: "תכנון וניהול",
+    // the guest-preview row (קרם חם)
+    previewHint: "לראות מה האורחים רואים",
+    previewCta: "תצוגת אורח",
     optionsState: "{n} אפשרויות",
     // redesign 3b
     emergencyMeta: "‏112 · שגרירות · ביטוח",
@@ -1784,7 +1791,7 @@ export const strings = {
     title: "צ'אט",
     ownerHint: "הצ'אט משותף עם החברים, המשפחה והילדים. הודעה של הילדים יוצאת אחרי שאחד מכם מאשר אותה.",
     kidHint: "כאן כותבים לחברים ולמשפחה. אמא או אבא יאשרו את ההודעה לפני שהיא יוצאת.",
-    guestHint: "הצ'אט משותף עם המשפחה - גם הילדים קוראים כאן.",
+    guestHint: "משותף עם המשפחה, גם הילדים קוראים כאן",
     placeholder: "כותבים משהו…",
     send: "שליחה",
     empty: "עוד אין הודעות - כתבו את הראשונה!",
@@ -2020,8 +2027,12 @@ export const strings = {
     // "whoever gets the link is connected to us"): their name, what is new
     // since they were last here, the newest update with its photo, the latest
     // photos, something the kids said, and a way to answer.
-    hello: "היי {name}!",
+    hello: "היי, {name}!",
     sinceTitle: "מאז שביקרת",
+    // one chip: "5 תמונות חדשות מאז שביקרת" (קרם חם)
+    sinceSuffix: "{what} מאז שביקרת",
+    // the family's local time under the greeting (קרם חם): "אצלם בווייטנאם 12:50"
+    theirTime: "אצלם {where}",
     newStory: "עדכון חדש",
     newStories: "{n} עדכונים חדשים",
     newPhoto: "תמונה חדשה",
@@ -2134,6 +2145,8 @@ export const strings = {
     uploadedOwner: "התמונה הועלתה",
     empty: "עוד אין תמונות",
     uploadFirst: "העלאת תמונה ראשונה",
+    // the coral pill beside the title (קרם חם)
+    uploadPill: "+ העלאה",
     caption: "כיתוב (לא חובה)",
     captionPlaceholder: "מה קרה כאן? אפשר לכתוב כמה שרוצים",
     newUpload: "העלאה חדשה",
@@ -2779,5 +2792,15 @@ export const strings = {
   aiLimit: {
     budget: "תקציב ה-AI של החודש נוצל. אפשר להגדיל אותו בהגדרות, או לחכות לתחילת החודש",
     daily: "הגעתם למכסה היומית של הפעולה הזו - נסו שוב מחר",
+  },
+  // "קרם חם" redesign (24/11/2026): shared parts
+  player: {
+    play: "ניגון",
+    pause: "השהיה",
+    seek: "מיקום בפרק",
+    elapsed: "{now} מתוך {total}",
+  },
+  composer: {
+    send: "שליחה",
   },
 } as const;

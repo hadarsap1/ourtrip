@@ -77,7 +77,7 @@ export function VideoBadge({ className = "" }: { className?: string }) {
     <span
       role="img"
       aria-label={strings.stories.videoBadge}
-      className={`pointer-events-none grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white ${className}`}
+      className={`pointer-events-none grid h-[34px] w-[34px] place-items-center rounded-full bg-[rgba(10,20,18,0.7)] text-white ${className}`}
     >
       <PlayIcon className="h-4 w-4" />
     </span>

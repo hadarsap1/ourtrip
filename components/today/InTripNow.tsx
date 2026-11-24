@@ -11,8 +11,17 @@ import { strings } from "@/lib/strings";
  * lived here too; the home no longer carries a plan by the hour (Hadar
  * 15/11/2026) - what was booked for today is listed by TodayScreen.
  */
-export function InTripNow({ now, clock }: { now: number; clock: Date }) {
-  const home = homeClock(clock, now);
+export function InTripNow({
+  now,
+  clock,
+  showClock = true,
+}: {
+  now: number;
+  clock: Date;
+  /** the parents' home shows the clocks in its progress card (קרם חם) */
+  showClock?: boolean;
+}) {
+  const home = showClock ? homeClock(clock, now) : null;
   const evening = isEvening(now);
   if (!home && !evening) return null;
 
@@ -31,7 +40,7 @@ export function InTripNow({ now, clock }: { now: number; clock: Date }) {
       )}
 
       {evening && (
-        <Link href="/stories" className="flex items-center gap-3 rounded-card bg-gold/10 px-3.5 py-3">
+        <Link href="/stories" className="flex items-center gap-3 rounded-card border border-line bg-surface px-3.5 py-3 shadow-card">
           <JournalIcon className="h-6 w-6 shrink-0 text-gold" />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-ink">{strings.todayV2.eveningTitle}</span>

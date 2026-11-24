@@ -59,7 +59,7 @@ export default async function PublicStoryPage({ params }: Props) {
         <SovevBrand />
         {!story ? (
           <div className="space-y-2 rounded-card border-2 border-dashed border-sv-line p-8 text-center">
-            <h1 className="sovev-display text-2xl font-extrabold">{strings.publicStory.notFound}</h1>
+            <h1 className="text-2xl font-extrabold">{strings.publicStory.notFound}</h1>
             <p className="text-sv-ink-soft">{strings.publicStory.notFoundBody}</p>
           </div>
         ) : (
@@ -77,7 +77,7 @@ export default async function PublicStoryPage({ params }: Props) {
                 {story.publishedAt && <span dir="ltr">{formatDate(story.publishedAt.slice(0, 10))}</span>}
                 {story.placeLabel && <span> · {story.placeLabel}</span>}
               </p>
-              <h1 className="sovev-display text-[32px] font-extrabold leading-[42px]">{story.title}</h1>
+              <h1 className="text-[32px] font-extrabold leading-[40px] tracking-[-0.5px]">{story.title}</h1>
             </header>
             {story.body && (
               <div className="whitespace-pre-wrap text-lg leading-[1.8] [text-wrap:pretty]">{story.body}</div>

@@ -51,7 +51,8 @@ export function StoryCard({
   const [open, setOpen] = useState(false);
   // no title: the first line is the headline (Hadar 01/11/2026)
   const { headline, body } = cardHeadline(story);
-  const folds = needsFold(body);
+  // three lines on the card (קרם חם): about 160 characters on a phone
+  const folds = needsFold(body, 160, 3);
   const author = members.find((m) => m.id === story.author_id);
   const published = story.status === "approved";
   // the day the entry is about (00078), not the day it went out
@@ -76,22 +77,23 @@ export function StoryCard({
     <article
       ref={cardRef}
       id={`story-${story.id}`}
-      className="scroll-mt-4 overflow-hidden rounded-card border border-sv-line bg-sv-card"
+      className="scroll-mt-4 overflow-hidden rounded-[26px] border border-line bg-surface shadow-card"
     >
-      <PhotoCarousel photos={story.photos} />
-      <div className="space-y-3 p-4">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sv-ink-soft">
+      {story.photos.length > 0 ? <PhotoCarousel photos={story.photos} cover /> : <div aria-hidden="true" className="ot-gradient h-2" />}
+      <div className="flex flex-col gap-2.5 px-4 pb-4 pt-3.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-muted">
           {published && (
             <NewFeedbackChip comments={fresh.commentIds.size} likes={fresh.likes} scrollTo={`feedback-${story.id}`} />
           )}
           <span dir="ltr">{formatDate(date)}</span>
           {story.place_label && (
             <span className="flex items-center gap-1">
-              <PinIcon className="h-3 w-3" />
+              <span aria-hidden="true">·</span>
+              <PinIcon className="h-3.5 w-3.5" />
               {story.place_label}
             </span>
           )}
-          {author && <span>· {strings.stories.by.replace("{name}", author.display_name)}</span>}
+          {author && <span>· {author.display_name}</span>}
           {!published && (
             <span className="rounded-full bg-warning-soft px-2 py-0.5 font-bold text-warning">
               {story.status === "pending" ? strings.stories.pending : strings.stories.draft}
@@ -114,7 +116,7 @@ export function StoryCard({
 
         {(headline || story.mood) && (
           <div className="flex items-start justify-between gap-2">
-            {headline && <h2 className="text-lg font-bold text-ink">{headline}</h2>}
+            {headline && <h2 className="text-[22px] font-extrabold leading-[1.2] text-ink">{headline}</h2>}
             {story.mood && (
               <span className="ms-auto shrink-0 rounded-full bg-sun-tint px-2 py-0.5 text-base leading-6">
                 {story.mood}
@@ -126,8 +128,8 @@ export function StoryCard({
         {body && (
           <div>
             <p
-              className={`whitespace-pre-wrap text-base leading-[1.7] text-sv-ink [text-wrap:pretty] ${
-                folds && !open ? "line-clamp-6" : ""
+              className={`whitespace-pre-wrap text-base leading-[1.45] text-ink [text-wrap:pretty] ${
+                folds && !open ? "line-clamp-3" : ""
               }`}
             >
               {body}
@@ -136,7 +138,7 @@ export function StoryCard({
               <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="mt-1 text-sm font-bold text-sv-clay underline-offset-4 hover:underline"
+                className="mt-1 flex min-h-9 items-center text-base font-bold text-coral underline-offset-4 hover:underline"
               >
                 {open ? strings.stories.readLess : strings.stories.readMore}
               </button>
@@ -159,12 +161,12 @@ export function StoryCard({
         )}
 
         {(onApprove || onEdit || onDelete || onShare) && (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-sv-line pt-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
             {onApprove && (
               <button
                 type="button"
                 onClick={onApprove}
-                className="me-auto rounded-xl bg-sea px-4 py-2 text-sm font-bold text-on-sea"
+                className="me-auto rounded-full bg-green px-4 py-2 text-sm font-bold text-on-green"
               >
                 {strings.stories.approve}
               </button>
@@ -173,7 +175,7 @@ export function StoryCard({
               <button
                 type="button"
                 onClick={onShare}
-                className="flex items-center gap-1.5 rounded-xl border border-sv-line px-3 py-2 text-sm font-semibold text-sv-ink"
+                className="flex items-center gap-1.5 rounded-full border border-line px-3.5 py-2 text-sm font-bold text-ink"
               >
                 <ShareIcon className="h-4 w-4" /> {strings.share.whatsapp}
               </button>
@@ -183,7 +185,7 @@ export function StoryCard({
                 type="button"
                 onClick={onEdit}
                 aria-label={strings.stories.edit}
-                className="grid place-items-center rounded-xl border border-sv-line text-sv-ink-soft"
+                className="grid place-items-center rounded-full border border-line text-muted"
               >
                 <EditIcon className="h-4 w-4" />
               </button>
@@ -193,7 +195,7 @@ export function StoryCard({
                 type="button"
                 onClick={onDelete}
                 aria-label={strings.stories.delete}
-                className="grid place-items-center rounded-xl border border-sv-line text-sv-ink-soft"
+                className="grid place-items-center rounded-full border border-line text-muted"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>

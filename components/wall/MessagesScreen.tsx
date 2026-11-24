@@ -28,7 +28,9 @@ import { audienceText } from "@/lib/audience";
 import { AudienceSheet } from "@/components/AudienceSheet";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { formatShortDate } from "@/lib/format";
-import { EditIcon, MessagesIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, TrashIcon } from "@/components/icons";
+import { Composer } from "@/components/ui/Composer";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EditTextSheet } from "@/components/EditTextSheet";
 import { LoadFailed } from "@/components/LoadFailed";
 import { strings } from "@/lib/strings";
@@ -71,7 +73,7 @@ export function MessagesScreen() {
   const [audienceFor, setAudienceFor] = useState<"compose" | WallMessage | null>(null);
   // editing a message's text after it went out (00076)
   const [editing, setEditing] = useState<WallMessage | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -278,32 +280,25 @@ export function MessagesScreen() {
   const bubble = (message: WallMessage, isReply: boolean) => {
     const mine = message.sender_id === member.id;
     const pending = isPending(message);
-    const soft = mine ? "text-sea-tint" : "text-ink-soft";
+    const soft = "text-muted";
+    // one card per message (קרם חם): mine on green-soft, the rest on surface
     return (
       <div
         key={message.id}
-        className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
-          mine
-            ? "ms-auto bg-sea text-on-sea"
-            : "me-auto bg-surface text-ink"
-        } ${pending ? "border-2 border-dashed border-sun-deep" : ""}`}
+        className={`flex flex-col gap-1.5 rounded-3xl px-4 py-3.5 text-ink shadow-card ${
+          mine ? "bg-green-soft" : "bg-surface"
+        } ${pending ? "border-2 border-dashed border-sun-deep" : "border border-line"}`}
       >
-        <div className="flex items-start gap-2">
-          <p
-            className={`flex-1 text-xs font-semibold ${
-              mine ? "text-sea-tint" : "text-sea"
-            }`}
-          >
-            {senderName(message.sender_id)}
+        {/* name on the start side, date on the end side, with a real gap
+            between them (it read "Asaf Lotan31/10") */}
+        <div className="flex items-center gap-3 text-sm">
+          <p className="min-w-0 flex-1 truncate font-bold text-green">
+            <bdi>{senderName(message.sender_id)}</bdi>
             {!mine && <KidTag names={members.find((m) => m.id === message.sender_id)?.kid_names} />}
-            <span
-              className={`ms-1.5 font-normal ${
-                mine ? "text-sea-tint" : "text-ink-soft"
-              }`}
-            >
-              {formatShortDate(message.created_at.slice(0, 10))}
-            </span>
           </p>
+          <span className="shrink-0 font-medium text-muted" dir="ltr">
+            {formatShortDate(message.created_at.slice(0, 10))}
+          </span>
           {/* the writer edits their own original, a parent any message; a
               parent's bridge copy is the parent's, not the writer's (00076) */}
           {(isOwner || (mine && !message.origin_message_id && !message.origin_comment_id)) && (
@@ -311,9 +306,7 @@ export function MessagesScreen() {
               type="button"
               aria-label={strings.common.edit}
               onClick={() => setEditing(message)}
-              className={`-mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                mine ? "text-sea-tint active:bg-on-sea/15" : "text-ink-soft active:bg-paper-deep"
-              }`}
+              className="-my-2 grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted active:bg-paper-deep"
             >
               <EditIcon className="h-4 w-4" />
             </button>
@@ -328,15 +321,13 @@ export function MessagesScreen() {
                 if (!(await askConfirm(strings.wall.removeConfirm))) return;
                 act(() => deleteMessage(message.id).then(() => showToast(strings.wall.removed)));
               }}
-              className={`-me-1.5 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                mine ? "text-sea-tint active:bg-on-sea/15" : "text-ink-soft active:bg-paper-deep"
-              }`}
+              className="-my-2 -me-1.5 grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted active:bg-paper-deep"
             >
               <TrashIcon className="h-4 w-4" />
             </button>
           )}
         </div>
-        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        <p className="whitespace-pre-wrap break-words text-lg leading-[1.35]">{message.body}</p>
         {/* who a message went to, when not everyone - a reply goes with its
             message. Parents also see a waiting one's and change it: the kid's
             choice is a suggestion. */}
@@ -359,7 +350,7 @@ export function MessagesScreen() {
         {/* emoji and "answer" once a message is out - a waiting one can
             get neither (00066, 00103) */}
         {!pending && trip && (
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <ReactionRow
               tripId={trip.id}
               memberId={member.id}
@@ -367,7 +358,7 @@ export function MessagesScreen() {
               reactions={reactions}
               onChanged={reloadReactions}
               onToast={showToast}
-              tone={mine ? "onSea" : "plain"}
+              tone="plain"
             />
             <button
               type="button"
@@ -376,7 +367,7 @@ export function MessagesScreen() {
                 setReplyTo(isReply ? (messages.find((m) => m.id === message.reply_to) ?? null) : message);
                 inputRef.current?.focus();
               }}
-              className={`ms-auto min-h-8 text-xs font-semibold underline ${soft}`}
+              className="ms-auto flex min-h-10 items-center px-1 text-[15px] font-bold text-green underline underline-offset-2"
             >
               {strings.wall.reply}
             </button>
@@ -390,7 +381,7 @@ export function MessagesScreen() {
                 <button
                   type="button"
                   onClick={() => act(() => approveMessage(message.id))}
-                  className="min-h-9 rounded-full bg-sea px-3 font-bold text-on-sea"
+                  className="min-h-10 rounded-full bg-green px-4 font-bold text-on-green"
                 >
                   {strings.wall.approve}
                 </button>
@@ -425,15 +416,10 @@ export function MessagesScreen() {
   };
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pt-4">
-      <h1 className="ot-title mb-3">
-        <MessagesIcon className="inline-block h-5 w-5 align-text-bottom text-sea" />{" "}
-        {strings.wall.title}
-      </h1>
+    <div className="mx-auto flex min-h-full max-w-lg flex-col px-[18px] pt-[26px]">
+      <PageHeader title={strings.wall.title} subtitle={hint} className="mb-3" />
 
-      <p className="mb-2 text-xs text-ink-soft">{hint}</p>
-
-      <div className="flex-1 space-y-2 overflow-y-auto pb-3">
+      <div className="flex-1 space-y-3 pb-3">
         {threads.length === 0 && loadFailed ? (
           <LoadFailed onRetry={retryLoad} />
         ) : threads.length === 0 ? (
@@ -445,7 +431,7 @@ export function MessagesScreen() {
             <div key={message.id} className="space-y-1.5">
               {bubble(message, false)}
               {replies.length > 0 && (
-                <div className="space-y-1.5 border-s-2 border-line ps-3 ms-3">
+                <div className="space-y-2 border-s-2 border-line ps-3 ms-3">
                   {replies.map((reply) => bubble(reply, true))}
                 </div>
               )}
@@ -457,7 +443,7 @@ export function MessagesScreen() {
 
       {/* the reply / audience line rides with the composer, so it is in
           view whenever the composer is - also after "תשובה" on an old message */}
-      <div className="sticky bottom-0 space-y-1.5 bg-paper-deep py-2">
+      <div className="ot-dock sticky bottom-0 -mx-[18px] space-y-1.5 bg-bg px-3 pt-2 pb-3">
         {/* Answering: the reply goes where the message went - nothing to
             choose (00066). A new message: everyone, unless the family picks
             groups; a guest's new message always goes to everyone. */}
@@ -501,23 +487,15 @@ export function MessagesScreen() {
             </p>
           )
         )}
-        <form onSubmit={(e) => void handleSend(e)} className="flex gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={strings.wall.placeholder}
-            className="min-w-0 flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-base focus:border-sea focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={sending || !body.trim()}
-            className="shrink-0 rounded-2xl bg-sea px-4 py-3 font-bold text-on-sea disabled:opacity-50"
-          >
-            {strings.wall.send}
-          </button>
-        </form>
+        <Composer
+          value={body}
+          onChange={setBody}
+          onSubmit={(e) => void handleSend(e)}
+          placeholder={strings.wall.placeholder}
+          label={strings.wall.placeholder}
+          disabled={sending}
+          inputRef={inputRef}
+        />
       </div>
 
       {audienceFor && (

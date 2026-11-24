@@ -669,3 +669,36 @@ export const EyeIcon = (p: IconProps) => (
     <circle cx="12" cy="12" r="2.8" />
   </Glyph>
 );
+
+/* ---- "קרם חם" redesign (24/11/2026) -------------------------------------- */
+
+// Two cards side by side: the guest "עדכונים" tab.
+export const UpdatesIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <rect x="3" y="4" width="8" height="16" rx="1.5" />
+    <rect x="13" y="4" width="8" height="16" rx="1.5" />
+  </Glyph>
+);
+
+// A paper plane, drawn pointing to the inline end. Authored for LTR, so it
+// carries rtl:-scale-x-100 to point left in Hebrew.
+export const SendIcon = ({ className = "h-5 w-5", ...p }: IconProps) => (
+  <Glyph {...p} className={`${className} rtl:-scale-x-100`}>
+    <path d="M3 11l18-8-8 18-2-8-8-2z" />
+  </Glyph>
+);
+
+// The guest-preview row on "עוד": a lab flask.
+export const FlaskIcon = (p: IconProps) => (
+  <Glyph {...p}>
+    <path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3" />
+    <path d="M7.5 15h9" />
+  </Glyph>
+);
+
+// An arrow toward the inline end (left in RTL): "לכל התמונות", "איפה היינו".
+export const ArrowForwardIcon = ({ className = "h-5 w-5", ...p }: IconProps) => (
+  <Glyph {...p} className={`${className} rtl:-scale-x-100`}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Glyph>
+);

@@ -31,6 +31,15 @@ export function Chip({
   );
 }
 
+/** A static note pill (קרם חם): green-soft ground, green 15px / 700 text. */
+export function NoticeChip({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 self-start rounded-full bg-green-soft px-4 py-2 text-[15px] font-bold leading-5 text-green ${className}`}>
+      {children}
+    </span>
+  );
+}
+
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 const TONE: Record<Tone, string> = {
   success: "bg-success-soft text-success",

@@ -54,20 +54,22 @@ export function PhotoPlacesMap<P>({
         gestureHandling: "cooperative",
       });
       const bounds = new google.maps.LatLngBounds();
-      for (const pin of pins) {
+      // coral clusters, the newest place (where we are) green (קרם חם)
+      for (const [i, pin] of pins.entries()) {
         const marker = new google.maps.Marker({
           map,
           position: { lat: pin.lat, lng: pin.lng },
           title: strings.photos.mapPin.replace("{place}", pin.place).replace("{n}", String(pin.n)),
-          label: { text: String(pin.n), color: "#ffffff", fontSize: "12px", fontWeight: "700" },
+          label: { text: String(pin.n), color: "#ffffff", fontSize: "16px", fontWeight: "800" },
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 12,
-            fillColor: "#c2410c",
+            scale: Math.min(23, 18 + Math.log2(pin.n + 1)),
+            fillColor: i === 0 ? "#3d6a3a" : "#c4471f",
             fillOpacity: 1,
             strokeColor: "#ffffff",
-            strokeWeight: 2,
+            strokeWeight: 3,
           },
+          zIndex: i === 0 ? 2 : 1,
         });
         marker.addListener("click", () => onPick(pin.key));
         markers.push(marker);
@@ -87,7 +89,7 @@ export function PhotoPlacesMap<P>({
       ref={containerRef}
       role="region"
       aria-label={strings.photos.mapLabel}
-      className="h-48 w-full overflow-hidden rounded-2xl border border-line bg-paper-deep"
+      className="h-[200px] w-full overflow-hidden rounded-[26px] border border-line bg-green-soft"
     />
   );
 }

@@ -62,68 +62,66 @@ export function BottomNav() {
   const captureSlot = role === "owner" && captureOn;
 
   return (
-    // Opaque, not paper/90 + blur: translucency muddies text over the warm
-    // background. Hidden from lg up, where the side rail takes over. A flex
-    // row under <main>, not position:fixed - see the body in app/layout.tsx.
+    // A floating capsule (קרם חם, 24/11/2026). Absolute in the body, not
+    // position:fixed: the body never scrolls and is one screen tall, so this
+    // pins to the bottom exactly like fixed did, without the iOS WebKit drift
+    // that a fixed bar had (see the body in app/layout.tsx). <main> scrolls
+    // under it with --nav-room of bottom padding. Hidden from lg up, where
+    // the side rail takes over.
     <nav
-      className="relative z-50 shrink-0 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="absolute inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-50 h-[70px] rounded-[28px] border border-line bg-surface/96 px-1 shadow-nav lg:hidden"
       aria-label={strings.nav.bottomBarLabel}
     >
       <ul
-        className={`items-start gap-0.5 px-1.5 pt-[7px] pb-2 ${captureSlot ? "grid" : "flex"}`}
+        className={`h-full items-center ${captureSlot ? "grid" : "flex justify-around gap-0.5"}`}
         style={captureSlot ? { gridTemplateColumns: captureColumns(tabs.length) } : undefined}
       >
         {tabs.map((tab, index) => {
           const active = isNavItemActive(pathname, tab.href);
+          const dot =
+            (tab.href === "/messages" && unread > 0) ||
+            (tab.href === "/photos" && photosHasNews) ||
+            (tab.href === "/more" && moreHasNews);
+          const dotLabel =
+            tab.href === "/messages"
+              ? strings.nav.unreadMessages
+              : tab.href === "/photos"
+                ? strings.more.newFeedback
+                : strings.nav.moreHasNews;
           return (
             <Fragment key={tab.href}>
             {captureSlot && index === CAPTURE_AFTER && <li id={NAV_CAPTURE_SLOT_ID} className="flex justify-center" />}
-            <li className="min-w-0 flex-1">
+            <li className="flex min-w-0 flex-1 justify-center">
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                // the open tab is a filled pill (UI pass 15/11/2026): a 16px
-                // underline and a bolder label were too quiet to find at a glance
-                className={`flex flex-col items-center gap-[3px] rounded-2xl py-1.5 transition-colors ${
-                  active ? "bg-sea-tint text-sea-deep" : "text-ink-faint"
+                // the open tab is a filled green pill: a shape, not only a colour
+                // px-0.5: at 360 with the centred capture slot a trailing tab is ~45px,
+                // and "תמונות" needs 40 of it
+                className={`flex h-[54px] w-full max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-[20px] px-0.5 transition-colors ${
+                  active ? "bg-green text-on-green" : "text-nav-idle"
                 }`}
               >
                 <span className="relative">
-                  <tab.Icon className="h-[23px] w-[23px]" strokeWidth={1.7} />
-                  {tab.href === "/messages" && unread > 0 && (
-                    <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-bold text-on-alert">
-                      {unread > 9 ? "9+" : unread}
-                    </span>
+                  <tab.Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 2} />
+                  {dot && (
+                    <span
+                      className="absolute -end-1 -top-0.5 h-[9px] w-[9px] rounded-full bg-coral ring-2 ring-surface"
+                      role="status"
+                      aria-label={dotLabel}
+                    />
                   )}
                   {tab.href === "/photos" && photosWaiting > 0 && (
                     <span
-                      className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-bold text-on-alert"
+                      className="absolute -end-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-coral px-1 text-xs font-bold text-on-coral ring-2 ring-surface"
                       role="status"
                       aria-label={strings.nav.photosWaiting.replace("{n}", String(photosWaiting))}
                     >
                       {photosWaiting > 9 ? "9+" : photosWaiting}
                     </span>
                   )}
-                  {tab.href === "/photos" && photosHasNews && (
-                    <span
-                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-alert"
-                      role="status"
-                      aria-label={strings.more.newFeedback}
-                    />
-                  )}
-                  {tab.href === "/more" && moreHasNews && (
-                    <span
-                      className="absolute -end-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-alert"
-                      role="status"
-                      aria-label={strings.nav.moreHasNews}
-                    />
-                  )}
                 </span>
-                <span
-                  className={`text-xs leading-none tracking-[0.01em] ${
-                    active ? "font-bold" : "font-medium"
-                  }`}
-                >
+                <span className={`max-w-full truncate text-xs leading-4 ${active ? "font-bold" : "font-medium"}`}>
                   {tab.label}
                 </span>
               </Link>

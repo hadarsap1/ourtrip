@@ -15,6 +15,7 @@ import {
   type IconProps,
   JournalIcon,
   MailIcon,
+  FlaskIcon,
   GlobeIcon,
   JarIcon,
   MapIcon,
@@ -33,6 +34,7 @@ import { useNewFeedback } from "@/lib/useNewFeedback";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 import { usePendingApprovals } from "@/lib/usePendingApprovals";
 import { strings } from "@/lib/strings";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 type Tile = {
   href: string;
@@ -45,6 +47,8 @@ type Tile = {
   /** A new like or comment from someone else (00081): a dot, unless the
    *  number badge is already there. */
   dot?: boolean;
+  /** a planning row's state ("3 מכשירים"), shown in place of the count */
+  state?: string | null;
 };
 
 type AdminRow = {
@@ -56,44 +60,47 @@ type AdminRow = {
   badge?: number;
 };
 
-function TileGrid({ tiles }: { tiles: Tile[] }) {
+/** The redesign's tiles (קרם חם, P2): a white card, a 40px green-soft icon
+ *  circle and a 17px / 800 label, with the count or state under it. */
+function TileGrid({ tiles, cols = 2 }: { tiles: Tile[]; cols?: 2 | 3 }) {
   return (
-    <ul className="grid grid-cols-2 gap-[9px] sm:grid-cols-4">
+    <ul className={`grid gap-2.5 ${cols === 3 ? "grid-cols-3 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-4"}`}>
       {tiles.map((tile) => (
         <li key={tile.href}>
           <Link
             href={tile.href}
-            className="flex h-full flex-col gap-[7px] rounded-card border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
+            className="flex h-full min-h-[96px] flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-3.5 shadow-card active:bg-paper-deep"
           >
             <span className="relative w-fit">
               <span
-                className={`grid h-8 w-8 place-items-center rounded-xl ${
-                  tile.tone === "sun"
-                    ? "bg-sun-tint text-sun-deep"
-                    : "bg-sea-tint text-sea-deep"
+                className={`grid h-10 w-10 place-items-center rounded-full ${
+                  tile.tone === "sun" ? "bg-sun-tint text-sun-deep" : "bg-green-soft text-green"
                 }`}
               >
-                <tile.Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                <tile.Icon className="h-[22px] w-[22px]" strokeWidth={2} />
               </span>
               {tile.badge != null && tile.badge > 0 && (
-                <span className="absolute -end-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-xs font-extrabold text-on-alert">
+                <span className="absolute -end-1.5 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-xs font-extrabold text-on-coral ring-2 ring-surface">
                   {tile.badge > 9 ? "9+" : tile.badge}
                 </span>
               )}
               {tile.dot && !(tile.badge != null && tile.badge > 0) && (
                 <span
-                  className="absolute -end-1 -top-1 h-3 w-3 rounded-full border-2 border-surface bg-alert"
+                  className="absolute -end-0.5 -top-0.5 h-[11px] w-[11px] rounded-full bg-coral ring-2 ring-surface"
                   role="status"
                   aria-label={strings.more.newFeedback}
                 />
               )}
             </span>
-            <span className="text-sm font-bold text-ink">
-              {tile.label}
-              {tile.count !== null && tile.count > 0 && (
-                <span className="ms-1 text-xs font-medium text-ink-faint">
-                  · {tile.count}
-                </span>
+            <span className="min-w-0">
+              <span className="block text-[17px] font-extrabold leading-tight text-ink">{tile.label}</span>
+              {tile.state ? (
+                <span className="mt-0.5 block text-[13px] font-medium text-muted">{tile.state}</span>
+              ) : (
+                tile.count !== null &&
+                tile.count > 0 && (
+                  <span className="mt-0.5 block text-[13px] font-medium tabular-nums text-muted">{tile.count}</span>
+                )
               )}
             </span>
           </Link>
@@ -270,66 +277,63 @@ export function MoreScreen() {
     },
   ];
 
-  return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-4 px-4 pt-6 pb-4 sm:max-w-2xl lg:max-w-4xl">
-      <header className="flex items-center justify-between gap-2">
-        <h1 className="ot-title">{strings.nav.more}</h1>
-        {/* Theme, steps, backup live in Settings - More stays a menu. */}
-        <Link
-          href="/settings"
-          aria-label={strings.settings.title}
-          className="-me-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-soft active:bg-paper-deep"
-        >
-          <SettingsIcon className="h-6 w-6" />
-        </Link>
-      </header>
+  // the planning rows as tiles too (P2: "the same tile style")
+  const adminTiles: Tile[] = admin.map((row) => ({
+    href: row.href,
+    label: row.label,
+    Icon: row.Icon,
+    count: null,
+    badge: row.badge,
+    state: row.badge ? strings.approvals.waiting.replace("{n}", String(row.badge)) : row.state,
+  }));
 
+  return (
+    <div className="mx-auto flex min-h-full max-w-lg flex-col gap-5 px-[18px] pt-[26px] pb-4 sm:max-w-2xl lg:max-w-4xl">
+      <PageHeader
+        title={strings.nav.more}
+        end={
+          // Theme, steps, backup live in Settings - More stays a menu.
+          <Link
+            href="/settings"
+            aria-label={strings.settings.title}
+            className="-me-2 flex h-11 w-11 items-center justify-center rounded-full text-muted active:bg-paper-deep"
+          >
+            <SettingsIcon className="h-6 w-6" />
+          </Link>
+        }
+      />
 
       <section>
-        <p className="ot-kicker mb-2 px-0.5">{strings.more.groupOnTheRoad}</p>
+        <h2 className="mb-2.5 px-0.5 text-base font-extrabold text-muted">{strings.more.groupOnTheRoad}</h2>
         <TileGrid tiles={isKid ? onTheRoad.filter((t) => t.href !== "/documents") : onTheRoad} />
       </section>
 
       <section>
-        <p className="ot-kicker mb-2 px-0.5">{strings.more.groupMemories}</p>
-        <TileGrid tiles={memories} />
+        <h2 className="mb-2.5 px-0.5 text-base font-extrabold text-muted">{strings.more.groupMemories}</h2>
+        <TileGrid tiles={memories} cols={3} />
       </section>
 
       {!isKid && (
-      <section>
-        <p className="ot-kicker mb-2 px-0.5">{strings.more.groupFamily}</p>
-        <ul className="overflow-hidden rounded-card border border-line bg-surface">
-          {admin.map((row, i) => (
-            <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
-              <Link
-                href={row.href}
-                className="flex items-center gap-3 px-3.5 py-3 active:bg-paper-deep"
-              >
-                <row.Icon
-                  className="h-[18px] w-[18px] shrink-0 text-sea"
-                  strokeWidth={1.7}
-                />
-                <span className="flex-1 text-sm font-medium text-ink">
-                  {row.label}
-                </span>
-                {/* both: "10 approved" next to "2 waiting" - with only the
-                    badge, the approved count vanished whenever someone asked */}
-                {row.state && (
-                  <span className="shrink-0 text-xs text-ink-soft">
-                    {row.state}
-                  </span>
-                )}
-                {row.badge ? (
-                  <span className="shrink-0 rounded-full bg-alert px-2 py-0.5 text-xs font-extrabold text-on-alert">
-                    {strings.approvals.waiting.replace("{n}", String(row.badge))}
-                  </span>
-                ) : null}
-                <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-line" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+        <section>
+          <h2 className="mb-2.5 px-0.5 text-base font-extrabold text-muted">{strings.more.groupFamily}</h2>
+          <TileGrid tiles={adminTiles} />
+        </section>
+      )}
+
+      {/* the guest preview starts in Settings, where its groups are chosen */}
+      {member?.role === "owner" && (
+        <Link
+          href="/settings#preview"
+          className="flex min-h-14 items-center gap-3 rounded-[20px] border border-line bg-surface px-3.5 py-2.5 shadow-card active:bg-paper-deep"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-green-soft text-green">
+            <FlaskIcon className="h-[22px] w-[22px]" strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1 text-[15px] text-muted">{strings.more.previewHint}</span>
+          <span className="shrink-0 rounded-full bg-green-soft px-3.5 py-1.5 text-[15px] font-bold text-green">
+            {strings.more.previewCta}
+          </span>
+        </Link>
       )}
 
       {/* Emergency stays visually separate and unmistakable. Naming the country
@@ -337,24 +341,22 @@ export function MoreScreen() {
           comes from today's itinerary day, never a configured destination. */}
       <Link
         href="/emergency"
-        className="mt-auto flex items-center gap-2.5 rounded-card border border-alert/20 bg-alert-tint px-3.5 py-3 text-alert"
+        className="mt-auto flex min-h-16 items-center gap-3 rounded-[20px] border border-coral bg-coral-soft px-3.5 py-3 text-coral-ink"
       >
         <span
-          className="shrink-0 rounded-md border-[1.4px] border-alert/35 px-[5px] py-0.5 text-xs font-extrabold tracking-[0.06em]"
+          className="shrink-0 rounded-lg bg-coral px-2 py-1 text-sm font-extrabold tracking-[0.04em] text-on-coral"
           aria-hidden="true"
         >
           {strings.emergency.sos}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-bold">
+          <span className="block truncate text-[17px] font-extrabold">
             {strings.more.menuEmergency}
             {counts?.countryCode && ` · ${countryName(counts.countryCode)}`}
           </span>
-          <span className="block text-xs text-alert/80">
-            {strings.more.emergencyMeta}
-          </span>
+          <span className="block text-[13px] font-medium">{strings.more.emergencyMeta}</span>
         </span>
-        <ChevronForwardIcon className="h-3.5 w-3.5 shrink-0 text-alert/45" />
+        <ChevronForwardIcon className="h-4 w-4 shrink-0" />
       </Link>
     </div>
   );

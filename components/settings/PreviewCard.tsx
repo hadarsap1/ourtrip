@@ -36,6 +36,13 @@ export function PreviewCard() {
     };
   }, [owner, picking]);
 
+  // "תצוגת אורח" on More lands here (/settings#preview)
+  useEffect(() => {
+    if (owner && window.location.hash === "#preview") {
+      document.getElementById("preview")?.scrollIntoView({ block: "start" });
+    }
+  }, [owner]);
+
   if (!owner) return null;
 
   async function go(role: PreviewRole) {
@@ -55,7 +62,7 @@ export function PreviewCard() {
     setChosen((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
 
   return (
-    <section className="rounded-card border border-line bg-surface px-3.5 py-3">
+    <section id="preview" className="scroll-mt-4 rounded-card border border-line bg-surface px-3.5 py-3">
       <h2 className="text-sm font-bold text-ink">{t.title}</h2>
       <p className="mt-1 text-xs text-ink-soft">{t.hint}</p>
 
