@@ -1785,7 +1785,7 @@ export const strings = {
     title: "צ'אט",
     ownerHint: "הצ'אט משותף עם החברים, המשפחה והילדים. הודעה של הילדים יוצאת אחרי שאחד מכם מאשר אותה.",
     kidHint: "כאן כותבים לחברים ולמשפחה. אמא או אבא יאשרו את ההודעה לפני שהיא יוצאת.",
-    guestHint: "הצ'אט משותף עם המשפחה - גם הילדים קוראים כאן.",
+    guestHint: "משותף עם המשפחה, גם הילדים קוראים כאן",
     placeholder: "כותבים משהו…",
     send: "שליחה",
     empty: "עוד אין הודעות - כתבו את הראשונה!",
@@ -2021,8 +2021,12 @@ export const strings = {
     // "whoever gets the link is connected to us"): their name, what is new
     // since they were last here, the newest update with its photo, the latest
     // photos, something the kids said, and a way to answer.
-    hello: "היי {name}!",
+    hello: "היי, {name}!",
     sinceTitle: "מאז שביקרת",
+    // one chip: "5 תמונות חדשות מאז שביקרת" (קרם חם)
+    sinceSuffix: "{what} מאז שביקרת",
+    // the family's local time under the greeting (קרם חם): "אצלם בווייטנאם 12:50"
+    theirTime: "אצלם {where}",
     newStory: "עדכון חדש",
     newStories: "{n} עדכונים חדשים",
     newPhoto: "תמונה חדשה",
@@ -2135,6 +2139,8 @@ export const strings = {
     uploadedOwner: "התמונה הועלתה",
     empty: "עוד אין תמונות",
     uploadFirst: "העלאת תמונה ראשונה",
+    // the coral pill beside the title (קרם חם)
+    uploadPill: "+ העלאה",
     caption: "כיתוב (לא חובה)",
     captionPlaceholder: "מה קרה כאן? אפשר לכתוב כמה שרוצים",
     newUpload: "העלאה חדשה",

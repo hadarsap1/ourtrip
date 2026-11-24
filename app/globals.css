@@ -336,6 +336,28 @@ h1 {
   background: var(--hero-gradient);
 }
 
+/* The redesign's checkbox: a 22px rounded square, green with a white check
+   when on. A real <input type="checkbox">, so keyboard and screen readers
+   keep working; the floor rule above exempts checkboxes. */
+.ot-check {
+  appearance: none;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 2px solid var(--border);
+  background: var(--surface) center / 14px 14px no-repeat;
+  cursor: pointer;
+}
+.ot-check:checked {
+  border-color: var(--brand);
+  background-color: var(--brand);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] .ot-check:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D2618' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
