@@ -118,6 +118,14 @@
   --shadow-card: var(--shadow-card-value);
   --shadow-hero: var(--shadow-hero-value);
   --shadow-nav: var(--shadow-nav-value);
+
+  /* A lighter weight scale (Hadar 24/11/2026: "too much bold"). Every
+     font-* utility in the app maps through these, so one place sets how
+     heavy the whole app reads. Rubik is loaded as a variable font. */
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 700;
 }
 
 @theme inline {
@@ -167,7 +175,7 @@ body {
 .ot-kicker {
   font-size: 12px; /* type floor (F3) */
   line-height: 16px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--accent-gold); /* AA on paper; #d9931e was about 2.4:1 */
 }
@@ -301,18 +309,18 @@ body {
    24px size so their header rows still fit; the redesigned ones use
    .ot-h1 (PageHeader), 36px. */
 h1 {
-  font-weight: 800;
+  font-weight: 600;
 }
 .ot-title {
   font-size: 1.5rem;
   line-height: 2rem;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text);
 }
 .ot-h1 {
   font-size: 36px;
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.5px;
   color: var(--text);
 }

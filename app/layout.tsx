@@ -19,11 +19,11 @@ import { strings } from "@/lib/strings";
 import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
 import { FLAG_BOOT_SCRIPT } from "@/lib/flags";
 
-// Rubik since the "קרם חם" redesign (24/11/2026), replacing Heebo. Four
-// weights: 400 body, 500 meta and labels, 700 emphasis, 800 titles.
+// Rubik since the "קרם חם" redesign (24/11/2026), replacing Heebo. The
+// variable file (one per subset, every weight), so the lighter scale in
+// globals.css (bold = 500, extrabold = 600) needs no extra downloads.
 const rubik = Rubik({
   subsets: ["hebrew", "latin"],
-  weight: ["400", "500", "700", "800"],
   variable: "--font-rubik",
   display: "swap",
 });

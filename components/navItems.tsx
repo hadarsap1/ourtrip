@@ -22,7 +22,6 @@ import {
   PlaneIcon,
   RouteIcon,
   SparkleIcon,
-  SunIcon,
   UpdatesIcon,
   VisaIcon,
   SettingsIcon,
@@ -61,7 +60,8 @@ export const guestTabs: NavItem[] = [
 ];
 
 export const ownerTabs: NavItem[] = [
-  { href: "/", label: strings.nav.today, Icon: SunIcon },
+  // the house again (Hadar 24/11/2026): the sun read as weather, not home
+  { href: "/", label: strings.nav.today, Icon: HomeIcon },
   { href: "/itinerary", label: strings.nav.itinerary, Icon: RouteIcon },
   { href: "/budget", label: strings.nav.budget, Icon: BudgetIcon },
   // Photos replaced documents on the bar (UX pass 06/11/2026): on the road the
