@@ -30,6 +30,8 @@ import { NewDot } from "@/components/feedback/FeedbackCount";
 export type AlbumViewPhoto = {
   id: string;
   url: string | null;
+  /** small copy for tiles (00105); absent or null when there is none */
+  thumbUrl?: string | null;
   caption: string | null;
   album_id: string | null;
   /** family rows only; a guest's photos are all approved and shared */
@@ -377,7 +379,8 @@ export function AlbumsView<P extends AlbumViewPhoto>({
         <ul className="grid grid-cols-2 gap-2">
           {albums.map((album) => {
             const items = photosOf(album.id);
-            const cover = items.find((p) => p.url)?.url ?? null;
+            const first = items.find((p) => p.url);
+            const cover = first ? (first.thumbUrl ?? first.url) : null;
             const n = fresh.get(album.id) ?? 0;
             // the album's totals: views are guest x photo openings (parents only)
             const totals = items.reduce(

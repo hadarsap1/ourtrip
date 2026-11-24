@@ -32,3 +32,29 @@ export async function compressImage(file: File): Promise<Blob> {
   }
   return blob;
 }
+
+// Thumbnails for grids (egress fix 24/11/2026): a 3-column grid on a phone
+// shows a picture ~130 CSS px wide, ~400 device px. A full 1600px photo there
+// cost ~10x the bytes for nothing visible. The short edge is sized so
+// object-cover squares stay sharp.
+const THUMB_SHORT_EDGE = 480;
+const THUMB_QUALITY = 0.72;
+
+/** A small JPEG of `source` (a photo or a video's poster) for grid tiles. */
+export async function makeThumbnail(source: Blob): Promise<Blob> {
+  const bitmap = await createImageBitmap(source);
+  const scale = Math.min(1, THUMB_SHORT_EDGE / Math.min(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas unavailable");
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvasToBlob(canvas, THUMB_QUALITY);
+}
+
+/** Where a file's thumbnail lives: next to it, `<name>.thumb.jpg`. */
+export function thumbPathFor(filePath: string): string {
+  return filePath.replace(/(\.poster)?\.[^./]+$/, "") + ".thumb.jpg";
+}

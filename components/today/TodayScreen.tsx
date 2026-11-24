@@ -485,7 +485,7 @@ export function TodayScreen() {
                           {photo.url ? (
                             // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
                             <img
-                              src={photo.url}
+                              src={photo.thumbUrl ?? photo.url}
                               alt={photo.caption ?? ""}
                               className="h-[72px] w-[72px] rounded-xl object-cover"
                             />

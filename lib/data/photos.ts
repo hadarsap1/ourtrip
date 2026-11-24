@@ -1,5 +1,5 @@
-import { getSupabase } from "@/lib/supabase";
-import { compressImage } from "@/lib/images";
+import { getSupabase, onSignedOut } from "@/lib/supabase";
+import { compressImage, makeThumbnail, thumbPathFor } from "@/lib/images";
 import { photoTakenOn } from "@/lib/exifDate";
 import { todayISO } from "@/lib/format";
 import { prepareVideo, videoDay } from "@/lib/video";
@@ -7,8 +7,10 @@ import type { Tables } from "@/lib/database.types";
 
 export type Photo = Tables<"photos">;
 /** `url` is always a picture: the photo, or a video's poster frame (00099).
- *  `videoUrl` is the video itself, null for a photo. */
-export type PhotoWithUrl = Photo & { url: string | null; videoUrl: string | null };
+ *  `videoUrl` is the video itself, null for a photo. `thumbUrl` is the small
+ *  copy for grid tiles (00105), null until one is made: use `thumbUrl ?? url`
+ *  for a tile and `url` for a photo opened full size. */
+export type PhotoWithUrl = Photo & { url: string | null; videoUrl: string | null; thumbUrl: string | null };
 
 const BUCKET = "photos";
 const PUBLIC_BUCKET = "public-stories";
@@ -19,7 +21,43 @@ function requireClient() {
   return supabase;
 }
 
-type MediaRow = { file_path: string; media_type: string; poster_path: string | null };
+type MediaRow = { file_path: string; media_type: string; poster_path: string | null; thumb_path?: string | null };
+
+// Signed URLs already handed out this session, by storage path (egress fix,
+// 24/11/2026). A fresh token on every list load gave every <img> a new
+// address, so the browser downloaded the same photo again each time a screen
+// opened - ~22 downloads per photo per day. Reusing the URL while it is still
+// good lets the browser (and the service worker's media cache) serve it.
+// Paths are random UUIDs that are never overwritten, so a path always names
+// the same bytes. Only what RLS already let this client sign is kept here.
+const signedCache = new Map<string, { url: string; expiresAt: number }>();
+// a reused URL must outlive the screen that shows it
+const REUSE_MARGIN_MS = 10 * 60 * 1000;
+
+/** Signed URLs for `paths` in the private photos bucket, reusing live ones. */
+async function signPaths(paths: string[], ttlSeconds: number): Promise<Map<string, string | null>> {
+  const now = Date.now();
+  const out = new Map<string, string | null>();
+  const missing: string[] = [];
+  for (const path of new Set(paths)) {
+    const hit = signedCache.get(path);
+    if (hit && hit.expiresAt - now > REUSE_MARGIN_MS) out.set(path, hit.url);
+    else missing.push(path);
+  }
+  if (missing.length > 0) {
+    const { data: signed } = await requireClient().storage.from(BUCKET).createSignedUrls(missing, ttlSeconds);
+    const expiresAt = now + ttlSeconds * 1000;
+    for (const s of signed ?? []) {
+      if (!s.path) continue;
+      out.set(s.path, s.signedUrl ?? null);
+      if (s.signedUrl) signedCache.set(s.path, { url: s.signedUrl, expiresAt });
+    }
+  }
+  return out;
+}
+
+// sign-out drops them, so the next account on the device signs its own
+onSignedOut(() => signedCache.clear());
 
 /**
  * Signed URLs for rows the family may read (owners and kids read the private
@@ -29,17 +67,69 @@ type MediaRow = { file_path: string; media_type: string; poster_path: string | n
 export async function signFamilyMedia<T extends MediaRow>(
   rows: T[],
   ttlSeconds = 60 * 60
-): Promise<(T & { url: string | null; videoUrl: string | null })[]> {
+): Promise<(T & { url: string | null; videoUrl: string | null; thumbUrl: string | null })[]> {
   if (rows.length === 0) return [];
-  const paths = rows.flatMap((r) => (r.poster_path ? [r.file_path, r.poster_path] : [r.file_path]));
-  const { data: signed } = await requireClient().storage.from(BUCKET).createSignedUrls(paths, ttlSeconds);
-  const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl ?? null]));
-  const at = (path: string | null) => (path ? (urlByPath.get(path) ?? null) : null);
+  const paths = rows.flatMap((r) => [r.file_path, r.poster_path, r.thumb_path].filter((p): p is string => !!p));
+  const urlByPath = await signPaths(paths, ttlSeconds);
+  const at = (path: string | null | undefined) => (path ? (urlByPath.get(path) ?? null) : null);
   return rows.map((r) =>
     r.media_type === "video"
-      ? { ...r, url: at(r.poster_path), videoUrl: at(r.file_path) }
-      : { ...r, url: at(r.file_path), videoUrl: null }
+      ? { ...r, url: at(r.poster_path), videoUrl: at(r.file_path), thumbUrl: at(r.thumb_path) }
+      : { ...r, url: at(r.file_path), videoUrl: null, thumbUrl: at(r.thumb_path) }
   );
+}
+
+/**
+ * Makes and uploads the grid thumbnail of `picture` (a photo, or a video's
+ * poster) next to `picturePath`. Best effort: a failure leaves the photo
+ * without one (grids fall back to the full picture) rather than failing the
+ * upload. Returns its path, or null.
+ */
+async function uploadThumbnail(picturePath: string, picture: Blob): Promise<string | null> {
+  try {
+    const thumb = await makeThumbnail(picture);
+    const thumbPath = thumbPathFor(picturePath);
+    const { error } = await requireClient()
+      .storage.from(BUCKET)
+      .upload(thumbPath, thumb, { contentType: "image/jpeg", upsert: true });
+    return error ? null : thumbPath;
+  } catch {
+    return null;
+  }
+}
+
+// Photos from before 00105 have no thumbnail. A parent's device makes them in
+// the background, a few at a time, from the picture it already has (the
+// service worker's copy, so it costs no extra download once seen). Owners
+// only: the kid guard pins thumb_path (00105) and the storage write is open
+// to both, but one device doing it is enough.
+const BACKFILL_BATCH = 40;
+let backfillRunning = false;
+
+/** Makes missing thumbnails for `photos` (owner devices). Fire and forget. */
+export async function backfillThumbnails(photos: PhotoWithUrl[]): Promise<void> {
+  if (backfillRunning || typeof document === "undefined") return;
+  const todo = photos.filter((p) => !p.thumb_path && p.url).slice(0, BACKFILL_BATCH);
+  if (todo.length === 0) return;
+  backfillRunning = true;
+  try {
+    const supabase = requireClient();
+    for (const photo of todo) {
+      const picturePath = photo.media_type === "video" ? photo.poster_path : photo.file_path;
+      if (!picturePath || !photo.url) continue;
+      try {
+        const res = await fetch(photo.url);
+        if (!res.ok) continue;
+        const thumbPath = await uploadThumbnail(picturePath, await res.blob());
+        if (!thumbPath) continue;
+        await supabase.from("photos").update({ thumb_path: thumbPath }).eq("id", photo.id).is("thumb_path", null);
+      } catch {
+        // offline or a bad file: the next visit tries again
+      }
+    }
+  } finally {
+    backfillRunning = false;
+  }
 }
 
 /** All family-visible photos with signed URLs (RLS scopes rows by role).
@@ -91,6 +181,7 @@ export async function uploadPhoto(input: {
     .from(BUCKET)
     .upload(path, blob, { contentType: "image/jpeg" });
   if (uploadError) throw new Error(uploadError.message);
+  const thumbPath = await uploadThumbnail(path, blob);
 
   const { data, error } = await supabase
     .from("photos")
@@ -98,6 +189,7 @@ export async function uploadPhoto(input: {
       trip_id: input.tripId,
       uploaded_by: input.memberId,
       file_path: path,
+      thumb_path: thumbPath,
       caption: input.caption?.trim() || null,
       taken_on: shotOn && shotOn <= today ? shotOn : today,
       audience: input.audience ?? [],
@@ -144,6 +236,7 @@ export async function uploadVideo(input: {
     .from(BUCKET)
     .upload(path, video.blob, { contentType: video.contentType });
   if (uploadError) throw new Error(uploadError.message);
+  const thumbPath = await uploadThumbnail(posterPath, video.poster);
 
   const { data, error } = await supabase
     .from("photos")
@@ -153,6 +246,7 @@ export async function uploadVideo(input: {
       file_path: path,
       media_type: "video",
       poster_path: posterPath,
+      thumb_path: thumbPath,
       duration_seconds: Math.round(video.durationSeconds),
       taken_on: videoDay(input.file.lastModified, todayISO()),
       ...(input.isOwner ? { status: "approved" as const, approved_by: input.memberId } : {}),
@@ -251,5 +345,7 @@ export async function deletePhoto(photo: Photo): Promise<void> {
   const { error } = await supabase.from("photos").delete().eq("id", photo.id);
   if (error) throw new Error(error.message);
   // a video's poster goes with it (00099)
-  await supabase.storage.from(BUCKET).remove(photo.poster_path ? [photo.file_path, photo.poster_path] : [photo.file_path]);
+  await supabase.storage
+    .from(BUCKET)
+    .remove([photo.file_path, photo.poster_path, photo.thumb_path].filter((p): p is string => !!p));
 }

@@ -1,8 +1,17 @@
 // OurTrip service worker.
 //
 // Caching rules, in priority order:
-//   1. Never touch anything that isn't a same-origin GET - Supabase, Google
-//      Maps and Open-Meteo must reach the network untouched.
+//   0. Photos from Supabase Storage are kept by their storage path (egress
+//      fix 24/11/2026). Each signed URL carries a new token, so the browser
+//      saw every photo as new and downloaded it again: 5,063 downloads of
+//      225 photos in one day, all past the free plan's bandwidth. Storage
+//      paths are random UUIDs that are never overwritten, so one path is
+//      always the same bytes and a cached copy never goes stale. Only a page
+//      that already holds a valid signed URL for a path asks for it, so this
+//      grants no one a photo RLS did not sign for them (hard rule 3 holds).
+//      Pictures only: video (Range requests) and documents go to the network.
+//   1. Never touch anything else that isn't a same-origin GET - Supabase,
+//      Google Maps and Open-Meteo must reach the network untouched.
 //   2. Never cache React Server Component payloads (`?_rsc=`). They are tied
 //      to one build; a stale one makes tab switches render old data or fail.
 //   3. Hashed build assets live in their own cache that SURVIVES a service
@@ -13,10 +22,18 @@
 
 const SHELL_CACHE = "ourtrip-shell-v21";
 const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
-const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
+// Photos by storage path (rule 0). Same name as MEDIA_CACHE in
+// lib/supabase.ts, which deletes it on sign-out.
+const MEDIA_CACHE = "ourtrip-media-v1";
+const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE, MEDIA_CACHE];
 
 // Cap the asset cache so months on the road don't fill the device.
 const ASSET_CACHE_LIMIT = 400;
+// ~1,500 pictures: full photos are ~350KB, thumbnails far less
+const MEDIA_CACHE_LIMIT = 1500;
+
+// Signed Storage reads of the picture buckets: /storage/v1/object/sign/<bucket>/<path>
+const MEDIA_PATH = /^\/storage\/v1\/object\/sign\/(?:photos|map-photos|gphotos)\//;
 
 // Navigation network timeout: past this we serve the cached shell and let the
 // page hydrate from IndexedDB rather than leaving the family staring at white.
@@ -132,6 +149,34 @@ async function assetFirst(request) {
   return response;
 }
 
+function isMedia(url, request) {
+  return (
+    url.hostname.endsWith(".supabase.co") &&
+    MEDIA_PATH.test(url.pathname) &&
+    !request.headers.has("range")
+  );
+}
+
+/** Cache-first by storage path (rule 0): the token is left out of the key. */
+async function mediaFirst(request, url) {
+  const key = url.origin + url.pathname;
+  const cache = await caches.open(MEDIA_CACHE);
+  const cached = await cache.match(key);
+  if (cached) return cached;
+  // CORS, not the <img>'s no-cors: an opaque response can't be checked and
+  // is counted as megabytes of quota each
+  const response = await fetch(url.href, { mode: "cors", credentials: "omit" });
+  const type = response.headers.get("content-type") ?? "";
+  if (response.status === 200 && type.startsWith("image/")) {
+    const copy = response.clone();
+    cache
+      .put(key, copy)
+      .then(() => trimCache(MEDIA_CACHE, MEDIA_CACHE_LIMIT))
+      .catch(() => {});
+  }
+  return response;
+}
+
 /** Network-first with a timeout, falling back to the cached shell. */
 async function navigateWithFallback(request) {
   const fallback = async () =>
@@ -173,6 +218,12 @@ self.addEventListener("fetch", (event) => {
   try {
     url = new URL(request.url);
   } catch {
+    return;
+  }
+
+  // Rule 0: a photo already on the device is not downloaded again.
+  if (isMedia(url, request)) {
+    event.respondWith(mediaFirst(request, url).catch(() => fetch(request)));
     return;
   }
 

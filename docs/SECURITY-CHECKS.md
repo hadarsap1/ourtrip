@@ -3347,3 +3347,35 @@ this - no recipient query touches their rows.
 | Guest or kid as a recipient | ✅ by code (`role = 'owner'` only, `feedbackPush.test.ts`) |
 | Migration 00104 applied to the live project (23/11/2026, on Hadar's go-ahead): RLS on, 0 policies, no select for anon/authenticated, both triggers and the `push-feedback` cron present, 165 existing comments and likes marked as told | ✅ done |
 | push-send v24 deployed with the `feedback` type; a manual call returned `200 {"ok":true,"sent":0}` (nothing new, as expected) | ✅ done |
+
+## Egress fix: photos cached by path, grid thumbnails (00105, 24/11/2026)
+
+Supabase warned the free plan's bandwidth was spent (12.87 of 5.5 GB). Logs:
+5,063 downloads of 225 photos in 24 h, all cache MISS - every list load
+signed fresh URLs, so the browser fetched each photo again.
+
+**Path cache (no DB change).** The service worker keeps pictures from the
+`photos`, `map-photos` and `gphotos` buckets keyed by storage path (token
+dropped); `signFamilyMedia` reuses a still-valid signed URL per path. A page
+asks for a path only when it already holds a valid signed URL for it, which
+only RLS / guest-photos / guest-media hand out, so a cached copy is never
+shown to someone who could not sign it (rule 3). Paths are random UUIDs never
+overwritten. Both caches are cleared on sign-out (`onSignedOut`,
+`MEDIA_CACHE`). Documents, receipts and video (Range) are not cached.
+
+**Thumbnails (00105).** `photos.thumb_path`, a small JPEG in the same private
+bucket. Same row → same RLS as the photo; storage policies unchanged (00007:
+owners and kids read, guests never). guest-photos and guest-media sign
+`thumb_path` only for rows the guest's own RLS returned, exactly as the full
+picture. `photos_guard_update` pins `thumb_path` for kids, like `file_path`
+and `poster_path`. Deleting a photo or an album removes the thumbnail too.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (796), build | ✅ PASS |
+| Guest reads a thumbnail of an unshared / pending photo | ✅ by code (signed only for rows RLS returned, both functions) |
+| Guest reads `photos` bucket directly | ✅ by policy (00007, unchanged) |
+| Kid repoints `thumb_path` on own row | ✅ by trigger (00105 guard) |
+| Cached photo shown to the next account on a shared device | ✅ by code (media cache + URL cache cleared on SIGNED_OUT) |
+| Migration 00105 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, guard pins it for kids, `photos` still has its 5 policies | ✅ done |
+| guest-media v5 and guest-photos v14 deployed (verify_jwt on), signing `thumb_path` for RLS-returned rows only | ✅ done |

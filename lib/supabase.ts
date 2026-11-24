@@ -140,6 +140,24 @@ function authStorageKey(url: string): string {
   return `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
 }
 
+// Media the device keeps by storage path (public/sw.js, egress fix
+// 24/11/2026). Must match MEDIA_CACHE there.
+export const MEDIA_CACHE = "ourtrip-media-v1";
+
+const signedOutHandlers = new Set<() => void>();
+
+/** Runs `fn` whenever this device signs out (in-memory caches of what the
+ *  last account was allowed to see). */
+export function onSignedOut(fn: () => void): void {
+  signedOutHandlers.add(fn);
+}
+
+function handleSignedOut(): void {
+  for (const fn of signedOutHandlers) fn();
+  // the next account on this phone fetches its own copies
+  if (typeof caches !== "undefined") void caches.delete(MEDIA_CACHE).catch(() => {});
+}
+
 export function getSupabase(): SupabaseClient<Database> | null {
   if (client) return client;
 
@@ -150,6 +168,9 @@ export function getSupabase(): SupabaseClient<Database> | null {
   client = createClient(url, anonKey, {
     auth: { storageKey: authStorageKey(url) },
     global: { fetch: sharedReadFetch },
+  });
+  client.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") handleSignedOut();
   });
   return client;
 }

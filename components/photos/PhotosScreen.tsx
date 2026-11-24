@@ -15,6 +15,7 @@ import {
 import {
   approvePhoto,
   deletePhoto,
+  backfillThumbnails,
   listPhotos,
   rejectPhoto,
   setPhotoAudience,
@@ -440,6 +441,19 @@ function FamilyPhotosView() {
   );
 
   const isOwnerRole = member?.role === "owner";
+
+  // photos from before thumbnails (00105) get theirs from a parent's device,
+  // once per visit, after the screen has settled
+  const backfilled = useRef(false);
+  useEffect(() => {
+    if (!isOwnerRole || photos.length === 0 || backfilled.current) return;
+    const timer = setTimeout(() => {
+      backfilled.current = true;
+      void backfillThumbnails(photos);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isOwnerRole, photos]);
+
   useEffect(() => {
     if (!trip || !isOwnerRole) return;
     let cancelled = false;
@@ -783,7 +797,7 @@ function PhotoTile({
   badge,
   onOpen,
 }: {
-  photo: { url: string | null; caption: string | null; videoUrl?: string | null };
+  photo: { url: string | null; caption: string | null; videoUrl?: string | null; thumbUrl?: string | null };
   badge: FeedbackBadge;
   onOpen: () => void;
 }) {
@@ -791,7 +805,7 @@ function PhotoTile({
   return (
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
       {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-      <img src={photo.url} alt={photo.caption ?? ""} className="aspect-square w-full object-cover" />
+      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-square w-full object-cover" />
       {photo.videoUrl && <VideoBadge className="absolute end-1.5 top-1.5" />}
       <span className="absolute top-1.5 start-1.5">
         <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />
