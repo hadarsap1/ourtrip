@@ -3426,3 +3426,20 @@ authenticated. Probe: scripts/rls/probes/107_home_dashboard.sql.
 | anon cannot execute; function is SECURITY INVOKER | ✅ verified on the live project after apply |
 | Supabase security advisor: no new finding for home_dashboard | ✅ |
 | Migration 00107 applied to the live project (24/11/2026, on Hadar's request "make an RPC for the home") | ✅ done |
+
+## 24/11/2026 - cron-secret retry, country_profiles index (00108)
+
+QA 24/11 found push-send refusing ~5% of its own cron runs: the service-role
+lookup `cron_secret_matches` came back 401 PGRST303 for the same key that
+passed the rest. The four cron functions now share `_shared/cronAuth.ts`,
+which retries an *error* once (400 ms) and treats `false` as final. 00108 adds
+an index on `country_profiles.updated_by`. No policy, grant or function
+privilege changed.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (815, 8 new in cronAuth.test.ts), RLS harness 644/0 on 108 migrations | ✅ PASS |
+| No header / wrong secret / two lookup errors are all refused; wrong secret is never retried | ✅ by test |
+| `cron_secret_matches` still service role only; verify_jwt stays false on the four (they check the secret themselves) | ✅ unchanged |
+| Migration 00108 applied to the live project (24/11/2026, on Hadar's go-ahead) | ✅ done |
+| Deployed: fx-daily v11, backup-weekly v20 (also ships #232's `feedback_pushes` in the backup list), guest-digest v2 (also ships #223's move of the Gmail connection to `_shared/gmail.ts`, identical code), push-send v25 | ✅ done |
