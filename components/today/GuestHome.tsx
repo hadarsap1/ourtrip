@@ -179,9 +179,11 @@ export function GuestHome({
         )}
 
         {loaded === null ? (
-          <div className="h-[330px] animate-pulse rounded-[30px] bg-green-soft" aria-busy="true" />
+          <div className="aspect-[4/3] animate-pulse rounded-[30px] bg-green-soft" aria-busy="true" />
         ) : story ? (
-          <article className="ot-hero h-[330px]">
+          // 4:3 like a phone photo, so a landscape shot is not cut at the
+          // sides (Hadar 24/11/2026: the 330px frame of the redesign cropped it)
+          <article className="ot-hero aspect-[4/3]">
             <Link href={`/stories#story-${story.id}`} className="absolute inset-0 block active:opacity-95">
               {loaded.photoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
