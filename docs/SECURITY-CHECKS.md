@@ -3486,7 +3486,7 @@ audio is still owners only (00044 / 00047 / 00049). The rest is client-side
 
 | Check | Result |
 |---|---|
-| Bucket private, 80 MB, accepts WAV | ⏳ probe `109_audio_80mb.sql` written (probe 80 relaxed to ≥ 70 MB); not run - no local Postgres in this session |
+| Bucket private, 80 MB, accepts WAV | ✅ live 24/11/2026 after applying 00109: `audio` private, 83886080, WAV allowed. Probe `109_audio_80mb.sql` written (probe 80 relaxed to ≥ 70 MB); not run locally - no local Postgres in this session |
 | Kid / guest still cannot upload or replace audio | ✅ no policy touched; probes 44, 47, 49 unchanged |
-| 00109 applied to production | ⏳ waiting for Hadar's go-ahead |
-| lint, vitest, build | see the PR / commit summary |
+| 00109 applied to production | ✅ 24/11/2026, on Hadar's go-ahead, via the Supabase connector |
+| lint, vitest (813), build | ✅ PASS |
