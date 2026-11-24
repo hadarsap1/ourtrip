@@ -50,6 +50,8 @@ begin
   if p_col = 'slug' then return 'null'; end if;
   if p_col like '%token_hash%' then return quote_literal(repeat('a', 64)); end if;
   if p_col like '%lang%' or p_col = 'locale' then return quote_literal('th'); end if;
+  -- check-constrained kinds (00104): a generic text value never fits
+  if p_tbl = 'feedback_pushes' and p_col = 'kind' then return quote_literal('comment'); end if;
 
   select e.enumlabel into enum_first from pg_enum e join pg_type t on t.oid = e.enumtypid
    where t.typname = p_udt order by e.enumsortorder limit 1;
