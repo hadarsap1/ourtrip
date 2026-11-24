@@ -33,12 +33,9 @@ export function BudgetV2({
   rawExpenses,
   days,
   bookings,
-  budgetForProgress,
-  remaining,
   onPickCategory,
   selectedId,
   pace,
-  onSetBudget,
 }: {
   categories: BudgetCategory[];
   /** Counted: each withdrawal reduced by what was itemized out of it. */
@@ -47,15 +44,11 @@ export function BudgetV2({
   rawExpenses: Expense[];
   days: ItineraryDay[];
   bookings: Booking[];
-  budgetForProgress: number;
-  remaining: number;
   /** Tapping a category filters the expense list; editing one is in Settings. */
   onPickCategory: (c: BudgetCategory) => void;
   selectedId: string | null;
   /** Pace and projection - moved here from the main screen (17/11/2026). */
   pace: PaceInfo;
-  /** No target yet: the hint becomes the way to set one (UX review 24/11/2026). */
-  onSetBudget?: () => void;
 }) {
   const [tab, setTab] = useState<"categories" | "insights">("categories");
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
@@ -68,9 +61,6 @@ export function BudgetV2({
     .reduce((sum, e) => sum + e.amount_ils, 0);
   const spentBy = new Map<string, number>();
   for (const e of expenses) spentBy.set(e.category_id, (spentBy.get(e.category_id) ?? 0) + e.amount_ils);
-  // No "left today": much is prepaid (flights, hotels, attractions), so a
-  // daily share means nothing (Hadar, 06/10/2026). The trip total is the number.
-  const over = remaining < 0;
 
   return (
     <div className="space-y-3">
@@ -78,28 +68,10 @@ export function BudgetV2({
           14-day sparkline and "today" line went: Sivan could not read the
           screen (17/11/2026), and neither answered a question she asks. */}
       <section className="rounded-card border border-line bg-surface px-4 py-4 shadow-[var(--e1)]">
-        <p className="text-base font-bold text-ink">{over ? t.overTrip : t.leftTrip}</p>
-        {budgetForProgress > 0 ? (
-          <>
-            <p className={`mt-1 text-[44px] font-extrabold leading-[50px] tabular-nums ${over ? "text-danger" : "text-ink"}`}>
-              <bdi>{ils(Math.abs(remaining))}</bdi>
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="mt-1 text-base text-ink-soft">{t.noBudget}</p>
-            {onSetBudget && (
-              <button
-                type="button"
-                onClick={onSetBudget}
-                className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-sea px-4 text-sm font-semibold text-on-sea active:bg-sea-deep"
-              >
-                {t.setBudget}
-              </button>
-            )}
-          </>
-        )}
-        <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-base">
+        {/* No "what is left" and no target (Hadar 24/11/2026): the card says
+            what was spent and how much of it in cash. The target stays in
+            trip_budget, and the insights tab still uses it. */}
+        <dl className="grid grid-cols-2 gap-3 text-base">
           <div>
             <dt className="text-ink-soft">{t.spentTotal}</dt>
             <dd className="text-xl font-extrabold tabular-nums text-ink">
@@ -112,8 +84,6 @@ export function BudgetV2({
               <bdi>{ils(cashTotal)}</bdi>
             </dd>
           </div>
-          {/* The target itself is not shown (Hadar 24/11/2026): "what is
-              left" above already comes from it, and it stays editable. */}
         </dl>
       </section>
 

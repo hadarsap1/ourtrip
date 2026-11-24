@@ -453,8 +453,6 @@ export function BudgetScreen() {
           rawExpenses={expenses}
           days={days}
           bookings={bookings}
-          budgetForProgress={budgetForProgress}
-          remaining={remaining}
           selectedId={filterId}
           onPickCategory={(c) => {
             const next = filterId === c.id ? null : c.id;
@@ -462,7 +460,6 @@ export function BudgetScreen() {
             if (next) requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
           }}
           pace={{ usedPct: budgetForProgress > 0 ? usedPct : null, projection, preTripSpent, notStarted }}
-          onSetBudget={() => setEditingTotal(true)}
         />
       )}
 

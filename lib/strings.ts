@@ -515,14 +515,10 @@ export const strings = {
   },
 
   budgetV2: {
-    leftTrip: "נשאר לנו לכל הטיול",
-    overTrip: "עברנו את התקציב ב-",
     spentTotal: "הוצאנו עד עכשיו",
     cashTotal: "מזה במזומן",
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
-    noBudget: "קובעים יעד תקציב כדי לראות כמה נשאר",
-    setBudget: "קביעת יעד תקציב",
     last14: "14 הימים האחרונים",
     spentTodayLabel: "היום: {amount}",
     tabsLabel: "תצוגת תקציב",
