@@ -1102,6 +1102,7 @@ export type Database = {
           map_pin_id: string | null
           shared_with_guests: boolean
           taken_at: string | null
+          thumb_path: string | null
           trip_id: string
           updated_at: string
           width: number | null
@@ -1119,6 +1120,7 @@ export type Database = {
           map_pin_id?: string | null
           shared_with_guests?: boolean
           taken_at?: string | null
+          thumb_path?: string | null
           trip_id: string
           updated_at?: string
           width?: number | null
@@ -1136,6 +1138,7 @@ export type Database = {
           map_pin_id?: string | null
           shared_with_guests?: boolean
           taken_at?: string | null
+          thumb_path?: string | null
           trip_id?: string
           updated_at?: string
           width?: number | null

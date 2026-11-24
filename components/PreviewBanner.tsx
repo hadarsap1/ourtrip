@@ -44,7 +44,7 @@ export function PreviewBanner() {
           setBusy(true);
           void stopPreview();
         }}
-        className="min-h-[36px] shrink-0 rounded-full bg-sea px-3 text-on-sea disabled:opacity-60"
+        className="min-h-11 shrink-0 rounded-full bg-sea px-3 text-on-sea disabled:opacity-60"
       >
         {busy ? t.backing : t.back}
       </button>

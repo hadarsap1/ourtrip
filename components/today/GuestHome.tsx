@@ -30,6 +30,8 @@ type Loaded = {
   quote: JarQuote | null;
   newStories: number;
   newEpisodes: number;
+  /** the update or the photos could not be fetched (not "none yet") */
+  partial: boolean;
 };
 
 /**
@@ -61,16 +63,24 @@ export function GuestHome({
 }) {
   const g = strings.guestHome;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  // bumped by "try again" on the partial-load line
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!tripId) return;
     let alive = true;
+    // a failed photo read is told apart from "no photos yet" (UX review
+    // 24/11/2026): it used to leave a thin page with no word of why
+    let photosFailed = false;
     const lastVisit = takeLastVisit();
     void Promise.all([
       latestStory(tripId, "guest").catch(() => undefined),
       listStoryStamps(tripId).catch(() => []),
       listEpisodes(tripId).catch(() => []),
-      latestGuestPhotos(4).catch(() => [] as GuestPhoto[]),
+      latestGuestPhotos(4).catch(() => {
+        photosFailed = true;
+        return [] as GuestPhoto[];
+      }),
       listQuotes(tripId).catch(() => [] as JarQuote[]),
       listMembers(tripId).catch(() => [] as Member[]),
       listReactions(tripId).catch(() => [] as Reaction[]),
@@ -86,12 +96,13 @@ export function GuestHome({
         quote: pickQuote(quotes),
         newStories: countSince(stamps.map((s) => s.at), lastVisit),
         newEpisodes: countSince(episodes.map((e) => e.created_at), lastVisit),
+        partial: latest === undefined || photosFailed,
       });
     });
     return () => {
       alive = false;
     };
-  }, [tripId]);
+  }, [tripId, attempt]);
 
   const story = loaded?.story ?? null;
   const mine = loaded?.hearts.find((r) => r.member_id === member.id) ?? null;
@@ -204,7 +215,7 @@ export function GuestHome({
                 disabled={hearting}
                 aria-pressed={mine !== null}
                 aria-label={mine ? g.hearted : g.heart}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 text-sm font-bold ${
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold ${
                   mine ? "text-alert" : "text-sv-ink-soft"
                 }`}
               >
@@ -213,7 +224,7 @@ export function GuestHome({
               </button>
               <Link
                 href={`/stories#story-${story.id}`}
-                className="inline-flex items-center px-2.5 text-sm font-bold text-sv-sage"
+                className="inline-flex min-h-11 items-center px-2.5 text-sm font-bold text-sv-sage"
               >
                 {g.latestRead} ←
               </Link>
@@ -230,6 +241,24 @@ export function GuestHome({
             </div>
           </div>
         ) : null}
+
+        {loaded?.partial && (
+          <div role="alert" className="flex items-center justify-between gap-3 rounded-card border border-dashed border-sv-line bg-sv-card px-4 py-2">
+            <p className="text-sm text-sv-ink-soft">{g.partialLoad}</p>
+            <button
+              type="button"
+              onClick={() => {
+                // the last visit was already taken on the first load; the
+                // "since you were here" counts stay as they were
+                setLoaded(null);
+                setAttempt((n) => n + 1);
+              }}
+              className="min-h-11 shrink-0 px-2 text-sm font-bold text-sv-sage"
+            >
+              {strings.common.retry}
+            </button>
+          </div>
+        )}
 
         <GuestPushInvite />
 
@@ -256,12 +285,23 @@ export function GuestHome({
           </section>
         )}
 
-        {quote && (
+        {quote ? (
           <Link href="/jar" className="block rounded-card bg-sun-tint px-4 py-3 active:opacity-90">
             <p className="text-xs font-bold text-sun-deep">{g.quoteTitle}</p>
             <p className="sovev-display mt-1 line-clamp-3 text-2xl leading-8 text-sv-ink">״{quote.quote}״</p>
             {speakers.length > 0 && <p className="mt-1 text-sm font-semibold text-sun-deep">{speakers.join(", ")}</p>}
           </Link>
+        ) : (
+          loaded && (
+            // the jar has no tab for guests: without a quote this is the way in
+            <Link
+              href="/jar"
+              className="flex min-h-11 items-center justify-between gap-2 rounded-card bg-sun-tint px-4 py-2 text-sm font-bold text-sun-deep active:opacity-90"
+            >
+              <span>{g.jarTile}</span>
+              <span className="shrink-0">{g.jarOpen} ←</span>
+            </Link>
+          )
         )}
 
         <Link

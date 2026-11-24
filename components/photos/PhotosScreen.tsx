@@ -265,7 +265,7 @@ function GuestPhotosView() {
                     {photo.url && (
                       // eslint-disable-next-line @next/next/no-img-element -- signed URL
                       <img
-                        src={photo.url}
+                        src={photo.thumbUrl ?? photo.url}
                         alt={photo.filename ?? ""}
                         loading="lazy"
                         className="h-full w-full object-cover"
@@ -605,9 +605,31 @@ function FamilyPhotosView() {
           onToast={showToast}
         />
       ) : visible.length === 0 && pending.filter((p) => p.album_id === null).length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
-          {strings.photos.empty}
-        </p>
+        <div className="space-y-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+          <p className="text-sm text-ink-soft">{strings.photos.empty}</p>
+          {/* the first upload, where the eye already is (UX review 24/11/2026);
+              the + in the bar does the same */}
+          {isOwnerRole && (
+            <label
+              aria-busy={uploading}
+              className={`inline-flex min-h-11 items-center justify-center rounded-xl bg-sea px-5 text-sm font-semibold text-on-sea ${uploading ? "opacity-70" : "cursor-pointer active:opacity-90"}`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploading}
+                className="sr-only"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  if (files.length > 0) void uploadFiles(files);
+                }}
+              />
+              {uploading ? strings.photos.uploading : strings.photos.uploadFirst}
+            </label>
+          )}
+        </div>
       ) : (
         <PlaceSections
           groups={groupByPlace(visible, placeByDate(days))}

@@ -32,8 +32,10 @@ const ASSET_CACHE_LIMIT = 400;
 // ~1,500 pictures: full photos are ~350KB, thumbnails far less
 const MEDIA_CACHE_LIMIT = 1500;
 
-// Signed Storage reads of the picture buckets: /storage/v1/object/sign/<bucket>/<path>
-const MEDIA_PATH = /^\/storage\/v1\/object\/sign\/(?:photos|map-photos|gphotos)\//;
+// Signed Storage reads of the picture buckets: /storage/v1/object/sign/<bucket>/<path>,
+// and the open blog's public copies (/object/public/public-stories/, 00046):
+// their paths never change either, so a repeat visit costs nothing
+const MEDIA_PATH = /^\/storage\/v1\/object\/(?:sign\/(?:photos|map-photos|gphotos)|public\/public-stories)\//;
 
 // Navigation network timeout: past this we serve the cached shell and let the
 // page hydrate from IndexedDB rather than leaving the family staring at white.

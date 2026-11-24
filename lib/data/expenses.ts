@@ -258,6 +258,25 @@ export async function listExpenses(tripId: string): Promise<Expense[]> {
   return data;
 }
 
+/** Just what spend totals need (the home screen's tiles), not whole rows:
+ *  notes, merchants and receipts stay on the server (egress, 24/11/2026). */
+export const EXPENSE_TOTAL_COLUMNS =
+  "id, amount, currency, amount_ils, spent_on, is_cash_withdrawal, paid_in_cash" as const;
+
+export type ExpenseTotalRow = Pick<
+  Expense,
+  "id" | "amount" | "currency" | "amount_ils" | "spent_on" | "is_cash_withdrawal" | "paid_in_cash"
+>;
+
+export async function listExpenseTotals(tripId: string): Promise<ExpenseTotalRow[]> {
+  const { data, error } = await requireClient()
+    .from("expenses")
+    .select(EXPENSE_TOTAL_COLUMNS)
+    .eq("trip_id", tripId);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 /** Fast entry: converts at the spent_on day's rate. Throws "fx" when the
  *  currency can't be converted (UI shows a specific Hebrew message). */
 export async function createExpense(input: {

@@ -189,6 +189,7 @@ export function KidsAdminScreen() {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder={strings.kids.kidName}
+          aria-label={strings.kids.kidName}
           className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2.5 text-base focus:border-sea focus:outline-none"
         />
         <button
@@ -198,6 +199,9 @@ export function KidsAdminScreen() {
           + {strings.kids.addKid}
         </button>
       </form>
+      {/* what comes after adding a kid, so the PIN step is no surprise
+          (UX review 24/11/2026) */}
+      <p className="text-sm text-ink-soft">{strings.kids.addKidHint}</p>
 
       {codeFor && (
         <GenerateCodeSheet

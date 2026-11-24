@@ -1,5 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
-import { getTripTotalBudget, listCategories, listExpenses } from "@/lib/data/expenses";
+import { getTripTotalBudget, listCategories, listExpenseTotals } from "@/lib/data/expenses";
 import { getActiveTrip } from "@/lib/data/trip";
 import { countedExpenses, resolveBudgetTotals } from "@/lib/budget";
 import { todayISO } from "@/lib/format";
@@ -36,7 +36,7 @@ export async function loadTodayDashboard(): Promise<TodayDashboard | null> {
     const date = todayISO();
     const [categories, expenses, totalBudget, photos] = await Promise.all([
       listCategories(trip.id).catch(() => []),
-      listExpenses(trip.id).catch(() => []),
+      listExpenseTotals(trip.id).catch(() => []),
       getTripTotalBudget(trip.id).catch(() => null),
       listPhotosForDate(trip.id, date).catch(() => []),
     ]);

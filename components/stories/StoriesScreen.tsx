@@ -25,6 +25,7 @@ import { clearStoryDraft, loadStoryDraft } from "@/lib/storyDraft";
 import { LoadFailed } from "@/components/LoadFailed";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
+import { NoMemberNotice } from "@/components/NoMemberNotice";
 import type { Comment, Member, Reaction, Trip } from "@/lib/types";
 
 /**
@@ -36,7 +37,7 @@ import type { Comment, Member, Reaction, Trip } from "@/lib/types";
  * out to them, under the map of where we've been. The chat stays apart.
  */
 export function StoriesScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -176,7 +177,7 @@ export function StoriesScreen() {
   if (!member || !trip) {
     return (
       <SovevScreen>
-        <p className="px-4 pt-8 text-center text-sv-ink-soft">{strings.common.noMember}</p>
+        <NoMemberNotice title={strings.stories.title} failed={memberFailed || Boolean(member)} tone="sovev" />
       </SovevScreen>
     );
   }
