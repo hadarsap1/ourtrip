@@ -42,16 +42,23 @@ export function RegisterSW() {
   // use and only theirs (public/sw.js ROLE_URLS): a guest's phone no longer
   // downloads every parent screen in the background (perf review 24/11/2026).
   // Waits for `ready`, so it also covers the very first install.
+  // After a deploy it also warms that build's screens, a few seconds after
+  // the app opens so it does not compete with the screen being opened.
   useEffect(() => {
     if (!role || !("serviceWorker" in navigator)) return;
     let cancelled = false;
-    void navigator.serviceWorker.ready
-      .then((reg) => {
-        if (!cancelled) reg.active?.postMessage({ type: "precache", role });
-      })
-      .catch(() => {});
+    const timer = window.setTimeout(() => {
+      void navigator.serviceWorker.ready
+        .then((reg) => {
+          if (!cancelled) {
+            reg.active?.postMessage({ type: "precache", role, build: process.env.NEXT_PUBLIC_BUILD_ID ?? "" });
+          }
+        })
+        .catch(() => {});
+    }, 4000);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [role]);
 
