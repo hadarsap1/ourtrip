@@ -28,6 +28,9 @@ function RailRow({
   return (
     <Link
       href={item.href}
+      // the rail lists every screen; prefetching all on sight cost a request
+      // each (perf review 24/11/2026). The bottom bar keeps its prefetch.
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-[11px] rounded-xl px-3 transition-colors ${
         compact ? "py-[9px]" : "py-2.5"
@@ -86,8 +89,11 @@ export function SideRail() {
       <div className="flex items-center gap-[9px] ps-1.5">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
         <img
-          src="/sovev/badge-192.png"
+          src="/sovev/badge-192.webp"
           alt=""
+          // the rail is display:none below lg; lazy keeps phones from
+          // fetching a picture they never show
+          loading="lazy"
           className="h-8 w-8 shrink-0 rounded-full border-2 border-ink object-cover"
         />
         <span className="sovev-display text-lg text-ink">{strings.appName}</span>

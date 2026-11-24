@@ -63,6 +63,9 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
         <li key={tile.href}>
           <Link
             href={tile.href}
+            // ~20 tiles each prefetched its screen on sight: 41 requests on a
+            // slow line for screens rarely opened (perf review 24/11/2026)
+            prefetch={false}
             className="flex h-full flex-col gap-[7px] rounded-card border border-line bg-surface px-3.5 py-3 active:bg-paper-deep"
           >
             <span className="relative w-fit">
@@ -303,6 +306,7 @@ export function MoreScreen() {
             <li key={row.href} className={i > 0 ? "border-t border-line" : ""}>
               <Link
                 href={row.href}
+                prefetch={false}
                 className="flex items-center gap-3 px-3.5 py-3 active:bg-paper-deep"
               >
                 <row.Icon

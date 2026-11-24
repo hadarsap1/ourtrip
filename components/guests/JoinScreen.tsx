@@ -141,7 +141,7 @@ export function JoinScreen({ token }: { token: string }) {
       <div className="ot-postcard mb-3 flex items-center gap-3 px-4 py-2.5">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
         <img
-          src="/sovev/badge-192.png"
+          src="/sovev/badge-192.webp"
           alt=""
           className="relative z-10 h-14 w-14 shrink-0 rounded-full border-2 border-white/90 object-cover"
         />

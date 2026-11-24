@@ -7,7 +7,10 @@ import { Gveret_Levin } from "next/font/google";
 // Loaded once in the root layout since the brand became the whole app's look
 // (14/10/2026): every screen title uses it. Self-hosted by next/font.
 export const sovevFont = Gveret_Levin({
-  subsets: ["hebrew", "latin"],
+  // Hebrew only (perf review 24/11/2026): every title is Hebrew, and a Latin
+  // letter in one falls to Heebo (the next family in .sovev-display), so the
+  // Latin file was a preload on every cold open for nothing.
+  subsets: ["hebrew"],
   weight: "400",
   variable: "--font-sovev",
   display: "swap",

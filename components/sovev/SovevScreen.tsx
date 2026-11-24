@@ -30,7 +30,7 @@ export function SovevBrand({
       {/* decorative: the wordmark beside it carries the name */}
       {/* eslint-disable-next-line @next/next/no-img-element -- tiny static asset; next/image adds nothing here */}
       <img
-        src="/sovev/badge.jpg"
+        src="/sovev/badge.webp"
         alt=""
         width={badge}
         height={badge}
