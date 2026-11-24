@@ -178,7 +178,7 @@ export function MapScreen() {
   useEffect(() => {
     if (!trip || isGuest) return;
     let cancelled = false;
-    void listGooglePhotos(trip.id)
+    void listGooglePhotos(trip.id, { pinnedOnly: true })
       .then((all) => {
         if (cancelled) return;
         const byPin = new Map<string, GooglePhotoWithUrl[]>();
@@ -293,7 +293,7 @@ export function MapScreen() {
       marker.addListener("click", () => {
         const first = attached.find((p) => p.url);
         const extra = first?.url
-          ? `<img src="${first.url}" alt="" style="width:100%;border-radius:8px;margin-top:6px" />` +
+          ? `<img src="${first.thumbUrl ?? first.url}" alt="" style="width:100%;border-radius:8px;margin-top:6px" />` +
             (attached.length > 1
               ? `<div style="color:#64748b;font-size:12px;margin-top:2px">+${attached.length - 1}</div>`
               : "")

@@ -16,6 +16,9 @@ export function ConverterCard() {
     currency: string;
     rate: number | null;
   } | null>(null);
+  // bumped by "try again": a failed rate is not cached (getRateToIls), so a
+  // second ask reaches the network once the line is back
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,7 +28,7 @@ export function ConverterCard() {
     return () => {
       cancelled = true;
     };
-  }, [currency]);
+  }, [currency, attempt]);
 
   const rateLoaded = rateInfo?.currency === currency;
   const rate = rateLoaded ? rateInfo.rate : null;
@@ -100,6 +103,18 @@ export function ConverterCard() {
           <span className="text-xs text-ink-soft">
             · {strings.budget.converterRateLine}
           </span>
+        )}
+        {rateLoaded && rate === null && (
+          <button
+            type="button"
+            onClick={() => {
+              setRateInfo(null);
+              setAttempt((n) => n + 1);
+            }}
+            className="ms-auto min-h-11 px-2 text-sm font-semibold text-sea"
+          >
+            {strings.common.retry}
+          </button>
         )}
       </div>
     </section>

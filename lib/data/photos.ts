@@ -1,4 +1,5 @@
-import { getSupabase, onSignedOut } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
+import { signPaths } from "@/lib/data/signedUrls";
 import { compressImage, makeThumbnail, thumbPathFor } from "@/lib/images";
 import { photoTakenOn } from "@/lib/exifDate";
 import { todayISO } from "@/lib/format";
@@ -23,42 +24,6 @@ function requireClient() {
 
 type MediaRow = { file_path: string; media_type: string; poster_path: string | null; thumb_path?: string | null };
 
-// Signed URLs already handed out this session, by storage path (egress fix,
-// 24/11/2026). A fresh token on every list load gave every <img> a new
-// address, so the browser downloaded the same photo again each time a screen
-// opened - ~22 downloads per photo per day. Reusing the URL while it is still
-// good lets the browser (and the service worker's media cache) serve it.
-// Paths are random UUIDs that are never overwritten, so a path always names
-// the same bytes. Only what RLS already let this client sign is kept here.
-const signedCache = new Map<string, { url: string; expiresAt: number }>();
-// a reused URL must outlive the screen that shows it
-const REUSE_MARGIN_MS = 10 * 60 * 1000;
-
-/** Signed URLs for `paths` in the private photos bucket, reusing live ones. */
-async function signPaths(paths: string[], ttlSeconds: number): Promise<Map<string, string | null>> {
-  const now = Date.now();
-  const out = new Map<string, string | null>();
-  const missing: string[] = [];
-  for (const path of new Set(paths)) {
-    const hit = signedCache.get(path);
-    if (hit && hit.expiresAt - now > REUSE_MARGIN_MS) out.set(path, hit.url);
-    else missing.push(path);
-  }
-  if (missing.length > 0) {
-    const { data: signed } = await requireClient().storage.from(BUCKET).createSignedUrls(missing, ttlSeconds);
-    const expiresAt = now + ttlSeconds * 1000;
-    for (const s of signed ?? []) {
-      if (!s.path) continue;
-      out.set(s.path, s.signedUrl ?? null);
-      if (s.signedUrl) signedCache.set(s.path, { url: s.signedUrl, expiresAt });
-    }
-  }
-  return out;
-}
-
-// sign-out drops them, so the next account on the device signs its own
-onSignedOut(() => signedCache.clear());
-
 /**
  * Signed URLs for rows the family may read (owners and kids read the private
  * bucket directly, 00007). A photo: its file. A video (00099): its poster as
@@ -70,7 +35,7 @@ export async function signFamilyMedia<T extends MediaRow>(
 ): Promise<(T & { url: string | null; videoUrl: string | null; thumbUrl: string | null })[]> {
   if (rows.length === 0) return [];
   const paths = rows.flatMap((r) => [r.file_path, r.poster_path, r.thumb_path].filter((p): p is string => !!p));
-  const urlByPath = await signPaths(paths, ttlSeconds);
+  const urlByPath = await signPaths(BUCKET, paths, ttlSeconds);
   const at = (path: string | null | undefined) => (path ? (urlByPath.get(path) ?? null) : null);
   return rows.map((r) =>
     r.media_type === "video"

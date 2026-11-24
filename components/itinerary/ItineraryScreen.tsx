@@ -602,20 +602,20 @@ export function ItineraryScreen() {
           {/* Splitting the trip into towns is a whole-trip action, so it
               belongs with the other two rather than below 227 day cards -
               where it first shipped, reachable only by scrolling the entire
-              trip, and only in the list view. */}
-          <button
-            type="button"
-            onClick={() => setSegmenting(true)}
-            // The sheet renders under `trip &&`, so without a trip this would
-            // be a button that swallows the tap and does nothing. Disabled it
-            // says so, and it means an enabled button always has a sheet to
-            // open.
-            disabled={!trip}
-            aria-label={strings.segments.open}
-            className="grid h-11 w-11 place-items-center rounded-xl bg-paper-deep text-ink-soft active:bg-line disabled:opacity-40"
-          >
-            <PinIcon className="h-[17px] w-[17px]" />
-          </button>
+              trip, and only in the list view. Shown only once there are days
+              to split: before that (no trip, or an empty trip) it was a faded
+              icon nobody could use (UX review 24/11/2026). The sheet renders
+              under `trip &&`, so an existing button always has one to open. */}
+          {trip && days.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSegmenting(true)}
+              aria-label={strings.segments.open}
+              className="grid h-11 w-11 place-items-center rounded-xl bg-paper-deep text-ink-soft active:bg-line"
+            >
+              <PinIcon className="h-[17px] w-[17px]" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setDayForm({ day: null })}

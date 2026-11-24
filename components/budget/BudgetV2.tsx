@@ -38,6 +38,7 @@ export function BudgetV2({
   onPickCategory,
   selectedId,
   pace,
+  onSetBudget,
 }: {
   categories: BudgetCategory[];
   /** Counted: each withdrawal reduced by what was itemized out of it. */
@@ -53,6 +54,8 @@ export function BudgetV2({
   selectedId: string | null;
   /** Pace and projection - moved here from the main screen (17/11/2026). */
   pace: PaceInfo;
+  /** No target yet: the hint becomes the way to set one (UX review 24/11/2026). */
+  onSetBudget?: () => void;
 }) {
   const [tab, setTab] = useState<"categories" | "insights">("categories");
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
@@ -83,7 +86,18 @@ export function BudgetV2({
             </p>
           </>
         ) : (
-          <p className="mt-1 text-base text-ink-soft">{t.noBudget}</p>
+          <>
+            <p className="mt-1 text-base text-ink-soft">{t.noBudget}</p>
+            {onSetBudget && (
+              <button
+                type="button"
+                onClick={onSetBudget}
+                className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-sea px-4 text-sm font-semibold text-on-sea active:bg-sea-deep"
+              >
+                {t.setBudget}
+              </button>
+            )}
+          </>
         )}
         <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 text-base">
           <div>

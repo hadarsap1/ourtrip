@@ -62,6 +62,8 @@ export const strings = {
     emptyTitle: "עוד אין מה להציג",
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
     noDay: "אין יום מתוכנן במסלול להיום",
+    emptyAddDay: "הוספת יום ←",
+    emptyToItinerary: "למסלול ←",
     bookingsToday: "הזמנות להיום",
     // the home lists only what was booked, not a plan by the hour (Hadar 15/11/2026)
     bookedToday: "הזמנו להיום",
@@ -516,6 +518,7 @@ export const strings = {
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
     noBudget: "קובעים יעד תקציב כדי לראות כמה נשאר",
+    setBudget: "קביעת יעד תקציב",
     last14: "14 הימים האחרונים",
     spentTodayLabel: "היום: {amount}",
     tabsLabel: "תצוגת תקציב",
@@ -2119,6 +2122,7 @@ export const strings = {
     uploaded: "התמונה הועלתה! היא תופיע אחרי שאמא או אבא יאשרו",
     uploadedOwner: "התמונה הועלתה",
     empty: "עוד אין תמונות",
+    uploadFirst: "העלאת תמונה ראשונה",
     caption: "כיתוב (לא חובה)",
     captionPlaceholder: "מה קרה כאן? אפשר לכתוב כמה שרוצים",
     newUpload: "העלאה חדשה",
@@ -2259,7 +2263,8 @@ export const strings = {
   kids: {
     title: "ילדים ומכשירים",
     addKid: "הוספת ילד/ה",
-    kidName: "שם",
+    kidName: "שם הילד/ה",
+    addKidHint: "אחרי ההוספה יוצרים קוד חיבור לטאבלט: בוחרים קוד סודי של 4-6 ספרות, והילד/ה מקלידים אותו בכניסה לטאבלט.",
     noKids: "עוד לא הוגדרו ילדים",
     generateCode: "יצירת קוד חיבור",
     pinLabel: "קוד סודי לטאבלט (4-6 ספרות)",
@@ -2393,6 +2398,15 @@ export const strings = {
       guests: { label: "אורחים", detail: "‏{n} מאושרים" },
       push: { label: "התראות", detail: "‏{n} מכשירים רשומים" },
     } as Record<string, { label: string; detail: string; okDetail?: string }>,
+  },
+
+  // app/error.tsx: a screen that broke while drawing. The bar below stays,
+  // so a kid can still tap another tab; this says so in plain words.
+  screenError: {
+    title: "משהו השתבש במסך הזה",
+    body: "זה לא באשמתכם. אפשר לנסות שוב, או לחזור לדף הבית.",
+    retry: "ניסיון נוסף",
+    home: "לדף הבית",
   },
 
   offline: {

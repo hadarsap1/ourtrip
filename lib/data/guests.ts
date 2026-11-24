@@ -310,6 +310,8 @@ export type GuestGooglePhoto = {
   area: string | null;
   filename: string | null;
   url: string | null;
+  /** small tile copy (00106); null when there is none - use `thumbUrl ?? url` */
+  thumbUrl: string | null;
 };
 
 /** Owner-shared Google Photos visible to this guest (via Edge Function). */
@@ -320,5 +322,8 @@ export async function listGuestGooglePhotos(): Promise<GuestGooglePhoto[]> {
   );
   if (error) throw new Error(error.message);
   if (!data?.ok) throw new Error(data?.error ?? "failed");
-  return data.photos as GuestGooglePhoto[];
+  // thumb_url: absent from a deployment of the function older than 00106
+  return (data.photos as (Omit<GuestGooglePhoto, "thumbUrl"> & { thumb_url?: string | null })[]).map(
+    ({ thumb_url, ...p }) => ({ ...p, thumbUrl: thumb_url ?? null })
+  );
 }
