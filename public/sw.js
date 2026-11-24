@@ -135,16 +135,26 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// The app says who is signed in; keep their screens for offline use.
+// The app says who is signed in and which deploy it runs (RegisterSW). Once
+// per role + deploy, every screen of that role is fetched again with its
+// build's chunks, so switching tabs after an update finds its JS on the
+// phone. Fixes 24/11/2026: install had stopped warming anything but the core,
+// and each tab's new chunks then came over a slow line on first tap.
+// Otherwise only what is missing is filled in.
+const WARM_KEY = "/__ourtrip/warm";
 self.addEventListener("message", (event) => {
   const data = event.data;
   if (!data || data.type !== "precache" || !(data.role in ROLE_URLS)) return;
+  const stamp = `${SHELL_CACHE}|${data.role}|${typeof data.build === "string" ? data.build : ""}`;
   event.waitUntil(
-    caches
-      .open(META_CACHE)
-      .then((meta) => meta.put(ROLE_KEY, new Response(data.role)))
-      .catch(() => {})
-      .then(() => precacheForRole(data.role, true))
+    (async () => {
+      const meta = await caches.open(META_CACHE);
+      await meta.put(ROLE_KEY, new Response(data.role)).catch(() => {});
+      const warmed = await meta.match(WARM_KEY).then((r) => (r ? r.text() : null)).catch(() => null);
+      const fresh = warmed !== stamp;
+      await precacheForRole(data.role, !fresh);
+      if (fresh) await meta.put(WARM_KEY, new Response(stamp)).catch(() => {});
+    })()
   );
 });
 
