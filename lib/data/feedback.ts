@@ -8,7 +8,7 @@ import { getSupabase } from "@/lib/supabase";
 import { spreadDelay } from "@/lib/realtimeTopic";
 import type { Comment, Reaction, ReactionKind } from "@/lib/types";
 
-import type { FeedbackTarget } from "@/lib/feedback";
+import type { CommentTarget, FeedbackTarget } from "@/lib/feedback";
 
 function requireClient() {
   const supabase = getSupabase();
@@ -16,7 +16,7 @@ function requireClient() {
   return supabase;
 }
 
-function targetColumns(target: FeedbackTarget) {
+function commentColumns(target: CommentTarget) {
   if ("postId" in target) return { post_id: target.postId, episode_id: null };
   if ("episodeId" in target) return { post_id: null, episode_id: target.episodeId };
   // photo_id is sent only for a photo, so stories and episodes keep working on
@@ -24,7 +24,25 @@ function targetColumns(target: FeedbackTarget) {
   return { post_id: null, episode_id: null, photo_id: target.photoId };
 }
 
-/** Every like this member may see on the trip, in one query (RLS filters). */
+function reactionColumns(target: FeedbackTarget) {
+  // the newer columns are sent only for their own target (00103)
+  if ("commentId" in target) return { post_id: null, episode_id: null, comment_id: target.commentId };
+  if ("messageId" in target) return { post_id: null, episode_id: null, message_id: target.messageId };
+  return commentColumns(target);
+}
+
+/** The likes on wall messages only (00103), for the wall screen. */
+export async function listMessageReactions(tripId: string): Promise<Reaction[]> {
+  const { data, error } = await requireClient()
+    .from("reactions")
+    .select("*")
+    .eq("trip_id", tripId)
+    .not("message_id", "is", null)
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function listReactions(tripId: string): Promise<Reaction[]> {
   const { data, error } = await requireClient()
     .from("reactions")
@@ -43,7 +61,7 @@ export async function addReaction(
 ): Promise<void> {
   const { error } = await requireClient()
     .from("reactions")
-    .insert({ trip_id: tripId, member_id: memberId, kind, ...targetColumns(target) });
+    .insert({ trip_id: tripId, member_id: memberId, kind, ...reactionColumns(target) });
   // a double tap racing itself is not an error worth showing
   if (error && error.code !== "23505") throw new Error(error.message);
 }
@@ -66,12 +84,23 @@ export async function listComments(tripId: string): Promise<Comment[]> {
 export async function addComment(
   tripId: string,
   authorId: string,
-  target: FeedbackTarget,
-  body: string
+  target: CommentTarget,
+  body: string,
+  /** the comment answered (00102); the database pins a reply to its comment's
+   *  target and to the top-level comment of a thread */
+  replyTo: string | null = null
 ): Promise<void> {
   const { error } = await requireClient()
     .from("comments")
-    .insert({ trip_id: tripId, author_id: authorId, body: body.trim(), ...targetColumns(target) });
+    .insert({
+      trip_id: tripId,
+      author_id: authorId,
+      body: body.trim(),
+      ...commentColumns(target),
+      // sent only for a reply, so a plain comment keeps working on a database
+      // that does not have the column yet
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    });
   if (error) throw new Error(error.message);
 }
 

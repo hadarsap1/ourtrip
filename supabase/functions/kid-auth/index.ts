@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
     const code = (body.code ?? "").trim().toUpperCase();
     if (code.length < 6) return json({ ok: false, error: "bad code" }, 400);
 
-    // Wrong codes are capped project-wide (00102): 30 per 15 minutes. A code
+    // Wrong codes are capped project-wide (00107): 30 per 15 minutes. A code
     // is 6 of 31 characters and lives 15 minutes, so guessing was already a
     // long shot; this makes it one nobody can run at speed.
     const { data: allowed, error: gateError } = await service.rpc("kid_register_allowed");
@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!device) return json({ ok: false, error: "unknown device" }, 401);
 
-    // Reserve this attempt BEFORE the PIN is checked (00102). The counter used
+    // Reserve this attempt BEFORE the PIN is checked (00107). The counter used
     // to be read here and written after the check, so a burst of parallel
     // requests all read the same count and each got a guess past the lockout.
     // kid_unlock_attempt takes a row lock, so attempts queue and at most

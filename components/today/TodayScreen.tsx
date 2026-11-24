@@ -332,13 +332,22 @@ export function TodayScreen() {
           </div>
         ) : !data || !data.day ? (
           <section className="ot-card p-8 text-center lg:col-span-3">
-            <RouteIcon className="mx-auto mb-3 h-9 w-9 text-line" />
+            {/* ink-faint, not line: the border colour all but vanished on the
+                dark card (UX review 24/11/2026) */}
+            <RouteIcon className="mx-auto mb-3 h-9 w-9 text-ink-faint" />
             <h2 className="mb-2 text-lg font-bold text-ink">
               {strings.today.emptyTitle}
             </h2>
             <p className="text-sm text-ink-soft">
               {data && !data.day ? strings.today.noDay : strings.today.emptyBody}
             </p>
+            {/* parents only reach this branch (kids and guests return above) */}
+            <Link
+              href="/itinerary"
+              className="mt-4 inline-flex min-h-11 items-center justify-center px-3 text-sm font-semibold text-sea"
+            >
+              {data && !data.day ? strings.today.emptyToItinerary : strings.today.emptyAddDay}
+            </Link>
           </section>
         ) : (
           <>
@@ -485,7 +494,7 @@ export function TodayScreen() {
                           {photo.url ? (
                             // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
                             <img
-                              src={photo.url}
+                              src={photo.thumbUrl ?? photo.url}
                               alt={photo.caption ?? ""}
                               className="h-[72px] w-[72px] rounded-xl object-cover"
                             />

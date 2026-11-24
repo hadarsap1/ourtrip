@@ -328,6 +328,7 @@ export type Database = {
           photo_id: string | null
           id: string
           post_id: string | null
+          reply_to: string | null
           shown_by: string | null
           shown_to_kids_at: string | null
           trip_id: string
@@ -340,6 +341,7 @@ export type Database = {
           photo_id?: string | null
           id?: string
           post_id?: string | null
+          reply_to?: string | null
           shown_by?: string | null
           shown_to_kids_at?: string | null
           trip_id: string
@@ -352,6 +354,7 @@ export type Database = {
           photo_id?: string | null
           id?: string
           post_id?: string | null
+          reply_to?: string | null
           shown_by?: string | null
           shown_to_kids_at?: string | null
           trip_id?: string
@@ -383,6 +386,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -1005,6 +1015,35 @@ export type Database = {
           },
         ]
       }
+      feedback_pushes: {
+        Row: {
+          kind: string
+          sent_at: string
+          target_id: string
+          trip_id: string
+        }
+        Insert: {
+          kind: string
+          sent_at?: string
+          target_id: string
+          trip_id: string
+        }
+        Update: {
+          kind?: string
+          sent_at?: string
+          target_id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_pushes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_seen: {
         Row: {
           member_id: string
@@ -1063,6 +1102,7 @@ export type Database = {
           map_pin_id: string | null
           shared_with_guests: boolean
           taken_at: string | null
+          thumb_path: string | null
           trip_id: string
           updated_at: string
           width: number | null
@@ -1080,6 +1120,7 @@ export type Database = {
           map_pin_id?: string | null
           shared_with_guests?: boolean
           taken_at?: string | null
+          thumb_path?: string | null
           trip_id: string
           updated_at?: string
           width?: number | null
@@ -1097,6 +1138,7 @@ export type Database = {
           map_pin_id?: string | null
           shared_with_guests?: boolean
           taken_at?: string | null
+          thumb_path?: string | null
           trip_id?: string
           updated_at?: string
           width?: number | null
@@ -1843,6 +1885,7 @@ export type Database = {
           id: string
           media_type: string
           poster_path: string | null
+          thumb_path: string | null
           shared_with_guests: boolean
           status: Database["public"]["Enums"]["photo_status"]
           taken_on: string
@@ -1862,6 +1905,7 @@ export type Database = {
           id?: string
           media_type?: string
           poster_path?: string | null
+          thumb_path?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
@@ -1881,6 +1925,7 @@ export type Database = {
           id?: string
           media_type?: string
           poster_path?: string | null
+          thumb_path?: string | null
           shared_with_guests?: boolean
           status?: Database["public"]["Enums"]["photo_status"]
           taken_on?: string
@@ -2321,36 +2366,56 @@ export type Database = {
       }
       reactions: {
         Row: {
+          comment_id: string | null
           created_at: string
           episode_id: string | null
           photo_id: string | null
           id: string
           kind: Database["public"]["Enums"]["reaction_kind"]
           member_id: string
+          message_id: string | null
           post_id: string | null
           trip_id: string
         }
         Insert: {
+          comment_id?: string | null
           created_at?: string
           episode_id?: string | null
           photo_id?: string | null
           id?: string
           kind: Database["public"]["Enums"]["reaction_kind"]
           member_id: string
+          message_id?: string | null
           post_id?: string | null
           trip_id: string
         }
         Update: {
+          comment_id?: string | null
           created_at?: string
           episode_id?: string | null
           photo_id?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["reaction_kind"]
           member_id?: string
+          message_id?: string | null
           post_id?: string | null
           trip_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reactions_photo_id_fkey"
             columns: ["photo_id"]

@@ -38,4 +38,14 @@ describe("attention rows", () => {
       ["/podcast", 4, "news"],
     ]);
   });
+
+  it("new likes and comments link straight to the item", () => {
+    const rows = attentionRows(NO_PENDING, 0, {
+      stories: 1,
+      photos: 2,
+      episodes: 1,
+      newest: { stories: "s1", photos: "ph9", episodes: "e3" },
+    });
+    expect(rows.map((r) => r.href)).toEqual(["/stories#feedback-s1", "/photos?photo=ph9", "/podcast#feedback-e3"]);
+  });
 });

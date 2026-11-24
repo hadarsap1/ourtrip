@@ -237,6 +237,8 @@ export type GuestPhoto = {
   url: string | null;
   /** the video itself; null for a photo */
   videoUrl: string | null;
+  /** small copy for grid tiles (00105); null when there is none */
+  thumbUrl: string | null;
   // where it was taken (guest-photos, 01/11/2026); absent from an older
   // deployment of the function, so optional
   place?: string | null;
@@ -266,9 +268,10 @@ export async function listGuestPhotosWithAlbums(): Promise<{ photos: GuestPhoto[
   if (inAlbums.error) throw new Error(inAlbums.error.message);
   const albumOf = new Map(inAlbums.data.map((r) => [r.id, r.album_id as string]));
   // video_url: absent from a deployment of the function older than 00099
-  const photos = (fn.data.photos as (Omit<GuestPhoto, "videoUrl"> & { video_url?: string | null })[]).map(
-    ({ video_url, ...p }) => ({ ...p, videoUrl: video_url ?? null })
-  );
+  // thumb_url: absent from a deployment older than 00105
+  const photos = (
+    fn.data.photos as (Omit<GuestPhoto, "videoUrl" | "thumbUrl"> & { video_url?: string | null; thumb_url?: string | null })[]
+  ).map(({ video_url, thumb_url, ...p }) => ({ ...p, videoUrl: video_url ?? null, thumbUrl: thumb_url ?? null }));
   return {
     photos: photos.filter((p) => !albumOf.has(p.id)),
     albumPhotos: photos.filter((p) => albumOf.has(p.id)).map((p) => ({ ...p, album_id: albumOf.get(p.id)! })),
@@ -297,6 +300,7 @@ export async function latestGuestPhotos(limit: number): Promise<GuestPhoto[]> {
     taken_on: p.taken_on ?? "",
     url: media.get(p.id)?.url ?? null,
     videoUrl: media.get(p.id)?.videoUrl ?? null,
+    thumbUrl: media.get(p.id)?.thumbUrl ?? null,
   }));
 }
 
@@ -306,6 +310,8 @@ export type GuestGooglePhoto = {
   area: string | null;
   filename: string | null;
   url: string | null;
+  /** small tile copy (00106); null when there is none - use `thumbUrl ?? url` */
+  thumbUrl: string | null;
 };
 
 /** Owner-shared Google Photos visible to this guest (via Edge Function). */
@@ -316,5 +322,8 @@ export async function listGuestGooglePhotos(): Promise<GuestGooglePhoto[]> {
   );
   if (error) throw new Error(error.message);
   if (!data?.ok) throw new Error(data?.error ?? "failed");
-  return data.photos as GuestGooglePhoto[];
+  // thumb_url: absent from a deployment of the function older than 00106
+  return (data.photos as (Omit<GuestGooglePhoto, "thumbUrl"> & { thumb_url?: string | null })[]).map(
+    ({ thumb_url, ...p }) => ({ ...p, thumbUrl: thumb_url ?? null })
+  );
 }

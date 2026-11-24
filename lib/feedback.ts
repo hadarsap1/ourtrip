@@ -4,22 +4,41 @@ import type { Comment, Reaction, ReactionKind } from "@/lib/types";
 
 export const REACTION_KINDS: ReactionKind[] = ["heart", "smile", "wow", "star"];
 
-export type FeedbackTarget = { postId: string } | { episodeId: string } | { photoId: string };
+export type FeedbackTarget =
+  | { postId: string }
+  | { episodeId: string }
+  | { photoId: string }
+  // emoji on a comment or a wall message (00103) - likes only, no comments
+  | { commentId: string }
+  | { messageId: string };
+
+/** What a comment can be written on: not on a comment or a message. */
+export type CommentTarget = Extract<FeedbackTarget, { postId: string } | { episodeId: string } | { photoId: string }>;
 
 export function matchesTarget(
-  row: { post_id: string | null; episode_id: string | null; photo_id: string | null },
+  row: {
+    post_id: string | null;
+    episode_id: string | null;
+    photo_id: string | null;
+    comment_id?: string | null;
+    message_id?: string | null;
+  },
   target: FeedbackTarget
 ): boolean {
   if ("postId" in target) return row.post_id === target.postId;
   if ("episodeId" in target) return row.episode_id === target.episodeId;
-  return row.photo_id === target.photoId;
+  if ("photoId" in target) return row.photo_id === target.photoId;
+  if ("commentId" in target) return row.comment_id === target.commentId;
+  return row.message_id === target.messageId;
 }
 
 /** A stable id for the target, for element ids. */
 export function targetKey(target: FeedbackTarget): string {
   if ("postId" in target) return target.postId;
   if ("episodeId" in target) return target.episodeId;
-  return target.photoId;
+  if ("photoId" in target) return target.photoId;
+  if ("commentId" in target) return target.commentId;
+  return target.messageId;
 }
 
 export type ReactionTally = {
@@ -109,9 +128,23 @@ export function feedbackCounts(
   };
 }
 
-export type NewFeedbackByKind = { stories: number; photos: number; episodes: number };
+export type NewFeedbackByKind = {
+  stories: number;
+  photos: number;
+  episodes: number;
+  /** Per kind, the item with the latest new like or comment, so "מחכה לך"
+   *  can open it directly (Hadar 22/11/2026). Null when nothing is new. */
+  newest: NewestByKind;
+};
 
-export const NO_NEW_FEEDBACK: NewFeedbackByKind = { stories: 0, photos: 0, episodes: 0 };
+export type NewestByKind = { stories: string | null; photos: string | null; episodes: string | null };
+
+export const NO_NEW_FEEDBACK: NewFeedbackByKind = {
+  stories: 0,
+  photos: 0,
+  episodes: 0,
+  newest: { stories: null, photos: null, episodes: null },
+};
 
 /** How many updates, photos and episodes have a like or comment from someone
  *  else that is new to me. `stamps` are already someone else's; `since` is
@@ -123,14 +156,49 @@ export function newFeedbackByKind(
   const stories = new Set<string>();
   const photos = new Set<string>();
   const episodes = new Set<string>();
+  const newest: NewestByKind = { stories: null, photos: null, episodes: null };
+  const newestAt = { stories: -Infinity, photos: -Infinity, episodes: -Infinity };
   for (const s of stamps) {
     const id = s.post_id ?? s.photo_id ?? s.episode_id;
     if (!id) continue;
     const from = since(id);
-    if (from === null || Date.parse(s.created_at) <= Date.parse(from)) continue;
-    if (s.post_id) stories.add(id);
-    else if (s.photo_id) photos.add(id);
-    else episodes.add(id);
+    const at = Date.parse(s.created_at);
+    if (from === null || at <= Date.parse(from)) continue;
+    const kind: keyof NewestByKind = s.post_id ? "stories" : s.photo_id ? "photos" : "episodes";
+    (kind === "stories" ? stories : kind === "photos" ? photos : episodes).add(id);
+    if (at > newestAt[kind]) {
+      newestAt[kind] = at;
+      newest[kind] = id;
+    }
   }
-  return { stories: stories.size, photos: photos.size, episodes: episodes.size };
+  return { stories: stories.size, photos: photos.size, episodes: episodes.size, newest };
+}
+
+// ---------- replies (00102) ----------
+
+export type CommentThread = { comment: Comment; replies: Comment[] };
+
+/** Comments in order, each with its replies under it (one level deep, like
+ *  the wall). A reply whose comment is not in the list stands on its own, so
+ *  nothing is ever hidden. */
+export function commentThreads(comments: Comment[]): CommentThread[] {
+  const ids = new Set(comments.map((c) => c.id));
+  // the database keeps threads one deep; a reply that points at a reply (or at
+  // nothing here) still shows, as a comment of its own
+  const isReply = (c: Comment) => {
+    const parent = c.reply_to && ids.has(c.reply_to) ? comments.find((p) => p.id === c.reply_to) : null;
+    return !!parent && !parent.reply_to;
+  };
+  const threads: CommentThread[] = [];
+  const byId = new Map<string, CommentThread>();
+  for (const c of comments) {
+    if (isReply(c)) continue;
+    const thread: CommentThread = { comment: c, replies: [] };
+    threads.push(thread);
+    byId.set(c.id, thread);
+  }
+  for (const c of comments) {
+    if (isReply(c)) byId.get(c.reply_to!)?.replies.push(c);
+  }
+  return threads;
 }

@@ -3,6 +3,7 @@
 // there is something to approve"). Pure helpers; the counts are loaded in
 // lib/data/pendingApprovals.
 
+import type { NewestByKind } from "@/lib/feedback";
 import { strings } from "@/lib/strings";
 
 export type PendingApprovals = {
@@ -50,7 +51,7 @@ export type AttentionRow = {
 export function attentionRows(
   p: PendingApprovals,
   unreadChat: number,
-  fresh: { stories: number; photos: number; episodes: number }
+  fresh: { stories: number; photos: number; episodes: number; newest?: NewestByKind }
 ): AttentionRow[] {
   const a = strings.attention;
   const rows: AttentionRow[] = pendingRows(p).map((r) => ({
@@ -63,10 +64,17 @@ export function attentionRows(
   if (unreadChat > 0) {
     rows.push({ key: "chat", href: "/messages", label: a.chat, count: unreadChat, tone: "news" });
   }
-  const feedback: [keyof typeof fresh, string, string][] = [
-    ["stories", "/stories", a.feedbackStories],
-    ["photos", "/photos", a.feedbackPhotos],
-    ["episodes", "/podcast", a.feedbackEpisodes],
+  // straight to the item with the latest like or comment, not the whole list
+  // (Hadar 22/11/2026): the photo opens, an update or episode scrolls to its
+  // comments. Opening it marks it seen, so with several the next tap opens
+  // the next one.
+  const n = fresh.newest;
+  const at = (path: string, id: string | null | undefined, link: (id: string) => string) =>
+    id ? link(encodeURIComponent(id)) : path;
+  const feedback: ["stories" | "photos" | "episodes", string, string][] = [
+    ["stories", at("/stories", n?.stories, (id) => `/stories#feedback-${id}`), a.feedbackStories],
+    ["photos", at("/photos", n?.photos, (id) => `/photos?photo=${id}`), a.feedbackPhotos],
+    ["episodes", at("/podcast", n?.episodes, (id) => `/podcast#feedback-${id}`), a.feedbackEpisodes],
   ];
   for (const [key, href, label] of feedback) {
     if (fresh[key] > 0) rows.push({ key: `fresh-${key}`, href, label, count: fresh[key], tone: "news" });

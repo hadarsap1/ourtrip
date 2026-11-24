@@ -27,7 +27,8 @@ export function AudienceSheet({
   const toggle = (g: string) =>
     setPicked((p) => (p.includes(g) ? p.filter((x) => x !== g) : [...p, g]));
   const chip = (on: boolean) =>
-    `rounded-full border px-3 py-1.5 text-sm ${
+    // min-h-11: the tap floor (44px), they were ~32px (UX review 24/11/2026)
+    `inline-flex min-h-11 items-center rounded-full border px-3 text-sm ${
       on ? "border-sea bg-sea-tint font-semibold text-sea-deep" : "border-line bg-surface text-ink-soft"
     }`;
 
@@ -105,7 +106,7 @@ export function AudienceRow({
       {label && <p className="mb-1 text-sm font-medium text-ink-soft">{label}</p>}
       <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
         {value.length === 0 ? strings.audience.allGuests : strings.audience.onlyTo.replace("{to}", value.join(", "))}
-        <button type="button" onClick={() => setOpen(true)} className="min-h-8 font-semibold text-sea underline">
+        <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center font-semibold text-sea underline">
           {strings.audience.change}
         </button>
       </p>

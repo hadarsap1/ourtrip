@@ -303,13 +303,22 @@ export async function syncPublicCopies(story: Story): Promise<void> {
   // parent left unshared, or kept for some groups (00064), stays in the app.
   // A video never does, nor its poster (00099): videos stay inside the app.
   for (const row of (rows ?? []).filter(photoMayGoPublic)) {
-    const { data: blob, error: downloadError } = await supabase.storage.from("photos").download(row.file_path);
-    if (downloadError || !blob) throw new Error(downloadError?.message ?? "download failed");
     const path = publicPathFor(story, row.id);
-    const { error: uploadError } = await supabase.storage
-      .from(PUBLIC_BUCKET)
-      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-    if (uploadError) throw new Error(uploadError.message);
+    // Copied inside Storage (egress, 24/11/2026): the bytes never leave
+    // Supabase. Downloading the photo to the phone and uploading it again
+    // cost a full photo of bandwidth each. Falls back to that when the copy
+    // is refused (say, a leftover file already at `path`).
+    const { error: copyError } = await supabase.storage
+      .from("photos")
+      .copy(row.file_path, path, { destinationBucket: PUBLIC_BUCKET });
+    if (copyError) {
+      const { data: blob, error: downloadError } = await supabase.storage.from("photos").download(row.file_path);
+      if (downloadError || !blob) throw new Error(downloadError?.message ?? "download failed");
+      const { error: uploadError } = await supabase.storage
+        .from(PUBLIC_BUCKET)
+        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (uploadError) throw new Error(uploadError.message);
+    }
     const { error: linkError } = await supabase
       .from("post_photos")
       .update({ public_path: path })

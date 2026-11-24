@@ -40,7 +40,9 @@ Deno.serve(async (req) => {
   // rows come through the caller's JWT → RLS decides what exists
   const { data: photos, error } = await caller
     .from("google_photos")
-    .select("id, file_path, country, area, filename, taken_at")
+    // "*" rather than a column list so this keeps working on a database
+    // without thumb_path (before 00106); the reply names only what guests see
+    .select("*")
     .order("country", { ascending: true, nullsFirst: false })
     .order("area", { ascending: true, nullsFirst: false })
     .order("taken_at", { ascending: false, nullsFirst: false });
@@ -54,9 +56,13 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+  // the small tile copy (00106) is signed too, so the gallery grid never
+  // pulls the full display copy; a photo without one falls back to it
+  const rows = photos as { id: string; file_path: string; thumb_path?: string | null; country: string | null; area: string | null; filename: string | null }[];
+  const paths = rows.flatMap((p) => [p.file_path, p.thumb_path].filter((x): x is string => !!x));
   const { data: signed, error: signError } = await service.storage
     .from("gphotos")
-    .createSignedUrls(photos.map((p) => p.file_path), SIGNED_URL_TTL_SECONDS);
+    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
   if (signError) {
     console.error(`guest-gphotos: signing failed: ${signError.message}`);
     return json({ ok: false, error: "sign_failed" }, 500);
@@ -65,12 +71,13 @@ Deno.serve(async (req) => {
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
   return json({
     ok: true,
-    photos: photos.map((p) => ({
+    photos: rows.map((p) => ({
       id: p.id,
       country: p.country,
       area: p.area,
       filename: p.filename,
       url: urlByPath.get(p.file_path) ?? null,
+      thumb_url: p.thumb_path ? (urlByPath.get(p.thumb_path) ?? null) : null,
     })),
   });
 });

@@ -17,6 +17,8 @@ export type ViewedPhoto = {
   url: string | null;
   /** the video itself; absent or null for a photo */
   videoUrl?: string | null;
+  /** small copy for tiles (00105); absent or null when there is none */
+  thumbUrl?: string | null;
   caption: string | null;
   taken_on: string;
   uploaded_by?: string;

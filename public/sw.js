@@ -1,8 +1,17 @@
 // OurTrip service worker.
 //
 // Caching rules, in priority order:
-//   1. Never touch anything that isn't a same-origin GET - Supabase, Google
-//      Maps and Open-Meteo must reach the network untouched.
+//   0. Photos from Supabase Storage are kept by their storage path (egress
+//      fix 24/11/2026). Each signed URL carries a new token, so the browser
+//      saw every photo as new and downloaded it again: 5,063 downloads of
+//      225 photos in one day, all past the free plan's bandwidth. Storage
+//      paths are random UUIDs that are never overwritten, so one path is
+//      always the same bytes and a cached copy never goes stale. Only a page
+//      that already holds a valid signed URL for a path asks for it, so this
+//      grants no one a photo RLS did not sign for them (hard rule 3 holds).
+//      Pictures only: video (Range requests) and documents go to the network.
+//   1. Never touch anything else that isn't a same-origin GET - Supabase,
+//      Google Maps and Open-Meteo must reach the network untouched.
 //   2. Never cache React Server Component payloads (`?_rsc=`). They are tied
 //      to one build; a stale one makes tab switches render old data or fail.
 //   3. Hashed build assets live in their own cache that SURVIVES a service
@@ -13,10 +22,20 @@
 
 const SHELL_CACHE = "ourtrip-shell-v21";
 const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
-const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
+// Photos by storage path (rule 0). Same name as MEDIA_CACHE in
+// lib/supabase.ts, which deletes it on sign-out.
+const MEDIA_CACHE = "ourtrip-media-v1";
+const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE, MEDIA_CACHE];
 
 // Cap the asset cache so months on the road don't fill the device.
 const ASSET_CACHE_LIMIT = 400;
+// ~1,500 pictures: full photos are ~350KB, thumbnails far less
+const MEDIA_CACHE_LIMIT = 1500;
+
+// Signed Storage reads of the picture buckets: /storage/v1/object/sign/<bucket>/<path>,
+// and the open blog's public copies (/object/public/public-stories/, 00046):
+// their paths never change either, so a repeat visit costs nothing
+const MEDIA_PATH = /^\/storage\/v1\/object\/(?:sign\/(?:photos|map-photos|gphotos)|public\/public-stories)\//;
 
 // Navigation network timeout: past this we serve the cached shell and let the
 // page hydrate from IndexedDB rather than leaving the family staring at white.
@@ -132,6 +151,34 @@ async function assetFirst(request) {
   return response;
 }
 
+function isMedia(url, request) {
+  return (
+    url.hostname.endsWith(".supabase.co") &&
+    MEDIA_PATH.test(url.pathname) &&
+    !request.headers.has("range")
+  );
+}
+
+/** Cache-first by storage path (rule 0): the token is left out of the key. */
+async function mediaFirst(request, url) {
+  const key = url.origin + url.pathname;
+  const cache = await caches.open(MEDIA_CACHE);
+  const cached = await cache.match(key);
+  if (cached) return cached;
+  // CORS, not the <img>'s no-cors: an opaque response can't be checked and
+  // is counted as megabytes of quota each
+  const response = await fetch(url.href, { mode: "cors", credentials: "omit" });
+  const type = response.headers.get("content-type") ?? "";
+  if (response.status === 200 && type.startsWith("image/")) {
+    const copy = response.clone();
+    cache
+      .put(key, copy)
+      .then(() => trimCache(MEDIA_CACHE, MEDIA_CACHE_LIMIT))
+      .catch(() => {});
+  }
+  return response;
+}
+
 /** Network-first with a timeout, falling back to the cached shell. */
 async function navigateWithFallback(request) {
   const fallback = async () =>
@@ -176,6 +223,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Rule 0: a photo already on the device is not downloaded again.
+  if (isMedia(url, request)) {
+    event.respondWith(mediaFirst(request, url).catch(() => fetch(request)));
+    return;
+  }
+
   // Rule 1: leave every other origin alone.
   if (url.origin !== self.location.origin) return;
 
@@ -213,15 +266,42 @@ self.addEventListener("fetch", (event) => {
 });
 
 // ---- Web Push (Sprint 8) ----
-// Payload shape from the push-send Edge Function: { title, body, url, tag, many }.
+// Payload shape from the push-send Edge Function:
+//   { title, body, url, tag, many, count, silent, badge, manyUrl }.
 //
-// Repeats of one kind (wall messages, approvals waiting) fold into a single
-// notification instead of piling up: when a push carries `many` and one with
-// its tag is still showing, that one is replaced by a notification titled
-// with the running count ("{n} הודעות חדשות בקיר") and the latest preview,
-// and the update is silent - only the first one rings. The app lists them all.
+// Repeats of one kind (wall messages, approvals waiting, comments and likes)
+// fold into a single notification instead of piling up: when a push carries
+// `many` and one with its tag is still showing, that one is replaced by a
+// notification titled with the running count ("{n} הודעות חדשות בקיר") and the
+// latest preview, and the update is silent - only the first one rings. The app
+// lists them all. `count` is how many items one push stands for (default 1).
+//
+// `silent` never rings at all (comments and likes, 00104). `badge` counts
+// toward the number on the app icon (Badging API - iPhone/iPad home-screen app
+// and desktop; Android shows its own dot from the notification). The app
+// clears both when it is opened (components/RegisterSW.tsx).
+async function badgeCount() {
+  const showing = await self.registration.getNotifications().catch(() => []);
+  return showing.reduce(
+    (n, shown) => n + (shown.data && shown.data.badge ? shown.data.count || 1 : 0),
+    0
+  );
+}
+
+async function refreshBadge() {
+  if (!("setAppBadge" in self.navigator)) return;
+  const n = await badgeCount();
+  try {
+    if (n > 0) await self.navigator.setAppBadge(n);
+    else await self.navigator.clearAppBadge();
+  } catch {
+    // not allowed on this platform - the notification itself still shows
+  }
+}
+
 async function showPush(data) {
   const title = data.title || "סו-בב עולם!";
+  const count = Number(data.count) > 0 ? Number(data.count) : 1;
   const options = {
     body: data.body || "",
     icon: "/icons/icon-192.png",
@@ -229,7 +309,8 @@ async function showPush(data) {
     dir: "rtl",
     lang: "he",
     tag: data.tag || undefined,
-    data: { url: data.url || "/", count: 1 },
+    silent: data.silent === true,
+    data: { url: data.url || "/", count, badge: data.badge === true },
   };
   if (data.tag && data.many) {
     const showing = await self.registration.getNotifications({ tag: data.tag }).catch(() => []);
@@ -237,12 +318,15 @@ async function showPush(data) {
     if (before > 0) {
       // closed first: not every platform replaces by tag on its own
       for (const shown of showing) shown.close();
-      options.data.count = before + 1;
+      options.data.count = before + count;
+      options.data.url = data.manyUrl || options.data.url;
       options.silent = true;
-      return self.registration.showNotification(data.many.replace("{n}", String(before + 1)), options);
+      await self.registration.showNotification(data.many.replace("{n}", String(before + count)), options);
+      return refreshBadge();
     }
   }
-  return self.registration.showNotification(title, options);
+  await self.registration.showNotification(title, options);
+  return refreshBadge();
 }
 
 self.addEventListener("push", (event) => {
@@ -255,18 +339,22 @@ self.addEventListener("push", (event) => {
   event.waitUntil(showPush(data));
 });
 
+self.addEventListener("notificationclose", (event) => {
+  event.waitUntil(refreshBadge());
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const target = (event.notification.data && event.notification.data.url) || "/";
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ("focus" in client) {
-          client.navigate(target);
-          return client.focus();
-        }
+  // the window first: openWindow must run while the tap still counts
+  const open = self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    for (const client of clients) {
+      if ("focus" in client) {
+        client.navigate(target);
+        return client.focus();
       }
-      return self.clients.openWindow(target);
-    })
-  );
+    }
+    return self.clients.openWindow(target);
+  });
+  event.waitUntil(Promise.all([open, refreshBadge()]));
 });

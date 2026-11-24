@@ -5,6 +5,8 @@ import { EditIcon, TrashIcon } from "@/components/icons";
 import { EditTextSheet } from "@/components/EditTextSheet";
 import { KidTag } from "@/components/KidTag";
 import { NewDot } from "@/components/feedback/FeedbackCount";
+import { LABELS, ReactionIcon } from "@/components/feedback/ReactionIcon";
+import { ReactionRow } from "@/components/feedback/ReactionRow";
 import { askConfirm } from "@/components/ConfirmSheet";
 import {
   addComment,
@@ -14,75 +16,19 @@ import {
   updateComment,
 } from "@/lib/data/feedback";
 import {
+  commentThreads,
   matchesTarget,
   namesSummary,
   newFeedback,
   tallyReactions,
   targetKey,
-  type FeedbackTarget,
+  type CommentTarget,
 } from "@/lib/feedback";
 import { useFeedbackSeen } from "@/lib/useFeedbackSeen";
 import { formatShortDate } from "@/lib/format";
 import { nameWithKidTag } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
 import type { Comment, Member, Reaction, ReactionKind } from "@/lib/types";
-
-const LABELS: Record<ReactionKind, string> = {
-  heart: strings.feedback.reactionHeart,
-  smile: strings.feedback.reactionSmile,
-  wow: strings.feedback.reactionWow,
-  star: strings.feedback.reactionStar,
-};
-
-function ReactionIcon({ kind, filled }: { kind: ReactionKind; filled: boolean }) {
-  // 24px with a heavier stroke: the old 18px / 1.75 icons were thin and small
-  // on a phone. Faces get bigger eyes and mouths so they read at a glance.
-  const common = {
-    width: 24,
-    height: 24,
-    viewBox: "0 0 24 24",
-    "aria-hidden": true as const,
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
-  const face = (
-    <circle cx="12" cy="12" r="9" fill={filled ? "currentColor" : "none"} fillOpacity={filled ? 0.22 : 0} />
-  );
-  switch (kind) {
-    case "heart":
-      return (
-        <svg {...common} fill={filled ? "currentColor" : "none"}>
-          <path d="M12 20.5s-8-4.8-8-11a4.5 4.5 0 0 1 8-2.8 4.5 4.5 0 0 1 8 2.8c0 6.2-8 11-8 11z" />
-        </svg>
-      );
-    case "smile":
-      return (
-        <svg {...common} fill="none">
-          {face}
-          <path d="M7.8 13.5a4.6 4.6 0 0 0 8.4 0" />
-          <circle cx="9" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
-          <circle cx="15" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case "wow":
-      return (
-        <svg {...common} fill="none">
-          {face}
-          <ellipse cx="12" cy="15.5" rx="2.2" ry="2.8" />
-          <circle cx="9" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
-          <circle cx="15" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case "star":
-      return (
-        <svg {...common} fill={filled ? "currentColor" : "none"}>
-          <path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z" />
-        </svg>
-      );
-  }
-}
 
 export function FeedbackBar({
   tripId,
@@ -98,7 +44,7 @@ export function FeedbackBar({
   tripId: string;
   member: Member;
   members: Member[];
-  target: FeedbackTarget;
+  target: CommentTarget;
   reactions: Reaction[];
   /** Kids get them read-only (RLS, 00050). */
   comments: Comment[];
@@ -110,6 +56,12 @@ export function FeedbackBar({
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<Comment | null>(null);
+  // answering a comment (00102): the comment tapped, shown above the input
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  // threads opened or closed by hand; otherwise a thread opens by itself
+  // when it has a reply that is new to me
+  const [openThreads, setOpenThreads] = useState<Record<string, boolean>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
   const memberOf = (id: string) => members.find((m) => m.id === id);
   const nameOf = (id: string) => (id === member.id ? strings.wall.me : (memberOf(id)?.display_name ?? ""));
 
@@ -192,8 +144,13 @@ export function FeedbackBar({
     if (!text || busy) return;
     setBusy(true);
     try {
-      await addComment(tripId, member.id, target, text);
+      // a reply to a reply answers the comment at the top of its thread, as
+      // the database does anyway (00102)
+      const root = replyTo ? (replyTo.reply_to ?? replyTo.id) : null;
+      await addComment(tripId, member.id, target, text, root);
       setDraft("");
+      if (root) setOpenThreads((open) => ({ ...open, [root]: true }));
+      setReplyTo(null);
       onChanged();
     } catch {
       onToast(strings.common.error);
@@ -201,6 +158,76 @@ export function FeedbackBar({
       setBusy(false);
     }
   }
+
+  /** One comment or reply; `replyCount` makes deleting it say its replies go
+   *  too (on delete cascade, 00102). */
+  const commentItem = (c: Comment, replyCount: number) => (
+    <div className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}>
+      <p className="text-xs font-bold text-sv-ink">
+        {nameOf(c.author_id)}
+        {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
+        <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
+          {formatShortDate(c.created_at.slice(0, 10))}
+        </span>
+        {highlighted.has(c.id) && (
+          <span className="ms-1.5 align-middle">
+            <NewDot />
+          </span>
+        )}
+      </p>
+      <p className="whitespace-pre-wrap break-words text-sm text-sv-ink">{c.body}</p>
+      {/* emoji for everyone, kids too (00103); reply, edit, delete at the end */}
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <ReactionRow
+          tripId={tripId}
+          memberId={member.id}
+          target={{ commentId: c.id }}
+          reactions={reactions}
+          onChanged={onChanged}
+          onToast={onToast}
+        />
+        <div className="ms-auto flex items-center gap-1">
+          {canComment && (
+            <button
+              type="button"
+              onClick={() => {
+                setReplyTo(c);
+                inputRef.current?.focus();
+              }}
+              className="min-h-8 text-xs font-semibold text-sv-ink-soft underline underline-offset-2"
+            >
+              {strings.feedback.reply}
+            </button>
+          )}
+          {(isOwner || c.author_id === member.id) && (
+            <>
+              <button
+                type="button"
+                aria-label={strings.common.edit}
+                onClick={() => setEditing(c)}
+                className="grid h-8 w-8 place-items-center rounded-full text-sv-ink-soft"
+              >
+                <EditIcon className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={strings.common.delete}
+                onClick={async () => {
+                  const ask = replyCount > 0 ? strings.feedback.deleteWithRepliesConfirm : strings.feedback.deleteConfirm;
+                  if (!(await askConfirm(ask))) return;
+                  if (replyTo && (replyTo.id === c.id || replyTo.reply_to === c.id)) setReplyTo(null);
+                  void deleteComment(c.id).then(onChanged).catch(() => onToast(strings.common.error));
+                }}
+                className="grid h-8 w-8 place-items-center rounded-full text-sv-ink-soft"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div ref={rootRef} id={`feedback-${key}`} className="scroll-mt-24 space-y-2.5">
@@ -254,52 +281,58 @@ export function FeedbackBar({
         <div className="space-y-2 border-t border-sv-line pt-2.5">
           {mine.length > 0 && (
             <ul className="space-y-2">
-              {mine.map((c) => {
+              {commentThreads(mine).map(({ comment, replies }) => {
+                const open = openThreads[comment.id] ?? replies.some((r) => highlighted.has(r.id));
                 return (
-                  <li
-                    key={c.id}
-                    className={`rounded-2xl bg-sv-paper px-3 py-2 ${highlighted.has(c.id) ? "ring-1 ring-sv-clay" : ""}`}
-                  >
-                    <p className="text-xs font-bold text-sv-ink">
-                      {nameOf(c.author_id)}
-                      {c.author_id !== member.id && <KidTag names={memberOf(c.author_id)?.kid_names} />}
-                      <span className="ms-1.5 font-normal text-sv-ink-soft" dir="ltr">
-                        {formatShortDate(c.created_at.slice(0, 10))}
-                      </span>
-                      {highlighted.has(c.id) && (
-                        <span className="ms-1.5 align-middle">
-                          <NewDot />
-                        </span>
-                      )}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-sm text-sv-ink">{c.body}</p>
-                    {(isOwner || c.author_id === member.id) && (
-                      <div className="mt-1 flex items-center justify-end gap-2">
+                  <li key={comment.id} className="space-y-1.5">
+                    {commentItem(comment, replies.length)}
+                    {replies.length > 0 && (
+                      <>
                         <button
                           type="button"
-                          aria-label={strings.common.edit}
-                          onClick={() => setEditing(c)}
-                          className="grid place-items-center rounded-full text-sv-ink-soft"
+                          aria-expanded={open}
+                          onClick={() => setOpenThreads((all) => ({ ...all, [comment.id]: !open }))}
+                          className="ms-3 flex min-h-8 items-center gap-1.5 text-xs font-semibold text-sv-ink-soft underline underline-offset-2"
                         >
-                          <EditIcon className="h-4 w-4" />
+                          {open
+                            ? strings.feedback.hideReplies
+                            : replies.length === 1
+                              ? strings.feedback.replyOne
+                              : strings.feedback.repliesN.replace("{n}", String(replies.length))}
+                          {!open && replies.some((r) => highlighted.has(r.id)) && <NewDot />}
                         </button>
-                        <button
-                          type="button"
-                          aria-label={strings.common.delete}
-                          onClick={async () => {
-                            if (!(await askConfirm(strings.feedback.deleteConfirm))) return;
-                            void deleteComment(c.id).then(onChanged).catch(() => onToast(strings.common.error));
-                          }}
-                          className="grid place-items-center rounded-full text-sv-ink-soft"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+                        {open && (
+                          <ul className="ms-3 space-y-1.5 border-s-2 border-sv-line ps-3">
+                            {replies.map((r) => (
+                              <li key={r.id}>{commentItem(r, 0)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
                     )}
                   </li>
                 );
               })}
             </ul>
+          )}
+          {canComment && replyTo && (
+            <div className="flex items-start gap-2 rounded-xl bg-sv-paper px-3 py-2 text-xs text-sv-ink-soft">
+              <p className="min-w-0 flex-1">
+                <span className="font-semibold text-sv-ink">
+                  {replyTo.author_id === member.id
+                    ? strings.feedback.replyingToMine
+                    : strings.feedback.replyingTo.replace("{name}", nameOf(replyTo.author_id))}
+                </span>{" "}
+                <span className="line-clamp-1">{replyTo.body}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="min-h-8 shrink-0 font-semibold text-sea underline"
+              >
+                {strings.feedback.cancelReply}
+              </button>
+            </div>
           )}
           {canComment && (
           <form onSubmit={(e) => void send(e)} className="flex gap-2">
@@ -307,12 +340,13 @@ export function FeedbackBar({
               {strings.feedback.commentLabel}
             </label>
             <input
+              ref={inputRef}
               id={inputId}
               type="text"
               maxLength={1000}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder={strings.feedback.commentPlaceholder}
+              placeholder={replyTo ? strings.feedback.replyPlaceholder : strings.feedback.commentPlaceholder}
               className="min-w-0 flex-1 rounded-2xl border border-sv-line bg-sv-card px-3 py-2.5 text-sv-ink placeholder:text-sv-ink-soft focus:border-sv-sage focus:outline-none"
             />
             <button

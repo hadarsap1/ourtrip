@@ -1,4 +1,4 @@
--- 00102: a guest who signs in by the emailed link is let in (security review
+-- 00107: a guest who signs in by the emailed link is let in (security review
 -- 19/11/2026), and an account nobody proved can no longer look "proven".
 --
 -- 1. THE BUG. 00055 linked a members row by email only for a Google login or
@@ -39,7 +39,7 @@
 --    lockout. kid_register_allowed / kid_register_failed cap wrong
 --    registration codes at 30 per 15 minutes across the project.
 --
--- Probe: scripts/rls/probes/102_link_by_magic_link.sql.
+-- Probe: scripts/rls/probes/107_link_by_magic_link.sql.
 
 -- ============ 1 + 2. link_member_to_auth_user ============
 

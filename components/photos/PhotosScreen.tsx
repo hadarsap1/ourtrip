@@ -15,6 +15,7 @@ import {
 import {
   approvePhoto,
   deletePhoto,
+  backfillThumbnails,
   listPhotos,
   rejectPhoto,
   setPhotoAudience,
@@ -67,6 +68,23 @@ function albumFromUrl(): string | null {
 // Photos are a place of their own again, by place (Hadar 01/11/2026): a small
 // map of where they were taken, then one section per stretch of the trip,
 // newest first, photos in the order they were taken.
+
+/** /photos?photo=<id> - "מחכה לך"'s new-comment pill opens that photo
+ *  (Hadar 22/11/2026). Takes the id off the URL, so closing the photo or a
+ *  reload does not open it again. */
+function takePhotoFromUrl(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("photo");
+    if (id) {
+      url.searchParams.delete("photo");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
 
 const sectionId = (key: string) => `place-${encodeURIComponent(key)}`;
 
@@ -247,7 +265,7 @@ function GuestPhotosView() {
                     {photo.url && (
                       // eslint-disable-next-line @next/next/no-img-element -- signed URL
                       <img
-                        src={photo.url}
+                        src={photo.thumbUrl ?? photo.url}
                         alt={photo.filename ?? ""}
                         loading="lazy"
                         className="h-full w-full object-cover"
@@ -303,6 +321,12 @@ function FamilyPhotosView() {
   // names for the approval queue ("לאלבום: אווירה") and its share-in-one-tap
   const [albums, setAlbums] = useState<Album[]>([]);
 
+  const openLinkedPhoto = useCallback((list: PhotoWithUrl[]) => {
+    const id = takePhotoFromUrl();
+    const hit = id ? list.find((p) => p.id === id) : undefined;
+    if (hit) setViewing(hit);
+  }, []);
+
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -319,6 +343,7 @@ function FamilyPhotosView() {
         .catch(() => {}),
     ]);
     setPhotos(list);
+    return list;
   }, []);
   const feedback = usePhotoFeedback(trip?.id ?? null, true);
   // guests' views of album photos (00085): parents only, null for the rest
@@ -338,7 +363,8 @@ function FamilyPhotosView() {
         .then((d) => !cancelled && setDays(d))
         .catch(() => {});
       try {
-        await refresh(activeTrip.id);
+        const list = await refresh(activeTrip.id);
+        if (!cancelled) openLinkedPhoto(list);
       } catch {
         if (!cancelled) setLoadFailed(true);
       } finally {
@@ -348,7 +374,7 @@ function FamilyPhotosView() {
     return () => {
       cancelled = true;
     };
-  }, [refresh]);
+  }, [refresh, openLinkedPhoto]);
 
   const retryLoad = useCallback(async () => {
     if (!trip) return;
@@ -415,6 +441,19 @@ function FamilyPhotosView() {
   );
 
   const isOwnerRole = member?.role === "owner";
+
+  // photos from before thumbnails (00105) get theirs from a parent's device,
+  // once per visit, after the screen has settled
+  const backfilled = useRef(false);
+  useEffect(() => {
+    if (!isOwnerRole || photos.length === 0 || backfilled.current) return;
+    const timer = setTimeout(() => {
+      backfilled.current = true;
+      void backfillThumbnails(photos);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isOwnerRole, photos]);
+
   useEffect(() => {
     if (!trip || !isOwnerRole) return;
     let cancelled = false;
@@ -559,14 +598,38 @@ function FamilyPhotosView() {
           tile={(photo) => <PhotoTile photo={photo} badge={NO_BADGE} onOpen={() => setViewing(photo)} />}
           stats={albumStats}
           onUpload={uploadForAlbum}
-          onPhotosChanged={() => refresh(trip.id)}
+          onPhotosChanged={async () => {
+            await refresh(trip.id);
+          }}
           onDeletePhoto={(photo) => deletePhoto(photo)}
           onToast={showToast}
         />
       ) : visible.length === 0 && pending.filter((p) => p.album_id === null).length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
-          {strings.photos.empty}
-        </p>
+        <div className="space-y-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+          <p className="text-sm text-ink-soft">{strings.photos.empty}</p>
+          {/* the first upload, where the eye already is (UX review 24/11/2026);
+              the + in the bar does the same */}
+          {isOwnerRole && (
+            <label
+              aria-busy={uploading}
+              className={`inline-flex min-h-11 items-center justify-center rounded-xl bg-sea px-5 text-sm font-semibold text-on-sea ${uploading ? "opacity-70" : "cursor-pointer active:opacity-90"}`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploading}
+                className="sr-only"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  if (files.length > 0) void uploadFiles(files);
+                }}
+              />
+              {uploading ? strings.photos.uploading : strings.photos.uploadFirst}
+            </label>
+          )}
+        </div>
       ) : (
         <PlaceSections
           groups={groupByPlace(visible, placeByDate(days))}
@@ -756,7 +819,7 @@ function PhotoTile({
   badge,
   onOpen,
 }: {
-  photo: { url: string | null; caption: string | null; videoUrl?: string | null };
+  photo: { url: string | null; caption: string | null; videoUrl?: string | null; thumbUrl?: string | null };
   badge: FeedbackBadge;
   onOpen: () => void;
 }) {
@@ -764,7 +827,7 @@ function PhotoTile({
   return (
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
       {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-      <img src={photo.url} alt={photo.caption ?? ""} className="aspect-square w-full object-cover" />
+      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-square w-full object-cover" />
       {photo.videoUrl && <VideoBadge className="absolute end-1.5 top-1.5" />}
       <span className="absolute top-1.5 start-1.5">
         <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />

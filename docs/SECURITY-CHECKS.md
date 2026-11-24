@@ -3273,7 +3273,143 @@ first approval is never mistaken for a repeat.
 | Pending join request has no allowlist or member row (00095 `request_guest_join`) | ✅ by code |
 | Deployed 20/11/2026 on Hadar's go-ahead: guest-invite v16 (verify_jwt true), shared files unchanged since v15 | ✅ done |
 
-## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00102)
+## Guest sign-in link: WhatsApp option kept, no one-time wording (23/11/2026)
+
+The guest card's "send a sign-in link" now always opens the sheet, with the
+WhatsApp button, as after approval (DECISIONS #73). The sign-in email, the
+WhatsApp messages and the login screen no longer say the link works once.
+Wording only: the links, the owner gate in `guest-invite` and the
+`claim_guest_login_link` gate in `guest-login-link` are unchanged. No policy
+changes.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (780), build | ✅ PASS |
+| Deployed 23/11/2026 on Hadar's go-ahead: guest-invite v17 (verify_jwt true), guest-login-link v5 (verify_jwt false); both matched the repo before the change | ✅ done |
+| Live smoke call from this session | X not run: the session's network blocks the Supabase functions host |
+
+## Replies to comments (23/11/2026, 00102)
+
+A comment on an update, episode or photo can answer another comment
+(`comments.reply_to`), shown under it as a one-deep thread like wall replies
+(00066). No new policies: `comments_reply_guard` (before insert/update,
+security definer) moves a reply to a reply onto the top-level comment, refuses
+a parent on another trip, refuses moving a reply, and copies the parent's
+`post_id` / `episode_id` / `photo_id` onto the reply. RLS `with check` runs
+after the trigger, so a guest answering a comment on a target they cannot see
+is refused by `comments_guest_insert` (`feedback_target_visible`). Kids still
+have select only (00050) and get no reply button. Deleting a comment deletes
+its replies (`on delete cascade`).
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (782), build | ✅ PASS |
+| Guest reply to a comment on an update outside their groups is refused | ✅ by policy (target forced from parent, then `with check`) |
+| Kid insert of a reply | ✅ by policy (no kid insert policy on comments) |
+| Migration 00102 applied to the live project (23/11/2026, on Hadar's go-ahead) | ✅ done |
+| Live trigger test in a rolled-back transaction: reply takes the parent's target, a reply to a reply attaches to the top-level comment, moving a reply is refused | ✅ PASS |
+
+## Emoji on comments and wall messages (23/11/2026, 00103)
+
+`reactions` gets `comment_id` and `message_id` (one target per row, once per
+member and kind, `on delete cascade`). Insert checks use the new
+`reaction_target_visible` (security invoker, so the caller's own RLS on
+`comments` / `messages` decides; a wall message must be approved). The kid and
+guest select policy gets the same two branches. Kids may react (decided with
+Hadar 23/11/2026); they still cannot write comments (00050). A guest cannot see
+or add likes on another group's wall message: `messages_guest_select` hides
+the message, so both branches fail.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (785), build | ✅ PASS |
+| Dry run on the live project in a rolled-back transaction: like on a comment and on an approved message insert; a second like of the same kind is refused; a waiting message is not a visible target; every existing row still has exactly one target | ✅ PASS |
+| Guest reacting to another group's message | ✅ by policy (invoker lookup under `messages_guest_select`) |
+| Migration 00103 applied to the live project (23/11/2026, on Hadar's go-ahead); columns, 4 policies and execute grant verified, 124 existing likes intact | ✅ done |
+
+## Quiet push to parents on comments and likes (23/11/2026, 00104)
+
+New table `feedback_pushes` (which comments and likes were already pushed):
+RLS on, no policies, `revoke all` from anon and authenticated - push-send
+(service role) only. `notify_feedback()` is security definer with execute
+revoked from every client role; it sends no id, only `{"type": "feedback"}`,
+and push-send reads everything itself, so a forged call (it still needs the
+cron secret) can at most send a due push a little earlier. Recipients are the
+trip's owners except the item's author; owners already read every comment and
+like (`comments_owner_all`, `reactions_owner_all`), so a push preview never
+shows them anything they could not open. Kids and guests get nothing from
+this - no recipient query touches their rows.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (792), build | ✅ PASS |
+| Guest / kid / anon select or insert on `feedback_pushes` | ✅ by policy (RLS on, no policy, no grant) |
+| Guest or kid as a recipient | ✅ by code (`role = 'owner'` only, `feedbackPush.test.ts`) |
+| Migration 00104 applied to the live project (23/11/2026, on Hadar's go-ahead): RLS on, 0 policies, no select for anon/authenticated, both triggers and the `push-feedback` cron present, 165 existing comments and likes marked as told | ✅ done |
+| push-send v24 deployed with the `feedback` type; a manual call returned `200 {"ok":true,"sent":0}` (nothing new, as expected) | ✅ done |
+
+## Egress fix: photos cached by path, grid thumbnails (00105, 24/11/2026)
+
+Supabase warned the free plan's bandwidth was spent (12.87 of 5.5 GB). Logs:
+5,063 downloads of 225 photos in 24 h, all cache MISS - every list load
+signed fresh URLs, so the browser fetched each photo again.
+
+**Path cache (no DB change).** The service worker keeps pictures from the
+`photos`, `map-photos` and `gphotos` buckets keyed by storage path (token
+dropped); `signFamilyMedia` reuses a still-valid signed URL per path. A page
+asks for a path only when it already holds a valid signed URL for it, which
+only RLS / guest-photos / guest-media hand out, so a cached copy is never
+shown to someone who could not sign it (rule 3). Paths are random UUIDs never
+overwritten. Both caches are cleared on sign-out (`onSignedOut`,
+`MEDIA_CACHE`). Documents, receipts and video (Range) are not cached.
+
+**Thumbnails (00105).** `photos.thumb_path`, a small JPEG in the same private
+bucket. Same row → same RLS as the photo; storage policies unchanged (00007:
+owners and kids read, guests never). guest-photos and guest-media sign
+`thumb_path` only for rows the guest's own RLS returned, exactly as the full
+picture. `photos_guard_update` pins `thumb_path` for kids, like `file_path`
+and `poster_path`. Deleting a photo or an album removes the thumbnail too.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (796), build | ✅ PASS |
+| Guest reads a thumbnail of an unshared / pending photo | ✅ by code (signed only for rows RLS returned, both functions) |
+| Guest reads `photos` bucket directly | ✅ by policy (00007, unchanged) |
+| Kid repoints `thumb_path` on own row | ✅ by trigger (00105 guard) |
+| Cached photo shown to the next account on a shared device | ✅ by code (media cache + URL cache cleared on SIGNED_OUT) |
+| Migration 00105 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, guard pins it for kids, `photos` still has its 5 policies | ✅ done |
+| guest-media v5 and guest-photos v14 deployed (verify_jwt on), signing `thumb_path` for RLS-returned rows only | ✅ done |
+
+## 24/11/2026 - Google photo thumbnails (00106), story copies, public-stories cache
+
+**Thumbnails (00106).** `google_photos.thumb_path`, a small JPEG in the same
+private `gphotos` bucket. Same row → same RLS (00016/00017: owners all, kids
+read, guests only `shared_with_guests` rows). Storage policies unchanged
+(owners and kids read, owners write, guests never). guest-gphotos signs
+`thumb_path` only for rows the guest's own RLS returned, like the full copy.
+Kids have no UPDATE policy on `google_photos`, so no guard is needed. The
+background backfill runs on owner devices only and writes through the owner's
+own JWT.
+
+**Story copies.** `syncPublicCopies` now uses a Storage-side copy
+(`photos` → `public-stories`). It runs under the same policies as before
+(owner reads `photos`, owner writes `public-stories`, 00046) and still copies
+only rows `photoMayGoPublic` accepts (approved, shared, open to everyone, not
+video).
+
+**SW.** The media cache also keeps `/object/public/public-stories/` files.
+Those are public by design (00046), so caching them shows nobody anything new.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (800), build | ✅ PASS |
+| Guest gets a thumbnail of an unshared Google photo | ✅ by code (guest-gphotos signs only rows its RLS returned) |
+| Kid writes `google_photos.thumb_path` | ✅ by policy (kids select-only, 00016) |
+| Signed URL reused across load (no re-sign) | ✅ by test (`lib/data/signedUrls.test.ts`) |
+| Migration 00106 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, RLS on, `google_photos` still has its 3 policies | ✅ done |
+| gphotos v5 and guest-gphotos v8 deployed (verify_jwt on), guest-gphotos signing `thumb_path` for RLS-returned rows only | ✅ done |
+
+## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00107)
 
 Found in the security review of 19/11, read back from production first:
 every account `guest-invite` creates with `auth.admin.createUser` carries a
@@ -3302,18 +3438,18 @@ What changed:
 
 | Check | Result |
 |---|---|
-| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 102 |
-| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 102 |
-| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 102 |
-| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 102 |
-| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 102 |
-| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 102 |
-| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 102 |
+| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 107 |
+| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 107 |
+| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 107 |
+| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 107 |
+| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 107 |
+| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 107 |
+| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 107 |
 | Probes 54, 55, 95 updated to the new rule (the seeded outsider signs in with Google) | ✅ PASS |
-| Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations |
+| Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations (before renumbering) |
 | lint, vitest, build | ✅ PASS |
 | `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session; the deploy bundled and the functions are ACTIVE |
-| 00102 applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
+| 00107 (written as 00102 until main took that number for comment replies) applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
 | Live read-back: the four functions exist, the link function reads `amr`, submit_guest_join has the member-by-account check; anon cannot run kid_unlock_attempt, authenticated cannot run kid_register_failed; authenticated can still run link_member_to_auth_user, anon cannot | ✅ 20/11/2026 |
 | Live, in a transaction rolled back: emailed-link session for an uninvited address -> null; password session -> null; kid_unlock_attempt unknown device -> unknown, real device -> attempt 1; kid_register_allowed -> true; afterwards no device carries a failed attempt and no failure row exists | ✅ 20/11/2026 |
 | Deployed: kid-auth v12 (verify_jwt false), guest-gphotos v7, guest-photos v13, guest-media v4 (verify_jwt true); each matched the repo before the change | ✅ 20/11/2026 |

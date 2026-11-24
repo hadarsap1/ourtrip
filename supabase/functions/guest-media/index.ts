@@ -40,7 +40,7 @@ function ids(value: unknown): string[] {
   return [...new Set(value.filter((v): v is string => typeof v === "string" && UUID.test(v)))].slice(0, MAX_IDS);
 }
 
-type PhotoRow = { id: string; file_path: string; media_type: string; poster_path: string | null };
+type PhotoRow = { id: string; file_path: string; media_type: string; poster_path: string | null; thumb_path: string | null };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
   // rows come through the caller's own JWT → RLS decides what exists
   const [photosRes, episodesRes] = await Promise.all([
     photoIds.length
-      ? caller.from("photos").select("id, file_path, media_type, poster_path").in("id", photoIds)
+      ? caller.from("photos").select("id, file_path, media_type, poster_path, thumb_path").in("id", photoIds)
       : Promise.resolve({ data: [] as PhotoRow[], error: null }),
     episodeIds.length
       ? caller.from("episodes").select("id, file_path").in("id", episodeIds)
@@ -99,16 +99,24 @@ Deno.serve(async (req) => {
   const signPhotos = async () => {
     const isVideo = (p: PhotoRow) => p.media_type === "video";
     const [pictures, videos] = await Promise.all([
+      // the picture and its grid thumbnail (00105) - the same row RLS
+      // returned, so a thumbnail is never visible where its photo is not
       signPaths(
-        photos.flatMap((p) => (isVideo(p) ? (p.poster_path ? [p.poster_path] : []) : [p.file_path])),
+        photos.flatMap((p) => [isVideo(p) ? p.poster_path : p.file_path, p.thumb_path].filter((x): x is string => !!x)),
         PHOTO_TTL_SECONDS
       ),
       signPaths(photos.filter(isVideo).map((p) => p.file_path), VIDEO_TTL_SECONDS),
     ]);
+    const thumb = (p: PhotoRow) => (p.thumb_path && pictures.get(p.thumb_path)) || null;
     return photos.map((p) =>
       isVideo(p)
-        ? { id: p.id, url: (p.poster_path && pictures.get(p.poster_path)) || null, video_url: videos.get(p.file_path) ?? null }
-        : { id: p.id, url: pictures.get(p.file_path) ?? null, video_url: null }
+        ? {
+            id: p.id,
+            url: (p.poster_path && pictures.get(p.poster_path)) || null,
+            video_url: videos.get(p.file_path) ?? null,
+            thumb_url: thumb(p),
+          }
+        : { id: p.id, url: pictures.get(p.file_path) ?? null, video_url: null, thumb_url: thumb(p) }
     );
   };
 

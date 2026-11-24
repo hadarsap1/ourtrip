@@ -22,7 +22,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000aa04', 'gone@probe.test'),
   ('00000000-0000-0000-0000-00000000aa05', 'outsider@probe.test');
 -- a stranger who signs in here does it with Google (the login screen's only
--- sign-up); since 00102 only a Google account counts as signed in on a join request
+-- sign-up); since 00107 only a Google account counts as signed in on a join request
 update auth.users set raw_app_meta_data = '{"provider":"google","providers":["google"]}'
  where id = '00000000-0000-0000-0000-00000000aa05';
 insert into members (id, trip_id, auth_user_id, email, display_name, role) values

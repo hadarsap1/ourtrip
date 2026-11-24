@@ -1,5 +1,5 @@
 -- 00055: a members row is linked by email only to a Google account or a
--- session opened by the emailed link (00102 - it used to be "an account with
+-- session opened by the emailed link (00107 - it used to be "an account with
 -- no password"), never to a self-registered password account.
 begin;
 \i scripts/rls/seed.sql

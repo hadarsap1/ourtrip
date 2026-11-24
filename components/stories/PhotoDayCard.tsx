@@ -114,7 +114,7 @@ function Thumb({ photo, single }: { photo: ViewedPhoto; single: boolean }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- signed URL
     <img
-      src={photo.url}
+      src={single ? photo.url : (photo.thumbUrl ?? photo.url)}
       alt={photo.caption ?? ""}
       loading="lazy"
       className={`w-full object-cover ${single ? "aspect-[4/3]" : "aspect-square"}`}

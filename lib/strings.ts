@@ -62,6 +62,8 @@ export const strings = {
     emptyTitle: "עוד אין מה להציג",
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
     noDay: "אין יום מתוכנן במסלול להיום",
+    emptyAddDay: "הוספת יום ←",
+    emptyToItinerary: "למסלול ←",
     bookingsToday: "הזמנות להיום",
     // the home lists only what was booked, not a plan by the hour (Hadar 15/11/2026)
     bookedToday: "הזמנו להיום",
@@ -516,6 +518,7 @@ export const strings = {
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
     noBudget: "קובעים יעד תקציב כדי לראות כמה נשאר",
+    setBudget: "קביעת יעד תקציב",
     last14: "14 הימים האחרונים",
     spentTodayLabel: "היום: {amount}",
     tabsLabel: "תצוגת תקציב",
@@ -1089,6 +1092,7 @@ export const strings = {
     whatCheckin: "תזכורת צ'ק-אין 24 שעות לפני טיסה",
     whatWall: "הודעה חדשה בצ'אט",
     whatPhoto: "תמונה חדשה שממתינה לאישור (להורים)",
+    whatFeedback: "תגובה או לייק חדשים (להורים) - בשקט, עם מספר על האייקון. לא בלילה - מה שמגיע אחרי 22:00 נשלח ב-07:00",
     iosTitle: "כדי לקבל התראות ב-iPhone / iPad",
     iosStep1: "פותחים את האפליקציה ב-Safari",
     iosStep2: "מקישים על כפתור השיתוף ולמטה",
@@ -1891,18 +1895,21 @@ export const strings = {
     emailedBody: "יצא מייל עם הקישור לכניסה. אם רוצים, אפשר לשלוח גם הודעה בוואטסאפ.",
     // after approval, by WhatsApp (Hadar 20/10/2026, 15/11/2026): the app's
     // address is the one link to keep. Typed email: the first sign-in link
-    // too (one use; the welcome email no longer carries it, 20/11/2026).
+    // too (the welcome email no longer carries it, 20/11/2026). No "one use" /
+    // "short-lived" wording in either message: it only confused (Hadar 23/11/2026).
     approvedGoogleText:
       "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה. נכנסים עם חשבון ה-Google שלך ({email}):\n{url}",
     approvedLinkText:
-      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה:\n{appUrl}\nאם צריך להתחבר שוב, מקלידים שם את המייל ({email}) ומקבלים קישור כניסה.\n\nלכניסה הראשונה, עכשיו:\n{url}",
+      "היי {name}! אישרנו אותך ל\"סו-בב עולם!\" 🌍\nזה הקישור שאיתו נכנסים מעכשיו, כדאי לשמור את ההודעה:\n{appUrl}\nאם צריך להתחבר שוב, מקלידים שם את המייל ({email}) ומקבלים קישור כניסה.\n\nלכניסה הראשונה:\n{url}",
     // guest card "send a sign-in link", when the email did not go out
     loginUnsentTitle: "קישור הכניסה מוכן",
     loginUnsentBody: "המייל לא נשלח. שלחו את הקישור בוואטסאפ.",
+    // emailed (DECISIONS #73): WhatsApp stays as an option, as after approval
+    loginEmailedBody: "יצא מייל עם קישור הכניסה. אם רוצים, אפשר לשלוח אותו גם בוואטסאפ.",
     loginGoogleText:
       "היי {name}! נכנסים ל\"סו-בב עולם!\" 🌍 עם חשבון ה-Google שלך ({email}):\n{url}",
     loginLinkText:
-      "היי {name}! הנה קישור כניסה חדש ל\"סו-בב עולם!\" 🌍\nהוא בתוקף לזמן קצר, אז כדאי ללחוץ עליו עכשיו:\n{url}",
+      "היי {name}! הנה קישור כניסה ל\"סו-בב עולם!\" 🌍\nלוחצים, ואתם בפנים:\n{url}",
     viaGoogleShort: "Google",
     declined: "הבקשה נדחתה",
     declineConfirm: "לדחות את הבקשה? הפונה לא יקבל הודעה על כך",
@@ -1960,6 +1967,11 @@ export const strings = {
     enter: "כניסה לאפליקציה",
     invalidTitle: "הקישור לא בתוקף",
     invalidBody: "ייתכן שנוצר קישור חדש. בקשו אותו ממי ששלח לכם.",
+    toLogin: "חזרה לדף הכניסה",
+    resendLink: "שליחת קישור הכניסה שוב",
+    resendSent: "אם כבר אישרנו, הקישור בדרך למייל. אם עוד לא, הוא יישלח ברגע שנאשר.",
+    approvedToLogin: "כבר אישרו אותי - לדף הכניסה",
+    offline: "אין חיבור כרגע - בדקו את הרשת ונסו שוב",
     badInput: "צריך שם ומייל תקין",
     busy: "יש עכשיו הרבה בקשות - נסו שוב בעוד שעה",
     error: "משהו השתבש - נסו שוב",
@@ -2024,6 +2036,11 @@ export const strings = {
     photosTitle: "תמונות אחרונות",
     photosAll: "לכל התמונות",
     quoteTitle: "הישר מהצנצנת",
+    // the jar's way in when no quote is shared right now (guests have no tab for it)
+    jarTile: "הצנצנת: מה שהילדים אמרו בדרך",
+    jarOpen: "לצנצנת",
+    // the newest update or the photos did not load (not "nothing yet")
+    partialLoad: "חלק מהדף לא נטען",
     quoteAll: "לכל הציטוטים",
     writeUs: "כתבו לנו משהו...",
     writeUsCta: "לצ'אט",
@@ -2116,6 +2133,7 @@ export const strings = {
     uploaded: "התמונה הועלתה! היא תופיע אחרי שאמא או אבא יאשרו",
     uploadedOwner: "התמונה הועלתה",
     empty: "עוד אין תמונות",
+    uploadFirst: "העלאת תמונה ראשונה",
     caption: "כיתוב (לא חובה)",
     captionPlaceholder: "מה קרה כאן? אפשר לכתוב כמה שרוצים",
     newUpload: "העלאה חדשה",
@@ -2256,7 +2274,8 @@ export const strings = {
   kids: {
     title: "ילדים ומכשירים",
     addKid: "הוספת ילד/ה",
-    kidName: "שם",
+    kidName: "שם הילד/ה",
+    addKidHint: "אחרי ההוספה יוצרים קוד חיבור לטאבלט: בוחרים קוד סודי של 4-6 ספרות, והילד/ה מקלידים אותו בכניסה לטאבלט.",
     noKids: "עוד לא הוגדרו ילדים",
     generateCode: "יצירת קוד חיבור",
     pinLabel: "קוד סודי לטאבלט (4-6 ספרות)",
@@ -2288,7 +2307,7 @@ export const strings = {
     emailLabel: "כתובת מייל",
     emailSend: "שלחו לי קישור",
     emailSending: "שולח…",
-    emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם. הקישור עובד פעם אחת.",
+    emailSent: "אם המייל הזה אושר אצלנו, קישור כניסה בדרך אליו. כדאי להציץ גם בספאם.",
     emailError: "משהו השתבש. נסו שוב בעוד דקה.",
     // the app's address opened by someone never approved (00093)
     joinPrompt: "עוד לא אושרתם?",
@@ -2390,6 +2409,15 @@ export const strings = {
       guests: { label: "אורחים", detail: "‏{n} מאושרים" },
       push: { label: "התראות", detail: "‏{n} מכשירים רשומים" },
     } as Record<string, { label: string; detail: string; okDetail?: string }>,
+  },
+
+  // app/error.tsx: a screen that broke while drawing. The bar below stays,
+  // so a kid can still tap another tab; this says so in plain words.
+  screenError: {
+    title: "משהו השתבש במסך הזה",
+    body: "זה לא באשמתכם. אפשר לנסות שוב, או לחזור לדף הבית.",
+    retry: "ניסיון נוסף",
+    home: "לדף הבית",
   },
 
   offline: {
@@ -2643,6 +2671,7 @@ export const strings = {
     reactionSmile: "מצחיק",
     reactionWow: "וואו",
     reactionStar: "כוכב",
+    reactionsLabel: "תגובות אמוג׳י",
     reactedBy: "{names}",
     andMoreN: "ועוד {n}",
     comments: "תגובות",
@@ -2653,6 +2682,16 @@ export const strings = {
     commentsHint: "גם הילדים קוראים את התגובות",
     commentsGoTo: "התגובה תגיע רק ל: {to}",
     deleteConfirm: "למחוק את התגובה?",
+    // replies to a comment (00102)
+    reply: "להגיב",
+    replyingTo: "תגובה ל{name}:",
+    replyingToMine: "תגובה לתגובה שלי:",
+    replyPlaceholder: "כתבו תגובה",
+    cancelReply: "ביטול",
+    repliesN: "{n} תגובות לתגובה",
+    replyOne: "תגובה אחת לתגובה",
+    hideReplies: "הסתרת התגובות",
+    deleteWithRepliesConfirm: "למחוק את התגובה ואת התגובות אליה?",
     // what is new since I last looked (00081)
     newTag: "חדש",
     newSummary: "חדש: {what}",

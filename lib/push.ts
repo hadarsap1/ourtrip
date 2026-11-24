@@ -93,3 +93,25 @@ export async function disablePush(): Promise<void> {
   await sub.unsubscribe().catch(() => {});
   await deleteSubscription(endpoint);
 }
+
+/** The app is open: the comments and likes it was waiting to tell about are
+ *  here now, so their notification goes and the number on the app icon is
+ *  cleared (00104, public/sw.js). Best effort - no Badging API, no worker or
+ *  a blocked call changes nothing on screen. */
+export async function clearFeedbackBadge(): Promise<void> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const showing = reg ? await reg.getNotifications({ tag: "feedback" }) : [];
+    for (const n of showing) n.close();
+    const others = reg ? await reg.getNotifications() : [];
+    const left = others.reduce(
+      (sum, n) => sum + (n.data?.badge ? Number(n.data.count) || 1 : 0),
+      0,
+    );
+    if (left > 0) await navigator.setAppBadge?.(left);
+    else await navigator.clearAppBadge?.();
+  } catch {
+    // best effort
+  }
+}

@@ -143,7 +143,7 @@ export type RegisterResult =
   | { status: "ok"; displayName: string }
   /** The code itself was rejected: wrong, already used, or expired. */
   | { status: "invalid" }
-  /** Too many wrong codes project-wide in the last 15 minutes (00102). */
+  /** Too many wrong codes project-wide in the last 15 minutes (00107). */
   | { status: "busy" }
   /** The code was fine and the server failed anyway - creating the kid's auth
    *  user, linking it, or writing the device row. `detail` is the step code

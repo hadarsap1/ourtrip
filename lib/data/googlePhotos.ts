@@ -1,10 +1,15 @@
 import { getSupabase } from "@/lib/supabase";
 import type { Tables } from "@/lib/database.types";
+import { signPaths } from "@/lib/data/signedUrls";
+import { makeThumbnail, thumbPathFor } from "@/lib/images";
 
 export type GooglePhoto = Tables<"google_photos">;
-export type GooglePhotoWithUrl = GooglePhoto & { url: string | null };
+/** `url` is the cached display copy (opened full size); `thumbUrl` the small
+ *  copy for tiles (00106), null until one is made: use `thumbUrl ?? url`. */
+export type GooglePhotoWithUrl = GooglePhoto & { url: string | null; thumbUrl: string | null };
 
 const BUCKET = "gphotos";
+const SIGNED_TTL_SECONDS = 60 * 60;
 
 function requireClient() {
   const supabase = getSupabase();
@@ -12,16 +17,18 @@ function requireClient() {
   return supabase;
 }
 
-/** All imported Google photos for the trip, each with a signed display URL.
- *  RLS scopes rows by role (owner + kids). */
+/** Imported Google photos for the trip, each with signed display + tile URLs
+ *  (reused while still good, so the browser and the service worker serve
+ *  repeats from cache). RLS scopes rows by role (owner + kids).
+ *  `pinnedOnly`: just the ones attached to a map pin (the map screen). */
 export async function listGooglePhotos(
-  tripId: string
+  tripId: string,
+  opts: { pinnedOnly?: boolean } = {}
 ): Promise<GooglePhotoWithUrl[]> {
   const supabase = requireClient();
-  const { data, error } = await supabase
-    .from("google_photos")
-    .select("*")
-    .eq("trip_id", tripId)
+  let query = supabase.from("google_photos").select("*").eq("trip_id", tripId);
+  if (opts.pinnedOnly) query = query.not("map_pin_id", "is", null);
+  const { data, error } = await query
     .order("country", { ascending: true, nullsFirst: false })
     .order("area", { ascending: true, nullsFirst: false })
     .order("taken_at", { ascending: false, nullsFirst: false })
@@ -29,13 +36,51 @@ export async function listGooglePhotos(
   if (error) throw new Error(error.message);
   if (data.length === 0) return [];
 
-  const { data: signed } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrls(data.map((p) => p.file_path), 60 * 60);
-  const urlByPath = new Map(
-    (signed ?? []).map((s) => [s.path, s.signedUrl ?? null])
-  );
-  return data.map((p) => ({ ...p, url: urlByPath.get(p.file_path) ?? null }));
+  // thumb_path is absent before 00106 is applied: read it as optional
+  const rows = data as (GooglePhoto & { thumb_path?: string | null })[];
+  const paths = rows.flatMap((p) => [p.file_path, p.thumb_path].filter((x): x is string => !!x));
+  const urlByPath = await signPaths(BUCKET, paths, SIGNED_TTL_SECONDS);
+  const at = (path: string | null | undefined) => (path ? (urlByPath.get(path) ?? null) : null);
+  // the row is passed on as read: before 00106 it has no thumb_path key at
+  // all, which is how the backfill knows not to write one yet
+  return rows.map((p) => ({ ...p, url: at(p.file_path), thumbUrl: at(p.thumb_path) })) as GooglePhotoWithUrl[];
+}
+
+// Photos imported before 00106 have no thumbnail. A parent's device makes them
+// in the background, a few at a time, from the copy it is already showing (the
+// service worker's, so it costs no extra download once seen). Owners only:
+// only they may write google_photos and the gphotos bucket (00016).
+const BACKFILL_BATCH = 40;
+let backfillRunning = false;
+
+/** Makes missing thumbnails for `photos` (owner devices). Fire and forget. */
+export async function backfillGoogleThumbnails(photos: GooglePhotoWithUrl[]): Promise<void> {
+  if (backfillRunning || typeof document === "undefined") return;
+  // `thumb_path` undefined = the column is not there yet (before 00106)
+  const todo = photos.filter((p) => "thumb_path" in p && p.thumb_path === null && p.url).slice(0, BACKFILL_BATCH);
+  if (todo.length === 0) return;
+  backfillRunning = true;
+  try {
+    const supabase = requireClient();
+    for (const photo of todo) {
+      if (!photo.url) continue;
+      try {
+        const res = await fetch(photo.url);
+        if (!res.ok) continue;
+        const thumb = await makeThumbnail(await res.blob());
+        const thumbPath = thumbPathFor(photo.file_path);
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(thumbPath, thumb, { contentType: "image/jpeg", upsert: true });
+        if (upErr) continue;
+        await supabase.from("google_photos").update({ thumb_path: thumbPath }).eq("id", photo.id).is("thumb_path", null);
+      } catch {
+        // offline or a bad file: the next visit tries again
+      }
+    }
+  } finally {
+    backfillRunning = false;
+  }
 }
 
 /** A country/zone group of imported photos, for the grouped gallery. */
@@ -106,5 +151,5 @@ export async function deleteGooglePhoto(photo: GooglePhoto): Promise<void> {
   const supabase = requireClient();
   const { error } = await supabase.from("google_photos").delete().eq("id", photo.id);
   if (error) throw new Error(error.message);
-  await supabase.storage.from(BUCKET).remove([photo.file_path]);
+  await supabase.storage.from(BUCKET).remove([photo.file_path, photo.thumb_path].filter((p): p is string => !!p));
 }

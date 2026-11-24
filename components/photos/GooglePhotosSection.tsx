@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import {
+  backfillGoogleThumbnails,
   deleteGooglePhoto,
   groupGooglePhotos,
   listGooglePhotos,
@@ -85,6 +86,18 @@ export function GooglePhotosSection({
       cancelled = true;
     };
   }, [tripId, isOwner]);
+
+  // photos imported before thumbnails (00106) get theirs from a parent's
+  // device, once per visit, after the screen has settled
+  const backfilled = useRef(false);
+  useEffect(() => {
+    if (!isOwner || photos.length === 0 || backfilled.current) return;
+    const timer = setTimeout(() => {
+      backfilled.current = true;
+      void backfillGoogleThumbnails(photos);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isOwner, photos]);
 
   const retryLoad = useCallback(async () => {
     try {
@@ -234,7 +247,7 @@ export function GooglePhotosSection({
                     {photo.url && (
                       // eslint-disable-next-line @next/next/no-img-element -- signed URL
                       <img
-                        src={photo.url}
+                        src={photo.thumbUrl ?? photo.url}
                         alt={photo.filename ?? ""}
                         loading="lazy"
                         className="h-full w-full object-cover"
@@ -347,7 +360,7 @@ export function GooglePhotosSection({
               {actionPhoto.url && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed URL
                 <img
-                  src={actionPhoto.url}
+                  src={actionPhoto.thumbUrl ?? actionPhoto.url}
                   alt={actionPhoto.filename ?? ""}
                   className="max-h-56 w-full object-cover"
                 />
