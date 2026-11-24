@@ -71,7 +71,8 @@ export const strings = {
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
-    dayOf: "יום {n} מתוך {total}",
+    // the day only (Hadar 24/11/2026): "מתוך 230" was noise; the bar shows the rest
+    dayOf: "יום {n}",
     nextUp: "הבא בתור",
     inMinutes: "בעוד {n} דקות",
     inHours: "בעוד {n} שעות",
@@ -552,7 +553,8 @@ export const strings = {
     used: "נוצל עד היום",
     prepaid: "שולם מראש",
     days: "ימים",
-    daysValue: "{n} מתוך {total}",
+    // days so far only (Hadar 24/11/2026), as on the home
+    daysValue: "{n}",
     notStarted: "עוד לא הגענו - הכל כאן שולם מראש",
     averagesTitle: "ממוצעים",
     perDayAll: "הכל ליום",
