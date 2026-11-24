@@ -36,6 +36,7 @@ export function BudgetV2({
   onPickCategory,
   selectedId,
   pace,
+  totalBudget,
 }: {
   categories: BudgetCategory[];
   /** Counted: each withdrawal reduced by what was itemized out of it. */
@@ -49,6 +50,8 @@ export function BudgetV2({
   selectedId: string | null;
   /** Pace and projection - moved here from the main screen (17/11/2026). */
   pace: PaceInfo;
+  /** The target set in Settings, null when none; shown as one quiet line. */
+  totalBudget: number | null;
 }) {
   const [tab, setTab] = useState<"categories" | "insights">("categories");
   const stamp = useSyncExternalStore(noop, ratesStamp, () => null);
@@ -68,9 +71,9 @@ export function BudgetV2({
           14-day sparkline and "today" line went: Sivan could not read the
           screen (17/11/2026), and neither answered a question she asks. */}
       <section className="rounded-card border border-line bg-surface px-4 py-4 shadow-[var(--e1)]">
-        {/* No "what is left" and no target (Hadar 24/11/2026): the card says
-            what was spent and how much of it in cash. The target stays in
-            trip_budget, and the insights tab still uses it. */}
+        {/* What was spent and how much of it in cash (Hadar 24/11/2026). No
+            "what is left"; the target only as a quiet line below, and it is
+            set in Settings. */}
         <dl className="grid grid-cols-2 gap-3 text-base">
           <div>
             <dt className="text-ink-soft">{t.spentTotal}</dt>
@@ -85,6 +88,12 @@ export function BudgetV2({
             </dd>
           </div>
         </dl>
+        {totalBudget != null && totalBudget > 0 && (
+          <p className="mt-2.5 border-t border-line pt-2 text-sm text-ink-soft">
+            {t.targetLine.split("{amount}")[0]}
+            <bdi>{ils(totalBudget)}</bdi>
+          </p>
+        )}
       </section>
 
       <SegmentedControl

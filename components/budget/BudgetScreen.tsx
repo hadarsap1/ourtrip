@@ -460,6 +460,7 @@ export function BudgetScreen() {
             if (next) requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
           }}
           pace={{ usedPct: budgetForProgress > 0 ? usedPct : null, projection, preTripSpent, notStarted }}
+          totalBudget={totalBudget}
         />
       )}
 

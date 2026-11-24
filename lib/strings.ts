@@ -517,6 +517,8 @@ export const strings = {
   budgetV2: {
     spentTotal: "הוצאנו עד עכשיו",
     cashTotal: "מזה במזומן",
+    // the target, quietly under the summary (set in Settings)
+    targetLine: "יעד התקציב: {amount}",
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
     last14: "14 הימים האחרונים",
@@ -2770,6 +2772,13 @@ export const strings = {
     title: "הגדרות",
     back: "חזרה לעוד",
     backHome: "חזרה לדף הבית",
+  },
+  // the trip's budget target, edited in Settings (Hadar 24/11/2026)
+  tripBudgetSettings: {
+    title: "יעד תקציב לטיול",
+    hint: "כמה יש לנו לכל הטיול. בעמוד התקציב הוא מופיע רק בשורה קטנה.",
+    notSet: "לא נקבע",
+    saved: "היעד נשמר",
   },
   budgetCategoriesSettings: {
     title: "קטגוריות תקציב",
