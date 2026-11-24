@@ -56,6 +56,9 @@ function daysBetween(fromISO: string, toISO: string): number {
 
 /** Under a withdrawal: how much of it the cash expenses used up and what is
  *  left. Under an expense paid in cash: that it came out of the cash. */
+/** A sum as one unit inside a Hebrew sentence: isolated, no line break. */
+const unbroken = (sum: string) => `\u2068${sum.replace(/\s/g, "\u00a0")}\u2069`;
+
 function CashNote({
   expense,
   use,
@@ -70,8 +73,12 @@ function CashNote({
         {use.used === 0
           ? s.cashWithdrawalTag
           : s.cashWithdrawalSplit
-              .replace("{used}", formatMoney(Math.round(use.used), expense.currency))
-              .replace("{left}", formatMoney(Math.round(use.left), expense.currency))}
+              // each sum isolated (FSI…PDI) and unbreakable (NBSP): inside a
+              // Hebrew line "15,490,000 VND" split around its neighbours, or
+              // wrapped between number and code, and read
+              // "VND 10,280,000 נשאר • VND" on a phone
+              .replace("{used}", unbroken(formatMoney(Math.round(use.used), expense.currency)))
+              .replace("{left}", unbroken(formatMoney(Math.round(use.left), expense.currency)))}
       </span>
     );
   }
@@ -758,16 +765,17 @@ export function BudgetScreen() {
                     </span>
                     <CashNote expense={expense} use={cashUses.get(expense.id)} />
                   </span>
-                  <span className="shrink-0 text-end">
-                    <span
-                      className="block text-sm font-bold text-ink"
-                      dir="ltr"
-                    >
-                      {formatMoney(expense.amount_ils, "ILS")}
+                  {/* both sums on the row's end edge, one under the other: a
+                      dir="ltr" block flipped "end" to the right inside it, so
+                      the ₪ line and the foreign line started at different
+                      points on every row */}
+                  <span className="shrink-0 text-end tabular-nums">
+                    <span className="block text-sm font-bold text-ink">
+                      <bdi>{formatMoney(expense.amount_ils, "ILS")}</bdi>
                     </span>
                     {expense.currency !== "ILS" && (
-                      <span className="text-xs text-ink-soft" dir="ltr">
-                        {formatMoney(expense.amount, expense.currency)}
+                      <span className="block text-xs text-ink-soft">
+                        <bdi>{formatMoney(expense.amount, expense.currency)}</bdi>
                       </span>
                     )}
                   </span>
