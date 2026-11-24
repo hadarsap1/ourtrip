@@ -850,7 +850,7 @@ function PhotoTile({
   return (
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
       {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-[3/4] w-full bg-green-soft object-cover" />
+      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-square w-full bg-green-soft object-cover" />
       {photo.videoUrl && <VideoBadge className="absolute start-2.5 top-2.5" />}
       <span className="absolute bottom-2 start-2">
         <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />

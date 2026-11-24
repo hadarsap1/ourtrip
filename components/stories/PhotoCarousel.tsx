@@ -24,14 +24,7 @@ const WIDEST = 16 / 9;
 const DEFAULT_RATIO = 4 / 3;
 type Slide = { photoId: string; url: string | null; videoUrl?: string | null };
 
-export function PhotoCarousel({
-  photos,
-  cover = false,
-}: {
-  photos: Slide[];
-  /** a fixed 230px frame, photos cropped to fill it (the קרם חם story card) */
-  cover?: boolean;
-}) {
+export function PhotoCarousel({ photos }: { photos: Slide[] }) {
   const shown = photos.filter((p) => Boolean(p.url || p.videoUrl));
   const scroller = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
@@ -56,12 +49,12 @@ export function PhotoCarousel({
   };
 
   return (
-    <div className={`relative ${cover ? "" : "border-b-2 border-sv-line"}`}>
+    <div className="relative border-b border-line">
       <div
         ref={scroller}
         onScroll={onScroll}
-        className={`flex snap-x snap-mandatory overflow-x-auto bg-sv-paper [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${cover ? "h-[230px]" : ""}`}
-        style={cover ? undefined : { aspectRatio: String(ratio) }}
+        className="flex snap-x snap-mandatory overflow-x-auto bg-sv-paper [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ aspectRatio: String(ratio) }}
       >
         {shown.map((p, i) => {
           const alt =
@@ -92,7 +85,7 @@ export function PhotoCarousel({
               loading={i === 0 ? "eager" : "lazy"}
               ref={firstRef}
               onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
-              className={`h-full w-full shrink-0 snap-start ${cover ? "object-cover" : "object-contain"}`}
+              className="h-full w-full shrink-0 snap-start object-contain"
             />
           );
         })}

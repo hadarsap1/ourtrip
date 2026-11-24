@@ -79,7 +79,9 @@ export function StoryCard({
       id={`story-${story.id}`}
       className="scroll-mt-4 overflow-hidden rounded-[26px] border border-line bg-surface shadow-card"
     >
-      {story.photos.length > 0 ? <PhotoCarousel photos={story.photos} cover /> : <div aria-hidden="true" className="ot-gradient h-2" />}
+      {/* the photos whole, at their own proportions (Hadar 24/11/2026: the
+          fixed 230px frame of the redesign cropped them) */}
+      {story.photos.length > 0 ? <PhotoCarousel photos={story.photos} /> : <div aria-hidden="true" className="ot-gradient h-2" />}
       <div className="flex flex-col gap-2.5 px-4 pb-4 pt-3.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-muted">
           {published && (
