@@ -46,7 +46,7 @@ export function ConfirmLinkScreen() {
       <div className="ot-postcard mb-8 p-7 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
         <img
-          src="/sovev/badge-192.png"
+          src="/sovev/badge-192.webp"
           alt=""
           className="relative z-10 mx-auto h-24 w-24 rounded-full border-[3px] border-white/90 object-cover"
         />

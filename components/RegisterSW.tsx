@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { startInstallCapture } from "@/lib/install";
 import { clearFeedbackBadge } from "@/lib/push";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
 
 // A stale chunk reference is the classic PWA white screen: the page was loaded
 // from one build, a new one shipped, and the next lazily-loaded chunk 404s.
@@ -34,6 +35,25 @@ function recoverFromStaleBuild(): void {
 
 export function RegisterSW() {
   const [updateReady, setUpdateReady] = useState(false);
+  const { member } = useMember();
+  const role = member?.role ?? null;
+
+  // Tell the worker who is signed in, so it keeps their screens for offline
+  // use and only theirs (public/sw.js ROLE_URLS): a guest's phone no longer
+  // downloads every parent screen in the background (perf review 24/11/2026).
+  // Waits for `ready`, so it also covers the very first install.
+  useEffect(() => {
+    if (!role || !("serviceWorker" in navigator)) return;
+    let cancelled = false;
+    void navigator.serviceWorker.ready
+      .then((reg) => {
+        if (!cancelled) reg.active?.postMessage({ type: "precache", role });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
 
   useEffect(() => {
     // `beforeinstallprompt` fires once, seconds after load, and only the app

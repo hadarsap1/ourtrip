@@ -25,7 +25,9 @@ const ASSET_CACHE = "ourtrip-assets-v1"; // content-hashed URLs - safe to keep
 // Photos by storage path (rule 0). Same name as MEDIA_CACHE in
 // lib/supabase.ts, which deletes it on sign-out.
 const MEDIA_CACHE = "ourtrip-media-v1";
-const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE, MEDIA_CACHE];
+// Remembers the signed-in role across worker versions (not page data).
+const META_CACHE = "ourtrip-meta-v1";
+const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE, MEDIA_CACHE, META_CACHE];
 
 // Cap the asset cache so months on the road don't fill the device.
 const ASSET_CACHE_LIMIT = 400;
@@ -41,16 +43,28 @@ const MEDIA_PATH = /^\/storage\/v1\/object\/(?:sign\/(?:photos|map-photos|gphoto
 // page hydrate from IndexedDB rather than leaving the family staring at white.
 const NAV_TIMEOUT_MS = 4000;
 
-const SHELL_URLS = [
-  "/", "/itinerary", "/budget", "/documents", "/more", "/checklists",
-  "/emergency", "/map", "/phrasebook", "/photos", "/pocket",
-  "/messages", "/recommend", "/notifications", "/options", "/memory-book",
-  "/ready", "/facts", "/settings", "/stories", "/podcast", "/offline",
-  // added after the list was last revised: without its page a screen opened
-  // offline for the first time fell to /offline (QA 15/11/2026)
-  "/jar", "/stats", "/visas",
-  "/manifest.webmanifest",
+// Pages kept for offline use, by who uses them (perf review 24/11/2026). The
+// whole list used to be fetched on install, with every chunk it refers to:
+// up to ~1 MB in the background on a guest's phone, on their data plan, for
+// parent screens a guest can never open. Install now keeps only the core; the
+// app says who is signed in (RegisterSW posts { type: "precache", role }) and
+// the rest follows. The role is remembered (META_CACHE) so the next version
+// of this worker precaches the same set at install, before any page asks.
+const CORE_URLS = ["/", "/offline", "/manifest.webmanifest"];
+// what a guest can open (RoleGate GUEST_ALLOWED)
+const GUEST_URLS = ["/stories", "/podcast", "/photos", "/messages", "/map", "/settings", "/jar"];
+// a kid: everything but the parents' screens (RoleGate OWNER_ONLY). Today's
+// itinerary, emergency and the phrasebook are offline-critical (CLAUDE.md #6).
+const KID_URLS = [
+  ...GUEST_URLS, "/itinerary", "/emergency", "/phrasebook", "/facts", "/pocket", "/more", "/stats",
 ];
+// parents: the whole shell. Documents is offline-critical too.
+const OWNER_URLS = [
+  ...KID_URLS, "/budget", "/documents", "/checklists", "/recommend", "/notifications",
+  "/options", "/memory-book", "/ready", "/visas",
+];
+const ROLE_URLS = { guest: GUEST_URLS, kid: KID_URLS, owner: OWNER_URLS };
+const ROLE_KEY = "/__ourtrip/role";
 
 // Served for a navigation that is neither cached nor reachable. Serving "/"
 // there instead would show the Today screen under someone else's URL, which
@@ -63,14 +77,18 @@ const OFFLINE_URL = "/offline";
 // last deploy never fetched theirs - offline they opened unstyled and inert.
 const STATIC_REF = /\/_next\/static\/[^"'\s)\\]+?\.(?:css|js)/g;
 
-async function precacheShell() {
+// `onlyMissing`: keep what this version already holds. Install refetches
+// everything (a new deploy means new pages and chunks); the role message,
+// sent on every app open, only fills in what is not there yet.
+async function precacheUrls(urls, onlyMissing) {
   const shell = await caches.open(SHELL_CACHE);
   const refs = new Set();
   // Individually, not addAll: one failing URL used to abort the whole
   // install, leaving the app with no service worker at all.
   await Promise.all(
-    SHELL_URLS.map(async (url) => {
+    urls.map(async (url) => {
       try {
+        if (onlyMissing && (await shell.match(url))) return;
         const res = await fetch(url, { credentials: "same-origin" });
         if (!res.ok) return;
         if ((res.headers.get("content-type") ?? "").includes("text/html")) {
@@ -98,9 +116,36 @@ async function precacheShell() {
   );
 }
 
+async function rememberedRole() {
+  try {
+    const res = await (await caches.open(META_CACHE)).match(ROLE_KEY);
+    const role = res ? await res.text() : null;
+    return role in ROLE_URLS ? role : null;
+  } catch {
+    return null;
+  }
+}
+
+async function precacheForRole(role, onlyMissing) {
+  await precacheUrls(role ? [...CORE_URLS, ...ROLE_URLS[role]] : CORE_URLS, onlyMissing);
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(precacheShell());
+  event.waitUntil(rememberedRole().then((role) => precacheForRole(role, false)));
   self.skipWaiting();
+});
+
+// The app says who is signed in; keep their screens for offline use.
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || data.type !== "precache" || !(data.role in ROLE_URLS)) return;
+  event.waitUntil(
+    caches
+      .open(META_CACHE)
+      .then((meta) => meta.put(ROLE_KEY, new Response(data.role)))
+      .catch(() => {})
+      .then(() => precacheForRole(data.role, true))
+  );
 });
 
 self.addEventListener("activate", (event) => {

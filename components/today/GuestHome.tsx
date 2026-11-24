@@ -154,7 +154,7 @@ export function GuestHome({
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element -- tiny static brand badge */}
           <img
-            src="/sovev/badge.jpg"
+            src="/sovev/badge.webp"
             alt=""
             width={48}
             height={48}
@@ -234,7 +234,7 @@ export function GuestHome({
           // nothing shared yet: the family on the path, and a line in our own voice
           <div className="overflow-hidden rounded-card border border-sv-line bg-sv-card">
             {/* eslint-disable-next-line @next/next/no-img-element -- static brand illustration */}
-            <img src="/sovev/scene.jpg" alt="" className="aspect-[2/1] w-full object-cover" />
+            <img src="/sovev/scene.webp" alt="" className="aspect-[2/1] w-full object-cover" />
             <div className="px-4 py-3.5">
               <p className="sovev-display text-xl text-sv-ink">{g.emptyTitle}</p>
               <p className="mt-0.5 text-sm text-sv-ink-soft">{g.emptyBody}</p>
