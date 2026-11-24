@@ -71,7 +71,8 @@ export const strings = {
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
-    dayOf: "יום {n} מתוך {total}",
+    // the day only (Hadar 24/11/2026): "מתוך 230" was noise; the bar shows the rest
+    dayOf: "יום {n}",
     nextUp: "הבא בתור",
     inMinutes: "בעוד {n} דקות",
     inHours: "בעוד {n} שעות",
@@ -514,15 +515,12 @@ export const strings = {
   },
 
   budgetV2: {
-    leftTrip: "נשאר לנו לכל הטיול",
-    overTrip: "עברנו את התקציב ב-",
     spentTotal: "הוצאנו עד עכשיו",
-    budgetTotal: "התקציב שלנו",
     cashTotal: "מזה במזומן",
+    // the target, quietly under the summary (set in Settings)
+    targetLine: "יעד התקציב: {amount}",
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
-    noBudget: "קובעים יעד תקציב כדי לראות כמה נשאר",
-    setBudget: "קביעת יעד תקציב",
     last14: "14 הימים האחרונים",
     spentTodayLabel: "היום: {amount}",
     tabsLabel: "תצוגת תקציב",
@@ -552,7 +550,8 @@ export const strings = {
     used: "נוצל עד היום",
     prepaid: "שולם מראש",
     days: "ימים",
-    daysValue: "{n} מתוך {total}",
+    // days so far only (Hadar 24/11/2026), as on the home
+    daysValue: "{n}",
     notStarted: "עוד לא הגענו - הכל כאן שולם מראש",
     averagesTitle: "ממוצעים",
     perDayAll: "הכל ליום",
@@ -2773,6 +2772,13 @@ export const strings = {
     title: "הגדרות",
     back: "חזרה לעוד",
     backHome: "חזרה לדף הבית",
+  },
+  // the trip's budget target, edited in Settings (Hadar 24/11/2026)
+  tripBudgetSettings: {
+    title: "יעד תקציב לטיול",
+    hint: "כמה יש לנו לכל הטיול. בעמוד התקציב הוא מופיע רק בשורה קטנה.",
+    notSet: "לא נקבע",
+    saved: "היעד נשמר",
   },
   budgetCategoriesSettings: {
     title: "קטגוריות תקציב",
