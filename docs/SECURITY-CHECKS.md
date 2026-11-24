@@ -3377,3 +3377,5 @@ and `poster_path`. Deleting a photo or an album removes the thumbnail too.
 | Guest reads `photos` bucket directly | ✅ by policy (00007, unchanged) |
 | Kid repoints `thumb_path` on own row | ✅ by trigger (00105 guard) |
 | Cached photo shown to the next account on a shared device | ✅ by code (media cache + URL cache cleared on SIGNED_OUT) |
+| Migration 00105 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, guard pins it for kids, `photos` still has its 5 policies | ✅ done |
+| guest-media v5 and guest-photos v14 deployed (verify_jwt on), signing `thumb_path` for RLS-returned rows only | ✅ done |
