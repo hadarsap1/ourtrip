@@ -31,6 +31,8 @@ export function QuickLinesSheet({
   const [text, setText] = useState("");
   const [categoryId, setCategoryId] = useState(defaultCategoryId);
   const [spentOn, setSpentOn] = useState(todayISO());
+  // the whole batch paid in cash: each line comes out of its currency's cash
+  const [paidInCash, setPaidInCash] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { lines, unparsed } = useMemo(() => parseExpenseLines(text), [text]);
@@ -39,7 +41,7 @@ export function QuickLinesSheet({
     if (saving || lines.length === 0) return;
     setSaving(true);
     try {
-      const { saved, failed } = await createExpenses(lines, { categoryId, spentOn });
+      const { saved, failed } = await createExpenses(lines, { categoryId, spentOn, paidInCash });
       const parts = [s.quickLinesSaved.replace("{n}", String(saved))];
       if (failed.length > 0) {
         parts.push(s.quickLinesSomeFx.replace("{n}", String(failed.length)));
@@ -99,6 +101,19 @@ export function QuickLinesSheet({
             />
           </div>
         </div>
+
+        <label className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-xl border border-line px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={paidInCash}
+            onChange={(e) => setPaidInCash(e.target.checked)}
+            className="ot-check mt-0.5"
+          />
+          <span>
+            <span className="block text-base font-medium text-ink">{s.paymentCash}</span>
+            <span className="block text-xs text-ink-soft">{s.quickLinesCashHint}</span>
+          </span>
+        </label>
 
         {/* live preview of what will be created */}
         {lines.length > 0 && (

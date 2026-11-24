@@ -331,7 +331,12 @@ export async function createExpense(input: {
  *  rather than failing the whole batch. */
 export async function createExpenses(
   lines: { amount: number; currency: string; description?: string | null }[],
-  opts: { categoryId: string; spentOn?: string }
+  opts: {
+    categoryId: string;
+    spentOn?: string;
+    /** 00089: every line paid from the cash wallet of its currency. */
+    paidInCash?: boolean;
+  }
 ): Promise<{ saved: number; failed: { description: string; reason: "fx" }[] }> {
   const supabase = requireClient();
   const [trip, member] = await Promise.all([getActiveTrip(), getCurrentMember()]);
@@ -362,6 +367,7 @@ export async function createExpenses(
       amount_ils: Math.round(line.amount * rate * 100) / 100,
       description: line.description?.trim() || null,
       spent_on: spentOn,
+      paid_in_cash: opts.paidInCash ?? false,
       created_by: member.id,
     });
   }
