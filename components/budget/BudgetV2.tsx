@@ -112,14 +112,8 @@ export function BudgetV2({
               <bdi>{ils(cashTotal)}</bdi>
             </dd>
           </div>
-          {budgetForProgress > 0 && (
-            <div>
-              <dt className="text-ink-soft">{t.budgetTotal}</dt>
-              <dd className="text-xl font-extrabold tabular-nums text-ink">
-                <bdi>{ils(budgetForProgress)}</bdi>
-              </dd>
-            </div>
-          )}
+          {/* The target itself is not shown (Hadar 24/11/2026): "what is
+              left" above already comes from it, and it stays editable. */}
         </dl>
       </section>
 

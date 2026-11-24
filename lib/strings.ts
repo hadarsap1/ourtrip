@@ -518,7 +518,6 @@ export const strings = {
     leftTrip: "נשאר לנו לכל הטיול",
     overTrip: "עברנו את התקציב ב-",
     spentTotal: "הוצאנו עד עכשיו",
-    budgetTotal: "התקציב שלנו",
     cashTotal: "מזה במזומן",
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
