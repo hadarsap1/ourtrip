@@ -3379,3 +3379,32 @@ and `poster_path`. Deleting a photo or an album removes the thumbnail too.
 | Cached photo shown to the next account on a shared device | ✅ by code (media cache + URL cache cleared on SIGNED_OUT) |
 | Migration 00105 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, guard pins it for kids, `photos` still has its 5 policies | ✅ done |
 | guest-media v5 and guest-photos v14 deployed (verify_jwt on), signing `thumb_path` for RLS-returned rows only | ✅ done |
+
+## 24/11/2026 - Google photo thumbnails (00106), story copies, public-stories cache
+
+**Thumbnails (00106).** `google_photos.thumb_path`, a small JPEG in the same
+private `gphotos` bucket. Same row → same RLS (00016/00017: owners all, kids
+read, guests only `shared_with_guests` rows). Storage policies unchanged
+(owners and kids read, owners write, guests never). guest-gphotos signs
+`thumb_path` only for rows the guest's own RLS returned, like the full copy.
+Kids have no UPDATE policy on `google_photos`, so no guard is needed. The
+background backfill runs on owner devices only and writes through the owner's
+own JWT.
+
+**Story copies.** `syncPublicCopies` now uses a Storage-side copy
+(`photos` → `public-stories`). It runs under the same policies as before
+(owner reads `photos`, owner writes `public-stories`, 00046) and still copies
+only rows `photoMayGoPublic` accepts (approved, shared, open to everyone, not
+video).
+
+**SW.** The media cache also keeps `/object/public/public-stories/` files.
+Those are public by design (00046), so caching them shows nobody anything new.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (800), build | ✅ PASS |
+| Guest gets a thumbnail of an unshared Google photo | ✅ by code (guest-gphotos signs only rows its RLS returned) |
+| Kid writes `google_photos.thumb_path` | ✅ by policy (kids select-only, 00016) |
+| Signed URL reused across load (no re-sign) | ✅ by test (`lib/data/signedUrls.test.ts`) |
+| Migration 00106 applied to the live project | ⏳ pending Hadar's go-ahead |
+| gphotos + guest-gphotos deployed | ⏳ pending (after 00106) |
