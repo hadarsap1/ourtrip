@@ -54,11 +54,11 @@ function daysBetween(fromISO: string, toISO: string): number {
   );
 }
 
-/** Under a withdrawal: how much of it the cash expenses used up and what is
- *  left. Under an expense paid in cash: that it came out of the cash. */
 /** A sum as one unit inside a Hebrew sentence: isolated, no line break. */
 const unbroken = (sum: string) => `\u2068${sum.replace(/\s/g, "\u00a0")}\u2069`;
 
+/** Under a withdrawal: how much of it the cash expenses used up and what is
+ *  left. Under an expense paid in cash: that it came out of the cash. */
 function CashNote({
   expense,
   use,
