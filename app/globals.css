@@ -397,7 +397,7 @@ body[data-chat] main {
    beginning and the screen showed "...ter Family Hotel". plaintext takes the
    direction from the text itself, so Latin is cut at its end and Hebrew still
    at its end. match-parent resolves "start" against the parent's direction.
-   In the base layer, so an explicit text-center / text-left utility still wins. */
+   In the base layer, so an explicit text-center (or any text-align) utility still wins. */
 @layer base {
   .truncate:dir(rtl) {
     unicode-bidi: plaintext;

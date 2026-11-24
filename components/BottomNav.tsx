@@ -69,11 +69,11 @@ export function BottomNav() {
     // under it with --nav-room of bottom padding. Hidden from lg up, where
     // the side rail takes over.
     <nav
-      className="absolute inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-50 h-[70px] rounded-[28px] border border-line bg-surface/96 px-1.5 shadow-nav lg:hidden"
+      className="absolute inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-50 h-[70px] rounded-[28px] border border-line bg-surface/96 px-1 shadow-nav lg:hidden"
       aria-label={strings.nav.bottomBarLabel}
     >
       <ul
-        className={`h-full items-center gap-0.5 ${captureSlot ? "grid" : "flex justify-around"}`}
+        className={`h-full items-center ${captureSlot ? "grid" : "flex justify-around gap-0.5"}`}
         style={captureSlot ? { gridTemplateColumns: captureColumns(tabs.length) } : undefined}
       >
         {tabs.map((tab, index) => {
@@ -96,7 +96,9 @@ export function BottomNav() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 // the open tab is a filled green pill: a shape, not only a colour
-                className={`flex h-[54px] w-full max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-[20px] px-1 transition-colors ${
+                // px-0.5: at 360 with the centred capture slot a trailing tab is ~45px,
+                // and "תמונות" needs 40 of it
+                className={`flex h-[54px] w-full max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-[20px] px-0.5 transition-colors ${
                   active ? "bg-green text-on-green" : "text-nav-idle"
                 }`}
               >

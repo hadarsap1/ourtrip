@@ -302,8 +302,12 @@ export function GuestHome({
           )}
         </Link>
 
-        {/* rides just above the bottom bar while the page scrolls (N1) */}
-        <div className="sticky bottom-[calc(100px+env(safe-area-inset-bottom))] z-10 pb-1 lg:bottom-4">
+        {/* rides just above the bottom bar while the page scrolls (N1). A
+            sticky offset counts from inside <main>'s padding (--nav-room),
+            hence the subtraction: it ends 12px above the bar. */}
+        {/* its own cream ground (and a fade above it, and a band down to the
+            bar) so the page never shows through around it while scrolling */}
+        <div className="sticky bottom-[calc(100px+env(safe-area-inset-bottom)-var(--nav-room))] z-10 -mx-[18px] bg-gradient-to-t from-bg from-70% to-transparent px-[18px] pt-5 pb-1 shadow-[0_12px_0_var(--bg)] lg:bottom-4">
           <ComposerLink href="/messages" label={g.writeUs} cta={g.writeUsCta} />
         </div>
       </div>
