@@ -640,8 +640,14 @@ export const strings = {
     emptyCategories: "עוד אין קטגוריות תקציב",
     // free-line quick add
     quickLines: "הוספה מהירה (כמה שורות)",
-    // the quick add's cash switch (Hadar 24/11/2026): applies to every line
-    quickLinesCashHint: "כל השורות יירשמו כשולמו במזומן, וכל אחת יורדת מהמזומן במטבע שלה",
+    // the quick adds' payment choice (Hadar 24/11/2026)
+    paymentWithdrawalShort: "משיכת מזומן",
+    quickLinesPaymentHintCash: "כל השורות יירשמו כשולמו במזומן, וכל אחת יורדת מהמזומן במטבע שלה",
+    quickLinesPaymentHintWithdrawal: "כל שורה נרשמת כמשיכת מזומן מכספומט, בקטגוריית מזומן",
+    // the preview in shekels, at the chosen day's rate
+    quickLinesTotalIls: "סה״כ {n} שורות · ≈ {amount}",
+    quickLinesNoRate: "אין שער",
+    quickLinesLocalHint: "בלי מטבע בשורה: {currency}",
     quickLinesTitle: "הוספת שורות הוצאה",
     quickLinesHint: "שורה לכל הוצאה - תיאור וסכום. אפשר גם מטבע: ‏USD‏ / ₪ / $. לדוגמה:\nחיסונים 1200\nביטוח נסיעות 3400 USD\nדרכונים ₪600",
     quickLinesPlaceholder: "חיסונים 1200\nביטוח נסיעות 3400 USD",
