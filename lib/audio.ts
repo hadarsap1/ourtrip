@@ -55,28 +55,29 @@ export type VoiceChainSettings = {
  * chest sounds boomy and dull: the chest resonates around 200-400 Hz and the
  * mouth's consonants point away from it. So:
  *  - high-pass 80 Hz: handling noise, wind rumble, mains hum
- *  - -3 dB around 300 Hz: the chest "mud"
- *  - +4 dB around 4 kHz: presence, where words are understood
- *  - +3 dB shelf above 10 kHz: air, the ס ש צ of a child's voice
+ *  - -2 dB around 300 Hz: the chest "mud"
+ *  - +2 dB around 4 kHz: presence, where words are understood
+ *  - +1 dB shelf above 10 kHz: air, the ס ש צ of a child's voice
+ * (halved on 24/11/2026 after the first try: "too sharp" - was -3/+4/+3)
  *  - a gentle compressor (3:1 from -24 dB): a whisper and a shout come out
  *    closer, so a listener does not ride the volume.
  * With the phone's own microphone iOS already filters and levels the call
- * path, so only the rumble cut and a light presence lift remain.
+ * path, so only the rumble cut and a light presence lift (+1 dB) remain.
  */
 export function voiceChainSettings(externalMics: boolean): VoiceChainSettings {
   const highpass: VoiceFilter = { type: "highpass", frequency: 80, gain: 0, Q: 0.707 };
   if (!externalMics) {
     return {
-      filters: [highpass, { type: "peaking", frequency: 4000, gain: 2, Q: 0.9 }],
+      filters: [highpass, { type: "peaking", frequency: 4000, gain: 1, Q: 0.9 }],
       compressor: null,
     };
   }
   return {
     filters: [
       highpass,
-      { type: "peaking", frequency: 300, gain: -3, Q: 1 },
-      { type: "peaking", frequency: 4000, gain: 4, Q: 0.9 },
-      { type: "highshelf", frequency: 10000, gain: 3, Q: 0.707 },
+      { type: "peaking", frequency: 300, gain: -2, Q: 1 },
+      { type: "peaking", frequency: 4000, gain: 2, Q: 0.9 },
+      { type: "highshelf", frequency: 10000, gain: 1, Q: 0.707 },
     ],
     compressor: { threshold: -24, knee: 10, ratio: 3, attack: 0.005, release: 0.2 },
   };
