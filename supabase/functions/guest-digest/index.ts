@@ -24,6 +24,7 @@ import { GUEST_ZONE, guestUpdateRecipients, type AllowRow, type GuestRow } from 
 import { buildDigest, type DigestItem } from "../_shared/guestDigest.ts";
 import { buildMessage, smtpSend } from "../_shared/mail.ts";
 import { gmailConn } from "../_shared/gmail.ts";
+import { cronSecretOk } from "../_shared/cronAuth.ts";
 
 const SEND_HOUR = 8;
 
@@ -34,19 +35,10 @@ function json(body: unknown, status = 200): Response {
 const service = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 // same check as push-send: the cron secret kept in the database (00052), or a
-// CRON_SECRET function secret if one is set. Fails closed.
+// CRON_SECRET function secret if one is set. Fails closed (_shared/cronAuth.ts).
 async function cronAuthorized(req: Request): Promise<boolean> {
-  const got = req.headers.get("x-cron-secret") ?? "";
-  if (!got) return false;
-  const expected = Deno.env.get("CRON_SECRET");
-  if (expected) {
-    if (got.length !== expected.length) return false;
-    let diff = 0;
-    for (let i = 0; i < got.length; i++) diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
-    return diff === 0;
-  }
-  const { data, error } = await service.rpc("cron_secret_matches", { p_secret: got });
-  return !error && data === true;
+  return cronSecretOk(req.headers.get("x-cron-secret"), Deno.env.get("CRON_SECRET"), (p_secret) =>
+    service.rpc("cron_secret_matches", { p_secret }));
 }
 
 type Optin = { member_id: string; trip_id: string; unsubscribe_token: string; last_sent_at: string };
