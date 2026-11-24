@@ -3454,4 +3454,6 @@ What changed:
 | Live, in a transaction rolled back: emailed-link session for an uninvited address -> null; password session -> null; kid_unlock_attempt unknown device -> unknown, real device -> attempt 1; kid_register_allowed -> true; afterwards no device carries a failed attempt and no failure row exists | ✅ 20/11/2026 |
 | Deployed: kid-auth v12 (verify_jwt false), guest-gphotos v7, guest-photos v13, guest-media v4 (verify_jwt true); each matched the repo before the change | ✅ 20/11/2026 |
 | HTTP calls to the deployed functions | ⏳ not run - this session's network does not reach the project host |
-| A real guest signs in by the emailed link only and is in | ⏳ the one guest it hit (15/11) is linked on her next sign-in. 14 Google guests show unlinked too: all signed in only before approval, and link on their next visit |
+| A real guest signs in by the emailed link only and is in | ✅ 23/11/2026: a non-Google guest signed in by the emailed link, was linked, and the account's password was cleared - so the JWT `amr` method is one of the three accepted. No guest who signed in since the deploy is left unlinked |
+| 24/11/2026: guest-media, guest-photos, guest-gphotos were redeployed from main (thumbnails, 00105/00106) without the fixed error replies; redeployed from the merged branch (main's code + this change only, checked line by line against the live source) | ✅ guest-gphotos v9, guest-photos v15, guest-media v6 |
+| After main's 00102-00106 landed: the link function still reads `amr`, kid_unlock_attempt present | ✅ 24/11/2026 |
