@@ -21,9 +21,10 @@ import {
   WeatherIcon,
 } from "@/components/icons";
 import { countryName } from "@/lib/data/emergency";
-import { loadToday, type TodayData } from "@/lib/data/today";
+import { loadToday, peekToday, type TodayData } from "@/lib/data/today";
 import {
   loadTodayDashboard,
+  peekTodayDashboard,
   type TodayDashboard,
 } from "@/lib/data/todayDashboard";
 import { getTodayMapSnapshotUrl, navigationUrl } from "@/lib/data/map";
@@ -34,7 +35,7 @@ import {
 } from "@/lib/data/weather";
 import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { daysUntil } from "@/lib/data/readiness";
-import { getActiveTrip, getNowCountry } from "@/lib/data/trip";
+import { getActiveTrip, getNowCountry, peekActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
 import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { minutesNow } from "@/lib/tripDay";
@@ -83,22 +84,27 @@ function Tile({
 }
 
 export function TodayScreen() {
+  // Coming back to this tab paints what was loaded a moment ago at once and
+  // refreshes behind it (perf, 24/11/2026) instead of a skeleton every time.
   const [result, setResult] = useState<{
     data: TodayData;
     fromCache: boolean;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
+  } | null>(() => {
+    const data = peekToday();
+    return data ? { data, fromCache: false } : null;
+  });
+  const [loading, setLoading] = useState(() => peekToday() === null);
   const [weather, setWeather] = useState<DayWeather | null>(null);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
-  const [dashboard, setDashboard] = useState<TodayDashboard | null>(null);
+  const [dashboard, setDashboard] = useState<TodayDashboard | null>(() => peekTodayDashboard());
   // Needed only to decide which home screen this is: before departure the
   // itinerary has no day for "today" and the dashboard below has nothing to
   // show, so the countdown takes over.
-  const [trip, setTrip] = useState<Trip | null>(null);
+  const [trip, setTrip] = useState<Trip | null>(() => peekActiveTrip());
   // Separate from `trip` because null is a real answer (no trip configured),
   // and rendering the dashboard before this settles would flash the empty card
   // for a moment before the countdown replaced it.
-  const [tripChecked, setTripChecked] = useState(false);
+  const [tripChecked, setTripChecked] = useState(() => peekActiveTrip() !== null);
   // the kids' wall tile shows new messages
   const unreadWall = useUnreadWall();
   // Re-derives "next up" and the current agenda row as the day moves on.

@@ -3408,3 +3408,21 @@ Those are public by design (00046), so caching them shows nobody anything new.
 | Signed URL reused across load (no re-sign) | ✅ by test (`lib/data/signedUrls.test.ts`) |
 | Migration 00106 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, RLS on, `google_photos` still has its 3 policies | ✅ done |
 | gphotos v5 and guest-gphotos v8 deployed (verify_jwt on), guest-gphotos signing `thumb_path` for RLS-returned rows only | ✅ done |
+
+## 24/11/2026 - home_dashboard (00107)
+
+One request for the parents' home: categories, trip total, expenses (totals
+columns only), today's photos, the parents and their steps. SECURITY INVOKER:
+every read runs under the caller's own policies, exactly as the separate
+queries it replaces. Execute revoked from anon and public, granted to
+authenticated. Probe: scripts/rls/probes/107_home_dashboard.sql.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (807), build | ✅ PASS |
+| Live, as the owner (pg_temp copy, nothing persisted): 40 expenses, 9 categories, total, 24 step rows | ✅ |
+| Live, as a guest and as a kid: 0 categories, no total, 0 expenses, 0 steps (parents' names only, as trip_member_names already allows) | ✅ |
+| Expenses carry no description or other columns | ✅ by function (explicit column list) |
+| anon cannot execute; function is SECURITY INVOKER | ✅ verified on the live project after apply |
+| Supabase security advisor: no new finding for home_dashboard | ✅ |
+| Migration 00107 applied to the live project (24/11/2026, on Hadar's request "make an RPC for the home") | ✅ done |

@@ -18,6 +18,15 @@ export type TodayData = {
  * (acceptance: today's itinerary renders with network disabled).
  * Offline/failure: served from the snapshot, which carries its own date.
  */
+// The last live answer, so coming back to the home tab paints at once while a
+// fresh one is fetched (perf, 24/11/2026). Today's only, never across midnight.
+let lastLive: TodayData | null = null;
+
+/** Today's plan as last loaded live this session, or null. */
+export function peekToday(): TodayData | null {
+  return lastLive && lastLive.date === todayISO() ? lastLive : null;
+}
+
 export async function loadToday(): Promise<{
   data: TodayData;
   fromCache: boolean;
@@ -34,6 +43,7 @@ export async function loadToday(): Promise<{
     const boot = await freshBoot();
     if (boot?.today && boot.today.date === date && boot.trip?.id === trip.id) {
       const data: TodayData = { date, day: boot.today.day, items: boot.today.items, bookings: boot.today.bookings };
+      lastLive = data;
       await saveTodaySnapshot(data);
       return { data, fromCache: false };
     }
@@ -83,6 +93,7 @@ export async function loadToday(): Promise<{
 
     const bookings = [...(ranged ?? []), ...(single ?? [])];
     const data: TodayData = { date, day: day ?? null, items, bookings };
+    lastLive = data;
     await saveTodaySnapshot(data);
     return { data, fromCache: false };
   } catch {

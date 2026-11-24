@@ -58,6 +58,12 @@ async function fetchActiveTrip(): Promise<Trip | null> {
   }
 }
 
+/** The trip already loaded this session, for a screen's first paint; null if
+ *  none yet (then call getActiveTrip). */
+export function peekActiveTrip(): Trip | null {
+  return cachedTrip;
+}
+
 export async function getActiveTrip(): Promise<Trip | null> {
   if (cachedTrip) return cachedTrip;
   tripInFlight ??= fetchActiveTrip().finally(() => {
