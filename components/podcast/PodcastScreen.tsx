@@ -27,10 +27,11 @@ import { shareText, shareUrl } from "@/lib/share";
 import { strings } from "@/lib/strings";
 import { failureText } from "@/lib/failureText";
 import { useMember } from "@/lib/useMember";
+import { NoMemberNotice } from "@/components/NoMemberNotice";
 import type { Comment, Episode, Member, Reaction, Trip } from "@/lib/types";
 
 export function PodcastScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
@@ -154,7 +155,7 @@ export function PodcastScreen() {
   if (!member || !trip) {
     return (
       <SovevScreen>
-        <p className="px-4 pt-8 text-center text-sv-ink-soft">{strings.common.noMember}</p>
+        <NoMemberNotice title={strings.podcast.title} failed={memberFailed || Boolean(member)} tone="sovev" />
       </SovevScreen>
     );
   }

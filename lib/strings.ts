@@ -1967,6 +1967,11 @@ export const strings = {
     enter: "כניסה לאפליקציה",
     invalidTitle: "הקישור לא בתוקף",
     invalidBody: "ייתכן שנוצר קישור חדש. בקשו אותו ממי ששלח לכם.",
+    toLogin: "חזרה לדף הכניסה",
+    resendLink: "שליחת קישור הכניסה שוב",
+    resendSent: "אם כבר אישרנו, הקישור בדרך למייל. אם עוד לא, הוא יישלח ברגע שנאשר.",
+    approvedToLogin: "כבר אישרו אותי - לדף הכניסה",
+    offline: "אין חיבור כרגע - בדקו את הרשת ונסו שוב",
     badInput: "צריך שם ומייל תקין",
     busy: "יש עכשיו הרבה בקשות - נסו שוב בעוד שעה",
     error: "משהו השתבש - נסו שוב",
@@ -2031,6 +2036,11 @@ export const strings = {
     photosTitle: "תמונות אחרונות",
     photosAll: "לכל התמונות",
     quoteTitle: "הישר מהצנצנת",
+    // the jar's way in when no quote is shared right now (guests have no tab for it)
+    jarTile: "הצנצנת: מה שהילדים אמרו בדרך",
+    jarOpen: "לצנצנת",
+    // the newest update or the photos did not load (not "nothing yet")
+    partialLoad: "חלק מהדף לא נטען",
     quoteAll: "לכל הציטוטים",
     writeUs: "כתבו לנו משהו...",
     writeUsCta: "לצ'אט",
