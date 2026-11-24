@@ -19,16 +19,14 @@ const noopSubscribe = () => () => {};
 const CAPTURE_AFTER = 2;
 
 /**
- * Columns that put the capture slot at the exact centre of the bar. With two
- * tabs before it and three after, equal-width tabs left it a slot off-centre
- * (Hadar 16/11/2026, from a phone). Each side gets the same total width: a tab
- * on the short side is as wide as the long side has tabs, and the other way
- * round - 2 x 3fr on one side, 3 x 2fr on the other.
+ * Every slot of the bar the same width, the capture button's included, so the
+ * tabs are evenly spaced (Hadar 24/11/2026). With two tabs before it and
+ * three after, that puts the button half a slot off the exact centre - the
+ * price of even spacing. (16/11 to 24/11 it was centred, with 3fr tabs on
+ * one side and 2fr on the other, which crowded the floating bar's left end.)
  */
-export function captureColumns(tabCount: number, before: number = CAPTURE_AFTER): string {
-  const after = Math.max(tabCount - before, 0);
-  if (before === 0 || after === 0) return `repeat(${Math.max(tabCount, 1)}, minmax(0, 1fr)) 3.5rem`;
-  return `repeat(${before}, minmax(0, ${after}fr)) 3.5rem repeat(${after}, minmax(0, ${before}fr))`;
+export function captureColumns(tabCount: number): string {
+  return `repeat(${Math.max(tabCount, 0) + 1}, minmax(0, 1fr))`;
 }
 
 export function BottomNav() {
