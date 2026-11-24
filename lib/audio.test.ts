@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { baseMime, episodeNumbers, extensionFor, formatClock, micConstraints, pickRecordingMime, roundMinutes } from "./audio";
+import {
+  baseMime,
+  episodeNumbers,
+  extensionFor,
+  formatClock,
+  isLowRateInput,
+  MAX_EPISODE_SECONDS,
+  micConstraints,
+  pickRecordingMime,
+  RECORDING_BITRATE,
+  roundMinutes,
+  voiceChainSettings,
+} from "./audio";
 
 describe("pickRecordingMime", () => {
   it("prefers AAC/MP4 when the browser can record it", () => {
@@ -62,5 +74,34 @@ describe("micConstraints", () => {
   });
   it("brings back noise suppression and auto gain for the phone's own mic, never echo cancellation", () => {
     expect(micConstraints(false)).toEqual({ echoCancellation: false, noiseSuppression: true, autoGainControl: true });
+  });
+});
+
+describe("voiceChainSettings", () => {
+  it("external mics: rumble cut, less chest boom, more presence and air, gentle compression", () => {
+    const { filters, compressor } = voiceChainSettings(true);
+    expect(filters[0]).toMatchObject({ type: "highpass", frequency: 80 });
+    expect(filters.find((f) => f.frequency === 300)?.gain).toBeLessThan(0);
+    expect(filters.find((f) => f.frequency === 4000)?.gain).toBeGreaterThan(0);
+    expect(filters.find((f) => f.type === "highshelf")?.gain).toBeGreaterThan(0);
+    expect(compressor?.ratio).toBeGreaterThan(1);
+    expect(compressor?.ratio).toBeLessThanOrEqual(4);
+  });
+  it("phone mic: light touch, no compressor on top of the phone's auto gain", () => {
+    const { filters, compressor } = voiceChainSettings(false);
+    expect(compressor).toBeNull();
+    expect(filters[0].type).toBe("highpass");
+  });
+});
+
+describe("isLowRateInput / RECORDING_BITRATE", () => {
+  it("flags a voice-call rate and ignores full rates or no report", () => {
+    expect(isLowRateInput(16000)).toBe(true);
+    expect(isLowRateInput(48000)).toBe(false);
+    expect(isLowRateInput(44100)).toBe(false);
+    expect(isLowRateInput(undefined)).toBe(false);
+  });
+  it("a 20-minute take stays well under the bucket limit", () => {
+    expect((RECORDING_BITRATE / 8) * MAX_EPISODE_SECONDS).toBeLessThan(25 * 1024 * 1024);
   });
 });
