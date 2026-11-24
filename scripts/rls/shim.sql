@@ -16,9 +16,15 @@ create schema auth;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
-  -- as in GoTrue: '' or null when the account has no password (invites, Google)
+  -- '' or null when the account has no password (Google). NB: accounts made
+  -- with auth.admin.createUser (guest-invite) DO get a random one (00108).
   encrypted_password varchar(255),
   raw_app_meta_data jsonb
+);
+-- one row per signed-in session; the JWT's session_id names it (00108)
+create table auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade
 );
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb

@@ -37,13 +37,16 @@ export function KidLoginScreen() {
       setPin("");
     } else if (result.status === "invalid") {
       setMessage(strings.kidLogin.invalidCode);
+    } else if (result.status === "busy") {
+      setMessage(strings.kidLogin.tooManyAttempts);
     } else if (result.status === "network") {
       setMessage(strings.kidLogin.registerNetwork);
     } else {
-      // Not the child's problem and not the code's: show the server's own
-      // words, because that string is what tells a parent which switch to
-      // flip. Hiding it behind "the code is wrong" is what made this
-      // unfixable from the tablet.
+      // Not the child's problem and not the code's: show the step that
+      // failed, because that is what tells a parent which switch to flip.
+      // Hiding it behind "the code is wrong" is what made this unfixable from
+      // the tablet. Since 19/11 it is a fixed step code (e.g.
+      // create_user_failed); the raw message is in the function log.
       setMessage(`${strings.kidLogin.registerFailed} (${result.detail})`);
     }
     setBusy(false);

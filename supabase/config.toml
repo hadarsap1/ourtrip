@@ -19,11 +19,14 @@ project_id = "ourtrip"
 # ---------------------------------------------------------------------------
 #
 # Since migration 00025 these three are no longer open to anyone with the URL:
-# the cron jobs and the push triggers send an `x-cron-secret` header and each
-# function compares it against its CRON_SECRET function secret. The check FAILS
-# OPEN while CRON_SECRET is unset, so enforcement only begins once the secret is
-# set on BOTH sides (see 00025 for the two commands). verify_jwt stays false
-# regardless — pg_cron still has no JWT to present.
+# the cron jobs and the push triggers send an `x-cron-secret` header. Since
+# 00052 the secret lives in the database (private.app_secrets) and each
+# function asks cron_secret_matches() - or compares against a CRON_SECRET
+# function secret, if one is set. The check FAILS CLOSED: no header, a wrong
+# one, or a failed lookup is a 401 (re-read in the security review of
+# 19/11/2026; this note used to say it failed open, which was true only
+# before 00052). verify_jwt stays false regardless — pg_cron still has no JWT
+# to present.
 
 # Invoked by pg_cron via pg_net, which carries no JWT. Idempotent: upserts
 # today's public FX rates. Anonymous invocation can at most repeat that work.

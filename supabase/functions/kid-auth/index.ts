@@ -124,6 +124,17 @@ function json(body: unknown, status = 200): Response {
 
 type ServiceClient = ReturnType<typeof createClient>;
 
+/**
+ * A server-side failure: the raw message goes to the function log, the reply
+ * carries only a fixed code naming the step (security review 19/11/2026).
+ * The step is what a parent needs to know which switch to flip; database and
+ * auth internals stay out of a reply that unauthenticated callers can get.
+ */
+function failed(step: string, detail?: string | null): Response {
+  console.error(`kid-auth: ${step}: ${detail ?? "unknown"}`);
+  return json({ ok: false, error: step }, 500);
+}
+
 /** Resolves the caller to an owner member id, or null. */
 async function ownerCaller(req: Request): Promise<string | null> {
   const caller = createClient(
@@ -201,7 +212,7 @@ Deno.serve(async (req) => {
       created_by: callerId,
       expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
     });
-    if (error) return json({ ok: false, error: error.message }, 500);
+    if (error) return failed("registration_insert_failed", error.message);
 
     return json({ ok: true, code, expires_in_minutes: CODE_TTL_MS / 60000 });
   }
@@ -211,6 +222,13 @@ Deno.serve(async (req) => {
     const code = (body.code ?? "").trim().toUpperCase();
     if (code.length < 6) return json({ ok: false, error: "bad code" }, 400);
 
+    // Wrong codes are capped project-wide (00108): 30 per 15 minutes. A code
+    // is 6 of 31 characters and lives 15 minutes, so guessing was already a
+    // long shot; this makes it one nobody can run at speed.
+    const { data: allowed, error: gateError } = await service.rpc("kid_register_allowed");
+    if (gateError) return failed("register_gate_failed", gateError.message);
+    if (allowed !== true) return json({ ok: false, error: "too_many_attempts" }, 429);
+
     const { data: registration } = await service
       .from("kid_device_registrations")
       .select("*")
@@ -218,14 +236,17 @@ Deno.serve(async (req) => {
       .is("used_at", null)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
-    if (!registration) return json({ ok: false, error: "invalid code" }, 401);
+    if (!registration) {
+      await service.rpc("kid_register_failed");
+      return json({ ok: false, error: "invalid code" }, 401);
+    }
 
     const { data: member } = await service
       .from("members")
       .select("id, display_name, auth_user_id")
       .eq("id", registration.member_id)
       .single();
-    if (!member) return json({ ok: false, error: "member missing" }, 500);
+    if (!member) return failed("member_missing");
 
     // The token the tablet keeps. It is NOT the auth password - it only ever
     // identifies the device to this function, and is stored hashed.
@@ -237,7 +258,7 @@ Deno.serve(async (req) => {
       try {
         await rotateAuthPassword(service, member.auth_user_id);
       } catch (err) {
-        return json({ ok: false, error: (err as Error).message }, 500);
+        return failed("rotate_password_failed", (err as Error).message);
       }
     } else {
       const { data: created, error } = await service.auth.admin.createUser({
@@ -246,13 +267,13 @@ Deno.serve(async (req) => {
         email_confirm: true,
       });
       if (error || !created.user) {
-        return json({ ok: false, error: error?.message ?? "createUser failed" }, 500);
+        return failed("create_user_failed", error?.message);
       }
       const { error: linkError } = await service
         .from("members")
         .update({ auth_user_id: created.user.id })
         .eq("id", member.id);
-      if (linkError) return json({ ok: false, error: linkError.message }, 500);
+      if (linkError) return failed("link_user_failed", linkError.message);
     }
 
     // Insert the new binding BEFORE revoking the old ones: since 00024 a kid
@@ -269,7 +290,7 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (deviceError || !device) {
-      return json({ ok: false, error: deviceError?.message ?? "insert failed" }, 500);
+      return failed("device_insert_failed", deviceError?.message);
     }
 
     // one active device per kid
@@ -306,16 +327,28 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!device) return json({ ok: false, error: "unknown device" }, 401);
 
-    if (device.locked_until && new Date(device.locked_until) > new Date()) {
-      return json(
-        { ok: false, error: "locked", locked_until: device.locked_until },
-        423
-      );
+    // Reserve this attempt BEFORE the PIN is checked (00108). The counter used
+    // to be read here and written after the check, so a burst of parallel
+    // requests all read the same count and each got a guess past the lockout.
+    // kid_unlock_attempt takes a row lock, so attempts queue and at most
+    // MAX_ATTEMPTS PINs are ever tried per lock window.
+    const { data: reserved, error: reserveError } = await service.rpc("kid_unlock_attempt", {
+      p_device_id: device.id,
+      p_max: MAX_ATTEMPTS,
+      p_lock_minutes: LOCK_MINUTES,
+    });
+    if (reserveError || !reserved) return failed("attempt_reserve_failed", reserveError?.message);
+    const slot = reserved as { ok: boolean; reason?: string; locked_until?: string; attempt?: number };
+    if (!slot.ok) {
+      if (slot.reason === "locked") {
+        return json({ ok: false, error: "locked", locked_until: slot.locked_until }, 423);
+      }
+      return json({ ok: false, error: "unknown device" }, 401);
     }
 
     const pinOk = await verifyPin(pin, device.pin_hash);
     if (!pinOk) {
-      const attempts = device.failed_attempts + 1;
+      const attempts = slot.attempt ?? MAX_ATTEMPTS;
       if (attempts >= MAX_ATTEMPTS) {
         const lockedUntil = new Date(
           Date.now() + LOCK_MINUTES * 60 * 1000
@@ -326,10 +359,7 @@ Deno.serve(async (req) => {
           .eq("id", device.id);
         return json({ ok: false, error: "locked", locked_until: lockedUntil }, 423);
       }
-      await service
-        .from("kid_devices")
-        .update({ failed_attempts: attempts })
-        .eq("id", device.id);
+      // the attempt was already counted when it was reserved
       return json(
         { ok: false, error: "wrong pin", attempts_left: MAX_ATTEMPTS - attempts },
         401
@@ -347,7 +377,7 @@ Deno.serve(async (req) => {
       .eq("id", device.member_id)
       .single();
     if (!member?.auth_user_id) {
-      return json({ ok: false, error: "member missing" }, 500);
+      return failed("member_missing");
     }
 
     // The PIN has been proven, so mint a session: set a fresh single-use
@@ -357,7 +387,7 @@ Deno.serve(async (req) => {
     try {
       oneTimePassword = await rotateAuthPassword(service, member.auth_user_id);
     } catch (err) {
-      return json({ ok: false, error: (err as Error).message }, 500);
+      return failed("rotate_password_failed", (err as Error).message);
     }
 
     const anon = createClient(
@@ -379,10 +409,8 @@ Deno.serve(async (req) => {
       const providerOff =
         code === "email_provider_disabled" ||
         /email logins are disabled|email signin is disabled/i.test(raw);
-      return json(
-        { ok: false, error: providerOff ? "email_provider_disabled" : raw },
-        500
-      );
+      if (providerOff) return json({ ok: false, error: "email_provider_disabled" }, 500);
+      return failed("sign_in_failed", raw);
     }
 
     return json({
@@ -429,7 +457,7 @@ Deno.serve(async (req) => {
       .update({ revoked_at: new Date().toISOString() })
       .eq("id", device.id)
       .is("revoked_at", null);
-    if (error) return json({ ok: false, error: error.message }, 500);
+    if (error) return failed("revoke_failed", error.message);
 
     // Only rotate once the kid has no active device left - otherwise revoking
     // an old binding would break the current one's next unlock.
@@ -442,7 +470,7 @@ Deno.serve(async (req) => {
       try {
         await rotateAuthPassword(service, kid.auth_user_id);
       } catch (err) {
-        return json({ ok: false, error: (err as Error).message }, 500);
+        return failed("rotate_password_failed", (err as Error).message);
       }
     }
 

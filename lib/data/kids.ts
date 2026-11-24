@@ -143,9 +143,12 @@ export type RegisterResult =
   | { status: "ok"; displayName: string }
   /** The code itself was rejected: wrong, already used, or expired. */
   | { status: "invalid" }
+  /** Too many wrong codes project-wide in the last 15 minutes (00108). */
+  | { status: "busy" }
   /** The code was fine and the server failed anyway - creating the kid's auth
-   *  user, linking it, or writing the device row. `detail` is the server's own
-   *  message; it is the only thing that says which. */
+   *  user, linking it, or writing the device row. `detail` is the step code
+   *  kid-auth names (e.g. create_user_failed); the raw message is in the
+   *  function log. */
   | { status: "server"; detail: string }
   | { status: "network" };
 
@@ -178,6 +181,7 @@ export async function registerDevice(code: string): Promise<RegisterResult> {
   // 400 "bad code" and 401 "invalid code" are both about the code. Anything
   // else is the server failing on a code it accepted.
   if (status === 400 || status === 401) return { status: "invalid" };
+  if (status === 429) return { status: "busy" };
   return { status: "server", detail: String(data.error ?? status) };
 }
 

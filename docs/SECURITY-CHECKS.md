@@ -3426,3 +3426,52 @@ authenticated. Probe: scripts/rls/probes/107_home_dashboard.sql.
 | anon cannot execute; function is SECURITY INVOKER | ✅ verified on the live project after apply |
 | Supabase security advisor: no new finding for home_dashboard | ✅ |
 | Migration 00107 applied to the live project (24/11/2026, on Hadar's request "make an RPC for the home") | ✅ done |
+
+## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00108)
+
+Found in the security review of 19/11, read back from production first:
+every account `guest-invite` creates with `auth.admin.createUser` carries a
+random password, so 00055's "no password = invited" never held. A guest who
+signed in only by the emailed link was never linked and AuthGate signed them
+out (one guest on 15/11). Production showed no self-registered account for a
+guest's address (every password account belongs to an approved guest; all 25
+accounts older than their allowlist row are Google), so nothing was exploited.
+
+What changed:
+- `link_member_to_auth_user`: links by email for a Google account or a session
+  whose JWT `amr` is `magiclink` / `otp` / `invite`. A password session never
+  links. On the first link the account's password is cleared and every other
+  session ends, so an account a stranger registered beforehand (sign-ups open,
+  "Confirm email" off) does not stay open to them.
+- `submit_guest_join`: only a Google account counts as signed in, so "via
+  Google" / "approve all" can no longer be earned by a password account. A
+  caller already linked as a member is told `member` however they signed in.
+- `kid_unlock_attempt` (service role only): a PIN attempt is reserved under a
+  row lock before the PIN is checked; parallel requests no longer each get a
+  guess past the 5-attempt lockout.
+- `kid_register_allowed` / `kid_register_failed` (service role only): 30 wrong
+  registration codes per 15 minutes project-wide, then 429.
+- kid-auth, guest-media, guest-photos, guest-gphotos reply with fixed step
+  codes; raw database/auth messages go to the function log only.
+
+| Check | Result |
+|---|---|
+| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 108 |
+| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 108 |
+| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 108 |
+| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 108 |
+| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 108 |
+| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 108 |
+| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 108 |
+| Probes 54, 55, 95 updated to the new rule (the seeded outsider signs in with Google) | ✅ PASS |
+| Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations (before renumbering) |
+| lint, vitest, build | ✅ PASS |
+| `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session; the deploy bundled and the functions are ACTIVE |
+| 00108 (written as 00102, then 00107; main took both numbers, for comment replies and home_dashboard) applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
+| Live read-back: the four functions exist, the link function reads `amr`, submit_guest_join has the member-by-account check; anon cannot run kid_unlock_attempt, authenticated cannot run kid_register_failed; authenticated can still run link_member_to_auth_user, anon cannot | ✅ 20/11/2026 |
+| Live, in a transaction rolled back: emailed-link session for an uninvited address -> null; password session -> null; kid_unlock_attempt unknown device -> unknown, real device -> attempt 1; kid_register_allowed -> true; afterwards no device carries a failed attempt and no failure row exists | ✅ 20/11/2026 |
+| Deployed: kid-auth v12 (verify_jwt false), guest-gphotos v7, guest-photos v13, guest-media v4 (verify_jwt true); each matched the repo before the change | ✅ 20/11/2026 |
+| HTTP calls to the deployed functions | ⏳ not run - this session's network does not reach the project host |
+| A real guest signs in by the emailed link only and is in | ✅ 23/11/2026: a non-Google guest signed in by the emailed link, was linked, and the account's password was cleared - so the JWT `amr` method is one of the three accepted. No guest who signed in since the deploy is left unlinked |
+| 24/11/2026: guest-media, guest-photos, guest-gphotos were redeployed from main (thumbnails, 00105/00106) without the fixed error replies; redeployed from the merged branch (main's code + this change only, checked line by line against the live source) | ✅ guest-gphotos v9, guest-photos v15, guest-media v6 |
+| After main's 00102-00106 landed: the link function still reads `amr`, kid_unlock_attempt present | ✅ 24/11/2026 |

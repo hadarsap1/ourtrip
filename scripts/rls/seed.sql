@@ -21,6 +21,10 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000aa03', 'guest@probe.test'),
   ('00000000-0000-0000-0000-00000000aa04', 'gone@probe.test'),
   ('00000000-0000-0000-0000-00000000aa05', 'outsider@probe.test');
+-- a stranger who signs in here does it with Google (the login screen's only
+-- sign-up); since 00108 only a Google account counts as signed in on a join request
+update auth.users set raw_app_meta_data = '{"provider":"google","providers":["google"]}'
+ where id = '00000000-0000-0000-0000-00000000aa05';
 insert into members (id, trip_id, auth_user_id, email, display_name, role) values
   ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000aa01', 'owner@probe.test', 'Owner', 'owner'),
   ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a1', null, null, 'Kid', 'kid'),

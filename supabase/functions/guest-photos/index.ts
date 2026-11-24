@@ -57,7 +57,10 @@ Deno.serve(async (req) => {
     .select("id, trip_id, file_path, caption, taken_on, media_type, poster_path, thumb_path")
     .order("taken_on", { ascending: false })
     .order("created_at", { ascending: false });
-  if (error) return json({ ok: false, error: error.message }, 500);
+  if (error) {
+    console.error(`guest-photos: lookup failed: ${error.message}`);
+    return json({ ok: false, error: "lookup_failed" }, 500);
+  }
   if (!photos || photos.length === 0) return json({ ok: true, photos: [] });
 
   const service = createClient(
@@ -79,7 +82,10 @@ Deno.serve(async (req) => {
       : Promise.resolve({ data: [], error: null }),
   ]);
   const signError = signed.error ?? signedVideos.error;
-  if (signError) return json({ ok: false, error: signError.message }, 500);
+  if (signError) {
+    console.error(`guest-photos: signing failed: ${signError.message}`);
+    return json({ ok: false, error: "sign_failed" }, 500);
+  }
 
   const urlByPath = new Map(
     [...(signed.data ?? []), ...(signedVideos.data ?? [])].map((s) => [s.path, s.signedUrl])

@@ -46,7 +46,10 @@ Deno.serve(async (req) => {
     .order("country", { ascending: true, nullsFirst: false })
     .order("area", { ascending: true, nullsFirst: false })
     .order("taken_at", { ascending: false, nullsFirst: false });
-  if (error) return json({ ok: false, error: error.message }, 500);
+  if (error) {
+    console.error(`guest-gphotos: lookup failed: ${error.message}`);
+    return json({ ok: false, error: "lookup_failed" }, 500);
+  }
   if (!photos || photos.length === 0) return json({ ok: true, photos: [] });
 
   const service = createClient(
@@ -60,7 +63,10 @@ Deno.serve(async (req) => {
   const { data: signed, error: signError } = await service.storage
     .from("gphotos")
     .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
-  if (signError) return json({ ok: false, error: signError.message }, 500);
+  if (signError) {
+    console.error(`guest-gphotos: signing failed: ${signError.message}`);
+    return json({ ok: false, error: "sign_failed" }, 500);
+  }
 
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
   return json({
