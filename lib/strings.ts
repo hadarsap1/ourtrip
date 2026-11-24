@@ -80,6 +80,7 @@ export const strings = {
     tileWeather: "מזג אוויר",
     tileTonight: "הלילה",
     tileSpentToday: "הוצאות היום",
+    nothingSpent: "עוד לא נרשם",
     agenda: "לוח היום",
     agendaCount: "{n} פעילויות",
     noLodging: "לא נרשמה לינה",
@@ -365,7 +366,9 @@ export const strings = {
   steps: {
     title: "צעדים היום",
     notReported: "עוד לא דווח",
+    notReportedToday: "עוד לא דווח היום",
     stay: "בשהות ב{place}: {n}",
+    stayShort: "בשהות ב{place}",
     week: "השבוע",
     weekAria: "צעדים ב-7 הימים האחרונים",
     settingsTitle: "ספירת צעדים מהאייפון",
@@ -779,6 +782,9 @@ export const strings = {
     groupOnTheRoad: "בדרך",
     groupMemories: "זיכרונות",
     groupFamily: "תכנון וניהול",
+    // the guest-preview row (קרם חם)
+    previewHint: "לראות מה האורחים רואים",
+    previewCta: "תצוגת אורח",
     optionsState: "{n} אפשרויות",
     // redesign 3b
     emergencyMeta: "‏112 · שגרירות · ביטוח",
