@@ -3,10 +3,18 @@
 import { NarratorsField } from "./NarratorsField";
 import { useEffect, useRef, useState } from "react";
 import { MicIcon, PauseIcon, PlayIcon, StopIcon } from "@/components/icons";
-import { formatClock, MAX_EPISODE_SECONDS, micConstraints, pickRecordingMime } from "@/lib/audio";
+import {
+  formatClock,
+  isLowRateInput,
+  MAX_EPISODE_SECONDS,
+  micConstraints,
+  pickRecordingMime,
+  RECORDING_BITRATE,
+} from "@/lib/audio";
 import { decodeToClip } from "@/lib/audioDecode";
 import { appendClip, encodeWav, normalizeLoudness } from "@/lib/audioEdit";
 import { strings } from "@/lib/strings";
+import { connectVoiceChain, startVoiceContext, type VoiceChain } from "@/lib/voiceChain";
 
 type Phase = "idle" | "recording" | "paused" | "joining" | "review";
 
@@ -24,6 +32,11 @@ type WakeLock = { release: () => Promise<void> };
  * part recorded so far is closed and kept, and the take waits paused;
  * "resume" opens a new part on a fresh microphone. Parts of one take are
  * joined into one WAV on stop (lib/audioEdit.ts explains WAV).
+ *
+ * Voice chain (24/11/2026, DECISIONS #75): the microphone goes through
+ * lib/voiceChain.ts (rumble cut, less chest boom, more presence, gentle
+ * compression) before MediaRecorder. If the browser cannot run it, the raw
+ * microphone is recorded as before.
  */
 export function Recorder({
   busy,
@@ -46,6 +59,8 @@ export function Recorder({
   const [error, setError] = useState<string | null>(null);
   // the last pause came from the screen going off, not from the pause button
   const [interrupted, setInterrupted] = useState(false);
+  // the mic came in at a voice-call rate (Bluetooth): the top of the voice is lost
+  const [lowRate, setLowRate] = useState(false);
   const [take, setTake] = useState<(Take & { url: string }) | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -59,6 +74,7 @@ export function Recorder({
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const chainRef = useRef<VoiceChain | null>(null);
   // one Blob per microphone session of this take
   const partsRef = useRef<Blob[]>([]);
   const mimeRef = useRef<string>("audio/webm");
@@ -80,6 +96,8 @@ export function Recorder({
   function releaseMic() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    chainRef.current?.close();
+    chainRef.current = null;
   }
 
   function stopTick() {
@@ -142,20 +160,34 @@ export function Recorder({
   /** Opens the microphone and starts a new part. False if it could not. */
   async function openPart(): Promise<boolean> {
     let stream: MediaStream;
+    // created inside the tap, before any await, so iOS lets it run
+    const ctx = startVoiceContext();
     try {
       // raw with external mics, call processing with the phone's own (micConstraints)
       stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(externalMicsRef.current) });
     } catch {
+      void ctx?.close().catch(() => {});
       setError(strings.podcast.micDenied);
       return false;
     }
     streamRef.current = stream;
+    setLowRate(isLowRateInput(stream.getAudioTracks()[0]?.getSettings().sampleRate));
+    const chain = ctx ? await connectVoiceChain(ctx, stream, externalMicsRef.current) : null;
+    if (!chain) void ctx?.close().catch(() => {});
+    chainRef.current = chain;
     const mime = pickRecordingMime((m) => MediaRecorder.isTypeSupported(m));
-    const recorder = new MediaRecorder(
-      stream,
-      // voice: 96 kbps keeps the consonants crisp and a 20-minute take around 14 MB
-      mime ? { mimeType: mime, audioBitsPerSecond: 96_000 } : { audioBitsPerSecond: 96_000 }
-    );
+    const options = mime
+      ? { mimeType: mime, audioBitsPerSecond: RECORDING_BITRATE }
+      : { audioBitsPerSecond: RECORDING_BITRATE };
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(chain?.stream ?? stream, options);
+    } catch {
+      // the processed stream was refused: record the microphone as it is
+      chain?.close();
+      chainRef.current = null;
+      recorder = new MediaRecorder(stream, options);
+    }
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
@@ -200,6 +232,7 @@ export function Recorder({
     finishingRef.current = false;
     banked.current = 0;
     setInterrupted(false);
+    setLowRate(false);
     if (!(await openPart())) return;
     setSeconds(0);
     setPhase("recording");
@@ -453,6 +486,11 @@ export function Recorder({
             <StopIcon className="h-8 w-8" />
           </button>
         </div>
+      )}
+      {lowRate && phase !== "idle" && (
+        <p className="rounded-xl bg-sv-clay-soft px-3 py-2 text-sm text-sv-clay" role="status">
+          {strings.podcast.lowRateMic}
+        </p>
       )}
       {error && (
         <p className="rounded-xl bg-sv-clay-soft px-3 py-2 text-sm text-sv-clay" role="alert">

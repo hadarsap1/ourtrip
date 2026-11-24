@@ -3475,3 +3475,18 @@ What changed:
 | A real guest signs in by the emailed link only and is in | ✅ 23/11/2026: a non-Google guest signed in by the emailed link, was linked, and the account's password was cleared - so the JWT `amr` method is one of the three accepted. No guest who signed in since the deploy is left unlinked |
 | 24/11/2026: guest-media, guest-photos, guest-gphotos were redeployed from main (thumbnails, 00105/00106) without the fixed error replies; redeployed from the merged branch (main's code + this change only, checked line by line against the live source) | ✅ guest-gphotos v9, guest-photos v15, guest-media v6 |
 | After main's 00102-00106 landed: the link function still reads `amr`, kid_unlock_attempt present | ✅ 24/11/2026 |
+
+## 24/11/2026 - podcast voice clarity (00109, DECISIONS #75)
+
+The `audio` bucket's per-file limit goes from 70 to 80 MB so a 20-minute
+32 kHz WAV fits. Nothing else changes: the bucket stays private, the same
+audio types, no storage or table policy touched - uploading or replacing
+audio is still owners only (00044 / 00047 / 00049). The rest is client-side
+(live voice chain, bitrate, sample rate, loudness).
+
+| Check | Result |
+|---|---|
+| Bucket private, 80 MB, accepts WAV | ✅ live 24/11/2026 after applying 00109: `audio` private, 83886080, WAV allowed. Probe `109_audio_80mb.sql` written (probe 80 relaxed to ≥ 70 MB); not run locally - no local Postgres in this session |
+| Kid / guest still cannot upload or replace audio | ✅ no policy touched; probes 44, 47, 49 unchanged |
+| 00109 applied to production | ✅ 24/11/2026, on Hadar's go-ahead, via the Supabase connector |
+| lint, vitest (813), build | ✅ PASS |

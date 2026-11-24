@@ -3,8 +3,8 @@
 
 /**
  * Longest episode, recorded or edited. Raised from 7 to 20 minutes (13/10).
- * Sizes at that length: a recording ~14 MB (96 kbps), an edited episode
- * ~58 MB (24 kHz WAV) - both under the audio bucket's 70 MB limit (00080).
+ * Sizes at that length: a recording ~19 MB (128 kbps), an edited episode
+ * ~77 MB (32 kHz WAV) - both under the audio bucket's 80 MB limit (00109).
  */
 export const MAX_EPISODE_SECONDS = 20 * 60;
 
@@ -25,12 +25,70 @@ const CANDIDATES = [
  * clean up the voice themselves, and phone-call processing on top muffled it.
  * With the phone's own microphone the call processing comes back - noise
  * suppression for the street, auto gain for a child standing far away; echo
- * cancellation stays off, nothing plays while recording.
+ * cancellation stays off, nothing plays while recording. The clarity chain
+ * (voiceChainSettings, DECISIONS #75) works on what these settings let in.
  */
 export function micConstraints(externalMics: boolean): MediaTrackConstraints {
   return externalMics
     ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     : { echoCancellation: false, noiseSuppression: true, autoGainControl: true };
+}
+
+/**
+ * Take bitrate (24/11/2026, DECISIONS #75): 128 kbps AAC keeps the top of a
+ * child's voice (ס ש צ) that 96 kbps smeared. A 20-minute take is ~19 MB.
+ */
+export const RECORDING_BITRATE = 128_000;
+
+/** One filter of the live voice chain (lib/voiceChain.ts builds it). */
+export type VoiceFilter = { type: BiquadFilterType; frequency: number; gain: number; Q: number };
+
+export type VoiceChainSettings = {
+  filters: VoiceFilter[];
+  /** null = no compressor (the phone's own auto gain already evens the level) */
+  compressor: { threshold: number; knee: number; ratio: number; attack: number; release: number } | null;
+};
+
+/**
+ * The live voice chain applied while recording (24/11/2026, DECISIONS #75:
+ * "still not clear", iPhone + wired-in USB-C lav mics). A lav clipped on the
+ * chest sounds boomy and dull: the chest resonates around 200-400 Hz and the
+ * mouth's consonants point away from it. So:
+ *  - high-pass 80 Hz: handling noise, wind rumble, mains hum
+ *  - -3 dB around 300 Hz: the chest "mud"
+ *  - +4 dB around 4 kHz: presence, where words are understood
+ *  - +3 dB shelf above 10 kHz: air, the ס ש צ of a child's voice
+ *  - a gentle compressor (3:1 from -24 dB): a whisper and a shout come out
+ *    closer, so a listener does not ride the volume.
+ * With the phone's own microphone iOS already filters and levels the call
+ * path, so only the rumble cut and a light presence lift remain.
+ */
+export function voiceChainSettings(externalMics: boolean): VoiceChainSettings {
+  const highpass: VoiceFilter = { type: "highpass", frequency: 80, gain: 0, Q: 0.707 };
+  if (!externalMics) {
+    return {
+      filters: [highpass, { type: "peaking", frequency: 4000, gain: 2, Q: 0.9 }],
+      compressor: null,
+    };
+  }
+  return {
+    filters: [
+      highpass,
+      { type: "peaking", frequency: 300, gain: -3, Q: 1 },
+      { type: "peaking", frequency: 4000, gain: 4, Q: 0.9 },
+      { type: "highshelf", frequency: 10000, gain: 3, Q: 0.707 },
+    ],
+    compressor: { threshold: -24, knee: 10, ratio: 3, attack: 0.005, release: 0.2 },
+  };
+}
+
+/**
+ * True when the microphone reports a rate a voice call uses (Bluetooth
+ * headsets run at 16 kHz on iPhone): everything above 8 kHz is gone before
+ * the app sees it, and no processing can bring it back. Unknown = false.
+ */
+export function isLowRateInput(sampleRate: number | undefined): boolean {
+  return typeof sampleRate === "number" && sampleRate > 0 && sampleRate < 44_100;
 }
 
 /** The first format this browser can record, or null if it records none. */
