@@ -3406,5 +3406,5 @@ Those are public by design (00046), so caching them shows nobody anything new.
 | Guest gets a thumbnail of an unshared Google photo | ✅ by code (guest-gphotos signs only rows its RLS returned) |
 | Kid writes `google_photos.thumb_path` | ✅ by policy (kids select-only, 00016) |
 | Signed URL reused across load (no re-sign) | ✅ by test (`lib/data/signedUrls.test.ts`) |
-| Migration 00106 applied to the live project | ⏳ pending Hadar's go-ahead |
-| gphotos + guest-gphotos deployed | ⏳ pending (after 00106) |
+| Migration 00106 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, RLS on, `google_photos` still has its 3 policies | ✅ done |
+| gphotos v5 and guest-gphotos v8 deployed (verify_jwt on), guest-gphotos signing `thumb_path` for RLS-returned rows only | ✅ done |
