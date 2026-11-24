@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo } from "next/font/google";
+import { Rubik } from "next/font/google";
 import "./globals.css";
 import { AuthGate } from "@/components/AuthGate";
 import { RoleGate } from "@/components/RoleGate";
@@ -19,9 +19,13 @@ import { strings } from "@/lib/strings";
 import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme";
 import { FLAG_BOOT_SCRIPT } from "@/lib/flags";
 
-const heebo = Heebo({
+// Rubik since the "קרם חם" redesign (24/11/2026), replacing Heebo. Four
+// weights: 400 body, 500 meta and labels, 700 emphasis, 800 titles.
+const rubik = Rubik({
   subsets: ["hebrew", "latin"],
-  variable: "--font-heebo",
+  weight: ["400", "500", "700", "800"],
+  variable: "--font-rubik",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -58,7 +62,7 @@ export default function RootLayout({
   return (
     // data-theme is set by the head script before hydration, hence
     // suppressHydrationWarning on <html> only.
-    <html lang="he" dir="rtl" className={`${heebo.variable} ${sovevFont.variable} h-full overflow-hidden antialiased`} suppressHydrationWarning>
+    <html lang="he" dir="rtl" className={`${rubik.variable} ${sovevFont.variable} h-full overflow-hidden antialiased`} suppressHydrationWarning>
       <head>
         {/* Runs before first paint: picks light/dark from the saved choice or the
             OS, so a dark-mode phone never flashes cream on open (F7). */}
@@ -73,13 +77,14 @@ export default function RootLayout({
           screen of blank paper opened below it. Focusing a text field can still
           scroll the window on iOS; ViewportPin scrolls it back once the
           keyboard closes. */}
-      <body className="flex h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)] text-ink">
+      <body className="relative flex h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)] text-ink">
         <PreviewBanner />
         <SimDateBanner />
         <OfflineBanner />
         {/* ps at lg leaves room for the fixed rail, which sits at the
-            inline-start (right) edge. */}
-        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0 lg:ps-[216px]">
+            inline-start (right) edge. The bottom room for the floating bar
+            is set in globals.css (--nav-room), so a chat screen can drop it. */}
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain lg:pb-0 lg:ps-[216px]">
           <AuthGate>
             <RoleGate>{children}</RoleGate>
           </AuthGate>
