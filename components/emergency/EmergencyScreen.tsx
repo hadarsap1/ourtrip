@@ -33,19 +33,31 @@ function TelRow({ label, value }: { label: string; value?: string }) {
       className="flex items-center justify-between rounded-xl bg-surface px-3 py-3 shadow-sm"
     >
       <span className="text-sm font-medium text-ink">{label}</span>
-      <span className="text-lg font-bold text-alert" dir="ltr">
+      <span className="inline-block text-lg font-bold text-alert tabular-nums [unicode-bidi:isolate]" dir="ltr">
         {value}
       </span>
     </a>
   );
 }
 
+// An embassy or hotel address, a policy number: often Latin or local script.
+// Given its own direction and isolated, so "12 Nguyen Hue, D1" or "POL-4471/2"
+// is not reordered by the Hebrew around it - this page is shown to a taxi
+// driver or a hospital clerk. Either way it sits at the row's left edge.
+const HEBREW = /[\u0590-\u05FF]/;
+
 function InfoRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
+  const rtl = HEBREW.test(value);
   return (
     <div className="flex items-baseline justify-between gap-3 px-3 py-2">
       <span className="shrink-0 text-sm text-ink-soft">{label}</span>
-      <span className="text-end text-sm font-medium text-ink">{value}</span>
+      <span
+        dir={rtl ? "rtl" : "ltr"}
+        className={`${rtl ? "text-end" : "text-start"} text-sm font-medium text-ink [unicode-bidi:isolate]`}
+      >
+        {value}
+      </span>
     </div>
   );
 }

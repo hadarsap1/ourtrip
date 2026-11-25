@@ -2147,6 +2147,10 @@ export const strings = {
     reject: "דחייה",
     shareToggle: "שיתוף עם אורחים",
     shared: "משותף",
+    // a kid's own photo, approved but not (yet) shared: three clear states -
+    // ממתין לאישור / רק במשפחה / משותף עם החברים
+    familyOnly: "רק במשפחה",
+    sharedWithFriends: "משותף עם החברים",
     deleteConfirm: "למחוק את התמונה?",
   },
 

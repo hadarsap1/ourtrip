@@ -16,7 +16,7 @@
   --surface-2: #EFE0C4;
   --text: #3A2C24;
   --text-muted: #6B5A4E;
-  --border: #D9C6A5;
+  --border: #BFA77F; /* 2.2:1 on surface: cards read in strong sun (was #D9C6A5, 1.6:1) */
 
   /* brand: sage */
   --brand: #4E6B45;
@@ -105,7 +105,7 @@
   --surface-2: #3A3027;
   --text: #F1E6D2;
   --text-muted: #C9B9A3;
-  --border: #4A3D31;
+  --border: #5C4C3D;
   --brand: #A9C49B;
   --brand-contrast: #1D2618;
   --brand-soft: #2F3A28;
@@ -148,7 +148,7 @@
     --surface-2: #3A3027;
     --text: #F1E6D2;
     --text-muted: #C9B9A3;
-    --border: #4A3D31;
+    --border: #5C4C3D;
     --brand: #A9C49B;
     --brand-contrast: #1D2618;
     --brand-soft: #2F3A28;
