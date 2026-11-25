@@ -159,18 +159,22 @@ export function DocumentsScreen() {
       setPinExists(hasLocalDocPin(activeTrip.id));
       setUnlocked(isVaultUnlocked(activeTrip.id));
       setThisDeviceEnrolled(isThisDeviceEnrolled(activeTrip.id));
+      // Cache-first (Lie-Fi): the device copy of the list draws at once, with
+      // no banner yet, while the network answers; refresh replaces it. If the
+      // network fails, the same copy stays and the banner says so.
+      const cached = cacheKeyRef.current ? await readQuery<Document[]>(cacheKeyRef.current) : null;
+      if (cancelled) return;
+      if (cached) {
+        setDocs(cached.data);
+        setOfflineIds(new Set(await listOfflineDocumentIds()));
+        if (!cancelled) setLoading(false);
+      }
       try {
         await refresh(activeTrip.id);
       } catch {
-        const cached = cacheKeyRef.current ? await readQuery<Document[]>(cacheKeyRef.current) : null;
         if (cancelled) return;
-        if (cached) {
-          setDocs(cached.data);
-          setOfflineIds(new Set(await listOfflineDocumentIds()));
-          setFromCache(true);
-        } else if (!offlineNow()) {
-          showToast(strings.common.error);
-        }
+        if (cached) setFromCache(true);
+        else if (!offlineNow()) showToast(strings.common.error);
       } finally {
         if (!cancelled) setLoading(false);
       }

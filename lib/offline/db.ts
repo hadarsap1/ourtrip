@@ -155,13 +155,32 @@ interface OurTripDB extends DBSchema {
   /** Guests' views not sent yet (00085), one per target. Not part of the
    *  pending-writes count: guests are not told views are recorded. */
   view_outbox: { key: string; value: PendingView };
+  /** Render crashes caught by the error boundaries, kept on this device only
+   *  (never sent anywhere) so a crash that happened offline can be read
+   *  later. Capped in lib/offline/errorLog.ts. */
+  error_log: { key: number; value: ErrorLogEntry };
 }
+
+export type ErrorLogEntry = {
+  id?: number;
+  at: string;
+  /** The route the crash happened on, without the query string. */
+  path: string;
+  message: string;
+  /** Next.js's server-side error id, when the error came from the server. */
+  digest: string | null;
+  /** First lines only - enough to find the component. */
+  stack: string | null;
+  online: boolean;
+  /** "screen" (app/error.tsx) or "root" (app/global-error.tsx). */
+  boundary: "screen" | "root";
+};
 
 let dbPromise: Promise<IDBPDatabase<OurTripDB>> | null = null;
 
 export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
   if (typeof window === "undefined" || !("indexedDB" in window)) return null;
-  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 6, {
+  dbPromise ??= openDB<OurTripDB>("ourtrip-offline", 7, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore("documents_offline", { keyPath: "id" });
@@ -188,6 +207,16 @@ export function getOfflineDB(): Promise<IDBPDatabase<OurTripDB>> | null {
       if (oldVersion < 6) {
         db.createObjectStore("view_outbox", { keyPath: "key" });
       }
+      if (oldVersion < 7) {
+        db.createObjectStore("error_log", { keyPath: "id", autoIncrement: true });
+      }
+    },
+    // A newer version opened in another tab (after an app update): let it go
+    // ahead rather than hold its upgrade - and every offline read it makes -
+    // until this tab closes. The next call here reopens at the new version.
+    blocking() {
+      void dbPromise?.then((db) => db.close());
+      dbPromise = null;
     },
   });
   return dbPromise;

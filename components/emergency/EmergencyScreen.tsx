@@ -19,7 +19,7 @@ import { useMember } from "@/lib/useMember";
 import { CheckIcon, EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { aiLimitMessage } from "@/lib/aiLimit";
-import { readEmergencySnapshots } from "@/lib/offline/caches";
+import { readEmergencySnapshots, readTodaySnapshot } from "@/lib/offline/caches";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { isEnabled } from "@/lib/flags";
 import type { Trip } from "@/lib/types";
@@ -110,6 +110,35 @@ export function EmergencyScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let fresh = false;
+    // Cache-first (Lie-Fi): the device copy of every country draws at once,
+    // before the trip and the pages come back from a weak line. The network
+    // answer replaces it; if that fails, refresh shows the same copy with the
+    // "device copy" banner.
+    void (async () => {
+      const snaps = await readEmergencySnapshots().catch(() => []);
+      if (cancelled || fresh || snaps.length === 0) return;
+      setPages(
+        snaps.map((x) => ({
+          countryCode: x.countryCode,
+          content: x.content as EmergencyContent,
+          updatedAt: x.updatedAt,
+        }))
+      );
+      setOfflineReady(new Set(snaps.map((x) => x.countryCode)));
+      const todaySnap = await readTodaySnapshot().catch(() => null);
+      if (cancelled || fresh) return;
+      setSelected(
+        (current) =>
+          current ??
+          pickEmergencyCountry(
+            snaps.map((x) => x.countryCode),
+            todaySnap?.day?.country_code ?? null,
+            null
+          )
+      );
+      setLoading(false);
+    })();
     void (async () => {
       const activeTrip = await getActiveTrip();
       // offline-critical: even without a trip row (offline start), cached
@@ -118,6 +147,7 @@ export function EmergencyScreen() {
       const tripId = activeTrip?.id ?? "";
       try {
         const nextPages = await refresh(tripId);
+        fresh = true;
         if (cancelled) return;
         const snaps = await readEmergencySnapshots().catch(() => []);
         if (!cancelled) setOfflineReady(new Set(snaps.map((x) => x.countryCode)));

@@ -18,6 +18,22 @@ export type TodayData = {
  * (acceptance: today's itinerary renders with network disabled).
  * Offline/failure: served from the snapshot, which carries its own date.
  */
+/**
+ * Cache-first (Lie-Fi): today's device copy, only if it is today's, so the
+ * screen draws at once on a weak line while loadToday asks the network. A copy
+ * from another day is not shown here - loadToday still falls back to it, with
+ * the "device copy" banner, once the network has failed.
+ */
+export async function peekToday(): Promise<TodayData | null> {
+  try {
+    const snapshot = await readTodaySnapshot();
+    if (!snapshot || snapshot.date !== todayISO()) return null;
+    return { date: snapshot.date, day: snapshot.day, items: snapshot.items, bookings: snapshot.bookings };
+  } catch {
+    return null;
+  }
+}
+
 export async function loadToday(): Promise<{
   data: TodayData;
   fromCache: boolean;

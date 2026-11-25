@@ -2412,6 +2412,24 @@ export const strings = {
     actionFailedOffline: "אין חיבור כרגע - נסו שוב כשהחיבור יחזור",
   },
 
+  // app/error.tsx and app/global-error.tsx: a screen crashed while drawing.
+  // Points at the screens that work offline, as /offline does, so a crash on
+  // the road is never a dead end.
+  screenError: {
+    title: "משהו השתבש במסך הזה",
+    body: "התקלה נרשמה במכשיר. אפשר לנסות שוב, או לעבור למסך אחר:",
+    retry: "ניסיון נוסף",
+    home: "למסך הבית",
+    // settings, parents only: the crashes kept on this device
+    logTitle: "תקלות שנרשמו במכשיר",
+    logEmpty: "לא נרשמו תקלות במכשיר הזה",
+    logCount: "{n} תקלות אחרונות, נשמרות רק במכשיר הזה",
+    logCopy: "העתקה",
+    logCopied: "הועתק",
+    logClear: "ניקוי",
+    logOffline: "בלי חיבור",
+  },
+
   // The /offline route: the service worker serves it when a screen that was
   // never cached is opened with no connection. It has to say which screens
   // DO work right now, otherwise it is just a dead end.

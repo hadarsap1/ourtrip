@@ -11,8 +11,15 @@ import {
   type TodaySnapshot,
   type FactsSnapshot,
 } from "./db";
+import { previewCachePrefix } from "@/lib/preview";
 
-const TODAY_KEY = "today";
+// A parent viewing as a guest or kid (00068) gets a shelf of their own, as in
+// queryCache: shown first now (cache-first, Lie-Fi), the parent's copy of
+// today would otherwise flash on the test guest's screen, and the guest's
+// empty day would overwrite it.
+function todayKey(): string {
+  return previewCachePrefix() + "today";
+}
 
 // ---------- phrasebook (per generated language) ----------
 
@@ -48,7 +55,7 @@ export async function saveMapSnapshot(blob: Blob, date: string): Promise<void> {
   if (!dbp) return;
   const db = await dbp;
   await db.put("map_snapshot", {
-    key: TODAY_KEY,
+    key: todayKey(),
     blob,
     date,
     savedAt: new Date().toISOString(),
@@ -59,7 +66,7 @@ export async function readMapSnapshot(): Promise<MapSnapshot | null> {
   const dbp = getOfflineDB();
   if (!dbp) return null;
   const db = await dbp;
-  return (await db.get("map_snapshot", TODAY_KEY)) ?? null;
+  return (await db.get("map_snapshot", todayKey())) ?? null;
 }
 
 // ---------- today's itinerary ----------
@@ -73,7 +80,7 @@ export async function saveTodaySnapshot(
   await db.put(
     "today_itinerary",
     { ...snapshot, savedAt: new Date().toISOString() },
-    TODAY_KEY
+    todayKey()
   );
 }
 
@@ -81,7 +88,7 @@ export async function readTodaySnapshot(): Promise<TodaySnapshot | null> {
   const dbp = getOfflineDB();
   if (!dbp) return null;
   const db = await dbp;
-  return (await db.get("today_itinerary", TODAY_KEY)) ?? null;
+  return (await db.get("today_itinerary", todayKey())) ?? null;
 }
 
 // ---------- emergency pages (all countries kept offline) ----------
