@@ -249,6 +249,8 @@ export const strings = {
     offlineReady: "שמור במכשיר - נפתח גם בלי אינטרנט",
     title: "חירום",
     sos: "SOS",
+    // the strip above every phone screen (SosStrip)
+    sosStripLabel: "דף חירום - מספרי חירום, שגרירות וביטוח",
     numbers: "מספרי חירום",
     police: "משטרה",
     ambulance: "אמבולנס",

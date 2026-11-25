@@ -43,6 +43,9 @@ export const FLAG_DEFAULTS = {
   // Gmail secrets are set on guest-digest and a test email went through.
   // Turn off here to hide the switch; GUEST_EMAIL=off stops the sending.
   guestEmailDigest: true,
+  // A thin strip with SOS above every phone screen but Today (Hadar
+  // 25/11/2026, amends #56). Off here, or ?test=-sosStrip, to roll back.
+  sosStrip: true,
   // Phase 3 (off by default)
   cameraTranslate: false,
   receiptScan: false,

@@ -3379,3 +3379,24 @@ and `poster_path`. Deleting a photo or an album removes the thumbnail too.
 | Cached photo shown to the next account on a shared device | ✅ by code (media cache + URL cache cleared on SIGNED_OUT) |
 | Migration 00105 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, guard pins it for kids, `photos` still has its 5 policies | ✅ done |
 | guest-media v5 and guest-photos v14 deployed (verify_jwt on), signing `thumb_path` for RLS-returned rows only | ✅ done |
+
+## Review pass: offline, error log, SOS strip (25/11/2026, no migration)
+
+A code review asked to confirm the photo, kid, guest and email-off rules.
+Each was checked against the latest migration that touches it:
+
+| Check | Result |
+|---|---|
+| Guest sees a photo only when `approved` AND `shared_with_guests` (and in their group, and its album shared) | ✅ by policy (`photos_guest_select`, 00087) |
+| Signed URLs never cover a photo the guest cannot read | ✅ by code (guest-photos, guest-media query with the caller's JWT first; service role signs only those paths) |
+| A kid's upload lands `pending` and unshared whatever is sent | ✅ by trigger (00001) |
+| A revoked kid device stops on the next query | ✅ by function (`current_member_id()`, 00024; one active device per kid, kid-auth) |
+| Kid reads or writes only their own pocket money and expenses | ✅ by policy (`kid_id = current_member_id()`, 00086; WITH CHECK also `is_kid_of`, 00007) |
+| Guest sees an itinerary item only when `done` AND shared | ✅ by policy (`itinerary_items_guest_select`, 00086) |
+| Guest or kid reads `guests_allowlist` | ✅ denied: owner policy only |
+| Guest or kid reads other `members` rows | ✅ denied (00051); names only through `trip_member_names` / `member_directory` |
+| `/email-off/<token>` leaks anything or does more than stop one email | ✅ by function (random UUID, `unsubscribe_guest_email` deletes the one opt-in row, returns a boolean) |
+| Today's device copy shown to a parent viewing as a guest (cache-first) | ✅ by code (snapshot key carries the preview prefix, as `query_cache`) |
+| Error log leaves the device | ✅ by code (IndexedDB only, no request; parents read it in settings) |
+| SOS strip shown to a guest | ✅ by code (owners and kids only); the page itself is RoleGate'd and owner/kid by RLS |
+| Kid photo chips change who sees what | ✅ display only; no write, no policy change |
