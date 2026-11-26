@@ -136,3 +136,18 @@ describe("no double counting under the analysis filter", () => {
     }
   });
 });
+
+describe("asks about expenses that may have come from the cash", () => {
+  it("flags a foreign-currency expense on or after a withdrawal in that currency, not marked cash", async () => {
+    const { maybeCashExpenseIds } = await import("./budget");
+    const w = atm(1000, "2026-11-02");
+    const before = e({ amount: 50, spent_on: "2026-11-01" });
+    const after = e({ amount: 50, spent_on: "2026-11-03" });
+    const marked = cash(50, "2026-11-03");
+    const booked = e({ amount: 50, spent_on: "2026-11-03", booking_id: "b1" });
+    const shekel = card(50, "2026-11-03");
+    const otherCurrency = e({ amount: 50, spent_on: "2026-11-03", currency: "JPY" });
+    const ids = maybeCashExpenseIds([w, before, after, marked, booked, shekel, otherCurrency]);
+    expect([...ids]).toEqual([after.id]);
+  });
+});
