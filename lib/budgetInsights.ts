@@ -140,7 +140,9 @@ export function scopeInsights(
   categories: InsightCategory[],
   bookings: InsightBooking[],
   scope: string | null,
-  today: string
+  today: string,
+  /** Which cash withdrawals the cash picture counts (the analysis filter). */
+  keepWithdrawal: (e: InsightExpense) => boolean = () => true
 ): ScopeInsights {
   const inScope = scope === null ? slices : slices.filter((s) => s.country === scope);
   const scopeDays = days.filter((d) => d.country_code && (scope === null || d.country_code === scope));
@@ -186,7 +188,7 @@ export function scopeInsights(
   const countryOn = new Map(days.filter((d) => d.country_code).map((d) => [d.date, d.country_code as string]));
   const placeOf = (e: InsightExpense) => e.country_code ?? countryOn.get(e.spent_on) ?? null;
   for (const e of expenses) {
-    if (!e.is_cash_withdrawal) continue;
+    if (!e.is_cash_withdrawal || !keepWithdrawal(e)) continue;
     if (scope !== null && placeOf(e) !== scope) continue;
     withdrawn += e.amount_ils;
     unlogged += counted.get(e.id) ?? e.amount_ils;
@@ -229,4 +231,147 @@ export function prepaidByCountry(slices: Slice[], days: InsightDay[], today: str
   for (const s of slices) if (s.date > today) acc.set(s.country, (acc.get(s.country) ?? 0) + s.amount);
   const order: (string | null)[] = [...tripCountries(days), null];
   return order.filter((c) => (acc.get(c) ?? 0) > 0).map((code) => ({ code, amount: acc.get(code)! }));
+}
+
+// ---------------------------------------------------------------------------
+// WHAT IS IN THE ANALYSIS (Hadar 26/11/2026). The insights can be narrowed by
+// hand, each time anew: a date range, whether the preparations before the trip
+// count (a Vietnam visa paid at home and marked Vietnam), whether what is paid
+// ahead for days still to come counts, whole categories, and single expenses.
+// Analysis only - nothing is written; the choice lives on this phone.
+
+export type InsightFilter = {
+  /** Inclusive ISO dates; null = open. Applies to the days and to every piece
+   *  except the preparations, which have their own switch. */
+  from: string | null;
+  to: string | null;
+  /** Pieces dated before the trip's first itinerary day. In a country's
+   *  averages too when they carry that country (Hadar: "עלות ליום"). */
+  includePrep: boolean;
+  /** Pieces dated after today (paid in advance). */
+  includePrepaid: boolean;
+  /** Category ids left out; "" is the everyday cash line. */
+  excludedCategories: string[];
+  /** Expense ids left out. */
+  excludedExpenses: string[];
+};
+
+export const DEFAULT_FILTER: InsightFilter = {
+  from: null,
+  to: null,
+  includePrep: true,
+  includePrepaid: true,
+  excludedCategories: [],
+  excludedExpenses: [],
+};
+
+export function isDefaultFilter(f: InsightFilter): boolean {
+  return (
+    f.from === null &&
+    f.to === null &&
+    f.includePrep &&
+    f.includePrepaid &&
+    f.excludedCategories.length === 0 &&
+    f.excludedExpenses.length === 0
+  );
+}
+
+/** How many choices differ from "everything". */
+export function filterChanges(f: InsightFilter): number {
+  return (
+    (f.from !== null || f.to !== null ? 1 : 0) +
+    (f.includePrep ? 0 : 1) +
+    (f.includePrepaid ? 0 : 1) +
+    f.excludedCategories.length +
+    f.excludedExpenses.length
+  );
+}
+
+/** The trip's first itinerary day with a country, or null. */
+export function tripStart(days: InsightDay[]): string | null {
+  let first: string | null = null;
+  for (const d of days) if (d.country_code && (first === null || d.date < first)) first = d.date;
+  return first;
+}
+
+/** A piece's line in "where the money went": everyday cash is "". */
+export const sliceCategory = (s: Slice) => (s.kind === "everyday" ? "" : s.categoryId);
+
+/** Is this piece a preparation (dated before the trip began)? */
+export const isPrep = (s: Slice, start: string | null) => start !== null && s.date < start;
+
+const inRange = (date: string, f: Pick<InsightFilter, "from" | "to">) =>
+  (f.from === null || date >= f.from) && (f.to === null || date <= f.to);
+
+/**
+ * The pieces the filter keeps. `withExclusions` false keeps the excluded
+ * categories and expenses - the panel still lists them, unticked.
+ */
+export function filterSlices(
+  slices: Slice[],
+  f: InsightFilter,
+  start: string | null,
+  today: string,
+  withExclusions = true
+): Slice[] {
+  const cats = new Set(f.excludedCategories);
+  const ids = new Set(f.excludedExpenses);
+  return slices.filter((s) => {
+    if (isPrep(s, start)) {
+      if (!f.includePrep) return false;
+    } else if (!inRange(s.date, f)) return false;
+    if (!f.includePrepaid && s.date > today) return false;
+    if (!withExclusions) return true;
+    return !cats.has(sliceCategory(s)) && !ids.has(s.expenseId);
+  });
+}
+
+/** Itinerary days inside the filter's range. */
+export function filterDays<D extends InsightDay>(days: D[], f: Pick<InsightFilter, "from" | "to">): D[] {
+  return f.from === null && f.to === null ? days : days.filter((d) => inRange(d.date, f));
+}
+
+/** Which withdrawals the cash picture counts: not excluded, in range. The
+ *  cash expenses are still matched against every withdrawal, so leaving one
+ *  out never moves the others' everyday cash. */
+export function withdrawalFilter(f: InsightFilter, start: string | null, today: string) {
+  const ids = new Set(f.excludedExpenses);
+  const everydayOut = f.excludedCategories.includes("");
+  return (e: Pick<InsightExpense, "id" | "spent_on">): boolean => {
+    if (ids.has(e.id) || everydayOut) return false;
+    if (start !== null && e.spent_on < start) return f.includePrep;
+    if (!f.includePrepaid && e.spent_on > today) return false;
+    return inRange(e.spent_on, f);
+  };
+}
+
+export type ExpenseRow = { expenseId: string; date: string; amount: number; spread: boolean; prep: boolean };
+export type CategoryRows = { categoryId: string; amount: number; rows: ExpenseRow[] };
+
+/**
+ * For the panel: every category in scope with its expenses (each counted by
+ * its pieces in scope), largest first; the newest expense first inside one.
+ */
+export function categoryRows(slices: Slice[], scope: string | null, start: string | null): CategoryRows[] {
+  const byCat = new Map<string, Map<string, ExpenseRow>>();
+  for (const s of slices) {
+    if (scope !== null && s.country !== scope) continue;
+    const cat = sliceCategory(s);
+    const rows = byCat.get(cat) ?? new Map<string, ExpenseRow>();
+    byCat.set(cat, rows);
+    const row = rows.get(s.expenseId);
+    if (row) {
+      row.amount += s.amount;
+      if (s.date < row.date) row.date = s.date;
+    } else {
+      rows.set(s.expenseId, { expenseId: s.expenseId, date: s.date, amount: s.amount, spread: s.spread, prep: isPrep(s, start) });
+    }
+  }
+  return [...byCat.entries()]
+    .map(([categoryId, rows]) => {
+      const list = [...rows.values()].map((r) => ({ ...r, amount: round2(r.amount) }));
+      list.sort((a, b) => (a.date === b.date ? b.amount - a.amount : a.date < b.date ? 1 : -1));
+      return { categoryId, amount: round2(list.reduce((t, r) => t + r.amount, 0)), rows: list };
+    })
+    .sort((a, b) => b.amount - a.amount);
 }
