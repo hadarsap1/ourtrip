@@ -702,6 +702,12 @@ export const strings = {
     countryManualHint: "ההוצאה תיספר במדינה הזו בניתוח התקציב",
     cashWithdrawalSplit: "משיכת מזומן · הוצאנו מזה {used} · נשאר {left}",
     paidFromCashTag: "שולם במזומן",
+    // maybe paid from the cash, not marked (Hadar 26/11/2026)
+    maybeCashQuestion: "שולם מהמזומן? אם כן, זה נספר פעמיים",
+    maybeCashYes: "כן, מזומן",
+    maybeCashNo: "לא, בכרטיס",
+    maybeCashMarked: "סומן כשולם במזומן",
+    maybeCashFormHint: "יש משיכת מזומן ב-{currency}. אם שולם ממנה, בחרו \"שולם במזומן\" - אחרת זה ייספר פעמיים",
     cashCategory: "משיכת מזומן",
     categoryExpensesCount: "{n} הוצאות",
     showAllExpenses: "הצגת הכל",

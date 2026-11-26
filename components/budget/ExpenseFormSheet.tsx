@@ -382,6 +382,9 @@ function ExpenseForm({
             <option value="cash">{strings.budget.paymentCash}</option>
             <option value="withdrawal">{strings.budget.paymentWithdrawal}</option>
           </select>
+          {payment === "regular" && walletLeft !== null && currency !== "ILS" && !expense?.booking_id && (
+            <p className="mt-1 text-xs text-sun-deep">{strings.budget.maybeCashFormHint.replace("{currency}", currency)}</p>
+          )}
           {payment !== "regular" && (
             <p className={`mt-1 text-xs ${overCash ? "text-sun-deep" : "text-ink-soft"}`}>
               {isWithdrawal

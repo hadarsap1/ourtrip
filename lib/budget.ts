@@ -227,3 +227,29 @@ export function countedExpenses<T extends CashFields>(expenses: T[]): T[] {
     return use ? { ...e, amount_ils: use.countedIls } : e;
   });
 }
+
+/**
+ * Expenses that may have been paid from the cash but are not marked so
+ * (Hadar 26/11/2026: "no double counting in any case"). Such an expense counts
+ * in full AND its cash stays in the withdrawal - counted twice. The app cannot
+ * know how it was paid, so it asks: an expense in a foreign currency that was
+ * also withdrawn as cash, on or after that withdrawal's day, not linked to a
+ * booking (those are paid by card ahead), not a withdrawal, not paid in cash.
+ */
+export function maybeCashExpenseIds(
+  expenses: Pick<Expense, "id" | "currency" | "spent_on" | "booking_id" | "is_cash_withdrawal" | "paid_in_cash">[]
+): Set<string> {
+  const firstWithdrawal = new Map<string, string>();
+  for (const e of expenses) {
+    if (!e.is_cash_withdrawal) continue;
+    const d = firstWithdrawal.get(e.currency);
+    if (d === undefined || e.spent_on < d) firstWithdrawal.set(e.currency, e.spent_on);
+  }
+  const out = new Set<string>();
+  for (const e of expenses) {
+    if (e.is_cash_withdrawal || e.paid_in_cash || e.booking_id || e.currency === "ILS") continue;
+    const since = firstWithdrawal.get(e.currency);
+    if (since !== undefined && e.spent_on >= since) out.add(e.id);
+  }
+  return out;
+}

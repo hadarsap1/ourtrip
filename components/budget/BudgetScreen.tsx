@@ -13,6 +13,7 @@ import {
   listCategories,
   listExpenses,
   subscribeBudget,
+  updateExpense,
 } from "@/lib/data/expenses";
 import { listReceipts } from "@/lib/data/receipts";
 import { deleteCashAdjustment, listCashAdjustments } from "@/lib/data/cashAdjustments";
@@ -23,6 +24,7 @@ import {
   cashWallets,
   cashWithdrawalUses,
   countedExpenses,
+  maybeCashExpenseIds,
   pickableCategories,
   resolveBudgetTotals,
   resolveBudgetProgress,
@@ -86,6 +88,18 @@ function CashNote({
     return <span className="block text-xs text-sea-deep">{s.paidFromCashTag}</span>;
   }
   return null;
+}
+
+/** Expenses answered "not from the cash" (Hadar 26/11/2026), on this phone. */
+const NOT_CASH_KEY = "ot.budget.notCash.v1";
+function readNotCash(): Set<string> {
+  try {
+    const raw = window.localStorage.getItem(NOT_CASH_KEY);
+    const list: unknown = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list.filter((x): x is string => typeof x === "string") : []);
+  } catch {
+    return new Set();
+  }
 }
 
 /** created_at → the local "2026-11-15" it happened on. */
@@ -183,6 +197,8 @@ export function BudgetScreen() {
   const [editingWallet, setEditingWallet] = useState<CashWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [notCash, setNotCash] = useState<Set<string>>(() => (typeof window === "undefined" ? new Set() : readNotCash()));
+  const [markingCash, setMarkingCash] = useState<string | null>(null);
 
   // "/budget?add=1" (the "+ הוצאה" on the home screen) lands on an open
   // expense form, read once like the stories' "?new=1"; the parameter is then
@@ -355,6 +371,37 @@ export function BudgetScreen() {
   const cashUses = cashWithdrawalUses(expenses);
   const wallets = cashWallets(expenses, adjustments);
   const counted = countedExpenses(expenses);
+  const maybeCash = maybeCashExpenseIds(expenses);
+  const answerNotCash = (id: string) => {
+    const next = new Set(notCash).add(id);
+    setNotCash(next);
+    try {
+      window.localStorage.setItem(NOT_CASH_KEY, JSON.stringify([...next]));
+    } catch {
+      // blocked storage: asked again next time
+    }
+  };
+  const markPaidInCash = async (e: Expense) => {
+    setMarkingCash(e.id);
+    try {
+      await updateExpense(e.id, {
+        amount: e.amount,
+        currency: e.currency,
+        spent_on: e.spent_on,
+        category_id: e.category_id,
+        description: e.description,
+        country_code: e.country_code,
+        is_cash_withdrawal: false,
+        paid_in_cash: true,
+      });
+      showToast(strings.budget.maybeCashMarked);
+      refreshNow();
+    } catch {
+      showToast(strings.common.error);
+    } finally {
+      setMarkingCash(null);
+    }
+  };
   // The list shows what was entered last on top (Hadar 15/11/2026): sorted by
   // spent_on, a booking paid ahead for next April sat above today's coffee.
   const byEntry = [...expenses].sort(
@@ -778,6 +825,26 @@ export function BudgetScreen() {
                     )}
                   </span>
                 </button>
+                {maybeCash.has(expense.id) && !notCash.has(expense.id) && (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-sun-tint px-3.5 py-2">
+                    <span className="min-w-0 flex-1 text-xs font-semibold text-ink">{strings.budget.maybeCashQuestion}</span>
+                    <button
+                      type="button"
+                      disabled={markingCash === expense.id}
+                      onClick={() => void markPaidInCash(expense)}
+                      className="min-h-[36px] rounded-full bg-sea px-3 text-xs font-bold text-on-sea disabled:opacity-60"
+                    >
+                      {strings.budget.maybeCashYes}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => answerNotCash(expense.id)}
+                      className="min-h-[36px] rounded-full border border-line bg-surface px-3 text-xs font-bold text-ink"
+                    >
+                      {strings.budget.maybeCashNo}
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
