@@ -3,7 +3,20 @@
 import { useMemo, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { ProgressBar } from "@/components/ui/Progress";
-import { expenseSlices, prepaidByCountry, scopeInsights, tripCountries } from "@/lib/budgetInsights";
+import {
+  categoryRows,
+  expenseSlices,
+  filterChanges,
+  filterDays,
+  filterSlices,
+  isPrep,
+  prepaidByCountry,
+  scopeInsights,
+  tripCountries,
+  tripStart,
+  withdrawalFilter,
+} from "@/lib/budgetInsights";
+import { InsightFilterPanel, changesText, useInsightFilter } from "./InsightFilterPanel";
 import { findCountry, flagEmoji } from "@/lib/countries";
 import { formatMoney, todayISO } from "@/lib/format";
 import { strings } from "@/lib/strings";
@@ -50,17 +63,46 @@ export function BudgetInsights({
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const scope = picked === undefined ? (todayCountry && countries.includes(todayCountry) ? todayCountry : null) : picked;
 
-  const slices = useMemo(() => expenseSlices(expenses, days, bookings), [expenses, days, bookings]);
+  const allSlices = useMemo(() => expenseSlices(expenses, days, bookings), [expenses, days, bookings]);
+  // what is in the analysis (Hadar 26/11/2026): chosen by hand, kept on this phone
+  const [filter, setFilter] = useInsightFilter();
+  const start = useMemo(() => tripStart(days), [days]);
+  const baseSlices = useMemo(() => filterSlices(allSlices, filter, start, today, false), [allSlices, filter, start, today]);
+  const slices = useMemo(() => filterSlices(allSlices, filter, start, today), [allSlices, filter, start, today]);
+  const rangeDays = useMemo(() => filterDays(days, filter), [days, filter]);
+  const keepWithdrawal = useMemo(() => withdrawalFilter(filter, start, today), [filter, start, today]);
+  const rows = useMemo(() => categoryRows(baseSlices, scope, start), [baseSlices, scope, start]);
+  const { prepAmount, prepaidAmount } = useMemo(() => {
+    let prepAmount = 0;
+    let prepaidAmount = 0;
+    for (const s of allSlices) {
+      if (scope !== null && s.country !== scope) continue;
+      if (isPrep(s, start)) prepAmount += s.amount;
+      else if (s.date > today) prepaidAmount += s.amount;
+    }
+    return { prepAmount, prepaidAmount };
+  }, [allSlices, scope, start, today]);
+
   const ins = useMemo(
-    () => scopeInsights(slices, expenses, days, categories, bookings, scope, today),
-    [slices, expenses, days, categories, bookings, scope, today]
+    () => scopeInsights(slices, expenses, rangeDays, categories, bookings, scope, today, keepWithdrawal),
+    [slices, expenses, rangeDays, categories, bookings, scope, today, keepWithdrawal]
   );
   const compare = useMemo(
-    () => (scope === null ? countries.map((c) => scopeInsights(slices, expenses, days, categories, bookings, c, today)) : []),
-    [scope, countries, slices, expenses, days, categories, bookings, today]
+    () =>
+      scope === null
+        ? countries.map((c) => scopeInsights(slices, expenses, rangeDays, categories, bookings, c, today, keepWithdrawal))
+        : [],
+    [scope, countries, slices, expenses, rangeDays, categories, bookings, today, keepWithdrawal]
   );
   const prepaid = useMemo(() => (scope === null ? prepaidByCountry(slices, days, today) : []), [scope, slices, days, today]);
+  const changes = filterChanges(filter);
+  const expenseById = useMemo(() => new Map(expenses.map((e) => [e.id, e])), [expenses]);
   const catLabel = (id: string) => (id === "" ? t.everydayLine : (categories.find((c) => c.id === id)?.label_he ?? t.otherCategory));
+
+  const expenseLabel = (id: string) => {
+    const e = expenseById.get(id);
+    return e?.description?.trim() || (e ? catLabel(e.category_id) : t.otherCategory);
+  };
 
   const card = "rounded-card border border-line bg-surface px-3.5 py-3";
 
@@ -80,7 +122,18 @@ export function BudgetInsights({
         </div>
       )}
 
-      {scope === null && pace && (
+      <InsightFilterPanel
+        filter={filter}
+        onChange={setFilter}
+        rows={rows}
+        prepAmount={prepAmount}
+        prepaidAmount={prepaidAmount}
+        catLabel={catLabel}
+        expenseLabel={expenseLabel}
+      />
+
+      {/* the budget pace is about the whole trip as it is, never a choice */}
+      {scope === null && pace && changes === 0 && (
         <section className={card}>
           <h2 className="text-sm font-bold text-ink">{t.paceTitle}</h2>
           <dl className="mt-2 space-y-1.5 text-sm">
@@ -106,12 +159,13 @@ export function BudgetInsights({
       )}
 
       {ins.total === 0 ? (
-        <p className={`${card} text-sm text-ink-soft`}>{t.empty}</p>
+        <p className={`${card} text-sm text-ink-soft`}>{changes > 0 && allSlices.length > 0 ? t.filterEmpty : t.empty}</p>
       ) : (
         <>
           {/* what was paid for this scope, split into used and ahead */}
           <section className={card}>
             <p className="ot-kicker">{t.paidTitle.replace("{scope}", scope === null ? t.wholeTrip : countryName(scope))}</p>
+            {changes > 0 && <p className="text-xs font-semibold text-sea-deep">{t.filterActive.replace("{changes}", changesText(changes))}</p>}
             <p className="mt-1 text-[26px] font-extrabold leading-8 tabular-nums text-ink">
               <bdi>{ils(ins.total)}</bdi>
             </p>

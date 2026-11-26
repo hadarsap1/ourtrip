@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { expenseSlices, prepaidByCountry, scopeInsights, tripCountries, type InsightExpense } from "./budgetInsights";
+import {
+  DEFAULT_FILTER,
+  categoryRows,
+  expenseSlices,
+  filterChanges,
+  filterDays,
+  filterSlices,
+  prepaidByCountry,
+  scopeInsights,
+  tripCountries,
+  tripStart,
+  withdrawalFilter,
+  type InsightExpense,
+} from "./budgetInsights";
 
 // Vietnam 01-05/11, Japan 06-08/11; today 03/11.
 const days = [
@@ -131,5 +144,68 @@ describe("scopeInsights", () => {
     // 01-03/11 so far, none covered by a hotel booking
     expect(s.lodgingNights).toBe(3);
     expect(s.lodgingPerNight).toBe(100);
+  });
+});
+
+describe("analysis filter (Hadar 26/11/2026)", () => {
+  const visa = exp({ amount_ils: 400, spent_on: "2026-10-01", country_code: "VN", category_id: "attractions" });
+  const lunch = exp({ amount_ils: 100, spent_on: "2026-11-02" });
+  const dinner = exp({ amount_ils: 200, spent_on: "2026-11-03" });
+  const ahead = exp({ amount_ils: 900, booking_id: "b-jp-park", category_id: "attractions" });
+  const all = [visa, lunch, dinner, ahead];
+  const slices = expenseSlices(all, days, bookings);
+  const start = tripStart(days);
+  const vn = (f = DEFAULT_FILTER) =>
+    scopeInsights(filterSlices(slices, f, start, today), all, filterDays(days, f), categories, bookings, "VN", today, withdrawalFilter(f, start, today));
+
+  it("a visa paid at home and marked Vietnam is in Vietnam's cost per day, and can be left out", () => {
+    expect(start).toBe("2026-11-01");
+    expect(vn().perDay).toBeCloseTo((400 + 100 + 200) / 3);
+    expect(vn({ ...DEFAULT_FILTER, includePrep: false }).perDay).toBeCloseTo(300 / 3);
+  });
+
+  it("a date range narrows the pieces and the days", () => {
+    const f = { ...DEFAULT_FILTER, includePrep: false, from: "2026-11-03", to: "2026-11-03" };
+    const r = vn(f);
+    expect(r.total).toBe(200);
+    expect(r.daysSoFar).toBe(1);
+    expect(r.perDay).toBe(200);
+  });
+
+  it("the preparations keep their own switch inside a range", () => {
+    const f = { ...DEFAULT_FILTER, from: "2026-11-03", to: "2026-11-03" };
+    expect(vn(f).total).toBe(600);
+  });
+
+  it("leaves out single expenses, whole categories and what is paid ahead", () => {
+    expect(vn({ ...DEFAULT_FILTER, excludedExpenses: [lunch.id] }).total).toBe(600);
+    expect(vn({ ...DEFAULT_FILTER, excludedCategories: ["food"] }).total).toBe(400);
+    const whole = (f = DEFAULT_FILTER) => scopeInsights(filterSlices(slices, f, start, today), all, days, categories, bookings, null, today);
+    expect(whole().total).toBe(1600);
+    expect(whole({ ...DEFAULT_FILTER, includePrepaid: false }).total).toBe(700);
+  });
+
+  it("lists excluded expenses for the panel, by category, newest first", () => {
+    const f = { ...DEFAULT_FILTER, excludedExpenses: [lunch.id] };
+    const rows = categoryRows(filterSlices(slices, f, start, today, false), "VN", start);
+    const food = rows.find((r) => r.categoryId === "food")!;
+    expect(food.amount).toBe(300);
+    expect(food.rows.map((r) => r.expenseId)).toEqual([dinner.id, lunch.id]);
+    expect(rows.find((r) => r.categoryId === "attractions")!.rows[0]).toMatchObject({ expenseId: visa.id, prep: true });
+  });
+
+  it("counts the changes", () => {
+    expect(filterChanges(DEFAULT_FILTER)).toBe(0);
+    expect(filterChanges({ ...DEFAULT_FILTER, from: "2026-11-01", to: "2026-11-02", includePrep: false, excludedExpenses: ["a", "b"] })).toBe(4);
+  });
+
+  it("an excluded withdrawal leaves the cash picture", () => {
+    const atm = exp({ amount_ils: 500, is_cash_withdrawal: true, spent_on: "2026-11-02" });
+    const list = [atm, lunch];
+    const s2 = expenseSlices(list, days, bookings);
+    const f = { ...DEFAULT_FILTER, excludedExpenses: [atm.id] };
+    const r = scopeInsights(filterSlices(s2, f, start, today), list, days, categories, bookings, "VN", today, withdrawalFilter(f, start, today));
+    expect(r.cash.withdrawals).toBe(0);
+    expect(r.everyday).toBe(0);
   });
 });
