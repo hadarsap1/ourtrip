@@ -11,18 +11,27 @@
   /* surface + text */
   /* "סו-בב עולם!" since 14/10/2026: parchment, ink and sage from the
      farewell-invitation illustration (docs/DESIGN-sharing.md). */
-  --bg: #F7EBD6;
-  --surface: #FFF9EE;
-  --surface-2: #EFE0C4;
-  --text: #3A2C24;
-  --text-muted: #6B5A4E;
-  --border: #BFA77F; /* 2.2:1 on surface: cards read in strong sun (was #D9C6A5, 1.6:1) */
+  /* "קרם חם" redesign (24/11/2026): a warmer cream, a deeper green and a
+     coral for primary actions. Muted text holds 4.5:1 on bg; do not lighten. */
+  --bg: #FAF1E0;
+  --surface: #FFFAF0;
+  --surface-2: #EFE2C6; /* = track */
+  --text: #2B2118;
+  --text-muted: #6B5A4A;
+  --border: #E3D4B6;
 
-  /* brand: sage */
-  --brand: #4E6B45;
+  /* brand: green */
+  --brand: #3D6A3A;
   --brand-contrast: #FFFFFF;
-  --brand-soft: #E3E8D6;
-  --brand-pressed: #3B5234;
+  --brand-soft: #E3EAD0;
+  --brand-pressed: #2F552D;
+
+  /* coral: primary actions, unread dots, active reactions, SOS */
+  --coral: #C4471F;
+  --coral-contrast: #FFFFFF;
+  --coral-soft: #FBE0CF;
+  --coral-ink: #A8381A; /* text on coral-soft */
+  --nav-idle: #5A4A3C;
   --accent-gold: #8A6114;      /* labels; 5.1:1 on bg */
   --accent-gold-deco: #B8862B; /* decorative strokes only, never text (about 3:1) */
 
@@ -60,8 +69,8 @@
   --cat-on: #FFFFFF;
   --cat-soft-mix: 10%; /* soft = color-mix(in srgb, var(--cat-x) var(--cat-soft-mix), transparent) */
 
-  /* type (Heebo) */
-  --font-family-base: "Heebo", system-ui, sans-serif; /* app uses next/font --font-heebo */
+  /* type (Rubik since 24/11/2026) */
+  --font-family-base: "Rubik", system-ui, sans-serif; /* app uses next/font --font-rubik */
   --fs-caption: 12px;  --lh-caption: 16px;   /* the floor; nothing smaller */
   --fs-body: 14px;     --lh-body: 20px;
   --fs-label-lg: 16px; --lh-label-lg: 24px;  /* buttons, sheet titles, 600 */
@@ -105,11 +114,17 @@
   --surface-2: #3A3027;
   --text: #F1E6D2;
   --text-muted: #C9B9A3;
-  --border: #5C4C3D;
+  --border: #4A3D31;
   --brand: #A9C49B;
   --brand-contrast: #1D2618;
   --brand-soft: #2F3A28;
   --brand-pressed: #C8DBBD;
+  /* dark coral is a light fill under dark text, as brand is */
+  --coral: #F0936D;
+  --coral-contrast: #2A0F05;
+  --coral-soft: #4A2418;
+  --coral-ink: #F7B497;
+  --nav-idle: #C9B9A3;
   --accent-gold: #E2B65E;
   --success: #6BCB86; --success-soft: #18321F;
   --warning: #F2AE55; --warning-soft: #3A2A12;
@@ -148,11 +163,17 @@
     --surface-2: #3A3027;
     --text: #F1E6D2;
     --text-muted: #C9B9A3;
-    --border: #5C4C3D;
+    --border: #4A3D31;
     --brand: #A9C49B;
     --brand-contrast: #1D2618;
     --brand-soft: #2F3A28;
     --brand-pressed: #C8DBBD;
+    /* dark coral is a light fill under dark text, as brand is */
+    --coral: #F0936D;
+    --coral-contrast: #2A0F05;
+    --coral-soft: #4A2418;
+    --coral-ink: #F7B497;
+    --nav-idle: #C9B9A3;
     --accent-gold: #E2B65E;
     --success: #6BCB86; --success-soft: #18321F;
     --warning: #F2AE55; --warning-soft: #3A2A12;

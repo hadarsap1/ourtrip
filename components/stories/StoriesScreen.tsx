@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Toast } from "@/components/Toast";
-import { MapIcon, PhotosIcon, PlusIcon, PrinterIcon } from "@/components/icons";
+import { ArrowForwardIcon, MapIcon, PhotosIcon, PlusIcon, PrinterIcon } from "@/components/icons";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
@@ -25,6 +26,7 @@ import { clearStoryDraft, loadStoryDraft } from "@/lib/storyDraft";
 import { LoadFailed } from "@/components/LoadFailed";
 import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
+import { NoMemberNotice } from "@/components/NoMemberNotice";
 import type { Comment, Member, Reaction, Trip } from "@/lib/types";
 
 /**
@@ -36,7 +38,7 @@ import type { Comment, Member, Reaction, Trip } from "@/lib/types";
  * out to them, under the map of where we've been. The chat stays apart.
  */
 export function StoriesScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -176,7 +178,7 @@ export function StoriesScreen() {
   if (!member || !trip) {
     return (
       <SovevScreen>
-        <p className="px-4 pt-8 text-center text-sv-ink-soft">{strings.common.noMember}</p>
+        <NoMemberNotice title={strings.stories.title} failed={memberFailed || Boolean(member)} tone="sovev" />
       </SovevScreen>
     );
   }
@@ -247,28 +249,30 @@ export function StoriesScreen() {
 
   return (
     <SovevScreen>
-      <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
-        <header className="flex items-center justify-between gap-3">
-          <h1 className="ot-title">{strings.stories.title}</h1>
-          <div className="flex shrink-0 items-center gap-2">
-            <Link
-              href="/photos"
-              className="flex min-h-11 items-center gap-1.5 rounded-2xl border border-sv-line px-3 text-sm font-bold text-sv-ink"
-            >
-              <PhotosIcon className="h-4 w-4" /> {strings.stories.allPhotos}
-            </Link>
-            {isOwner && (
+      <div className="mx-auto max-w-lg space-y-3.5 px-[18px] pt-[26px] pb-6 sm:max-w-2xl">
+        <PageHeader
+          title={strings.stories.title}
+          end={
+            <div className="flex items-center gap-2">
               <Link
-                href="/memory-book"
-                aria-label={strings.stories.printBook}
-                title={strings.stories.printBook}
-                className="grid h-11 w-11 place-items-center rounded-2xl border border-sv-line text-sv-ink-soft"
+                href="/photos"
+                className="flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-[15px] font-bold text-ink"
               >
-                <PrinterIcon className="h-5 w-5" />
+                <PhotosIcon className="h-[18px] w-[18px]" strokeWidth={2} /> {strings.stories.allPhotos}
               </Link>
-            )}
-          </div>
-        </header>
+              {isOwner && (
+                <Link
+                  href="/memory-book"
+                  aria-label={strings.stories.printBook}
+                  title={strings.stories.printBook}
+                  className="grid h-11 w-11 place-items-center rounded-full border border-line bg-surface text-muted"
+                >
+                  <PrinterIcon className="h-5 w-5" />
+                </Link>
+              )}
+            </div>
+          }
+        />
 
         {/* kids' photos waiting for a parent: approved in the full grid */}
         {isOwner && pendingPhotos > 0 && (
@@ -285,16 +289,16 @@ export function StoriesScreen() {
         {isGuest && (
           <Link
             href="/map"
-            className="flex items-center gap-3 rounded-card border border-sv-line bg-sv-card px-4 py-3.5 active:bg-sv-sage-soft"
+            className="flex min-h-[76px] items-center gap-3 rounded-card border border-line bg-surface px-3.5 py-3 shadow-card active:bg-green-soft"
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sv-sage-soft text-sv-sage">
-              <MapIcon className="h-6 w-6" />
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-green-soft text-green">
+              <MapIcon className="h-6 w-6" strokeWidth={2} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-bold text-ink">{strings.stories.mapCard}</span>
-              <span className="block text-sm text-sv-ink-soft">{strings.stories.mapCardHint}</span>
+              <span className="block text-lg font-extrabold text-ink">{strings.stories.mapCard}</span>
+              <span className="block text-sm text-muted">{strings.stories.mapCardHint}</span>
             </span>
-            <span aria-hidden="true" className="text-sv-ink-soft">←</span>
+            <ArrowForwardIcon className="h-5 w-5 text-green" strokeWidth={2} />
           </Link>
         )}
 

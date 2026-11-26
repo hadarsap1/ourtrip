@@ -21,9 +21,10 @@ import {
   WeatherIcon,
 } from "@/components/icons";
 import { countryName } from "@/lib/data/emergency";
-import { loadToday, peekToday, type TodayData } from "@/lib/data/today";
+import { loadToday, peekToday, peekTodaySnapshot, type TodayData } from "@/lib/data/today";
 import {
   loadTodayDashboard,
+  peekTodayDashboard,
   type TodayDashboard,
 } from "@/lib/data/todayDashboard";
 import { getTodayMapSnapshotUrl, navigationUrl } from "@/lib/data/map";
@@ -34,10 +35,12 @@ import {
 } from "@/lib/data/weather";
 import { formatDate, formatMoney, formatTime, formatWeekday, todayISO } from "@/lib/format";
 import { daysUntil } from "@/lib/data/readiness";
-import { getActiveTrip, getNowCountry } from "@/lib/data/trip";
+import { getActiveTrip, getNowCountry, peekActiveTrip } from "@/lib/data/trip";
 import { strings } from "@/lib/strings";
 import { ScreenSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { minutesNow } from "@/lib/tripDay";
+import { hhmm, homeClock } from "@/lib/inTrip";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { bookedToday } from "@/lib/bookedToday";
 import { useMember } from "@/lib/useMember";
 import { useUnreadWall } from "@/lib/useUnreadWall";
@@ -65,40 +68,38 @@ function Tile({
   tone?: "plain" | "sun";
 }) {
   return (
+    // a small card (קרם חם): radius 20, line border, a muted 13px label
     <div
-      // lifted off the paper instead of outlined: cream on parchment with a
-      // hairline made every card melt into the background (UI pass 15/11/2026)
-      className={`rounded-card px-3.5 py-3 shadow-card ${tone === "sun" ? "bg-sun-tint" : "bg-surface"}`}
+      className={`h-full rounded-[20px] border border-line px-3.5 py-3 shadow-card ${tone === "sun" ? "bg-sun-tint" : "bg-surface"}`}
     >
-      <p
-        className={`text-xs font-bold uppercase tracking-[0.09em] ${
-          tone === "sun" ? "text-sun-deep" : "text-ink-soft"
-        }`}
-      >
-        {label}
-      </p>
-      <div className="mt-1.5">{children}</div>
+      <p className={`text-[13px] font-bold ${tone === "sun" ? "text-sun-deep" : "text-muted"}`}>{label}</p>
+      <div className="mt-0.5">{children}</div>
     </div>
   );
 }
 
 export function TodayScreen() {
+  // Coming back to this tab paints what was loaded a moment ago at once and
+  // refreshes behind it (perf, 24/11/2026) instead of a skeleton every time.
   const [result, setResult] = useState<{
     data: TodayData;
     fromCache: boolean;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
+  } | null>(() => {
+    const data = peekToday();
+    return data ? { data, fromCache: false } : null;
+  });
+  const [loading, setLoading] = useState(() => peekToday() === null);
   const [weather, setWeather] = useState<DayWeather | null>(null);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
-  const [dashboard, setDashboard] = useState<TodayDashboard | null>(null);
+  const [dashboard, setDashboard] = useState<TodayDashboard | null>(() => peekTodayDashboard());
   // Needed only to decide which home screen this is: before departure the
   // itinerary has no day for "today" and the dashboard below has nothing to
   // show, so the countdown takes over.
-  const [trip, setTrip] = useState<Trip | null>(null);
+  const [trip, setTrip] = useState<Trip | null>(() => peekActiveTrip());
   // Separate from `trip` because null is a real answer (no trip configured),
   // and rendering the dashboard before this settles would flash the empty card
   // for a moment before the countdown replaced it.
-  const [tripChecked, setTripChecked] = useState(false);
+  const [tripChecked, setTripChecked] = useState(() => peekActiveTrip() !== null);
   // the kids' wall tile shows new messages
   const unreadWall = useUnreadWall();
   // Re-derives "next up" and the current agenda row as the day moves on.
@@ -133,7 +134,9 @@ export function TodayScreen() {
     // Cache-first (Lie-Fi): today's device copy draws at once while the
     // network answers; no banner yet, since it may well be current. If the
     // network then fails, loadToday returns the same copy marked fromCache.
-    void peekToday().then((data) => {
+    // the in-memory answer (peekToday) already painted on a return to the tab;
+    // a cold open takes the device copy instead
+    if (!peekToday()) void peekTodaySnapshot().then((data) => {
       if (cancelled || settled || !data) return;
       setResult({ data, fromCache: false });
       setLoading(false);
@@ -293,51 +296,49 @@ export function TodayScreen() {
     .filter(Boolean)
     .join(" · ");
 
+  const home = homeClock(clock, now);
+  const place = data?.day?.location_name
+    ? `${data.day.location_name}${data.day.country_code ? `, ${countryName(data.day.country_code)}` : ""}`
+    : strings.today.noPlace;
+
   return (
-    <div className="pb-8">
-      {/* Place bar. Full-bleed and flat: at this height the postcard's dashed
-          arc was noise, and a solid band reads as chrome rather than as content
-          competing with the cards below. */}
-      <header className="ot-band px-6 pb-3.5 pt-4">
-        <div className="mx-auto flex max-w-lg items-start justify-between gap-3 sm:max-w-2xl lg:max-w-none">
-          <div className="min-w-0">
-            <h1 className="flex items-center gap-1.5 text-lg font-extrabold leading-tight">
-              <PinIcon className="h-[17px] w-[17px] shrink-0 text-white/80" />
-              <span className="truncate">
-                {data?.day?.location_name ?? strings.today.noPlace}
-                {data?.day?.country_code ? `, ${countryName(data.day.country_code)}` : ""}
-              </span>
-            </h1>
-            <p className="mt-1 text-xs text-white/75">{dayLine}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {/* SOS only (Hadar 06/11/2026): the capture button at the bottom
-                already adds an expense in two taps from every screen, so a
-                second "+ הוצאה" here was the same action twice. */}
+    <div className="pb-6">
+      <div className="mx-auto max-w-lg px-[18px] pt-6 sm:max-w-2xl lg:max-w-none lg:px-9">
+        <PageHeader
+          title={strings.nav.today}
+          subtitle={
+            <span className="flex items-center gap-1.5 text-[17px] font-bold text-ink">
+              <PinIcon className="h-[22px] w-[22px] shrink-0 text-green" strokeWidth={2} />
+              <bdi className="truncate">{place}</bdi>
+            </span>
+          }
+          end={
+            // SOS only (Hadar 06/11/2026): the capture button in the bar
+            // already adds an expense in two taps from every screen
             <Link
               href="/emergency"
               aria-label={strings.emergency.title}
-              className="min-h-[44px] rounded-xl border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-extrabold tracking-[0.06em] text-white active:bg-white/20"
+              className="flex h-12 min-w-16 items-center justify-center rounded-2xl bg-coral px-3 text-base font-extrabold text-on-coral shadow-card"
             >
               {strings.emergency.sos}
             </Link>
-          </div>
-        </div>
-      </header>
+          }
+        />
+      </div>
 
-      <div className="mx-auto flex max-w-lg flex-col px-4 pt-3 sm:max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_282px_282px] lg:items-start lg:gap-4 lg:px-9 lg:pt-6">
+      <div className="mx-auto flex max-w-lg flex-col gap-3 px-[18px] pt-3 sm:max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_282px_282px] lg:items-start lg:gap-4 lg:px-9 lg:pt-6">
         {v2 && (
-          <div className="mb-2.5 lg:col-span-3">
+          <div className="lg:col-span-3">
             <IosInstallHint />
           </div>
         )}
         {trip && (
-          <div className="mb-2.5 empty:hidden lg:col-span-3">
+          <div className="empty:hidden lg:col-span-3">
             <PendingApprovalsCard tripId={trip.id} />
           </div>
         )}
         {result?.fromCache && (
-          <Banner tone="warning" className="mb-2.5 lg:col-span-3">
+          <Banner tone="warning" className="lg:col-span-3">
             {strings.offline.fromCache}
             {data && ` · ${strings.today.snapshotFrom} ${formatDate(data.date)}`}
           </Banner>
@@ -345,40 +346,82 @@ export function TodayScreen() {
 
         {loading ? (
           <div className="space-y-3 pt-4 lg:col-span-3" role="status" aria-busy="true" aria-label={strings.common.loading}>
-            <Skeleton className="h-24 w-full rounded-2xl" />
-            <Skeleton className="h-16 w-full rounded-2xl" />
-            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-card" />
+            <Skeleton className="h-16 w-full rounded-card" />
+            <Skeleton className="h-16 w-full rounded-card" />
           </div>
         ) : !data || !data.day ? (
           <section className="ot-card p-8 text-center lg:col-span-3">
-            <RouteIcon className="mx-auto mb-3 h-9 w-9 text-line" />
+            {/* ink-faint, not line: the border colour all but vanished on the
+                dark card (UX review 24/11/2026) */}
+            <RouteIcon className="mx-auto mb-3 h-9 w-9 text-ink-faint" />
             <h2 className="mb-2 text-lg font-bold text-ink">
               {strings.today.emptyTitle}
             </h2>
             <p className="text-sm text-ink-soft">
               {data && !data.day ? strings.today.noDay : strings.today.emptyBody}
             </p>
+            {/* parents only reach this branch (kids and guests return above) */}
+            <Link
+              href="/itinerary"
+              className="mt-4 inline-flex min-h-11 items-center justify-center px-3 text-sm font-semibold text-green"
+            >
+              {data && !data.day ? strings.today.emptyToItinerary : strings.today.emptyAddDay}
+            </Link>
           </section>
         ) : (
           <>
-            {/* column 1: what's happening */}
-            <div className={`space-y-2.5 lg:space-y-3 ${evening ? "max-lg:order-3 max-lg:mt-2.5" : ""}`}>
-              {/* rain alert: >50% chance + outdoor items today (Sprint 5) */}
-              {weather &&
-                weather.precipitationChance > 50 &&
-                activeItems.some((i) => i.is_outdoor) && (
-                  <Banner tone="warning" icon={<RainDropIcon className="h-5 w-5" />}>
-                    <span className="font-bold">
-                      {strings.weather.rainAlert} ({weather.precipitationChance}%)
-                    </span>
-                  </Banner>
-                )}
+            {/* Three columns from lg up. Below it the column wrappers are
+                display:contents, so every card is a flex item of the page and
+                order-* lays out the phone screen (P1): progress, the two
+                stats, tonight, then what was booked and the steps. */}
 
-              <InTripNow now={now} clock={clock} />
+            {/* column 1: the day */}
+            <div className="max-lg:contents lg:space-y-3">
+              <section className="order-1 rounded-card border border-line bg-surface px-4 py-3.5 shadow-card">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-[15px]">
+                  <span className="font-bold text-ink">{position ? strings.today.dayOf.replace("{n}", String(position.day)).replace("{total}", String(position.total)) : dayLine}</span>
+                  <span className="text-muted">
+                    {strings.todayV2.localTime} <bdi className="tabular-nums">{hhmm(now)}</bdi>
+                    {home && (
+                      <>
+                        {" · "}
+                        {strings.todayV2.israelTime} <bdi className="tabular-nums">{home}</bdi>
+                      </>
+                    )}
+                  </span>
+                </div>
+                {position && (
+                  <div
+                    role="progressbar"
+                    aria-valuemin={1}
+                    aria-valuemax={position.total}
+                    aria-valuenow={position.day}
+                    aria-label={dayLine}
+                    className="mt-2.5 h-2 overflow-hidden rounded-full bg-track"
+                  >
+                    <div className="h-full rounded-full bg-green" style={{ width: `${Math.min(100, (position.day / Math.max(1, position.total)) * 100)}%` }} />
+                  </div>
+                )}
+              </section>
+
+              <div className="order-4 space-y-3 empty:hidden">
+                {/* rain alert: >50% chance + outdoor items today (Sprint 5) */}
+                {weather &&
+                  weather.precipitationChance > 50 &&
+                  activeItems.some((i) => i.is_outdoor) && (
+                    <Banner tone="warning" icon={<RainDropIcon className="h-5 w-5" />}>
+                      <span className="font-bold">
+                        {strings.weather.rainAlert} ({weather.precipitationChance}%)
+                      </span>
+                    </Banner>
+                  )}
+                <InTripNow now={now} clock={clock} showClock={false} />
+              </div>
 
               {booked.length > 0 && (
-                <section className="rounded-card bg-surface px-3.5 py-3 shadow-card">
-                  <h2 className="ot-kicker">{strings.today.bookedToday}</h2>
+                <section className={`rounded-card border border-line bg-surface px-4 py-3 shadow-card ${evening ? "order-7" : "order-5"}`}>
+                  <h2 className="text-base font-extrabold text-ink">{strings.today.bookedToday}</h2>
                   <ul className="mt-1 divide-y divide-line">
                     {booked.map((b) => (
                       <li key={b.key} className="flex items-center justify-between gap-3 py-2.5">
@@ -386,8 +429,8 @@ export function TodayScreen() {
                           <p dir="auto" className="truncate text-base font-bold text-ink">
                             {b.title}
                           </p>
-                          <p className="truncate text-xs text-ink-soft">
-                            {b.time && <bdi className="font-bold tabular-nums text-sea">{formatTime(b.time)}</bdi>}
+                          <p className="truncate text-sm text-muted">
+                            {b.time && <bdi className="font-bold tabular-nums text-green">{formatTime(b.time)}</bdi>}
                             {b.time && (b.place || b.code) && " · "}
                             {b.place}
                             {b.place && b.code && " · "}
@@ -399,7 +442,7 @@ export function TodayScreen() {
                             href={navigationUrl(b.lat, b.lng)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex shrink-0 items-center rounded-xl bg-sea px-3.5 text-sm font-bold text-on-sea"
+                            className="inline-flex shrink-0 items-center rounded-full bg-green px-4 text-sm font-bold text-on-green"
                           >
                             {strings.todayV2.navigate}
                           </a>
@@ -410,94 +453,86 @@ export function TodayScreen() {
                 </section>
               )}
 
-              {trip && <StepsCard tripId={trip.id} />}
-            </div>
-
-            {/* column 2: the four tiles */}
-            <div className={`mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:mt-0 lg:grid-cols-1 lg:gap-3 ${evening ? "max-lg:order-1" : ""}`}>
-              {weather && (
-                <Tile label={strings.today.tileWeather}>
-                  <p className="flex items-center gap-2">
-                    <WeatherIcon
-                      code={weather.weatherCode}
-                      className="h-[22px] w-[22px] shrink-0 text-sun-deep"
-                    />
-                    <span
-                      className="text-lg font-extrabold leading-none text-ink"
-                      dir="ltr"
-                    >
-                      {weather.tempMin}-{weather.tempMax}°
-                    </span>
-                  </p>
-                  <p className="mt-1 truncate text-xs text-ink-soft">
-                    {describeWeather(weather.weatherCode).label}
-                    {weather.precipitationChance > 0 && (
-                      <>
-                        {" · "}
-                        <span dir="ltr">{weather.precipitationChance}%</span>
-                      </>
-                    )}
-                  </p>
-                </Tile>
-              )}
-
-              <Tile label={strings.today.tileTonight}>
-                {lodging ? (
-                  <>
-                    <p className="flex items-center gap-2">
-                      <BedIcon className="h-[21px] w-[21px] shrink-0 text-sea" />
-                      <span dir="auto" className="min-w-0 truncate text-sm font-bold text-ink">
-                        {lodging.title}
-                      </span>
-                    </p>
-                    {lodging.confirmation_code && (
-                      <p
-                        className="mt-1 truncate text-xs font-semibold text-ink-soft"
-                        dir="ltr"
-                      >
-                        {lodging.confirmation_code}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-ink-faint">
-                    {strings.today.noLodging}
-                  </p>
-                )}
-              </Tile>
-
-              {/* Alone in its row when the weather tile sits beside tonight's
-                  lodging, so three tiles do not leave one orphaned half-row. */}
-              {dashboard && (
-                <div className={weather ? "col-span-2 sm:col-span-1" : ""}>
-                  <Tile label={strings.today.tileSpentToday}>
-                    <p className="text-lg font-extrabold leading-none text-ink">
-                      {formatMoney(Math.round(dashboard.spentToday), "ILS")}
-                    </p>
-                  </Tile>
+              {trip && (
+                <div className="order-6 empty:hidden">
+                  <StepsCard tripId={trip.id} />
                 </div>
               )}
             </div>
 
+            {/* column 2: weather, spent today, tonight */}
+            <div className="max-lg:contents lg:space-y-3">
+              {(weather || dashboard) && (
+                <div className="order-2 grid grid-cols-2 gap-2.5 lg:grid-cols-1 lg:gap-3">
+                  {weather && (
+                    <Tile label={strings.today.tileWeather}>
+                      <p className="flex items-center gap-2">
+                        <span className="text-[28px] font-extrabold leading-tight text-ink" dir="ltr">
+                          {weather.tempMin}-{weather.tempMax}°
+                        </span>
+                        <WeatherIcon code={weather.weatherCode} className="h-[22px] w-[22px] shrink-0 text-sun-deep" />
+                      </p>
+                      <p className="truncate text-sm text-muted">
+                        {describeWeather(weather.weatherCode).label}
+                        {weather.precipitationChance > 0 && (
+                          <>
+                            {" · "}
+                            <span dir="ltr">{weather.precipitationChance}%</span>
+                          </>
+                        )}
+                      </p>
+                    </Tile>
+                  )}
+                  {dashboard && (
+                    <div className={weather ? "" : "col-span-2"}>
+                      <Tile label={strings.today.tileSpentToday}>
+                        <p className="text-[28px] font-extrabold leading-tight text-ink">
+                          <bdi>{formatMoney(Math.round(dashboard.spentToday), "ILS")}</bdi>
+                        </p>
+                        {Math.round(dashboard.spentToday) === 0 && (
+                          <p className="text-sm text-muted">{strings.today.nothingSpent}</p>
+                        )}
+                      </Tile>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <section className="order-3 flex min-h-16 items-center gap-3 rounded-[20px] border border-line bg-surface px-3.5 py-3 shadow-card">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-green-soft text-green">
+                  <BedIcon className="h-[22px] w-[22px]" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-bold text-muted">{strings.today.tileTonight}</p>
+                  {lodging ? (
+                    <p dir="auto" className="truncate text-lg font-extrabold text-ink">
+                      {lodging.title}
+                    </p>
+                  ) : (
+                    <p className="text-base text-ink-faint">{strings.today.noLodging}</p>
+                  )}
+                  {lodging?.confirmation_code && (
+                    <p className="truncate text-sm font-medium text-muted" dir="ltr">
+                      {lodging.confirmation_code}
+                    </p>
+                  )}
+                </div>
+              </section>
+            </div>
+
             {/* column 3: memories and the map */}
-            <div className={`mt-2.5 space-y-2.5 empty:hidden lg:mt-0 lg:space-y-3 ${evening ? "max-lg:order-2" : ""}`}>
+            <div className="max-lg:contents lg:space-y-3">
               {dashboard && dashboard.photos.length > 0 && (
-                <section>
-                  <div className="mb-1.5 flex items-baseline justify-between px-0.5">
-                    <h2 className="text-xs font-bold text-ink">
-                      {strings.today.photosToday.replace(
-                        "{n}",
-                        String(dashboard.photos.length)
-                      )}
+                <section className={evening ? "order-5" : "order-7"}>
+                  <div className="mb-2 flex items-baseline justify-between px-0.5">
+                    <h2 className="text-base font-extrabold text-ink">
+                      {strings.today.photosToday.replace("{n}", String(dashboard.photos.length))}
                     </h2>
-                    <Link
-                      href="/photos"
-                      className="text-xs font-bold text-sea"
-                    >
+                    <Link href="/photos" className="text-[15px] font-bold text-green">
                       {strings.today.seeAll} ←
                     </Link>
                   </div>
-                  <ul className="flex gap-[7px] overflow-x-auto pb-1">
+                  <ul className="flex gap-2 overflow-x-auto pb-1">
                     {dashboard.photos.slice(0, 8).map((photo) => (
                       <li key={photo.id} className="shrink-0">
                         <Link href="/photos" className="block">
@@ -506,10 +541,10 @@ export function TodayScreen() {
                             <img
                               src={photo.thumbUrl ?? photo.url}
                               alt={photo.caption ?? ""}
-                              className="h-[72px] w-[72px] rounded-xl object-cover"
+                              className="h-[76px] w-[76px] rounded-2xl object-cover"
                             />
                           ) : (
-                            <span className="grid h-[72px] w-[72px] place-items-center rounded-xl bg-paper-deep">
+                            <span className="grid h-[76px] w-[76px] place-items-center rounded-2xl bg-paper-deep">
                               <CameraIcon className="h-5 w-5 text-line" />
                             </span>
                           )}
@@ -522,23 +557,14 @@ export function TodayScreen() {
 
               {/* mini-map of today's area (static snapshot, cached offline) */}
               {mapUrl && (
-                <Link
-                  href="/map"
-                  className="block overflow-hidden rounded-card border border-line"
-                >
+                <Link href="/map" className="order-8 block overflow-hidden rounded-card border border-line shadow-card">
                   {/* eslint-disable-next-line @next/next/no-img-element -- blob/object URL snapshot */}
-                  <img
-                    src={mapUrl}
-                    alt={strings.more.menuMap}
-                    className="h-40 w-full object-cover"
-                  />
+                  <img src={mapUrl} alt={strings.more.menuMap} className="h-40 w-full object-cover" />
                 </Link>
               )}
-
             </div>
           </>
         )}
-
       </div>
     </div>
   );

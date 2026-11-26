@@ -18,7 +18,7 @@ export type FabAction = { key: string; label: string; icon: ReactNode; onSelect:
  */
 export const NAV_CAPTURE_SLOT_ID = "nav-capture-slot";
 const SLOT_CLASS =
-  "relative mx-auto -mt-2 flex h-12 w-12 items-center justify-center rounded-full bg-sea text-on-sea shadow-[var(--e2)]";
+  "relative mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-coral text-on-coral shadow-[var(--e2)]";
 // only where there is no bottom bar to sit in (it is hidden from lg up, where the side rail takes over)
 const FLOATING_CLASS =
   "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] start-1/2 z-50 flex h-14 w-14 translate-x-1/2 items-center justify-center rounded-full bg-sea text-on-sea shadow-[var(--e2)] lg:hidden";
@@ -56,7 +56,7 @@ export function Fab({ actions }: { actions: FabAction[] }) {
     <>
       {open && <button type="button" aria-label={strings.ui.close} data-tap-exempt onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-scrim" />}
       {open && (
-        <div role="menu" aria-label={strings.ui.quickAdd} className="fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-50 mx-auto grid max-w-md grid-cols-4 gap-2 rounded-3xl bg-surface p-3 shadow-[var(--e3)]">
+        <div role="menu" aria-label={strings.ui.quickAdd} className="fixed inset-x-4 bottom-[calc(7rem+env(safe-area-inset-bottom))] z-50 mx-auto grid max-w-md grid-cols-4 gap-2 rounded-3xl bg-surface p-3 shadow-[var(--e3)]">
           {actions.map((a) => (
             <button
               key={a.key}

@@ -11,7 +11,15 @@
   --sun-deep: #875a0a;   /* text on sun-tint, 4.9:1 */
   --postcard-from: #4e6b45;
   --postcard-to: #3b5234;
-  --shadow-card-value: 0 1px 2px rgba(58, 44, 36, 0.05), 0 10px 26px -14px rgba(58, 44, 36, 0.18);
+  --shadow-card-value: 0 4px 14px rgba(43, 33, 24, 0.06);
+  --shadow-hero-value: 0 12px 28px rgba(43, 33, 24, 0.18);
+  --shadow-nav-value: 0 8px 24px rgba(43, 33, 24, 0.14);
+  /* Placeholder hero (no cover image) and the scrim under text on a photo.
+     Both carry white text, so they stay the same in dark mode. */
+  --hero-gradient: linear-gradient(160deg, #4a7a54 0%, #d9693f 70%, #f3b27a 100%);
+  --hero-scrim: linear-gradient(to top, rgba(10, 20, 18, 0.82), rgba(10, 20, 18, 0));
+  /* the floating bottom bar's footprint: 70 high + 18 off the bottom + air */
+  --nav-room: calc(110px + env(safe-area-inset-bottom));
 }
 :root[data-theme="dark"] {
   --text-faint: #a8977f;
@@ -20,7 +28,9 @@
   /* The postcard band keeps a deep sage in dark mode so its white text holds. */
   --postcard-from: #3b5234;
   --postcard-to: #2a3a25;
-  --shadow-card-value: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 26px -14px rgba(0, 0, 0, 0.6);
+  --shadow-card-value: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-hero-value: 0 12px 28px rgba(0, 0, 0, 0.55);
+  --shadow-nav-value: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 /* ---------------------------------------------------------------------------
@@ -48,6 +58,20 @@
   --color-alert: var(--danger);
   --color-alert-tint: var(--danger-soft);
   --color-on-alert: var(--danger-contrast);
+
+  /* "קרם חם" names (redesign 24/11/2026). bg/surface/ink/line above already
+     carry the new values; these are the ones it adds. */
+  --color-bg: var(--bg);
+  --color-muted: var(--text-muted);
+  --color-track: var(--surface-2);
+  --color-green: var(--brand);
+  --color-green-soft: var(--brand-soft);
+  --color-on-green: var(--brand-contrast);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-coral-ink: var(--coral-ink);
+  --color-on-coral: var(--coral-contrast);
+  --color-nav-idle: var(--nav-idle);
 
   /* v2 semantic names */
   --color-surface: var(--surface);
@@ -87,20 +111,33 @@
   /* Three corners (visual pass 06/11/2026): rounded-xl (12px) for controls,
      rounded-card (18px) for cards and sheets, rounded-full for chips and
      badges. Nine near-identical arbitrary values (10-22px) folded into them. */
-  --radius-card: 1.125rem;
+  /* Redesign 24/11/2026: standard card 22, story 26, hero 30. */
+  --radius-card: 1.375rem;
+  --radius-story: 1.625rem;
+  --radius-hero: 1.875rem;
   --shadow-card: var(--shadow-card-value);
+  --shadow-hero: var(--shadow-hero-value);
+  --shadow-nav: var(--shadow-nav-value);
+
+  /* A lighter weight scale (Hadar 24/11/2026: "too much bold"). Every
+     font-* utility in the app maps through these, so one place sets how
+     heavy the whole app reads. Rubik is loaded as a variable font. */
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 700;
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
-  --font-sans: var(--font-heebo);
+  --font-sans: var(--font-rubik);
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-heebo), system-ui, sans-serif;
+  font-family: var(--font-rubik), system-ui, sans-serif;
 }
 
 /* Accessibility floors (F2, F3). Deliberately UNLAYERED: Tailwind utilities
@@ -138,7 +175,7 @@ body {
 .ot-kicker {
   font-size: 12px; /* type floor (F3) */
   line-height: 16px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--accent-gold); /* AA on paper; #d9931e was about 2.4:1 */
 }
@@ -227,15 +264,14 @@ body {
   --sv-sage: var(--brand);
   --sv-sage-soft: var(--brand-soft);
   /* clay: the accent for "waiting" headings and the record button */
-  --sv-sage-fill: #4e6b45;
-  --sv-clay: #a84e2e;
-  --sv-clay-fill: #a84e2e;
-  --sv-clay-soft: #f6ddd2;
+  --sv-sage-fill: #3d6a3a;
+  /* clay is the redesign's coral since 24/11/2026 */
+  --sv-clay: var(--coral);
+  --sv-clay-fill: #c4471f; /* under white text in both themes, 4.9:1 */
+  --sv-clay-soft: var(--coral-soft);
   --sv-wood: #c9a46a; /* decoration only */
 }
 :root[data-theme="dark"] {
-  --sv-clay: #e8a486;
-  --sv-clay-soft: #4a2c20;
   --sv-wood: #a88449;
 }
 
@@ -260,24 +296,85 @@ body {
   color: var(--sv-ink);
 }
 /* Handwritten display face (Gveret Levin, components/sovev/font.ts, loaded
-   once in the root layout). It has a single weight: unlayered, so it wins
-   over any font-bold utility on the same element - a synthesised bold smears
-   handwriting. Every screen title wears it; the emergency page opts out
-   (data-plain) because it must read at a glance. */
-.sovev-display,
-h1:not([data-plain]) {
-  font-family: var(--font-sovev), var(--font-heebo), system-ui, sans-serif;
+   once in the root layout). Since the "קרם חם" redesign (24/11/2026) it is
+   the wordmark's alone - screen titles are Rubik 800. A single weight:
+   unlayered, so it wins over any font-bold utility on the same element - a
+   synthesised bold smears handwriting. */
+.sovev-display {
+  font-family: var(--font-sovev), var(--font-rubik), system-ui, sans-serif;
   font-weight: 400;
 }
 
-/* One screen title (visual pass 06/11/2026): seven size/weight mixes had
-   grown across the screens. The handwriting face above sets the family and
-   weight; this sets one size, line and colour. Kid screens keep their larger
-   titles on purpose. */
+/* Screen titles: Rubik 800. The screens outside the redesign keep their
+   24px size so their header rows still fit; the redesigned ones use
+   .ot-h1 (PageHeader), 36px. */
+h1 {
+  font-weight: 600;
+}
 .ot-title {
   font-size: 1.5rem;
   line-height: 2rem;
+  font-weight: 600;
   color: var(--text);
+}
+.ot-h1 {
+  font-size: 36px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+@media (max-width: 374px) {
+  .ot-h1 { font-size: 32px; }
+}
+
+/* Redesign surfaces. Plain CSS like .ot-card, so they hold whatever utilities
+   sit beside them. */
+.ot-hero {
+  border-radius: var(--radius-hero);
+  box-shadow: var(--shadow-hero);
+  background: var(--hero-gradient);
+  overflow: hidden;
+  position: relative;
+}
+.ot-scrim {
+  background: var(--hero-scrim);
+}
+.ot-gradient {
+  background: var(--hero-gradient);
+}
+
+/* The redesign's checkbox: a 22px rounded square, green with a white check
+   when on. A real <input type="checkbox">, so keyboard and screen readers
+   keep working; the floor rule above exempts checkboxes. */
+.ot-check {
+  appearance: none;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 2px solid var(--border);
+  background: var(--surface) center / 14px 14px no-repeat;
+  cursor: pointer;
+}
+.ot-check:checked {
+  border-color: var(--brand);
+  background-color: var(--brand);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] .ot-check:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D2618' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* A screen whose composer is sticky at the bottom of <main> (the chat, and
@@ -287,13 +384,28 @@ body[data-chat] main {
   padding-bottom: 0;
 }
 
+/* Room under the content for the floating bottom bar (BottomNav). From lg up
+   the side rail replaces it. Screens with their own sticky composer (the
+   chat) set data-chat and handle the room themselves. */
+@media (max-width: 1023.98px) {
+  body:not([data-chat]) main {
+    padding-bottom: var(--nav-room);
+  }
+  /* A sticky composer at the bottom of <main> (data-chat screens): its
+     ground runs on behind the floating bar, so its controls end 12px above
+     it and nothing scrolls into the gap. */
+  .ot-dock {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
 /* Truncated user content in an RTL layout (QA 24/09, ported from #73). Hotel
    names, places and titles are often Latin ("Old Quarter Family Hotel"), and
    inside an RTL line an LTR run overflows to the left, so the ellipsis ate its
    beginning and the screen showed "...ter Family Hotel". plaintext takes the
    direction from the text itself, so Latin is cut at its end and Hebrew still
    at its end. match-parent resolves "start" against the parent's direction.
-   In the base layer, so an explicit text-center / text-left utility still wins. */
+   In the base layer, so an explicit text-center (or any text-align) utility still wins. */
 @layer base {
   .truncate:dir(rtl) {
     unicode-bidi: plaintext;

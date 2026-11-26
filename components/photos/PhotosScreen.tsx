@@ -44,6 +44,7 @@ import { usePhotoFeedback, type FeedbackBadge } from "./usePhotoFeedback";
 import { PhotoPlacesMap } from "./PhotoPlacesMap";
 import { PlaceHeader } from "./PlaceHeader";
 import { FabPicker } from "@/components/ui/Fab";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { listAlbums, type Album } from "@/lib/data/albums";
 import { AlbumsView, type AlbumPhotoStats } from "./AlbumsView";
@@ -106,7 +107,7 @@ function PlaceSections<P extends { id: string }>({
       {groups.map((group) => (
         <section key={group.key} id={sectionId(group.key)} className="scroll-mt-4">
           <PlaceHeader group={group} />
-          <ul className="grid grid-cols-2 gap-2">{group.photos.map(tile)}</ul>
+          <ul className="grid grid-cols-2 gap-2.5">{group.photos.map(tile)}</ul>
         </section>
       ))}
     </>
@@ -205,10 +206,8 @@ function GuestPhotosView() {
   );
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="ot-title">{strings.photos.title}</h1>
-      </header>
+    <div className="mx-auto max-w-lg space-y-3.5 px-[18px] pt-[26px] pb-6">
+      <PageHeader title={strings.photos.title} />
       {hasAlbums && (
         <SegmentedControl options={VIEWS} value={view} onChange={setView} ariaLabel={strings.albums.tabsLabel} />
       )}
@@ -235,10 +234,10 @@ function GuestPhotosView() {
       <PlaceSections
         groups={groups}
         tile={(photo) => (
-          <li key={photo.id} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
+          <li key={photo.id} className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-card">
             {guestTile(photo)}
             {photo.caption && (
-              <div className="p-2">
+              <div className="px-3 py-2">
                 <PhotoCaption text={photo.caption} />
               </div>
             )}
@@ -265,7 +264,7 @@ function GuestPhotosView() {
                     {photo.url && (
                       // eslint-disable-next-line @next/next/no-img-element -- signed URL
                       <img
-                        src={photo.url}
+                        src={photo.thumbUrl ?? photo.url}
                         alt={photo.filename ?? ""}
                         loading="lazy"
                         className="h-full w-full object-cover"
@@ -501,12 +500,34 @@ function FamilyPhotosView() {
   const albumById = new Map(albums.map((a) => [a.id, a]));
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 pb-8">
+    <div className="mx-auto max-w-lg space-y-3.5 px-[18px] pt-[26px] pb-6">
       {/* Photos are added here with the + (straight to the picker) or with an
           update; here they are approved, shared and browsed by place. */}
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="ot-title">{strings.photos.title}</h1>
-      </header>
+      <PageHeader
+        title={strings.photos.title}
+        end={
+          isOwnerRole && trip ? (
+            <label
+              aria-busy={uploading}
+              className={`inline-flex min-h-11 items-center gap-1 rounded-full bg-coral px-4 text-[15px] font-bold text-on-coral ${uploading ? "opacity-70" : "cursor-pointer active:opacity-90"}`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploading}
+                className="sr-only"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  if (files.length > 0) void uploadFiles(files);
+                }}
+              />
+              {uploading ? strings.photos.uploading : strings.photos.uploadPill}
+            </label>
+          ) : undefined
+        }
+      />
       <SegmentedControl options={VIEWS} value={view} onChange={setView} ariaLabel={strings.albums.tabsLabel} />
 
       {/* owner approval queue (kid uploads land here - DECISIONS #4) */}
@@ -605,19 +626,41 @@ function FamilyPhotosView() {
           onToast={showToast}
         />
       ) : visible.length === 0 && pending.filter((p) => p.album_id === null).length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">
-          {strings.photos.empty}
-        </p>
+        <div className="space-y-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+          <p className="text-sm text-ink-soft">{strings.photos.empty}</p>
+          {/* the first upload, where the eye already is (UX review 24/11/2026);
+              the + in the bar does the same */}
+          {isOwnerRole && (
+            <label
+              aria-busy={uploading}
+              className={`inline-flex min-h-11 items-center justify-center rounded-xl bg-sea px-5 text-sm font-semibold text-on-sea ${uploading ? "opacity-70" : "cursor-pointer active:opacity-90"}`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploading}
+                className="sr-only"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  if (files.length > 0) void uploadFiles(files);
+                }}
+              />
+              {uploading ? strings.photos.uploading : strings.photos.uploadFirst}
+            </label>
+          )}
+        </div>
       ) : (
         <PlaceSections
           groups={groupByPlace(visible, placeByDate(days))}
           tile={(photo) => (
             <li
               key={photo.id}
-              className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
+              className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-card"
             >
               <PhotoTile photo={photo} badge={feedback.photoBadge(photo.id)} onOpen={() => setViewing(photo)} />
-              <div className="space-y-1 p-2 text-xs">
+              <div className="space-y-2 p-2.5 text-sm">
                 <StoryFeedbackLink badge={feedback.storyBadge(photo.id)} />
                 {photo.caption && <PhotoCaption text={photo.caption} />}
                 {/* the uploader or a parent; a kid's edit of an approved photo goes
@@ -626,7 +669,9 @@ function FamilyPhotosView() {
                   <button
                     type="button"
                     onClick={() => setCaptionFor(photo)}
-                    className="block text-start font-semibold text-sea"
+                    // reads as the field it opens (the caption sheet keeps the
+                    // kid-edit-goes-back-to-approval rule in one place)
+                    className={`flex min-h-10 w-full items-center rounded-xl border border-line bg-bg px-3 text-start ${photo.caption ? "font-bold text-green" : "text-muted"}`}
                   >
                     {photo.caption ? strings.photos.editText : strings.photos.addText}
                   </button>
@@ -642,7 +687,7 @@ function FamilyPhotosView() {
                   </span>
                 )}
                 {isOwner && photo.status === "approved" && (
-                  <label className="flex items-center gap-1.5 font-semibold text-ink-soft">
+                  <label className="flex min-h-10 cursor-pointer items-center gap-2 font-bold text-ink">
                     <input
                       type="checkbox"
                       checked={photo.shared_with_guests}
@@ -657,7 +702,7 @@ function FamilyPhotosView() {
                           showToast(strings.common.error)
                         );
                       }}
-                      className="h-3.5 w-3.5 accent-[var(--brand)]"
+                      className="ot-check"
                     />
                     {strings.photos.shareToggle}
                   </label>
@@ -812,9 +857,9 @@ function PhotoTile({
   return (
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
       {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-square w-full object-cover" />
-      {photo.videoUrl && <VideoBadge className="absolute end-1.5 top-1.5" />}
-      <span className="absolute top-1.5 start-1.5">
+      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-square w-full bg-green-soft object-cover" />
+      {photo.videoUrl && <VideoBadge className="absolute start-2.5 top-2.5" />}
+      <span className="absolute bottom-2 start-2">
         <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />
       </span>
     </button>

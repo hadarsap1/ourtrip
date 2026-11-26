@@ -3380,6 +3380,116 @@ and `poster_path`. Deleting a photo or an album removes the thumbnail too.
 | Migration 00105 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, guard pins it for kids, `photos` still has its 5 policies | ✅ done |
 | guest-media v5 and guest-photos v14 deployed (verify_jwt on), signing `thumb_path` for RLS-returned rows only | ✅ done |
 
+## 24/11/2026 - Google photo thumbnails (00106), story copies, public-stories cache
+
+**Thumbnails (00106).** `google_photos.thumb_path`, a small JPEG in the same
+private `gphotos` bucket. Same row → same RLS (00016/00017: owners all, kids
+read, guests only `shared_with_guests` rows). Storage policies unchanged
+(owners and kids read, owners write, guests never). guest-gphotos signs
+`thumb_path` only for rows the guest's own RLS returned, like the full copy.
+Kids have no UPDATE policy on `google_photos`, so no guard is needed. The
+background backfill runs on owner devices only and writes through the owner's
+own JWT.
+
+**Story copies.** `syncPublicCopies` now uses a Storage-side copy
+(`photos` → `public-stories`). It runs under the same policies as before
+(owner reads `photos`, owner writes `public-stories`, 00046) and still copies
+only rows `photoMayGoPublic` accepts (approved, shared, open to everyone, not
+video).
+
+**SW.** The media cache also keeps `/object/public/public-stories/` files.
+Those are public by design (00046), so caching them shows nobody anything new.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (800), build | ✅ PASS |
+| Guest gets a thumbnail of an unshared Google photo | ✅ by code (guest-gphotos signs only rows its RLS returned) |
+| Kid writes `google_photos.thumb_path` | ✅ by policy (kids select-only, 00016) |
+| Signed URL reused across load (no re-sign) | ✅ by test (`lib/data/signedUrls.test.ts`) |
+| Migration 00106 applied to the live project (24/11/2026, on Hadar's go-ahead): `thumb_path` present, RLS on, `google_photos` still has its 3 policies | ✅ done |
+| gphotos v5 and guest-gphotos v8 deployed (verify_jwt on), guest-gphotos signing `thumb_path` for RLS-returned rows only | ✅ done |
+
+## 24/11/2026 - home_dashboard (00107)
+
+One request for the parents' home: categories, trip total, expenses (totals
+columns only), today's photos, the parents and their steps. SECURITY INVOKER:
+every read runs under the caller's own policies, exactly as the separate
+queries it replaces. Execute revoked from anon and public, granted to
+authenticated. Probe: scripts/rls/probes/107_home_dashboard.sql.
+
+| Check | Result |
+|---|---|
+| tsc, lint, vitest (807), build | ✅ PASS |
+| Live, as the owner (pg_temp copy, nothing persisted): 40 expenses, 9 categories, total, 24 step rows | ✅ |
+| Live, as a guest and as a kid: 0 categories, no total, 0 expenses, 0 steps (parents' names only, as trip_member_names already allows) | ✅ |
+| Expenses carry no description or other columns | ✅ by function (explicit column list) |
+| anon cannot execute; function is SECURITY INVOKER | ✅ verified on the live project after apply |
+| Supabase security advisor: no new finding for home_dashboard | ✅ |
+| Migration 00107 applied to the live project (24/11/2026, on Hadar's request "make an RPC for the home") | ✅ done |
+
+## 19/11/2026 - security review: emailed-link guests linked, pre-registered accounts cleaned, kid-auth hardening (00108)
+
+Found in the security review of 19/11, read back from production first:
+every account `guest-invite` creates with `auth.admin.createUser` carries a
+random password, so 00055's "no password = invited" never held. A guest who
+signed in only by the emailed link was never linked and AuthGate signed them
+out (one guest on 15/11). Production showed no self-registered account for a
+guest's address (every password account belongs to an approved guest; all 25
+accounts older than their allowlist row are Google), so nothing was exploited.
+
+What changed:
+- `link_member_to_auth_user`: links by email for a Google account or a session
+  whose JWT `amr` is `magiclink` / `otp` / `invite`. A password session never
+  links. On the first link the account's password is cleared and every other
+  session ends, so an account a stranger registered beforehand (sign-ups open,
+  "Confirm email" off) does not stay open to them.
+- `submit_guest_join`: only a Google account counts as signed in, so "via
+  Google" / "approve all" can no longer be earned by a password account. A
+  caller already linked as a member is told `member` however they signed in.
+- `kid_unlock_attempt` (service role only): a PIN attempt is reserved under a
+  row lock before the PIN is checked; parallel requests no longer each get a
+  guess past the 5-attempt lockout.
+- `kid_register_allowed` / `kid_register_failed` (service role only): 30 wrong
+  registration codes per 15 minutes project-wide, then 429.
+- kid-auth, guest-media, guest-photos, guest-gphotos reply with fixed step
+  codes; raw database/auth messages go to the function log only.
+
+| Check | Result |
+|---|---|
+| Emailed link on an account with a password: linked as guest | ✅ PASS - local, probe 108 |
+| Password session, or no `amr`, for someone else's address: not linked, no guest access | ✅ PASS - local, probe 108 |
+| First link clears the password and ends the other session, keeps the proving one; an already-linked owner is untouched | ✅ PASS - local, probe 108 |
+| Password account on the open link: `google_only`; on the handed-out link: asks, not marked proven; Google account: marked proven | ✅ PASS - local, probe 108 |
+| Linked emailed-link guest opening a join link: `member` | ✅ PASS - local, probe 108 |
+| `kid_unlock_attempt`: (max+1)th unanswered attempt locks; service role only | ✅ PASS - local, probe 108 |
+| `kid_register_*`: refuses at 30 failures, opens after 15 minutes; service role only | ✅ PASS - local, probe 108 |
+| Probes 54, 55, 95 updated to the new rule (the seeded outsider signs in with Google) | ✅ PASS |
+| Full harness | ✅ 667 PASS, 0 FAIL on 102 migrations (before renumbering) |
+| lint, vitest, build | ✅ PASS |
+| `deno check` kid-auth, guest-media, guest-photos, guest-gphotos | ⏳ not run - no Deno in this session; the deploy bundled and the functions are ACTIVE |
+| 00108 (written as 00102, then 00107; main took both numbers, for comment replies and home_dashboard) applied to production | ✅ 20/11/2026, on Hadar's go-ahead - pasted by Hadar into the SQL Editor (the MCP approval prompt timed out twice), so it is not in `supabase_migrations.schema_migrations` |
+| Live read-back: the four functions exist, the link function reads `amr`, submit_guest_join has the member-by-account check; anon cannot run kid_unlock_attempt, authenticated cannot run kid_register_failed; authenticated can still run link_member_to_auth_user, anon cannot | ✅ 20/11/2026 |
+| Live, in a transaction rolled back: emailed-link session for an uninvited address -> null; password session -> null; kid_unlock_attempt unknown device -> unknown, real device -> attempt 1; kid_register_allowed -> true; afterwards no device carries a failed attempt and no failure row exists | ✅ 20/11/2026 |
+| Deployed: kid-auth v12 (verify_jwt false), guest-gphotos v7, guest-photos v13, guest-media v4 (verify_jwt true); each matched the repo before the change | ✅ 20/11/2026 |
+| HTTP calls to the deployed functions | ⏳ not run - this session's network does not reach the project host |
+| A real guest signs in by the emailed link only and is in | ✅ 23/11/2026: a non-Google guest signed in by the emailed link, was linked, and the account's password was cleared - so the JWT `amr` method is one of the three accepted. No guest who signed in since the deploy is left unlinked |
+| 24/11/2026: guest-media, guest-photos, guest-gphotos were redeployed from main (thumbnails, 00105/00106) without the fixed error replies; redeployed from the merged branch (main's code + this change only, checked line by line against the live source) | ✅ guest-gphotos v9, guest-photos v15, guest-media v6 |
+| After main's 00102-00106 landed: the link function still reads `amr`, kid_unlock_attempt present | ✅ 24/11/2026 |
+
+## 24/11/2026 - podcast voice clarity (00109, DECISIONS #75)
+
+The `audio` bucket's per-file limit goes from 70 to 80 MB so a 20-minute
+32 kHz WAV fits. Nothing else changes: the bucket stays private, the same
+audio types, no storage or table policy touched - uploading or replacing
+audio is still owners only (00044 / 00047 / 00049). The rest is client-side
+(live voice chain, bitrate, sample rate, loudness).
+
+| Check | Result |
+|---|---|
+| Bucket private, 80 MB, accepts WAV | ✅ live 24/11/2026 after applying 00109: `audio` private, 83886080, WAV allowed. Probe `109_audio_80mb.sql` written (probe 80 relaxed to ≥ 70 MB); not run locally - no local Postgres in this session |
+| Kid / guest still cannot upload or replace audio | ✅ no policy touched; probes 44, 47, 49 unchanged |
+| 00109 applied to production | ✅ 24/11/2026, on Hadar's go-ahead, via the Supabase connector |
+| lint, vitest (813), build | ✅ PASS |
 ## Review pass: offline, error log, SOS strip (25/11/2026, no migration)
 
 A code review asked to confirm the photo, kid, guest and email-off rules.

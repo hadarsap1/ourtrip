@@ -5,6 +5,7 @@ import { Toast } from "@/components/Toast";
 import { LoadFailed } from "@/components/LoadFailed";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { SovevScreen } from "@/components/sovev/SovevScreen";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { SharePrompt } from "@/components/sovev/SharePrompt";
 import { EpisodeCard } from "@/components/podcast/EpisodeCard";
 import { Recorder, type Take } from "@/components/podcast/Recorder";
@@ -27,10 +28,11 @@ import { shareText, shareUrl } from "@/lib/share";
 import { strings } from "@/lib/strings";
 import { failureText } from "@/lib/failureText";
 import { useMember } from "@/lib/useMember";
+import { NoMemberNotice } from "@/components/NoMemberNotice";
 import type { Comment, Episode, Member, Reaction, Trip } from "@/lib/types";
 
 export function PodcastScreen() {
-  const { member, memberLoading } = useMember();
+  const { member, memberLoading, memberFailed } = useMember();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
@@ -154,7 +156,7 @@ export function PodcastScreen() {
   if (!member || !trip) {
     return (
       <SovevScreen>
-        <p className="px-4 pt-8 text-center text-sv-ink-soft">{strings.common.noMember}</p>
+        <NoMemberNotice title={strings.podcast.title} failed={memberFailed || Boolean(member)} tone="sovev" />
       </SovevScreen>
     );
   }
@@ -258,14 +260,11 @@ export function PodcastScreen() {
 
   return (
     <SovevScreen>
-      <div className="mx-auto max-w-lg space-y-5 px-4 pt-5 pb-10 sm:max-w-2xl">
-        <header>
-          <h1 className="ot-title">{strings.podcast.title}</h1>
-          <p className="mt-0.5 text-sm text-ink-soft">{strings.podcast.subtitle}</p>
-        </header>
+      <div className="mx-auto max-w-lg space-y-4 px-[18px] pt-[26px] pb-6 sm:max-w-2xl">
+        <PageHeader title={strings.podcast.title} subtitle={strings.podcast.subtitle} />
 
         {canRecord && (
-          <section className="rounded-card border border-sv-line bg-sv-card p-4">
+          <section className="rounded-[26px] border border-line bg-surface p-4 shadow-card">
             <h2 className="mb-3 text-lg font-bold text-ink">{strings.podcast.newEpisode}</h2>
             <Recorder
               busy={saving}
@@ -292,7 +291,7 @@ export function PodcastScreen() {
 
         {!loadFailed && (
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-ink">{strings.podcast.episodesTitle}</h2>
+          <h2 className="text-lg font-extrabold text-ink">{strings.podcast.episodesTitle}</h2>
           {live.length === 0 ? (
             <p className="rounded-card border border-dashed border-sv-line p-8 text-center text-sv-ink-soft">
               {role === "guest" ? strings.podcast.emptyGuest : role === "kid" ? strings.podcast.emptyKid : strings.podcast.empty}

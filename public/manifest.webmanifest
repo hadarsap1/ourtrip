@@ -12,8 +12,8 @@
     "standalone",
     "minimal-ui"
   ],
-  "background_color": "#f7ebd6",
-  "theme_color": "#4e6b45",
+  "background_color": "#faf1e0",
+  "theme_color": "#3d6a3a",
   "categories": [
     "travel",
     "lifestyle",

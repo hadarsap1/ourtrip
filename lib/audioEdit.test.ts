@@ -6,9 +6,11 @@ import {
   EDIT_SAMPLE_RATE,
   encodeWav,
   keepRange,
+  measureLoudness,
   normalizeLoudness,
   NORMALIZE_MAX_GAIN,
   NORMALIZE_PEAK,
+  TARGET_LOUDNESS_DB,
   peaks,
   shortenSilences,
   toMono,
@@ -87,34 +89,56 @@ describe("encodeWav", () => {
 });
 
 describe("EDIT_SAMPLE_RATE", () => {
-  it("keeps the consonants (up to 12 kHz) and a 20-minute WAV under the 70 MB bucket limit", () => {
-    expect(EDIT_SAMPLE_RATE / 2).toBeGreaterThanOrEqual(12_000);
+  it("keeps the air of a child's voice (up to 16 kHz) and a 20-minute WAV under the 80 MB bucket limit", () => {
+    expect(EDIT_SAMPLE_RATE / 2).toBeGreaterThanOrEqual(16_000);
     const wavBytes = 44 + EDIT_SAMPLE_RATE * 2 * MAX_EPISODE_SECONDS;
-    expect(wavBytes).toBeLessThan(70 * 1024 * 1024);
+    expect(wavBytes).toBeLessThan(80 * 1024 * 1024);
+  });
+});
+
+/** A sine of `amplitude` for `seconds`, at 8 kHz. */
+function tone(amplitude: number, seconds: number, rate = 8000): Clip {
+  const samples = new Float32Array(Math.round(seconds * rate));
+  for (let i = 0; i < samples.length; i++) samples[i] = amplitude * Math.sin((2 * Math.PI * 220 * i) / rate);
+  return { samples, sampleRate: rate };
+}
+
+describe("measureLoudness", () => {
+  it("reads a full-scale sine at about -3 dB and silence as -Infinity", () => {
+    expect(measureLoudness(tone(1, 2))).toBeCloseTo(-3.01, 1);
+    expect(measureLoudness({ samples: new Float32Array(16000), sampleRate: 8000 })).toBe(-Infinity);
+  });
+  it("is not pulled down by pauses between sentences", () => {
+    const talk = tone(0.1, 2);
+    const withPause = appendClip(appendClip(talk, { samples: new Float32Array(16000), sampleRate: 8000 }, 0), talk, 0);
+    expect(measureLoudness(withPause)).toBeCloseTo(measureLoudness(talk), 0);
   });
 });
 
 describe("normalizeLoudness", () => {
-  const rate = 10;
-  it("raises a quiet take so its peak sits at -1 dBFS, keeping its shape", () => {
-    const out = normalizeLoudness({ samples: Float32Array.from([0.1, -0.2, 0.05]), sampleRate: rate });
-    expect(out.samples[1]).toBeCloseTo(-NORMALIZE_PEAK);
-    expect(out.samples[0]).toBeCloseTo(NORMALIZE_PEAK / 2);
-    expect(out.sampleRate).toBe(rate);
+  it("brings a quiet take to the target loudness", () => {
+    const out = normalizeLoudness(tone(0.05, 2));
+    expect(measureLoudness(out)).toBeCloseTo(TARGET_LOUDNESS_DB, 0);
+    expect(out.sampleRate).toBe(8000);
   });
-  it("lowers a take that touches full scale", () => {
-    const out = normalizeLoudness({ samples: Float32Array.from([1, -0.5]), sampleRate: rate });
-    expect(out.samples[0]).toBeCloseTo(NORMALIZE_PEAK);
+  it("is not set by one bump: the talking still reaches the target and no sample passes -1 dBFS", () => {
+    const clip = tone(0.05, 3);
+    clip.samples[12000] = 0.99; // a knock on the mic
+    const out = normalizeLoudness(clip);
+    expect(measureLoudness(out)).toBeCloseTo(TARGET_LOUDNESS_DB, 0);
+    let peak = 0;
+    for (const v of out.samples) peak = Math.max(peak, Math.abs(v));
+    expect(peak).toBeLessThanOrEqual(NORMALIZE_PEAK + 1e-6);
   });
   it("caps the gain so a near-silent take does not become hiss", () => {
-    const out = normalizeLoudness({ samples: Float32Array.from([0.001, -0.001]), sampleRate: rate });
-    expect(out.samples[0]).toBeCloseTo(0.001 * NORMALIZE_MAX_GAIN);
+    const out = normalizeLoudness(tone(0.0005, 2));
+    expect(Math.max(...out.samples)).toBeCloseTo(0.0005 * NORMALIZE_MAX_GAIN, 4);
   });
-  it("leaves silence and already-normal takes alone", () => {
-    const silent = { samples: new Float32Array(4), sampleRate: rate };
+  it("leaves silence and an already-even take alone", () => {
+    const silent = { samples: new Float32Array(16000), sampleRate: 8000 };
     expect(normalizeLoudness(silent)).toBe(silent);
-    const normal = { samples: Float32Array.from([NORMALIZE_PEAK, 0]), sampleRate: rate };
-    expect(normalizeLoudness(normal)).toBe(normal);
+    const even = normalizeLoudness(tone(0.05, 2));
+    expect(normalizeLoudness(even)).toBe(even);
   });
 });
 

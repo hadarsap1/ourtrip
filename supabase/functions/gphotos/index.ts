@@ -234,7 +234,28 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const { error: insErr } = await service.from("google_photos").insert({
+    // a small copy for grid tiles (00106), straight from Google at import
+    // time, so the gallery never pulls the 1600 px copy from our storage.
+    // Best effort: without one the grid falls back to the display copy (and
+    // a parent's device makes it later, lib/data/googlePhotos.ts).
+    let thumbPath: string | null = null;
+    try {
+      const thumbRes = await fetch(`${file.baseUrl}=w640-h640`, { headers: gHeaders });
+      const thumbType = thumbRes.headers.get("content-type") ?? "";
+      if (thumbRes.ok && /^image\/(jpeg|png|webp)$/.test(thumbType)) {
+        const candidate = path.replace(/\.[^./]+$/, "") + ".thumb.jpg";
+        const { error: thumbErr } = await service.storage
+          .from("gphotos")
+          .upload(candidate, await thumbRes.arrayBuffer(), { contentType: thumbType });
+        if (!thumbErr) thumbPath = candidate;
+      } else {
+        await thumbRes.body?.cancel();
+      }
+    } catch {
+      // no thumbnail; the display copy still works
+    }
+
+    const row = {
       trip_id: trip.id,
       google_media_id: item.id,
       country,
@@ -245,10 +266,19 @@ Deno.serve(async (req) => {
       height: file.mediaFileMetadata?.height ?? null,
       taken_at: item.createTime ?? null,
       created_by: createdBy,
-    });
+    };
+    let { error: insErr } = await service
+      .from("google_photos")
+      .insert(thumbPath ? { ...row, thumb_path: thumbPath } : row);
+    if (insErr && thumbPath && /thumb_path/.test(insErr.message)) {
+      // a database without 00106 yet: keep the photo, drop its thumbnail
+      await service.storage.from("gphotos").remove([thumbPath]);
+      thumbPath = null;
+      ({ error: insErr } = await service.from("google_photos").insert(row));
+    }
     if (insErr) {
       // roll back the orphaned upload
-      await service.storage.from("gphotos").remove([path]);
+      await service.storage.from("gphotos").remove(thumbPath ? [path, thumbPath] : [path]);
       console.error("gphotos insert failed:", insErr.message);
       skipped++;
       continue;

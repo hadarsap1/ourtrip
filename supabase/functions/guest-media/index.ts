@@ -70,7 +70,8 @@ Deno.serve(async (req) => {
       : Promise.resolve({ data: [] as { id: string; file_path: string }[], error: null }),
   ]);
   if (photosRes.error || episodesRes.error) {
-    return json({ ok: false, error: (photosRes.error ?? episodesRes.error)!.message }, 500);
+    console.error(`guest-media: lookup failed: ${(photosRes.error ?? episodesRes.error)!.message}`);
+    return json({ ok: false, error: "lookup_failed" }, 500);
   }
   const photos = (photosRes.data ?? []) as PhotoRow[];
   const episodes = episodesRes.data ?? [];
@@ -126,6 +127,7 @@ Deno.serve(async (req) => {
       episodes: await sign("audio", episodes, AUDIO_TTL_SECONDS),
     });
   } catch (e) {
-    return json({ ok: false, error: (e as Error).message }, 500);
+    console.error(`guest-media: signing failed: ${(e as Error).message}`);
+    return json({ ok: false, error: "sign_failed" }, 500);
   }
 });

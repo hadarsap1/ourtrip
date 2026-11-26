@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
-import { getJoinInfo, submitJoinRequest } from "@/lib/data/guests";
+import Link from "next/link";
+import { getJoinInfo, requestGuestLoginLink, submitJoinRequest } from "@/lib/data/guests";
+import { networkDown } from "@/lib/offline/network";
 import {
   forgetJoinToken,
   nameFromGoogle,
@@ -36,6 +38,9 @@ export function JoinScreen({ token }: { token: string }) {
   // optional parts, closed until asked for, so the button is on the first screen
   const [kidsOpen, setKidsOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  // "send the link again" while waiting (email way in): the server allows one
+  // a minute (guest-login-link), so the button rests as long
+  const [resent, setResent] = useState(false);
   // No bottom bar on this page, so main's room for it is only empty scroll
   // (the same switch the chat uses, globals.css).
   useEffect(() => {
@@ -83,7 +88,8 @@ export function JoinScreen({ token }: { token: string }) {
         setPhase({ kind: "form" });
       }
     } catch {
-      setError(strings.join.error);
+      // the connection, said as such: "something went wrong" read like a bad link
+      setError(networkDown() ? strings.join.offline : strings.join.error);
       setPhase({ kind: "form" });
     }
   }, [token, afterSubmit]);
@@ -135,7 +141,7 @@ export function JoinScreen({ token }: { token: string }) {
       <div className="ot-postcard mb-3 flex items-center gap-3 px-4 py-2.5">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand badge */}
         <img
-          src="/sovev/badge-192.png"
+          src="/sovev/badge-192.webp"
           alt=""
           className="relative z-10 h-14 w-14 shrink-0 rounded-full border-2 border-white/90 object-cover"
         />
@@ -155,6 +161,9 @@ export function JoinScreen({ token }: { token: string }) {
         <div className="space-y-2 text-center">
           <h2 className="text-lg font-bold text-ink">{strings.join.invalidTitle}</h2>
           <p className="text-ink-soft">{strings.join.invalidBody}</p>
+          <Link href="/login" className="inline-flex min-h-11 items-center text-sm font-semibold text-sea underline">
+            {strings.join.toLogin}
+          </Link>
         </div>
       )}
 
@@ -185,6 +194,39 @@ export function JoinScreen({ token }: { token: string }) {
               {strings.join.checkAgain}
             </button>
           )}
+          {/* The email way in had only waiting (UX review 24/11/2026). Once
+              approved, the login link may sit in spam: ask for it again. The
+              reply never says whether this address was approved (00075). */}
+          {phase.via === "email" &&
+            (email.trim() ? (
+              <>
+                <button
+                  type="button"
+                  className={buttonSecondary}
+                  disabled={busy || resent}
+                  onClick={() =>
+                    void run(async () => {
+                      await requestGuestLoginLink(email.trim());
+                      setResent(true);
+                      setTimeout(() => setResent(false), 60_000);
+                    })
+                  }
+                >
+                  {strings.join.resendLink}
+                </button>
+                {resent && (
+                  <p className="text-sm text-ink-soft" role="status">
+                    {strings.join.resendSent}
+                  </p>
+                )}
+              </>
+            ) : (
+              // back on this page later, the typed address is gone: the login
+              // screen asks for it and sends the link
+              <Link href="/login" className="inline-flex min-h-11 items-center text-sm font-semibold text-sea underline">
+                {strings.join.approvedToLogin}
+              </Link>
+            ))}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { startInstallCapture } from "@/lib/install";
 import { clearFeedbackBadge } from "@/lib/push";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
 
 // A stale chunk reference is the classic PWA white screen: the page was loaded
 // from one build, a new one shipped, and the next lazily-loaded chunk 404s.
@@ -34,6 +35,32 @@ function recoverFromStaleBuild(): void {
 
 export function RegisterSW() {
   const [updateReady, setUpdateReady] = useState(false);
+  const { member } = useMember();
+  const role = member?.role ?? null;
+
+  // Tell the worker who is signed in, so it keeps their screens for offline
+  // use and only theirs (public/sw.js ROLE_URLS): a guest's phone no longer
+  // downloads every parent screen in the background (perf review 24/11/2026).
+  // Waits for `ready`, so it also covers the very first install.
+  // After a deploy it also warms that build's screens, a few seconds after
+  // the app opens so it does not compete with the screen being opened.
+  useEffect(() => {
+    if (!role || !("serviceWorker" in navigator)) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void navigator.serviceWorker.ready
+        .then((reg) => {
+          if (!cancelled) {
+            reg.active?.postMessage({ type: "precache", role, build: process.env.NEXT_PUBLIC_BUILD_ID ?? "" });
+          }
+        })
+        .catch(() => {});
+    }, 4000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [role]);
 
   useEffect(() => {
     // `beforeinstallprompt` fires once, seconds after load, and only the app
@@ -118,7 +145,7 @@ export function RegisterSW() {
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-20 z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-paper shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
+      className="fixed inset-x-4 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-3 rounded-xl bg-ink/95 px-4 py-3 text-paper shadow-lg lg:bottom-4 lg:end-4 lg:inset-x-auto lg:max-w-sm"
     >
       <span className="flex-1 text-sm font-medium">{strings.update.ready}</span>
       <button

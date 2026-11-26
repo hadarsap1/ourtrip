@@ -22,6 +22,7 @@ import {
   PlaneIcon,
   RouteIcon,
   SparkleIcon,
+  UpdatesIcon,
   VisaIcon,
   SettingsIcon,
 } from "@/components/icons";
@@ -52,13 +53,14 @@ export const kidTabs: NavItem[] = [
 // Photos are a place of their own again, by place (Hadar 01/11/2026).
 export const guestTabs: NavItem[] = [
   { href: "/", label: strings.guestNav.home, Icon: HomeIcon },
-  { href: "/stories", label: strings.guestNav.stories, Icon: JournalIcon },
+  { href: "/stories", label: strings.guestNav.stories, Icon: UpdatesIcon },
   { href: "/podcast", label: strings.guestNav.podcast, Icon: MicIcon },
   { href: "/photos", label: strings.guestNav.photos, Icon: PhotosIcon },
   { href: "/messages", label: strings.guestNav.messages, Icon: MessagesIcon },
 ];
 
 export const ownerTabs: NavItem[] = [
+  // the house again (Hadar 24/11/2026): the sun read as weather, not home
   { href: "/", label: strings.nav.today, Icon: HomeIcon },
   { href: "/itinerary", label: strings.nav.itinerary, Icon: RouteIcon },
   { href: "/budget", label: strings.nav.budget, Icon: BudgetIcon },

@@ -6,6 +6,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { ThemePicker } from "@/components/settings/ThemePicker";
 import { StepsSettings } from "@/components/settings/StepsSettings";
 import { BackupCard } from "@/components/settings/BackupCard";
+import { TripBudgetCard } from "@/components/settings/TripBudgetCard";
 import { BudgetCategoriesCard } from "@/components/settings/BudgetCategoriesCard";
 import { AiBudgetCard } from "@/components/settings/AiBudgetCard";
 import { MyKidsCard } from "@/components/settings/MyKidsCard";
@@ -41,6 +42,7 @@ export function SettingsScreen() {
       <PreviewCard />
       <ThemePicker />
       <StepsSettings />
+      <TripBudgetCard />
       <BudgetCategoriesCard />
       <AiBudgetCard />
       <BackupCard />

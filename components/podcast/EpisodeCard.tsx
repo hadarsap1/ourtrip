@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { EditIcon, ShareIcon, TrashIcon } from "@/components/icons";
+import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { NewFeedbackChip } from "@/components/feedback/FeedbackCount";
 import { ViewersChip } from "@/components/feedback/ViewersChip";
@@ -65,14 +66,14 @@ export function EpisodeCard({
   return (
     <article
       id={`episode-${episode.id}`}
-      className="scroll-mt-4 space-y-3 rounded-card border border-sv-line bg-sv-card p-4"
+      className="scroll-mt-4 flex flex-col gap-2.5 rounded-[26px] border border-line bg-surface p-4 shadow-card"
     >
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-sv-ink-soft">
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-sm text-muted">
         {approved && (
           <NewFeedbackChip comments={fresh.commentIds.size} likes={fresh.likes} scrollTo={`feedback-${episode.id}`} />
         )}
         {number !== null && (
-          <span className="font-bold text-sv-clay">{strings.podcast.episodeNo.replace("{n}", String(number))}</span>
+          <span className="font-bold text-coral">{strings.podcast.episodeNo.replace("{n}", String(number))}</span>
         )}
         <span dir="ltr">{formatDate(episode.created_at.slice(0, 10))}</span>
         {minutes !== null && <span>· {strings.podcast.minutes.replace("{n}", String(minutes))}</span>}
@@ -93,28 +94,26 @@ export function EpisodeCard({
           <span className="rounded-full bg-alert-tint px-2 py-0.5 font-bold text-alert">{strings.podcast.rejected}</span>
         )}
       </div>
-      <h2 className="text-lg font-bold text-ink">{episode.title}</h2>
-      {by && <p className="text-sm text-sv-ink-soft">{strings.podcast.narrators.replace("{names}", by)}</p>}
+      <h2 className="text-[22px] font-extrabold leading-[1.2] text-ink">{episode.title}</h2>
+      {by && <p className="text-[15px] text-muted">{strings.podcast.narrators.replace("{names}", by)}</p>}
       {episode.description && (
-        <p className="whitespace-pre-wrap text-base leading-[1.6] text-sv-ink">{episode.description}</p>
+        <p className="whitespace-pre-wrap text-base leading-[1.45] text-ink">{episode.description}</p>
       )}
       {url ? (
-        <audio ref={audioRef} controls preload="none" src={url} className="w-full">
-          <track kind="captions" />
-        </audio>
+        <AudioPlayer src={url} audioRef={audioRef} durationSeconds={episode.duration_seconds} />
       ) : (
-        <p className="text-xs text-sv-ink-soft">{strings.podcast.playError}</p>
+        <p className="text-[13px] text-muted">{strings.podcast.playError}</p>
       )}
 
       {onApprove && onReject && (
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={onApprove} className="rounded-xl bg-sea py-2.5 font-bold text-on-sea">
+          <button type="button" onClick={onApprove} className="min-h-12 rounded-full bg-green font-bold text-on-green">
             {strings.podcast.approve}
           </button>
           <button
             type="button"
             onClick={onReject}
-            className="rounded-xl border border-sv-line py-2.5 font-semibold text-sv-ink-soft"
+            className="min-h-12 rounded-full border border-line font-bold text-muted"
           >
             {strings.podcast.reject}
           </button>
@@ -147,12 +146,12 @@ export function EpisodeCard({
       )}
 
       {(onShare || onDelete || onEdit) && (
-        <div className="flex items-center justify-end gap-2 border-t border-sv-line pt-3">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           {onShare && (
             <button
               type="button"
               onClick={onShare}
-              className="flex items-center gap-1.5 rounded-xl border border-sv-line px-3 py-2 text-sm font-semibold text-sv-ink"
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink"
             >
               <ShareIcon className="h-4 w-4" /> {strings.share.whatsapp}
             </button>
@@ -161,7 +160,7 @@ export function EpisodeCard({
             <button
               type="button"
               onClick={onEdit}
-              className="flex items-center gap-1.5 rounded-xl border border-sv-line px-3 py-2 text-sm font-semibold text-sv-ink"
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink"
             >
               <EditIcon className="h-4 w-4" /> {strings.podcastEdit.open}
             </button>
@@ -171,7 +170,7 @@ export function EpisodeCard({
               type="button"
               onClick={onDelete}
               aria-label={strings.common.delete}
-              className="grid place-items-center rounded-xl border border-sv-line text-sv-ink-soft"
+              className="ms-auto grid place-items-center rounded-full border border-line text-muted"
             >
               <TrashIcon className="h-4 w-4" />
             </button>

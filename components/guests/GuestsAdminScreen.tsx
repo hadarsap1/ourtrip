@@ -31,6 +31,7 @@ import { KidTag } from "@/components/KidTag";
 import { KidNamesField } from "@/components/guests/KidNamesField";
 import { normalizeKidNames } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
+import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type { Member, Trip } from "@/lib/types";
 
 type Group = { label: string | null; rows: GuestAllowlistRow[] };
@@ -212,11 +213,8 @@ export function GuestsAdminScreen() {
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
-        <p className="text-center text-ink-soft">{strings.common.loading}</p>
-      </div>
-    );
+    // the static skeleton every other screen shows, not a line of text
+    return <ScreenSkeleton variant="list" />;
   }
 
   // Empty lists here would read as "nobody asked to join". A reload also

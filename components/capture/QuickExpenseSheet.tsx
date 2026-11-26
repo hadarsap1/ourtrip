@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/Sheet";
-import { createExpenseOrQueue, listCategories, notifyExpensesChanged } from "@/lib/data/expenses";
+import { createExpenseOrQueue, ensureCashCategory, listCategories, notifyExpensesChanged } from "@/lib/data/expenses";
+import { PaymentPicker, type QuickPayment } from "@/components/budget/PaymentPicker";
 import { getActiveTrip } from "@/lib/data/trip";
 import { getTodayCountryCode } from "@/lib/data/today";
 import { currencyForCountry } from "@/lib/currencies";
 import { queryKeys, readQuery } from "@/lib/offline/queryCache";
 import { todayISO } from "@/lib/format";
-import { pickableCategories } from "@/lib/budget";
+import { CASH_CATEGORY_KEY, pickableCategories } from "@/lib/budget";
 import { strings } from "@/lib/strings";
 import type { BudgetCategory } from "@/lib/types";
 
@@ -44,8 +45,12 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
   const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [saving, setSaving] = useState(false);
-  // 00089: paid from the cash wallet of its currency
-  const [paidInCash, setPaidInCash] = useState(false);
+  // regular, paid from the cash wallet (00089), or an ATM withdrawal (00082)
+  const [payment, setPayment] = useState<QuickPayment>("regular");
+  const [tripId, setTripId] = useState<string | null>(null);
+  // the cash category, when it exists already (a withdrawal goes under it)
+  const [cashCategoryId, setCashCategoryId] = useState<string | null>(null);
+  const isWithdrawal = payment === "withdrawal";
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +75,8 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
         cats = (await readQuery<{ cats: BudgetCategory[] }>(queryKeys.budget(trip.id)))?.data.cats ?? [];
       }
       if (!alive) return;
+      setTripId(trip.id);
+      setCashCategoryId(cats.find((c) => c.key === CASH_CATEGORY_KEY)?.id ?? null);
       setChips(list);
       setCurrency(list[0]);
       const pickable = pickableCategories(cats);
@@ -83,18 +90,28 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
 
   async function save() {
     const value = Number(amount);
-    if (!categoryId || !Number.isFinite(value) || value <= 0 || saving) return;
+    if ((!isWithdrawal && !categoryId) || !Number.isFinite(value) || value <= 0 || saving) return;
     setSaving(true);
     try {
-      const result = await createExpenseOrQueue({ categoryId, amount: value, currency, spentOn: todayISO(), paidInCash });
+      // a withdrawal always goes under "מזומן" (00097), as in the full form
+      const catId = isWithdrawal ? (cashCategoryId ?? (tripId ? await ensureCashCategory(tripId) : "")) : categoryId;
+      if (!catId) throw new Error("no category");
+      const result = await createExpenseOrQueue({
+        categoryId: catId,
+        amount: value,
+        currency,
+        spentOn: todayISO(),
+        isCashWithdrawal: isWithdrawal,
+        paidInCash: payment === "cash",
+      });
       try {
         localStorage.setItem(LAST_CURRENCY_KEY, currency);
-        localStorage.setItem(LAST_CATEGORY_KEY, categoryId);
+        if (!isWithdrawal) localStorage.setItem(LAST_CATEGORY_KEY, categoryId);
       } catch {
         // non-essential
       }
       setAmount("");
-      setPaidInCash(false);
+      setPayment("regular");
       if (result === "saved") notifyExpensesChanged();
       onDone(result === "queued" ? strings.budget.expenseQueued : strings.budget.expenseSaved);
     } catch (e) {
@@ -130,17 +147,10 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
           ))}
         </div>
 
-        <div className="flex justify-center">
-          <button
-            type="button"
-            aria-pressed={paidInCash}
-            onClick={() => setPaidInCash((v) => !v)}
-            className={`rounded-full px-4 py-1.5 text-sm font-bold ${paidInCash ? "border-[1.5px] border-sea bg-sea-tint text-sea-deep" : "border border-line bg-surface text-ink"}`}
-          >
-            {strings.budget.paymentCash}
-          </button>
-        </div>
+        <PaymentPicker value={payment} onChange={setPayment} />
 
+        {/* a withdrawal has no category to pick: it is always "מזומן" */}
+        {!isWithdrawal && (
         <div role="radiogroup" aria-label={strings.capture.category} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {categories.map((c) => (
             <button
@@ -156,6 +166,7 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
           ))}
           {categories.length === 0 && <span className="text-sm text-ink-soft">{strings.capture.noCategories}</span>}
         </div>
+        )}
 
         <div dir="ltr" className="grid grid-cols-3 gap-2">
           {keys.map((k) => (
@@ -174,7 +185,7 @@ export function QuickExpenseSheet({ open, onClose, onDone }: { open: boolean; on
         <button
           type="button"
           onClick={() => void save()}
-          disabled={saving || !categoryId || !Number(amount)}
+          disabled={saving || (!isWithdrawal && !categoryId) || !Number(amount)}
           className="w-full rounded-xl bg-sea py-3 text-base font-semibold text-on-sea disabled:bg-paper-deep disabled:text-ink-soft"
         >
           {strings.capture.save}

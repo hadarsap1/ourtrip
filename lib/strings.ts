@@ -48,6 +48,7 @@ export const strings = {
     // side rail from lg up. They need distinct accessible names.
     bottomBarLabel: "ניווט ראשי",
     moreHasNews: "יש חדש בעוד",
+    unreadMessages: "יש הודעות חדשות בצ'אט",
     photosWaiting: "{n} תמונות ממתינות לאישור",
     railLabel: "ניווט צדדי",
     today: "היום",
@@ -62,13 +63,16 @@ export const strings = {
     emptyTitle: "עוד אין מה להציג",
     emptyBody: "כשנתחיל להזין את המסלול, כאן יופיע כל מה שקורה היום.",
     noDay: "אין יום מתוכנן במסלול להיום",
+    emptyAddDay: "הוספת יום ←",
+    emptyToItinerary: "למסלול ←",
     bookingsToday: "הזמנות להיום",
     // the home lists only what was booked, not a plan by the hour (Hadar 15/11/2026)
     bookedToday: "הזמנו להיום",
     snapshotFrom: "עדכני לתאריך",
     // dashboard redesign
     addExpenseShort: "הוצאה",
-    dayOf: "יום {n} מתוך {total}",
+    // the day only (Hadar 24/11/2026): "מתוך 230" was noise; the bar shows the rest
+    dayOf: "יום {n}",
     nextUp: "הבא בתור",
     inMinutes: "בעוד {n} דקות",
     inHours: "בעוד {n} שעות",
@@ -77,6 +81,7 @@ export const strings = {
     tileWeather: "מזג אוויר",
     tileTonight: "הלילה",
     tileSpentToday: "הוצאות היום",
+    nothingSpent: "עוד לא נרשם",
     agenda: "לוח היום",
     agendaCount: "{n} פעילויות",
     noLodging: "לא נרשמה לינה",
@@ -364,7 +369,9 @@ export const strings = {
   steps: {
     title: "צעדים היום",
     notReported: "עוד לא דווח",
+    notReportedToday: "עוד לא דווח היום",
     stay: "בשהות ב{place}: {n}",
+    stayShort: "בשהות ב{place}",
     week: "השבוע",
     weekAria: "צעדים ב-7 הימים האחרונים",
     settingsTitle: "ספירת צעדים מהאייפון",
@@ -510,14 +517,12 @@ export const strings = {
   },
 
   budgetV2: {
-    leftTrip: "נשאר לנו לכל הטיול",
-    overTrip: "עברנו את התקציב ב-",
     spentTotal: "הוצאנו עד עכשיו",
-    budgetTotal: "התקציב שלנו",
     cashTotal: "מזה במזומן",
+    // the target, quietly under the summary (set in Settings)
+    targetLine: "יעד התקציב: {amount}",
     catLeft: "נשאר {amount} מתוך {planned}",
     catOver: "עברנו ב-{amount}",
-    noBudget: "קובעים יעד תקציב כדי לראות כמה נשאר",
     last14: "14 הימים האחרונים",
     spentTodayLabel: "היום: {amount}",
     tabsLabel: "תצוגת תקציב",
@@ -547,7 +552,8 @@ export const strings = {
     used: "נוצל עד היום",
     prepaid: "שולם מראש",
     days: "ימים",
-    daysValue: "{n} מתוך {total}",
+    // days so far only (Hadar 24/11/2026), as on the home
+    daysValue: "{n}",
     notStarted: "עוד לא הגענו - הכל כאן שולם מראש",
     averagesTitle: "ממוצעים",
     perDayAll: "הכל ליום",
@@ -636,6 +642,14 @@ export const strings = {
     emptyCategories: "עוד אין קטגוריות תקציב",
     // free-line quick add
     quickLines: "הוספה מהירה (כמה שורות)",
+    // the quick adds' payment choice (Hadar 24/11/2026)
+    paymentWithdrawalShort: "משיכת מזומן",
+    quickLinesPaymentHintCash: "כל השורות יירשמו כשולמו במזומן, וכל אחת יורדת מהמזומן במטבע שלה",
+    quickLinesPaymentHintWithdrawal: "כל שורה נרשמת כמשיכת מזומן מכספומט, בקטגוריית מזומן",
+    // the preview in shekels, at the chosen day's rate
+    quickLinesTotalIls: "סה״כ {n} שורות · ≈ {amount}",
+    quickLinesNoRate: "אין שער",
+    quickLinesLocalHint: "בלי מטבע בשורה: {currency}",
     quickLinesTitle: "הוספת שורות הוצאה",
     quickLinesHint: "שורה לכל הוצאה - תיאור וסכום. אפשר גם מטבע: ‏USD‏ / ₪ / $. לדוגמה:\nחיסונים 1200\nביטוח נסיעות 3400 USD\nדרכונים ₪600",
     quickLinesPlaceholder: "חיסונים 1200\nביטוח נסיעות 3400 USD",
@@ -777,6 +791,9 @@ export const strings = {
     groupOnTheRoad: "בדרך",
     groupMemories: "זיכרונות",
     groupFamily: "תכנון וניהול",
+    // the guest-preview row (קרם חם)
+    previewHint: "לראות מה האורחים רואים",
+    previewCta: "תצוגת אורח",
     optionsState: "{n} אפשרויות",
     // redesign 3b
     emergencyMeta: "‏112 · שגרירות · ביטוח",
@@ -1783,7 +1800,7 @@ export const strings = {
     title: "צ'אט",
     ownerHint: "הצ'אט משותף עם החברים, המשפחה והילדים. הודעה של הילדים יוצאת אחרי שאחד מכם מאשר אותה.",
     kidHint: "כאן כותבים לחברים ולמשפחה. אמא או אבא יאשרו את ההודעה לפני שהיא יוצאת.",
-    guestHint: "הצ'אט משותף עם המשפחה - גם הילדים קוראים כאן.",
+    guestHint: "משותף עם המשפחה, גם הילדים קוראים כאן",
     placeholder: "כותבים משהו…",
     send: "שליחה",
     empty: "עוד אין הודעות - כתבו את הראשונה!",
@@ -1966,6 +1983,11 @@ export const strings = {
     enter: "כניסה לאפליקציה",
     invalidTitle: "הקישור לא בתוקף",
     invalidBody: "ייתכן שנוצר קישור חדש. בקשו אותו ממי ששלח לכם.",
+    toLogin: "חזרה לדף הכניסה",
+    resendLink: "שליחת קישור הכניסה שוב",
+    resendSent: "אם כבר אישרנו, הקישור בדרך למייל. אם עוד לא, הוא יישלח ברגע שנאשר.",
+    approvedToLogin: "כבר אישרו אותי - לדף הכניסה",
+    offline: "אין חיבור כרגע - בדקו את הרשת ונסו שוב",
     badInput: "צריך שם ומייל תקין",
     busy: "יש עכשיו הרבה בקשות - נסו שוב בעוד שעה",
     error: "משהו השתבש - נסו שוב",
@@ -2014,8 +2036,12 @@ export const strings = {
     // "whoever gets the link is connected to us"): their name, what is new
     // since they were last here, the newest update with its photo, the latest
     // photos, something the kids said, and a way to answer.
-    hello: "היי {name}!",
+    hello: "היי, {name}!",
     sinceTitle: "מאז שביקרת",
+    // one chip: "5 תמונות חדשות מאז שביקרת" (קרם חם)
+    sinceSuffix: "{what} מאז שביקרת",
+    // the family's local time under the greeting (קרם חם): "אצלם בווייטנאם 12:50"
+    theirTime: "אצלם {where}",
     newStory: "עדכון חדש",
     newStories: "{n} עדכונים חדשים",
     newPhoto: "תמונה חדשה",
@@ -2030,6 +2056,11 @@ export const strings = {
     photosTitle: "תמונות אחרונות",
     photosAll: "לכל התמונות",
     quoteTitle: "הישר מהצנצנת",
+    // the jar's way in when no quote is shared right now (guests have no tab for it)
+    jarTile: "הצנצנת: מה שהילדים אמרו בדרך",
+    jarOpen: "לצנצנת",
+    // the newest update or the photos did not load (not "nothing yet")
+    partialLoad: "חלק מהדף לא נטען",
     quoteAll: "לכל הציטוטים",
     writeUs: "כתבו לנו משהו...",
     writeUsCta: "לצ'אט",
@@ -2045,6 +2076,7 @@ export const strings = {
     codePlaceholder: "הקוד",
     connect: "חיבור",
     invalidCode: "הקוד לא נכון או שפג תוקפו - מבקשים קוד חדש",
+    tooManyAttempts: "היו יותר מדי ניסיונות עם קוד לא נכון - מחכים רבע שעה ומנסים שוב",
     // The code was accepted and the server failed anyway. A new code will not
     // help, so it must not say "ask for another one".
     registerFailed: "הקוד בסדר, אבל החיבור נכשל בצד השרת - מראים את ההודעה הזאת לאמא או אבא",
@@ -2121,6 +2153,9 @@ export const strings = {
     uploaded: "התמונה הועלתה! היא תופיע אחרי שאמא או אבא יאשרו",
     uploadedOwner: "התמונה הועלתה",
     empty: "עוד אין תמונות",
+    uploadFirst: "העלאת תמונה ראשונה",
+    // the coral pill beside the title (קרם חם)
+    uploadPill: "+ העלאה",
     caption: "כיתוב (לא חובה)",
     captionPlaceholder: "מה קרה כאן? אפשר לכתוב כמה שרוצים",
     newUpload: "העלאה חדשה",
@@ -2265,7 +2300,8 @@ export const strings = {
   kids: {
     title: "ילדים ומכשירים",
     addKid: "הוספת ילד/ה",
-    kidName: "שם",
+    kidName: "שם הילד/ה",
+    addKidHint: "אחרי ההוספה יוצרים קוד חיבור לטאבלט: בוחרים קוד סודי של 4-6 ספרות, והילד/ה מקלידים אותו בכניסה לטאבלט.",
     noKids: "עוד לא הוגדרו ילדים",
     generateCode: "יצירת קוד חיבור",
     pinLabel: "קוד סודי לטאבלט (4-6 ספרות)",
@@ -2401,6 +2437,8 @@ export const strings = {
     } as Record<string, { label: string; detail: string; okDetail?: string }>,
   },
 
+  // app/error.tsx: a screen that broke while drawing. The bar below stays,
+  // so a kid can still tap another tab; this says so in plain words.
   offline: {
     banner: "אין חיבור לאינטרנט - חלק מהמסכים לא זמינים",
     synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
@@ -2423,7 +2461,7 @@ export const strings = {
   // the road is never a dead end.
   screenError: {
     title: "משהו השתבש במסך הזה",
-    body: "התקלה נרשמה במכשיר. אפשר לנסות שוב, או לעבור למסך אחר:",
+    body: "זה לא באשמתכם. אפשר לנסות שוב, או לעבור למסך אחר:",
     retry: "ניסיון נוסף",
     home: "למסך הבית",
     // settings, parents only: the crashes kept on this device
@@ -2571,6 +2609,9 @@ export const strings = {
     morePhotos: "+{n}",
     // the photos of an update, swiped through (Hadar 01/11/2026)
     photoOf: "תמונה {i} מתוך {n}",
+    // a photo of an update opened on the whole screen (Hadar 24/11/2026)
+    openPhoto: "הגדלת התמונה",
+    photoBig: "התמונה בגדול",
     mapCard: "איפה היינו",
     mapCardHint: "כל המקומות שעברנו, על המפה",
   },
@@ -2589,8 +2630,9 @@ export const strings = {
     interrupted: "המסך נכבה וההקלטה הושהתה. מה שהוקלט נשמר, לוחצים המשך",
     joining: "מחבר את חלקי ההקלטה…",
     externalMics: "מקליטים עם מיקרופונים חיצוניים",
-    externalMicsOn: "הקול נשמר כמו שהמיקרופונים קולטים אותו",
+    externalMicsOn: "שיפור צלילות: פחות עמום, עוצמה אחידה",
     externalMicsOff: "מיקרופון הטלפון: מסנן רעשים ומאזן עוצמה",
+    lowRateMic: "המיקרופון מחובר בקצב של שיחת טלפון (כנראה בלוטות'), והקול ייצא עמום. לקול חד מחברים את המקלט לחיבור USB-C של הטלפון",
     joinFailed: "לא הצלחנו לחבר את חלקי ההקלטה. נשמר החלק הארוך ביותר",
     maxNote: "עד {n} דקות לפרק",
     micDenied: "אין גישה למיקרופון. מאשרים בהגדרות הדפדפן ומנסים שוב",
@@ -2760,6 +2802,13 @@ export const strings = {
     back: "חזרה לעוד",
     backHome: "חזרה לדף הבית",
   },
+  // the trip's budget target, edited in Settings (Hadar 24/11/2026)
+  tripBudgetSettings: {
+    title: "יעד תקציב לטיול",
+    hint: "כמה יש לנו לכל הטיול. בעמוד התקציב הוא מופיע רק בשורה קטנה.",
+    notSet: "לא נקבע",
+    saved: "היעד נשמר",
+  },
   budgetCategoriesSettings: {
     title: "קטגוריות תקציב",
     hint: "לחיצה על קטגוריה פותחת עריכה: שם, סכום מתוכנן ומחיקה. בעמוד התקציב לחיצה על קטגוריה מסננת את ההוצאות שלה.",
@@ -2778,5 +2827,15 @@ export const strings = {
   aiLimit: {
     budget: "תקציב ה-AI של החודש נוצל. אפשר להגדיל אותו בהגדרות, או לחכות לתחילת החודש",
     daily: "הגעתם למכסה היומית של הפעולה הזו - נסו שוב מחר",
+  },
+  // "קרם חם" redesign (24/11/2026): shared parts
+  player: {
+    play: "ניגון",
+    pause: "השהיה",
+    seek: "מיקום בפרק",
+    elapsed: "{now} מתוך {total}",
+  },
+  composer: {
+    send: "שליחה",
   },
 } as const;

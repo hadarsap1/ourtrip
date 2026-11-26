@@ -258,6 +258,25 @@ export async function listExpenses(tripId: string): Promise<Expense[]> {
   return data;
 }
 
+/** Just what spend totals need (the home screen's tiles), not whole rows:
+ *  notes, merchants and receipts stay on the server (egress, 24/11/2026). */
+export const EXPENSE_TOTAL_COLUMNS =
+  "id, amount, currency, amount_ils, spent_on, is_cash_withdrawal, paid_in_cash" as const;
+
+export type ExpenseTotalRow = Pick<
+  Expense,
+  "id" | "amount" | "currency" | "amount_ils" | "spent_on" | "is_cash_withdrawal" | "paid_in_cash"
+>;
+
+export async function listExpenseTotals(tripId: string): Promise<ExpenseTotalRow[]> {
+  const { data, error } = await requireClient()
+    .from("expenses")
+    .select(EXPENSE_TOTAL_COLUMNS)
+    .eq("trip_id", tripId);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 /** Fast entry: converts at the spent_on day's rate. Throws "fx" when the
  *  currency can't be converted (UI shows a specific Hebrew message). */
 export async function createExpense(input: {
@@ -312,7 +331,14 @@ export async function createExpense(input: {
  *  rather than failing the whole batch. */
 export async function createExpenses(
   lines: { amount: number; currency: string; description?: string | null }[],
-  opts: { categoryId: string; spentOn?: string }
+  opts: {
+    categoryId: string;
+    spentOn?: string;
+    /** 00089: every line paid from the cash wallet of its currency. */
+    paidInCash?: boolean;
+    /** 00082: every line is an ATM withdrawal (the caller passes the cash category). */
+    isCashWithdrawal?: boolean;
+  }
 ): Promise<{ saved: number; failed: { description: string; reason: "fx" }[] }> {
   const supabase = requireClient();
   const [trip, member] = await Promise.all([getActiveTrip(), getCurrentMember()]);
@@ -343,6 +369,8 @@ export async function createExpenses(
       amount_ils: Math.round(line.amount * rate * 100) / 100,
       description: line.description?.trim() || null,
       spent_on: spentOn,
+      is_cash_withdrawal: opts.isCashWithdrawal ?? false,
+      paid_in_cash: !opts.isCashWithdrawal && (opts.paidInCash ?? false),
       created_by: member.id,
     });
   }

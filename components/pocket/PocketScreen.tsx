@@ -137,7 +137,7 @@ export function PocketScreen() {
 
       {isOwner && shownKids.length === 0 && (
         <section className="ot-card p-8 text-center">
-          <CoinIcon className="mx-auto mb-3 h-10 w-10 text-line" />
+          <CoinIcon className="mx-auto mb-3 h-10 w-10 text-ink-faint" />
           <h2 className="mb-2 text-lg font-bold text-ink">{strings.pocket.noKids}</h2>
           <p className="mb-4 text-sm text-ink-soft">{strings.pocket.noKidsBody}</p>
           <Link
