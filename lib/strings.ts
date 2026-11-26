@@ -254,6 +254,8 @@ export const strings = {
     offlineReady: "שמור במכשיר - נפתח גם בלי אינטרנט",
     title: "חירום",
     sos: "SOS",
+    // the strip above every phone screen (SosStrip)
+    sosStripLabel: "דף חירום - מספרי חירום, שגרירות וביטוח",
     numbers: "מספרי חירום",
     police: "משטרה",
     ambulance: "אמבולנס",
@@ -2182,6 +2184,10 @@ export const strings = {
     reject: "דחייה",
     shareToggle: "שיתוף עם אורחים",
     shared: "משותף",
+    // a kid's own photo, approved but not (yet) shared: three clear states -
+    // ממתין לאישור / רק במשפחה / משותף עם החברים
+    familyOnly: "רק במשפחה",
+    sharedWithFriends: "משותף עם החברים",
     deleteConfirm: "למחוק את התמונה?",
   },
 
@@ -2433,13 +2439,6 @@ export const strings = {
 
   // app/error.tsx: a screen that broke while drawing. The bar below stays,
   // so a kid can still tap another tab; this says so in plain words.
-  screenError: {
-    title: "משהו השתבש במסך הזה",
-    body: "זה לא באשמתכם. אפשר לנסות שוב, או לחזור לדף הבית.",
-    retry: "ניסיון נוסף",
-    home: "לדף הבית",
-  },
-
   offline: {
     banner: "אין חיבור לאינטרנט - חלק מהמסכים לא זמינים",
     synced: "הרישומים שנשמרו במצב לא מקוון סונכרנו",
@@ -2455,6 +2454,24 @@ export const strings = {
     loadFailed: "לא הצלחנו לטעון את המסך",
     loadFailedOffline: "אין חיבור כרגע, לכן לא הצלחנו לטעון. ננסה שוב כשהחיבור יחזור",
     actionFailedOffline: "אין חיבור כרגע - נסו שוב כשהחיבור יחזור",
+  },
+
+  // app/error.tsx and app/global-error.tsx: a screen crashed while drawing.
+  // Points at the screens that work offline, as /offline does, so a crash on
+  // the road is never a dead end.
+  screenError: {
+    title: "משהו השתבש במסך הזה",
+    body: "זה לא באשמתכם. אפשר לנסות שוב, או לעבור למסך אחר:",
+    retry: "ניסיון נוסף",
+    home: "למסך הבית",
+    // settings, parents only: the crashes kept on this device
+    logTitle: "תקלות שנרשמו במכשיר",
+    logEmpty: "לא נרשמו תקלות במכשיר הזה",
+    logCount: "{n} תקלות אחרונות, נשמרות רק במכשיר הזה",
+    logCopy: "העתקה",
+    logCopied: "הועתק",
+    logClear: "ניקוי",
+    logOffline: "בלי חיבור",
   },
 
   // The /offline route: the service worker serves it when a screen that was

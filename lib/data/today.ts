@@ -27,6 +27,22 @@ export function peekToday(): TodayData | null {
   return lastLive && lastLive.date === todayISO() ? lastLive : null;
 }
 
+/**
+ * Cache-first (Lie-Fi): today's device copy, only if it is today's, so the
+ * screen draws at once on a weak line while loadToday asks the network. A copy
+ * from another day is not shown here - loadToday still falls back to it, with
+ * the "device copy" banner, once the network has failed.
+ */
+export async function peekTodaySnapshot(): Promise<TodayData | null> {
+  try {
+    const snapshot = await readTodaySnapshot();
+    if (!snapshot || snapshot.date !== todayISO()) return null;
+    return { date: snapshot.date, day: snapshot.day, items: snapshot.items, bookings: snapshot.bookings };
+  } catch {
+    return null;
+  }
+}
+
 export async function loadToday(): Promise<{
   data: TodayData;
   fromCache: boolean;

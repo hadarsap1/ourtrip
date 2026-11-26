@@ -718,9 +718,16 @@ function FamilyPhotosView() {
                       : strings.audience.allGuests}
                   </button>
                 )}
-                {!isOwner && photo.shared_with_guests && (
-                  <span className="font-semibold text-sea">
-                    {strings.photos.shared}
+                {/* kids: every photo of their own says where it stands - waiting
+                    (above), family only, or out to friends; never guessed */}
+                {!isOwner && photo.status === "approved" && photo.shared_with_guests && (
+                  <span className="inline-block rounded-full bg-sea-tint px-2 py-0.5 font-semibold text-sea">
+                    {photo.uploaded_by === member?.id ? strings.photos.sharedWithFriends : strings.photos.shared}
+                  </span>
+                )}
+                {!isOwner && photo.status === "approved" && !photo.shared_with_guests && photo.uploaded_by === member?.id && (
+                  <span className="inline-block rounded-full border border-line px-2 py-0.5 font-semibold text-ink-soft">
+                    {strings.photos.familyOnly}
                   </span>
                 )}
                 {isOwner && (

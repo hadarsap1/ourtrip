@@ -21,7 +21,7 @@ import {
   WeatherIcon,
 } from "@/components/icons";
 import { countryName } from "@/lib/data/emergency";
-import { loadToday, peekToday, type TodayData } from "@/lib/data/today";
+import { loadToday, peekToday, peekTodaySnapshot, type TodayData } from "@/lib/data/today";
 import {
   loadTodayDashboard,
   peekTodayDashboard,
@@ -110,23 +110,44 @@ export function TodayScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    void loadToday().then((r) => {
-      if (cancelled) return;
-      setResult(r);
-      setLoading(false);
-      if (!r) return;
+    let settled = false;
+    let extrasFor: string | null = null;
+    // weather and the mini-map follow the day's place and items; asked again
+    // only when the fresh answer moved them
+    const loadExtras = (data: TodayData) => {
+      const day = data.day;
+      const key = `${data.date}|${day?.lat ?? ""},${day?.lng ?? ""}|${data.items.map((i) => i.id).join(",")}`;
+      if (key === extrasFor) return;
+      extrasFor = key;
       // weather for today's location (Open-Meteo, cached)
-      const day = r.data.day;
       if (day?.lat != null && day.lng != null) {
-        void getDayWeather(r.data.date, day.lat, day.lng).then((w) => {
+        void getDayWeather(data.date, day.lat, day.lng).then((w) => {
           if (!cancelled) setWeather(w);
         });
       }
       // mini-map: static snapshot of today's item area, cached offline
-      void getTodayMapSnapshotUrl(r.data.items).then((url) => {
+      void getTodayMapSnapshotUrl(data.items).then((url) => {
         if (!cancelled) setMapUrl(url);
         else if (url) URL.revokeObjectURL(url);
       });
+    };
+    // Cache-first (Lie-Fi): today's device copy draws at once while the
+    // network answers; no banner yet, since it may well be current. If the
+    // network then fails, loadToday returns the same copy marked fromCache.
+    // the in-memory answer (peekToday) already painted on a return to the tab;
+    // a cold open takes the device copy instead
+    if (!peekToday()) void peekTodaySnapshot().then((data) => {
+      if (cancelled || settled || !data) return;
+      setResult({ data, fromCache: false });
+      setLoading(false);
+      loadExtras(data);
+    });
+    void loadToday().then((r) => {
+      if (cancelled) return;
+      settled = true;
+      setResult(r);
+      setLoading(false);
+      if (r) loadExtras(r.data);
     });
     // getActiveTrip caches and collapses in-flight calls, and loadToday above
     // asks for the same thing, so this resolves on that round trip rather than

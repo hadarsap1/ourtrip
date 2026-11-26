@@ -12,12 +12,13 @@ import { AiBudgetCard } from "@/components/settings/AiBudgetCard";
 import { MyKidsCard } from "@/components/settings/MyKidsCard";
 import { GuestEmailCard, GuestPushCard } from "@/components/settings/GuestPushCard";
 import { PreviewCard } from "@/components/settings/PreviewCard";
+import { ErrorLogCard } from "@/components/settings/ErrorLogCard";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
 /**
  * Settings, reached from the gear on More. Each card decides for itself who
- * sees it (steps, AI budget and backup: parents only; my kids, push and the daily email: guests only; view as: parents only);
+ * sees it (steps, AI budget and backup: parents only; my kids, push and the daily email: guests only; view as and the device's error log: parents only);
  * access is still RLS.
  */
 export function SettingsScreen() {
@@ -45,6 +46,7 @@ export function SettingsScreen() {
       <BudgetCategoriesCard />
       <AiBudgetCard />
       <BackupCard />
+      <ErrorLogCard />
     </div>
   );
 }

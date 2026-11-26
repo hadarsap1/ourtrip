@@ -64,15 +64,35 @@ export async function listEntries(
   } catch {
     const snapshot = await readPhrasebookSnapshot(language);
     if (!snapshot) return { entries: [], fromCache: true };
-    return {
-      entries: snapshot.entries.map((e) => ({
-        ...e,
-        trip_id: "",
-        language,
-        country_code: null,
-      })),
-      fromCache: true,
-    };
+    return { entries: fromSnapshot(language, snapshot.entries), fromCache: true };
+  }
+}
+
+function fromSnapshot(
+  language: string,
+  entries: NonNullable<Awaited<ReturnType<typeof readPhrasebookSnapshot>>>["entries"]
+): PhrasebookEntry[] {
+  return entries.map((e) => ({ ...e, trip_id: "", language, country_code: null }));
+}
+
+/**
+ * Cache-first (Lie-Fi): the device's languages and the entries of the one the
+ * screen would open on, read from IndexedDB only, so the phrasebook draws at
+ * once on a weak line. `country` is today's country from the device copy of
+ * today. Null when nothing is stored.
+ */
+export async function peekPhrasebook(
+  country: string | null
+): Promise<{ languages: string[]; selected: string; entries: PhrasebookEntry[] } | null> {
+  try {
+    const languages = (await listPhrasebookLanguages()).sort();
+    const selected = pickPhrasebookLanguage(languages, country);
+    if (!selected) return null;
+    const snapshot = await readPhrasebookSnapshot(selected);
+    if (!snapshot) return null;
+    return { languages, selected, entries: fromSnapshot(selected, snapshot.entries) };
+  } catch {
+    return null;
   }
 }
 

@@ -11,6 +11,7 @@ import {
   languageName,
   listEntries,
   listLanguages,
+  peekPhrasebook,
   pickPhrasebookLanguage,
   batchChanged,
   entryIds,
@@ -27,6 +28,7 @@ import { strings } from "@/lib/strings";
 import { aiLimitMessage } from "@/lib/aiLimit";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import type { PhrasebookEntry, Trip } from "@/lib/types";
+import { readTodaySnapshot } from "@/lib/offline/caches";
 
 export function PhrasebookScreen() {
   const { member } = useMember();
@@ -71,6 +73,19 @@ export function PhrasebookScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let fresh = false;
+    // Cache-first (Lie-Fi): what the device holds draws at once; the network
+    // answer below replaces it, and a failed one shows the same copy with the
+    // "device copy" banner.
+    void (async () => {
+      const today = await readTodaySnapshot().catch(() => null);
+      const peek = await peekPhrasebook(today?.day?.country_code ?? null);
+      if (cancelled || fresh || !peek) return;
+      setLanguages(peek.languages);
+      setSelected((current) => current ?? peek.selected);
+      setEntries(peek.entries);
+      setLoading(false);
+    })();
     void (async () => {
       // offline-critical: trip may be unreachable - cached languages still load
       const activeTrip = await getActiveTrip();
@@ -84,6 +99,7 @@ export function PhrasebookScreen() {
           .catch(() => null),
       ]);
       if (cancelled) return;
+      fresh = true;
       setLanguages(langs);
       const first = pickPhrasebookLanguage(langs, country);
       if (first) {

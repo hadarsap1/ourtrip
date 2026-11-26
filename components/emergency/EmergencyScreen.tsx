@@ -19,7 +19,7 @@ import { useMember } from "@/lib/useMember";
 import { CheckIcon, EditIcon, SparkleIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { aiLimitMessage } from "@/lib/aiLimit";
-import { readEmergencySnapshots } from "@/lib/offline/caches";
+import { readEmergencySnapshots, readTodaySnapshot } from "@/lib/offline/caches";
 import { ScreenSkeleton } from "@/components/ui/Skeleton";
 import { isEnabled } from "@/lib/flags";
 import type { Trip } from "@/lib/types";
@@ -33,19 +33,31 @@ function TelRow({ label, value }: { label: string; value?: string }) {
       className="flex items-center justify-between rounded-xl bg-surface px-3 py-3 shadow-sm"
     >
       <span className="text-sm font-medium text-ink">{label}</span>
-      <span className="text-lg font-bold text-alert" dir="ltr">
+      <span className="inline-block text-lg font-bold text-alert tabular-nums [unicode-bidi:isolate]" dir="ltr">
         {value}
       </span>
     </a>
   );
 }
 
+// An embassy or hotel address, a policy number: often Latin or local script.
+// Given its own direction and isolated, so "12 Nguyen Hue, D1" or "POL-4471/2"
+// is not reordered by the Hebrew around it - this page is shown to a taxi
+// driver or a hospital clerk. Either way it sits at the row's left edge.
+const HEBREW = /[\u0590-\u05FF]/;
+
 function InfoRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
+  const rtl = HEBREW.test(value);
   return (
     <div className="flex items-baseline justify-between gap-3 px-3 py-2">
       <span className="shrink-0 text-sm text-ink-soft">{label}</span>
-      <span className="text-end text-sm font-medium text-ink">{value}</span>
+      <span
+        dir={rtl ? "rtl" : "ltr"}
+        className={`${rtl ? "text-end" : "text-start"} text-sm font-medium text-ink [unicode-bidi:isolate]`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -110,6 +122,35 @@ export function EmergencyScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let fresh = false;
+    // Cache-first (Lie-Fi): the device copy of every country draws at once,
+    // before the trip and the pages come back from a weak line. The network
+    // answer replaces it; if that fails, refresh shows the same copy with the
+    // "device copy" banner.
+    void (async () => {
+      const snaps = await readEmergencySnapshots().catch(() => []);
+      if (cancelled || fresh || snaps.length === 0) return;
+      setPages(
+        snaps.map((x) => ({
+          countryCode: x.countryCode,
+          content: x.content as EmergencyContent,
+          updatedAt: x.updatedAt,
+        }))
+      );
+      setOfflineReady(new Set(snaps.map((x) => x.countryCode)));
+      const todaySnap = await readTodaySnapshot().catch(() => null);
+      if (cancelled || fresh) return;
+      setSelected(
+        (current) =>
+          current ??
+          pickEmergencyCountry(
+            snaps.map((x) => x.countryCode),
+            todaySnap?.day?.country_code ?? null,
+            null
+          )
+      );
+      setLoading(false);
+    })();
     void (async () => {
       const activeTrip = await getActiveTrip();
       // offline-critical: even without a trip row (offline start), cached
@@ -118,6 +159,7 @@ export function EmergencyScreen() {
       const tripId = activeTrip?.id ?? "";
       try {
         const nextPages = await refresh(tripId);
+        fresh = true;
         if (cancelled) return;
         const snaps = await readEmergencySnapshots().catch(() => []);
         if (!cancelled) setOfflineReady(new Set(snaps.map((x) => x.countryCode)));
