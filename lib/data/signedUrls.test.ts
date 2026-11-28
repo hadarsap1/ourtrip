@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   onSignedOut: () => {},
 }));
 
-const { signPaths, clearSignedCache, splitCached, rememberSigned, REUSE_MARGIN_MS } = await import("./signedUrls");
+const { signPaths, clearSignedCache, forgetSignedUrl, splitCached, rememberSigned, REUSE_MARGIN_MS } = await import("./signedUrls");
 
 describe("signPaths", () => {
   beforeEach(() => {
@@ -37,6 +37,14 @@ describe("signPaths", () => {
     await signPaths("photos", ["t/a.jpg"], 3600);
     await signPaths("gphotos", ["t/a.jpg"], 3600);
     expect(createSignedUrls).toHaveBeenCalledTimes(2);
+  });
+
+  it("signs again a URL that failed to load (28/11/2026)", async () => {
+    const first = await signPaths("photos", ["t/a.jpg"], 3600);
+    forgetSignedUrl(first.get("t/a.jpg")!);
+    const second = await signPaths("photos", ["t/a.jpg"], 3600);
+    expect(createSignedUrls).toHaveBeenCalledTimes(2);
+    expect(second.get("t/a.jpg")).not.toBe(first.get("t/a.jpg"));
   });
 });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { SignedImg } from "@/components/photos/SignedImg";
 import { useState } from "react";
 import Link from "next/link";
 import { EditIcon } from "@/components/icons";
@@ -112,9 +113,10 @@ export function PhotoDayCard({
 function Thumb({ photo, single }: { photo: ViewedPhoto; single: boolean }) {
   if (!photo.url) return <div className={single ? "aspect-[4/3]" : "aspect-square"} />;
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- signed URL
-    <img
+    <SignedImg
+      photoId={photo.id}
       src={single ? photo.url : (photo.thumbUrl ?? photo.url)}
+      thumb={!single && Boolean(photo.thumbUrl)}
       alt={photo.caption ?? ""}
       loading="lazy"
       className={`w-full object-cover ${single ? "aspect-[4/3]" : "aspect-square"}`}

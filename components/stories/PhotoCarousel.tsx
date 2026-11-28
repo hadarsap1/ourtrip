@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { VideoFrame } from "@/components/photos/VideoFrame";
+import { SignedImg } from "@/components/photos/SignedImg";
 import { PhotoLightbox } from "@/components/stories/PhotoLightbox";
 import { strings } from "@/lib/strings";
 
@@ -20,6 +21,9 @@ import { strings } from "@/lib/strings";
  * button, the video itself only after a tap.
  *
  * A tap on a photo opens it big, on the whole screen (Hadar 24/11/2026).
+ *
+ * The later slides load only when swiped to, after their link may have run
+ * out (15 minutes for a guest): SignedImg signs a failed one again.
  */
 
 const TALLEST = 4 / 5;
@@ -90,12 +94,12 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
               aria-label={strings.stories.openPhoto}
               className="h-full w-full shrink-0 snap-start cursor-zoom-in"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-              <img
-                src={p.url ?? undefined}
+              <SignedImg
+                photoId={p.photoId}
+                src={p.url ?? ""}
                 alt={alt}
                 loading={i === 0 ? "eager" : "lazy"}
-                ref={firstRef}
+                imgRef={firstRef}
                 onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
                 className="h-full w-full object-contain"
               />

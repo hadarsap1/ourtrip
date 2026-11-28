@@ -1,5 +1,6 @@
 "use client";
 
+import { SignedImg } from "@/components/photos/SignedImg";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toast } from "@/components/Toast";
 import { getActiveTrip } from "@/lib/data/trip";
@@ -849,15 +850,21 @@ function PhotoTile({
   badge,
   onOpen,
 }: {
-  photo: { url: string | null; caption: string | null; videoUrl?: string | null; thumbUrl?: string | null };
+  photo: { id: string; url: string | null; caption: string | null; videoUrl?: string | null; thumbUrl?: string | null };
   badge: FeedbackBadge;
   onOpen: () => void;
 }) {
   if (!photo.url) return null;
   return (
     <button type="button" onClick={onOpen} aria-label={strings.photos.open} className="relative block w-full">
-      {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-      <img src={photo.thumbUrl ?? photo.url} alt={photo.caption ?? ""} loading="lazy" className="aspect-square w-full bg-green-soft object-cover" />
+      <SignedImg
+        photoId={photo.id}
+        src={photo.thumbUrl ?? photo.url}
+        thumb={Boolean(photo.thumbUrl)}
+        alt={photo.caption ?? ""}
+        loading="lazy"
+        className="aspect-square w-full bg-green-soft object-cover"
+      />
       {photo.videoUrl && <VideoBadge className="absolute start-2.5 top-2.5" />}
       <span className="absolute bottom-2 start-2">
         <FeedbackCount overlay comments={badge.comments} likes={badge.likes} isNew={badge.isNew} />
