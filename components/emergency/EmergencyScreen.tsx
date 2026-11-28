@@ -191,7 +191,13 @@ export function EmergencyScreen() {
   // Route order, not alphabetical: sorted by ISO code the chips read Georgia,
   // Japan, Cambodia... and the country you are in could sit off-screen.
   const allCountries = [
-    ...new Set([...countryOptions, ...pages.map((p) => p.countryCode)]),
+    ...new Set([
+      ...countryOptions,
+      ...pages.map((p) => p.countryCode),
+      // Offline the route's countries are unknown; today's country is still
+      // selected, so it keeps its chip (QA 28/11/2026).
+      ...(selected ? [selected] : []),
+    ]),
   ];
   const page = selected
     ? (pages.find((p) => p.countryCode === selected) ?? null)

@@ -54,6 +54,14 @@ export function FactsScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The row opens on today's place, which is usually near the end of the
+  // trip: bring its chip into view (QA 28/11/2026 - it sat off-screen).
+  const chipsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    chipsRef.current
+      ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [selected, destinations]);
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(message);
@@ -187,7 +195,7 @@ export function FactsScreen() {
       )}
 
       {destinations.length > 1 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div ref={chipsRef} className="flex gap-1.5 overflow-x-auto pb-1">
           {destinations.map((dest) => {
             const key = destinationKey(dest.countryCode, dest.locationName);
             const on =
@@ -198,6 +206,7 @@ export function FactsScreen() {
               <button
                 key={key}
                 type="button"
+                aria-pressed={on}
                 onClick={() => void select(dest)}
                 className={`min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
                   on ? "bg-sea text-on-sea" : "bg-surface text-ink-soft shadow-sm"
