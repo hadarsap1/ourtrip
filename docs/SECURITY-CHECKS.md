@@ -3531,3 +3531,15 @@ service_role only. Offline: online only, the screen shows the load-failed notice
 | Full RLS suite, tsc, lint, vitest, build | ✅ local |
 | Realtime across two sessions | ❌ not verified: no Realtime in the local stack |
 | friend-auth, push-send, backup-weekly deployed; 00110 applied to production | ❌ not done, waits for Hadar's go-ahead |
+
+Review follow-up (28/11/2026, no schema change):
+
+| Check | Result |
+|---|---|
+| `check` action spends nothing and reveals only live / not live; a wrong code counts against the shared cap (00108) like a wrong redeem | ✅ by code (same read and `kid_register_failed` as redeem, returns before any write) |
+| Lost redeem race (two tablets, one code) counts as a wrong code | ✅ by code |
+| Orphaned auth user on a failed cleanup is logged by id | ✅ by code (`orphan_auth_user`) |
+| Friend code drawn uniformly over the alphabet | ✅ by code (rejection sampling, bytes ≥ 248 dropped) |
+| Friend's PIN typed twice, hidden | ✅ by code |
+| Another chat's DELETE no longer reloads this chat | ✅ by code (dropped in place only if the id is loaded here) |
+| Realtime across two sessions | ❌ still not verified: no Docker daemon in the review container either. Manual check before merge: kid tablet + friend tablet in one chat, send each way, a parent deletes one message, both screens update without a reload |

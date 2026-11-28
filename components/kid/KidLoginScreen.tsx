@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { resetAuthGate } from "@/components/AuthGate";
-import { isKidDevice, registerDevice, registerFriendDevice, unlockWithPin, type RegisterResult } from "@/lib/data/kids";
+import { checkFriendCode, isKidDevice, registerDevice, registerFriendDevice, unlockWithPin, type RegisterResult } from "@/lib/data/kids";
 import { isFriendCode, isPin } from "@/lib/friendCode";
 import { CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
@@ -22,6 +22,9 @@ export function KidLoginScreen() {
   const setPhase = setOverride;
   const [code, setCode] = useState("");
   const [pin, setPin] = useState("");
+  // the friend's PIN is typed twice: a typo would lock the tablet for good,
+  // since the code is spent and a friend has no PIN reset
+  const [pinAgain, setPinAgain] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -29,13 +32,23 @@ export function KidLoginScreen() {
     e.preventDefault();
     if (busy || code.trim().length < 6) return;
     setMessage(null);
-    // a friend's family chooses the secret code before the tablet is bound
+    setBusy(true);
+    // a friend's family chooses the secret code before the tablet is bound -
+    // once the server says the code is live, so a dead one is told now
     if (isFriendCode(code)) {
-      setPin("");
-      setPhase("friendPin");
+      const result = await checkFriendCode(code.trim()).catch(
+        () => ({ status: "network" }) as const
+      );
+      if (result.status === "ok") {
+        setPin("");
+        setPinAgain("");
+        setPhase("friendPin");
+        setBusy(false);
+      } else {
+        showRegisterResult(result);
+      }
       return;
     }
-    setBusy(true);
     const result = await registerDevice(code.trim()).catch(
       () => ({ status: "network" }) as const
     );
@@ -45,6 +58,11 @@ export function KidLoginScreen() {
   async function handleFriendPin(e: React.FormEvent) {
     e.preventDefault();
     if (busy || !isPin(pin)) return;
+    if (pin !== pinAgain) {
+      setPinAgain("");
+      setMessage(strings.kidLogin.friendPinMismatch);
+      return;
+    }
     setBusy(true);
     setMessage(null);
     const result = await registerFriendDevice(code.trim(), pin).catch(
@@ -127,24 +145,51 @@ export function KidLoginScreen() {
           <p className="mb-6 text-center text-sm text-ink-soft">{strings.kidLogin.friendPinHint}</p>
           <form onSubmit={(e) => void handleFriendPin(e)} className="space-y-4">
             <input
-              type="text"
+              type="password"
               inputMode="numeric"
+              autoComplete="new-password"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               maxLength={6}
               autoFocus
-              aria-label={strings.kidLogin.friendPinTitle}
-              className="w-full rounded-2xl border-2 border-line px-4 py-4 text-center text-2xl font-bold tracking-[0.4em] focus:border-sea focus:outline-none"
+              aria-label={strings.kidLogin.friendPinLabel}
+              placeholder={strings.kidLogin.friendPinLabel}
+              className="w-full rounded-2xl border-2 border-line px-4 py-4 text-center text-2xl font-bold tracking-[0.4em] placeholder:text-base placeholder:font-normal placeholder:tracking-normal focus:border-sea focus:outline-none"
+              dir="ltr"
+            />
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              value={pinAgain}
+              onChange={(e) => setPinAgain(e.target.value.replace(/\D/g, ""))}
+              maxLength={6}
+              aria-label={strings.kidLogin.friendPinConfirmLabel}
+              placeholder={strings.kidLogin.friendPinConfirmLabel}
+              className="w-full rounded-2xl border-2 border-line px-4 py-4 text-center text-2xl font-bold tracking-[0.4em] placeholder:text-base placeholder:font-normal placeholder:tracking-normal focus:border-sea focus:outline-none"
               dir="ltr"
             />
             <button
               type="submit"
-              disabled={busy || !isPin(pin)}
+              disabled={busy || !isPin(pin) || pinAgain.length < 4}
               className="w-full rounded-2xl bg-sea py-4 text-lg font-bold text-on-sea hover:bg-sea-deep disabled:opacity-50"
             >
               {strings.kidLogin.connect}
             </button>
           </form>
+          <button
+            type="button"
+            onClick={() => {
+              setPin("");
+              setPinAgain("");
+              setMessage(null);
+              setPhase("register");
+            }}
+            disabled={busy}
+            className="mt-4 inline-flex min-h-[44px] items-center justify-center self-center text-sm text-ink-soft underline"
+          >
+            {strings.kidLogin.friendBackToCode}
+          </button>
         </>
       ) : phase === "register" ? (
         <>

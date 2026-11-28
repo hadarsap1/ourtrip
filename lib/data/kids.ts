@@ -198,18 +198,31 @@ export function isFriendDevice(): boolean {
 
 /** Redeems a friend code (00110) with the PIN the friend's family chose, and
  *  binds this tablet the way a kid's is bound. */
+async function friendAuthError(error: unknown): Promise<Exclude<RegisterResult, { status: "ok" }>> {
+  if (!(error instanceof FunctionsHttpError)) return { status: "network" };
+  const status = error.context.status;
+  if (status === 400 || status === 401) return { status: "invalid" };
+  if (status === 429) return { status: "busy" };
+  const payload = (await error.context.json().catch(() => ({}))) as { error?: string };
+  return { status: "server", detail: String(payload.error ?? status) };
+}
+
+/** Is a friend code live? Spends nothing: asked before the friend's family
+ *  picks a PIN, so a wrong or expired code is told right away. */
+export async function checkFriendCode(code: string): Promise<RegisterResult> {
+  const { data, error } = await requireClient().functions.invoke("friend-auth", {
+    body: { action: "check", code },
+  });
+  if (error) return friendAuthError(error);
+  if (!data?.ok) return { status: "server", detail: String(data?.error ?? "unknown") };
+  return { status: "ok", displayName: "" };
+}
+
 export async function registerFriendDevice(code: string, pin: string): Promise<RegisterResult> {
   const { data, error } = await requireClient().functions.invoke("friend-auth", {
     body: { action: "redeem", code, pin },
   });
-  if (error) {
-    if (!(error instanceof FunctionsHttpError)) return { status: "network" };
-    const status = error.context.status;
-    if (status === 400 || status === 401) return { status: "invalid" };
-    if (status === 429) return { status: "busy" };
-    const payload = (await error.context.json().catch(() => ({}))) as { error?: string };
-    return { status: "server", detail: String(payload.error ?? status) };
-  }
+  if (error) return friendAuthError(error);
   if (!data?.ok) return { status: "server", detail: String(data?.error ?? "unknown") };
   const member = data.member as { display_name: string };
   localStorage.setItem(DEVICE_TOKEN_KEY, data.device_token as string);

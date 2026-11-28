@@ -3,6 +3,9 @@
 //   create-code  (owner JWT required - checked in-function)
 //     owner picks a family kid + the friend's name → one-time 8-char code,
 //     48 hours. Only its SHA-256 is stored.
+//   check        (unauthenticated) is the code live? Nothing is spent, so the
+//     tablet can ask before the friend's family picks a PIN. A wrong code
+//     counts against the same cap as a wrong redeem.
 //   redeem       (unauthenticated by design: the tablet has no JWT yet)
 //     code + a PIN the friend's family chooses → a guest member for the
 //     friend, bound to this device exactly like a kid's tablet. Every later
@@ -63,9 +66,18 @@ async function hashPin(pin: string): Promise<string> {
   return `${toHex(salt)}:${await derivePin(pin, salt)}`;
 }
 
+/** Uniform over the alphabet: a plain `byte % 31` would favour its first 8
+ *  letters (256 is not a multiple of 31), so bytes past the last whole
+ *  multiple are thrown away and drawn again. */
 function randomCode(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
-  return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
+  const limit = 256 - (256 % CODE_ALPHABET.length); // 248
+  let code = "";
+  while (code.length < CODE_LENGTH) {
+    for (const b of crypto.getRandomValues(new Uint8Array(CODE_LENGTH))) {
+      if (b < limit && code.length < CODE_LENGTH) code += CODE_ALPHABET[b % CODE_ALPHABET.length];
+    }
+  }
+  return code;
 }
 
 // Browser calls this cross-origin (Vercel -> *.supabase.co), so every response
@@ -157,19 +169,20 @@ Deno.serve(async (req) => {
     return json({ ok: true, code, expires_in_hours: CODE_TTL_HOURS });
   }
 
-  // ---------- redeem (the friend's tablet) ----------
-  if (text("action") === "redeem") {
+  // ---------- check / redeem (the friend's tablet) ----------
+  const action = text("action");
+  if (action === "check" || action === "redeem") {
     const code = text("code").toUpperCase();
     const pin = text("pin");
     if (code.length !== CODE_LENGTH) return json({ ok: false, error: "bad code" }, 400);
-    if (!/^\d{4,6}$/.test(pin)) return json({ ok: false, error: "bad pin" }, 400);
+    if (action === "redeem" && !/^\d{4,6}$/.test(pin)) return json({ ok: false, error: "bad pin" }, 400);
 
     const { data: allowed, error: gateError } = await service.rpc("kid_register_allowed");
     if (gateError) return failed("register_gate_failed", gateError.message);
     if (allowed !== true) return json({ ok: false, error: "too_many_attempts" }, 429);
 
     const codeHash = await sha256Hex(code);
-    const { data: link } = await service
+    const { data: link, error: linkError } = await service
       .from("friend_links")
       .select("id")
       .eq("code_hash", codeHash)
@@ -177,10 +190,12 @@ Deno.serve(async (req) => {
       .is("revoked_at", null)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
+    if (linkError) return failed("link_read_failed", linkError.message);
     if (!link) {
       await service.rpc("kid_register_failed");
       return json({ ok: false, error: "invalid code" }, 401);
     }
+    if (action === "check") return json({ ok: true });
 
     // the address is made up and never mailed; the shape is the one kid-auth
     // `unlock` signs in with
@@ -203,9 +218,16 @@ Deno.serve(async (req) => {
       p_pin_hash: await hashPin(pin),
     });
     if (redeemError || !friendName) {
-      // nothing was written; the account made for it goes too
-      await service.auth.admin.deleteUser(created.user.id);
+      // nothing was written; the account made for it goes too. If that fails
+      // as well, the log names the orphan so it can be removed by hand.
+      const { error: deleteError } = await service.auth.admin.deleteUser(created.user.id);
+      if (deleteError) {
+        console.error(`friend-auth: orphan_auth_user ${created.user.id}: ${deleteError.message}`);
+      }
       if (redeemError) return failed("redeem_failed", redeemError.message);
+      // spent or revoked between the read above and here (two tablets, one
+      // code): a wrong code like any other
+      await service.rpc("kid_register_failed");
       return json({ ok: false, error: "invalid code" }, 401);
     }
 

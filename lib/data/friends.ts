@@ -64,18 +64,31 @@ export async function markFriendRead(linkId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** New and deleted messages of one chat; the screen reloads on any of them. */
-export function subscribeFriendMessages(linkId: string, onChange: () => void): () => void {
+/** New and deleted messages of one chat. A new one reloads the chat; a delete
+ *  hands over the id, and the screen drops it only if it is one of its own. */
+export function subscribeFriendMessages(
+  linkId: string,
+  onInsert: () => void,
+  onDelete: (messageId: string) => void
+): () => void {
   const supabase = requireClient();
   const channel = supabase
     .channel(realtimeTopic(`friend:${linkId}`))
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "friend_messages", filter: `link_id=eq.${linkId}` },
-      onChange
+      onInsert
     )
-    // a delete carries only the id, so it cannot be filtered by chat
-    .on("postgres_changes", { event: "DELETE", schema: "public", table: "friend_messages" }, onChange)
+    // a delete carries only the id, so it cannot be filtered by chat on the
+    // server; any chat's delete arrives here and the screen sorts it out
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "friend_messages" },
+      (payload) => {
+        const id = (payload.old as { id?: string } | null)?.id;
+        if (id) onDelete(id);
+      }
+    )
     .subscribe();
   return () => {
     void supabase.removeChannel(channel);

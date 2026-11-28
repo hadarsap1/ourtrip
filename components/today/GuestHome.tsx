@@ -14,6 +14,7 @@ import { listEpisodes } from "@/lib/data/podcast";
 import { latestStory, listStoryStamps } from "@/lib/data/stories";
 import { listMembers } from "@/lib/data/trip";
 import { formatDate } from "@/lib/format";
+import { isFriendEmail } from "@/lib/friends";
 import { countSince, newLabel, pickQuote, takeLastVisit } from "@/lib/guestVisit";
 import { familyClock } from "@/lib/inTrip";
 import { kidTagText } from "@/lib/kidTag";
@@ -62,8 +63,9 @@ export function GuestHome({
   albumFresh: number;
   unreadWall: number;
 }) {
-  // a kid's friend (00110) has a private chat; every other guest gets none
-  const friends = useFriendChannels(true);
+  // a kid's friend (00110) has a private chat; every other guest gets none,
+  // so they never ask
+  const friends = useFriendChannels(isFriendEmail(member.email));
   const g = strings.guestHome;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   // bumped by "try again" on the partial-load line

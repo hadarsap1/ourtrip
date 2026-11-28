@@ -61,7 +61,12 @@ export function FriendChat({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set after the fetch
     void load();
-    const unsubscribe = subscribeFriendMessages(channel.link_id, () => void load());
+    const unsubscribe = subscribeFriendMessages(
+      channel.link_id,
+      () => void load(),
+      // another chat's delete is ignored; this chat's is dropped in place, no refetch
+      (id) => setMessages((prev) => (prev && prev.some((m) => m.id === id) ? prev.filter((m) => m.id !== id) : prev))
+    );
     // a phone that slept missed what was sent meanwhile
     const onVisible = () => {
       if (document.visibilityState === "visible") void load();
