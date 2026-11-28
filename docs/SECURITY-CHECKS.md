@@ -3543,3 +3543,28 @@ Review follow-up (28/11/2026, no schema change):
 | Friend's PIN typed twice, hidden | ✅ by code |
 | Another chat's DELETE no longer reloads this chat | ✅ by code (dropped in place only if the id is loaded here) |
 | Realtime across two sessions | ❌ still not verified: no Docker daemon in the review container either. Manual check before merge: kid tablet + friend tablet in one chat, send each way, a parent deletes one message, both screens update without a reload |
+
+## One friend, a chat with each kid (28/11/2026, migration 00111)
+
+Policies: unchanged from 00110 (a chat is still one `friend_links` row and
+every `friend_messages` policy is per chat, so `my_friend_link_ids()` gives a
+kid only the rows where they are the kid). Changed: `current_member_id()`
+resolves a friend while at least one of their chats is open and a device is
+bound; `friend_revoke()` cuts every chat of the friend. New, owner only (by
+`member_trip_as('owner')` inside, security definer): `friend_add_kid()`,
+`friend_close_chat()`. A partial unique index allows one open chat per friend
+and kid. Offline: online only, as 00110.
+
+| Check | Result |
+|---|---|
+| Only a parent adds a kid or closes a chat (friend, kid, guest refused) | ✅ probe 111, local Postgres |
+| Added only to a connected friend, only with a real kid of the trip, never twice | ✅ probe 111 |
+| Friend sees a chat per kid; each kid reads and writes only their own | ✅ probe 111 |
+| Closing one chat: friend stays connected through the other, cannot write in the closed one, the kid of the closed one loses it, parents still read it | ✅ probe 111 |
+| Closing the last chat cuts the friend off (device and guest entry revoked) | ✅ probe 111 |
+| Cutting off through one chat ends every chat of the friend; another friend's code is untouched | ✅ probe 111 |
+| 00110 behaviour for a friend with one chat unchanged | ✅ probe 110 |
+| Full RLS suite (735 PASS, 0 FAIL), rollback applies, tsc, lint, vitest (847), build | ✅ local |
+| Realtime across two sessions | ❌ not verified: no Realtime in the local stack (as 00110) |
+| Admin screen at 390px | ❌ not verified in a browser: the screen needs a live Supabase |
+| 00111 applied to production | ❌ not done, waits for Hadar's go-ahead |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { friendInvite, friendState, isFriendEmail } from "./friends";
+import { friendInvite, friendState, groupFriendLinks, isFriendEmail } from "./friends";
 import { strings } from "./strings";
 
 const now = new Date("2026-11-28T10:00:00Z");
@@ -30,5 +30,19 @@ describe("isFriendEmail", () => {
     expect(isFriendEmail("kid-1@kids.ourtrip.app")).toBe(true);
     expect(isFriendEmail("savta@example.com")).toBe(false);
     expect(isFriendEmail(null)).toBe(false);
+  });
+});
+
+describe("groupFriendLinks", () => {
+  it("puts a friend's chats together, oldest first, and leaves codes alone", () => {
+    const links = [
+      { id: "c2", member_id: "noa", created_at: "2026-11-28T12:00:00Z" },
+      { id: "w1", member_id: null, created_at: "2026-11-28T11:00:00Z" },
+      { id: "c1", member_id: "noa", created_at: "2026-11-28T09:00:00Z" },
+      { id: "d1", member_id: "dan", created_at: "2026-11-27T09:00:00Z" },
+    ];
+    const groups = groupFriendLinks(links);
+    expect(groups.map((g) => g.key)).toEqual(["noa", "w1", "dan"]);
+    expect(groups[0].links.map((l) => l.id)).toEqual(["c1", "c2"]);
   });
 });

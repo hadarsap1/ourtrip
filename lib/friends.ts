@@ -23,3 +23,24 @@ export function friendInvite(template: string, values: { kid: string; url: strin
     .replace("{url}", () => values.url)
     .replace("{code}", () => values.code);
 }
+
+export type FriendGroup<T> = { key: string; links: T[] };
+
+/** A parent's list, one entry per friend (00111): every chat of a connected
+ *  friend together, oldest chat first; a code not used yet stands alone.
+ *  Friends keep the order of their newest row in `links`. */
+export function groupFriendLinks<T extends Pick<FriendLink, "id" | "member_id" | "created_at">>(
+  links: T[]
+): FriendGroup<T>[] {
+  const groups = new Map<string, T[]>();
+  for (const link of links) {
+    const key = link.member_id ?? link.id;
+    const list = groups.get(key);
+    if (list) list.push(link);
+    else groups.set(key, [link]);
+  }
+  return [...groups].map(([key, list]) => ({
+    key,
+    links: [...list].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+  }));
+}

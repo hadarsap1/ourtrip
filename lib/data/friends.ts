@@ -3,8 +3,9 @@ import { realtimeTopic } from "@/lib/realtimeTopic";
 import { getSupabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 
-// Friends and their private chats (migration 00110, DECISIONS #79). A kid and
-// a friend write; they and the parents read. All of it enforced by RLS.
+// Friends and their private chats (migrations 00110, 00111, DECISIONS #79). A
+// kid and a friend write; they and the parents read. One friend may have a
+// separate chat with each of several kids. All of it enforced by RLS.
 
 export type FriendChannel = Database["public"]["Functions"]["my_friend_channels"]["Returns"][number];
 export type FriendMessage = Database["public"]["Tables"]["friend_messages"]["Row"];
@@ -122,7 +123,25 @@ export async function createFriendCode(kidMemberId: string, friendName: string, 
   return data.code as string;
 }
 
-/** Cuts a friend off, or cancels a code that was not used. */
+/** A separate chat between a connected friend and another kid (00111). */
+export async function addFriendKid(linkId: string, kidMemberId: string): Promise<void> {
+  const { data, error } = await requireClient().rpc("friend_add_kid", {
+    p_link_id: linkId,
+    p_kid_member_id: kidMemberId,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("not allowed");
+}
+
+/** Closes one chat; the friend stays connected through the others. Closing
+ *  the last one cuts the friend off (00111). */
+export async function closeFriendChat(linkId: string): Promise<void> {
+  const { data, error } = await requireClient().rpc("friend_close_chat", { p_link_id: linkId });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("not allowed");
+}
+
+/** Cuts a friend off (every chat of theirs), or cancels a code that was not used. */
 export async function revokeFriend(linkId: string): Promise<void> {
   const { data, error } = await requireClient().rpc("friend_revoke", { p_link_id: linkId });
   if (error) throw new Error(error.message);
