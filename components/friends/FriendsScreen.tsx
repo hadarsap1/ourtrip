@@ -10,7 +10,8 @@ import { strings } from "@/lib/strings";
 import { useMember } from "@/lib/useMember";
 
 /** The friends screen for the three who have one: a kid (their friends), a
- *  friend (the one chat, opened at once) and a parent (invite, read, cut off). */
+ *  friend (their chats, one per kid; a single one opens at once) and a parent
+ *  (invite, read, cut off). */
 export function FriendsScreen() {
   const f = strings.friends;
   const { member, memberLoading } = useMember();
@@ -37,7 +38,8 @@ export function FriendsScreen() {
   }
 
   const isParent = member.role === "owner";
-  // a friend has exactly one chat: no list in between
+  // a friend with one chat goes straight in; with a chat per kid (00111) they
+  // pick the kid from the list
   const only = member.role === "guest" && channels?.length === 1 ? channels[0] : null;
   const open = only ?? channels?.find((c) => c.link_id === openId) ?? null;
 
@@ -84,7 +86,9 @@ export function FriendsScreen() {
                   <span className="block truncate text-lg font-bold text-ink">
                     {isParent
                       ? f.pair.replace("{kid}", c.kid_name).replace("{friend}", c.friend_name)
-                      : c.friend_name}
+                      : member.id === c.friend_member_id
+                        ? c.kid_name
+                        : c.friend_name}
                   </span>
                   {c.revoked && <span className="block text-sm text-ink-soft">{f.revoked}</span>}
                 </span>

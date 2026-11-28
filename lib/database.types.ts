@@ -1333,7 +1333,7 @@ export type Database = {
       }
       friend_links: {
         Row: {
-          code_hash: string
+          code_hash: string | null
           created_at: string
           created_by: string
           expires_at: string
@@ -1347,7 +1347,7 @@ export type Database = {
           used_at: string | null
         }
         Insert: {
-          code_hash: string
+          code_hash?: string | null
           created_at?: string
           created_by: string
           expires_at: string
@@ -1361,7 +1361,7 @@ export type Database = {
           used_at?: string | null
         }
         Update: {
-          code_hash?: string
+          code_hash?: string | null
           created_at?: string
           created_by?: string
           expires_at?: string
@@ -2782,6 +2782,11 @@ export type Database = {
         }
         Returns: string | null
       }
+      friend_add_kid: {
+        Args: { p_kid_member_id: string; p_link_id: string }
+        Returns: string | null
+      }
+      friend_close_chat: { Args: { p_link_id: string }; Returns: boolean }
       friend_revoke: { Args: { p_link_id: string }; Returns: boolean }
       functions_base_url: { Args: never; Returns: string }
       mark_friend_read: { Args: { p_link_id: string }; Returns: undefined }
