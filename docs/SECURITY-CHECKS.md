@@ -3567,4 +3567,4 @@ and kid. Offline: online only, as 00110.
 | Full RLS suite (735 PASS, 0 FAIL), rollback applies, tsc, lint, vitest (847), build | ✅ local |
 | Realtime across two sessions | ❌ not verified: no Realtime in the local stack (as 00110) |
 | Admin screen at 390px | ❌ not verified in a browser: the screen needs a live Supabase |
-| 00111 applied to production | ❌ not done, waits for Hadar's go-ahead |
+| 00111 applied to production | ✅ 28/11/2026 (Supabase migration `friend_many_kids`); verified: new functions not executable by anon, `friend_links_member_id_key` gone, open-pair index present |
