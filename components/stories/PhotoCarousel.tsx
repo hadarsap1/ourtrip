@@ -3,7 +3,10 @@
 import { useCallback, useRef, useState } from "react";
 import { VideoFrame } from "@/components/photos/VideoFrame";
 import { PhotoLightbox } from "@/components/stories/PhotoLightbox";
+import { forgetSignedUrl } from "@/lib/data/signedUrls";
+import { photoUrls } from "@/lib/data/media";
 import { strings } from "@/lib/strings";
+import { useMember } from "@/lib/useMember";
 
 /**
  * An update's photos on top of its card, swiped one by one (Hadar
@@ -20,6 +23,12 @@ import { strings } from "@/lib/strings";
  * button, the video itself only after a tap.
  *
  * A tap on a photo opens it big, on the whole screen (Hadar 24/11/2026).
+ *
+ * A photo that fails to load is signed again once (Hadar 28/11/2026: the
+ * fourth photo of an update showed a broken image). Signed links live an
+ * hour and the later slides load only when swiped to, so a feed left open
+ * longer asked for a link that had already run out. If the second link fails
+ * too, a quiet "did not load" frame takes the place of the broken icon.
  */
 
 const TALLEST = 4 / 5;
@@ -28,7 +37,15 @@ const DEFAULT_RATIO = 4 / 3;
 type Slide = { photoId: string; url: string | null; videoUrl?: string | null };
 
 export function PhotoCarousel({ photos }: { photos: Slide[] }) {
-  const shown = photos.filter((p) => Boolean(p.url || p.videoUrl));
+  const { member } = useMember();
+  // links signed again after a failed load, by photo id
+  const [resigned, setResigned] = useState<Record<string, string>>({});
+  // photos that failed even after signing again
+  const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
+  const retried = useRef(new Set<string>());
+  const shown = photos
+    .filter((p) => Boolean(p.url || p.videoUrl))
+    .map((p) => (resigned[p.photoId] ? { ...p, url: resigned[p.photoId] } : p));
   const scroller = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
   // width / height of the frame, from the first photo once it loads
@@ -37,6 +54,24 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
   const [big, setBig] = useState<number | null>(null);
   const closeBig = useCallback(() => setBig(null), []);
   if (shown.length === 0) return null;
+
+  const markFailed = (id: string) => setFailed((prev) => new Set(prev).add(id));
+  const onPhotoError = (p: Slide) => {
+    if (retried.current.has(p.photoId)) {
+      markFailed(p.photoId);
+      return;
+    }
+    retried.current.add(p.photoId);
+    if (p.url) forgetSignedUrl(p.url);
+    // the same role-aware signing the feed used: RLS (or guest-media) decides again
+    photoUrls(member?.role, [p.photoId])
+      .then((urls) => {
+        const url = urls.get(p.photoId);
+        if (url && url !== p.url) setResigned((prev) => ({ ...prev, [p.photoId]: url }));
+        else markFailed(p.photoId);
+      })
+      .catch(() => markFailed(p.photoId));
+  };
 
   const onFirstLoad = (img: HTMLImageElement) => {
     if (!img.naturalWidth || !img.naturalHeight) return;
@@ -82,6 +117,16 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
               />
             );
           }
+          if (failed.has(p.photoId)) {
+            return (
+              <div
+                key={p.photoId}
+                className="grid h-full w-full shrink-0 snap-start place-items-center text-sm text-muted"
+              >
+                {strings.stories.photoFailed}
+              </div>
+            );
+          }
           return (
             <button
               key={p.photoId}
@@ -97,6 +142,7 @@ export function PhotoCarousel({ photos }: { photos: Slide[] }) {
                 loading={i === 0 ? "eager" : "lazy"}
                 ref={firstRef}
                 onLoad={i === 0 ? (e) => onFirstLoad(e.currentTarget) : undefined}
+                onError={() => onPhotoError(p)}
                 className="h-full w-full object-contain"
               />
             </button>

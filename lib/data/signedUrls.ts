@@ -35,6 +35,12 @@ export function rememberSigned(bucket: string, path: string, url: string, now: n
   signedCache.set(`${bucket}:${path}`, { url, expiresAt: now + ttlSeconds * 1000 });
 }
 
+/** Drops a URL that failed to load (expired while a screen stayed open), so
+ *  the next signing makes a new one instead of handing it out again. */
+export function forgetSignedUrl(url: string): void {
+  for (const [key, hit] of signedCache) if (hit.url === url) signedCache.delete(key);
+}
+
 /** Test hook. */
 export function clearSignedCache(): void {
   signedCache.clear();

@@ -2641,6 +2641,8 @@ export const strings = {
     // a photo of an update opened on the whole screen (Hadar 24/11/2026)
     openPhoto: "הגדלת התמונה",
     photoBig: "התמונה בגדול",
+    // a photo whose link ran out and could not be signed again
+    photoFailed: "התמונה לא נטענה",
     mapCard: "איפה היינו",
     mapCardHint: "כל המקומות שעברנו, על המפה",
   },
