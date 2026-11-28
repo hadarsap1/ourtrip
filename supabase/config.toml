@@ -111,6 +111,11 @@ verify_jwt = false
 [functions.booking-paste]
 verify_jwt = true
 
+# Pre-auth like kid-auth (00110): a friend's tablet redeems a one-time code
+# before it has any JWT. create-code re-checks the owner role in-function.
+[functions.friend-auth]
+verify_jwt = false
+
 # Open by design (00075): a guest asks for a sign-in link before signing in.
 # claim_guest_login_link decides who gets one (approved guests only, once a
 # minute) and the reply is the same either way.

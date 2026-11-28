@@ -8,7 +8,7 @@ import { isEnabled } from "@/lib/flags";
 import { isNavItemActive, tabsForRole } from "@/components/navItems";
 import { totalPending } from "@/lib/approvals";
 import { strings } from "@/lib/strings";
-import { useIsKidDevice } from "@/lib/useKidDevice";
+import { useDeviceRole } from "@/lib/useKidDevice";
 import { useMember } from "@/lib/useMember";
 import { useNewFeedback } from "@/lib/useNewFeedback";
 import { usePendingApprovals } from "@/lib/usePendingApprovals";
@@ -32,9 +32,9 @@ export function captureColumns(tabCount: number): string {
 export function BottomNav() {
   const pathname = usePathname();
   const { member } = useMember();
-  const isKid = useIsKidDevice();
+  const deviceRole = useDeviceRole();
   const captureOn = useSyncExternalStore(noopSubscribe, () => isEnabled("captureFab"), () => false);
-  const role = member?.role ?? (isKid ? "kid" : "owner");
+  const role = member?.role ?? deviceRole;
   const unread = useUnreadWall();
   // A parent's chat sits behind "עוד", as do the approval queues and the
   // likes and comments: one dot on that tab says something new is waiting

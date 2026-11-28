@@ -28,6 +28,9 @@ declare
   ref_id text;
   enum_first text;
 begin
+  -- before the FK lookup: a composite key (friend_messages, 00110) also names
+  -- trip_id as part of a reference to another table
+  if p_col = 'trip_id' then return quote_literal('00000000-0000-0000-0000-0000000000a1'); end if;
   select ccu.table_name into ref_tbl
     from information_schema.key_column_usage kcu
     join information_schema.referential_constraints rc on rc.constraint_name = kcu.constraint_name and rc.constraint_schema = kcu.constraint_schema
@@ -43,7 +46,6 @@ begin
     return quote_literal(ref_id);
   end if;
 
-  if p_col = 'trip_id' then return quote_literal('00000000-0000-0000-0000-0000000000a1'); end if;
   if p_col = 'country_code' then return quote_literal('TH'); end if;
   if p_col like '%currency%' then return quote_literal('THB'); end if;
   if p_col like '%email%' then return quote_literal('probe' || p_attempt || '@probe.test'); end if;

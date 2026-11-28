@@ -1331,6 +1331,96 @@ export type Database = {
           },
         ]
       }
+      friend_links: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          friend_name: string
+          id: string
+          kid_member_id: string
+          labels: string[]
+          member_id: string | null
+          revoked_at: string | null
+          trip_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          friend_name: string
+          id?: string
+          kid_member_id: string
+          labels?: string[]
+          member_id?: string | null
+          revoked_at?: string | null
+          trip_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          friend_name?: string
+          id?: string
+          kid_member_id?: string
+          labels?: string[]
+          member_id?: string | null
+          revoked_at?: string | null
+          trip_id?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      friend_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          link_id: string
+          sender_id: string
+          trip_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          link_id: string
+          sender_id: string
+          trip_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          link_id?: string
+          sender_id?: string
+          trip_id?: string
+        }
+        Relationships: []
+      }
+      friend_reads: {
+        Row: {
+          link_id: string
+          member_id: string
+          read_at: string
+        }
+        Insert: {
+          link_id: string
+          member_id: string
+          read_at?: string
+        }
+        Update: {
+          link_id?: string
+          member_id?: string
+          read_at?: string
+        }
+        Relationships: []
+      }
       guests_allowlist: {
         Row: {
           created_at: string
@@ -2681,7 +2771,35 @@ export type Database = {
         Returns: boolean
       }
       day_trip_id: { Args: { p_day_id: string }; Returns: string }
+      friend_redeem: {
+        Args: {
+          p_auth_user_id: string
+          p_code_hash: string
+          p_device_token_hash: string
+          p_email: string
+          p_member_id: string
+          p_pin_hash: string
+        }
+        Returns: string | null
+      }
+      friend_revoke: { Args: { p_link_id: string }; Returns: boolean }
       functions_base_url: { Args: never; Returns: string }
+      mark_friend_read: { Args: { p_link_id: string }; Returns: undefined }
+      my_friend_channels: {
+        Args: never
+        Returns: {
+          friend_member_id: string
+          friend_name: string
+          kid_member_id: string
+          kid_name: string
+          last_at: string | null
+          revoked: boolean
+          link_id: string
+          trip_id: string
+          unread: number
+        }[]
+      }
+      my_friend_link_ids: { Args: never; Returns: string[] }
       guest_join_info: { Args: { p_token: string }; Returns: Json }
       guest_join_open_token: { Args: never; Returns: string | null }
       guest_join_token: {

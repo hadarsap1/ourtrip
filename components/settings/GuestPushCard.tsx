@@ -5,6 +5,7 @@ import { currentPushState, disablePush, enablePush, isIos, isStandalone, type Pu
 import { ShareIcon } from "@/components/icons";
 import { getMyEmailDigest, setMyEmailDigest } from "@/lib/data/guestEmail";
 import { isEnabled } from "@/lib/flags";
+import { isFriendEmail } from "@/lib/friends";
 import { useMember } from "@/lib/useMember";
 import { strings } from "@/lib/strings";
 
@@ -229,7 +230,7 @@ function IosInstallInvite() {
 export function GuestEmailCard() {
   const { member } = useMember();
   const offered = useSyncExternalStore(noop, readEmailFlag, () => false);
-  if (member?.role !== "guest" || !offered) return null;
+  if (member?.role !== "guest" || !offered || isFriendEmail(member.email)) return null;
   return <GuestEmailSettings email={member.email} />;
 }
 

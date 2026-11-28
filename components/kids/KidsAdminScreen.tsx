@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Toast } from "@/components/Toast";
@@ -13,7 +14,7 @@ import {
   type KidDevice,
 } from "@/lib/data/kids";
 import { formatDate } from "@/lib/format";
-import { CheckIcon, LockIcon, PersonIcon } from "@/components/icons";
+import { CheckIcon, ChevronForwardIcon, LockIcon, PersonIcon } from "@/components/icons";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { strings } from "@/lib/strings";
 import type { Member, Trip } from "@/lib/types";
@@ -202,6 +203,14 @@ export function KidsAdminScreen() {
       {/* what comes after adding a kid, so the PIN step is no surprise
           (UX review 24/11/2026) */}
       <p className="text-sm text-ink-soft">{strings.kids.addKidHint}</p>
+
+      <Link
+        href="/friends"
+        className="flex min-h-14 items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 font-bold text-ink shadow-sm active:bg-paper-deep"
+      >
+        <span>{strings.friends.manage}</span>
+        <ChevronForwardIcon className="h-4 w-4 shrink-0" />
+      </Link>
 
       {codeFor && (
         <GenerateCodeSheet

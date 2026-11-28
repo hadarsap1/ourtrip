@@ -249,6 +249,12 @@ export function MoreScreen() {
         : null,
     },
     {
+      href: "/friends",
+      label: strings.friends.title,
+      Icon: PersonIcon,
+      state: null,
+    },
+    {
       href: "/guests",
       label: strings.more.menuGuests,
       Icon: MailIcon,

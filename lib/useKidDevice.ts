@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { isKidDevice, kidDisplayName } from "@/lib/data/kids";
+import { isFriendDevice, isKidDevice, kidDisplayName } from "@/lib/data/kids";
 
 // Whether this device is a registered kid tablet lives in localStorage, which
 // the server can't see. Reading it straight from a render body made the server
@@ -18,4 +18,14 @@ export function useIsKidDevice(): boolean {
 
 export function useKidDisplayName(): string | null {
   return useSyncExternalStore(noopSubscribe, kidDisplayName, () => null);
+}
+
+/** The role this device's screens assume before the member row arrives: a
+ *  family kid's tablet, a friend's (a guest, 00110), or a parent's phone. */
+export function useDeviceRole(): "kid" | "guest" | "owner" {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => (isFriendDevice() ? "guest" : isKidDevice() ? "kid" : "owner"),
+    () => "owner" as const
+  );
 }

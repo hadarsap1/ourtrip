@@ -115,6 +115,7 @@ export const ownerRailGroups: NavGroup[] = [
       { href: "/checklists", label: strings.more.menuChecklists, Icon: ChecklistIcon },
       ...(FLAG_DEFAULTS.pocketMoney ? [{ href: "/pocket", label: strings.more.menuPocket, Icon: CoinIcon }] : []),
       { href: "/kids", label: strings.more.menuKids, Icon: PersonIcon },
+      { href: "/friends", label: strings.friends.title, Icon: PersonIcon },
       { href: "/guests", label: strings.more.menuGuests, Icon: MailIcon },
       { href: "/notifications", label: strings.more.menuNotifications, Icon: BellIcon },
       { href: "/ready", label: strings.ready.menu, Icon: PlaneIcon },

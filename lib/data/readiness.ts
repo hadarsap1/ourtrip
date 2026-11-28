@@ -235,12 +235,18 @@ export async function loadReadiness(
         .from("phrasebook_entries")
         .select("country_code")
         .eq("trip_id", tripId),
-      client.from("kid_devices").select("id").is("revoked_at", null),
+      client
+        .from("kid_devices")
+        // the family's tablets only: a friend's (00110) is bound the same way
+        .select("id, member:members!kid_devices_member_id_fkey!inner(role)")
+        .eq("member.role", "kid")
+        .is("revoked_at", null),
       client
         .from("guests_allowlist")
         .select("email")
         .eq("trip_id", tripId)
-        .is("revoked_at", null),
+        .is("revoked_at", null)
+        .not("email", "like", "%@kids.ourtrip.app"),
       client.from("push_subscriptions").select("id"),
     ]);
 

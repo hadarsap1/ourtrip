@@ -15,6 +15,7 @@
 //   - leave-now (cron every 15 min, 1.11): the next placed item's leave-by
 //                     time falls in the coming 15 minutes → owners.
 //   Kill switch for both: set NOTIFY_V2=off on the function.
+//   - friend-connected (00110): a friend's tablet used its code → owners.
 //   - guest-updates (00100): a new update or podcast episode → the guests
 //                     who may see it and turned push on. Called by the
 //                     publish triggers and a 15-minute sweep; each item is
@@ -437,6 +438,23 @@ async function handleGuestRequest(requestId: string): Promise<number> {
   });
 }
 
+/** A friend's tablet used its code (00110). Owners only. */
+async function handleFriendConnected(linkId: string): Promise<number> {
+  const { data: link } = await service
+    .from("friend_links")
+    .select("trip_id, friend_name, used_at, revoked_at")
+    .eq("id", linkId)
+    .maybeSingle();
+  if (!link || !link.used_at || link.revoked_at) return 0;
+  return pushToMembers(await ownerIds(link.trip_id), {
+    title: "טאבלט של חבר/ה התחבר 🤝",
+    body: `${link.friend_name} - לא מכירים? אפשר לנתק במסך החברים`,
+    url: "/friends",
+    tag: "friend-connected",
+    many: "{n} טאבלטים של חברים התחברו 🤝",
+  });
+}
+
 /** The weekly backup has gone stale. Sent by check_backup_freshness (00026),
  *  which exists because a failing backup is otherwise completely silent -
  *  cron reports success for a merely-queued request. Owners only. */
@@ -708,6 +726,7 @@ Deno.serve(async (req) => {
     message_id?: string;
     photo_id?: string;
     request_id?: string;
+    link_id?: string;
     age_days?: number;
   };
   try {
@@ -729,6 +748,10 @@ Deno.serve(async (req) => {
       case "guest-request": {
         if (!body.request_id) return json({ ok: false, error: "missing request_id" }, 400);
         return json({ ok: true, sent: await handleGuestRequest(body.request_id) });
+      }
+      case "friend-connected": {
+        if (!body.link_id) return json({ ok: false, error: "missing link_id" }, 400);
+        return json({ ok: true, sent: await handleFriendConnected(body.link_id) });
       }
       case "daily": {
         return json({ ok: true, ...(await handleDaily()) });

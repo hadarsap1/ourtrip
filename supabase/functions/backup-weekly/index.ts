@@ -123,6 +123,10 @@ const TABLES = [
   "ai_usage",
   "trip_ai_settings",
   "trip_budget",
+  // friends and their private chats (00110)
+  "friend_links",
+  "friend_messages",
+  "friend_reads",
 ] as const;
 
 Deno.serve(async (req) => {

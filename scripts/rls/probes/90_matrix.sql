@@ -44,7 +44,8 @@ select rls.check('kid: never documents, bookings, expenses, budget, guests list,
                and tbl in ('documents', 'document_pin', 'document_passkeys', 'bookings', 'booking_files', 'expenses', 'cash_adjustments',
                            'budget_categories', 'guests_allowlist', 'kid_devices', 'kid_device_registrations', 'ai_usage',
                            'push_subscriptions', 'place_options', 'saved_links', 'visa_requirements',
-                           'guest_join_links', 'guest_join_requests')));
+                           'guest_join_links', 'guest_join_requests',
+                           'friend_links', 'friend_reads')));
 
 -- names, not addresses (00051)
 set local role authenticated; select rls.as_guest();

@@ -76,6 +76,8 @@ export async function listAllowlist(
     .eq("trip_id", tripId)
     // the test guest of "view as" (00068) is not on the list to manage
     .not("email", "like", "%@preview.ourtrip.app")
+    // nor are the kids' friends (00110): they are managed on the friends screen
+    .not("email", "like", "%@kids.ourtrip.app")
     .order("created_at");
   if (error) throw new Error(error.message);
   return data;

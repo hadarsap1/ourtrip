@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { resetAuthGate } from "@/components/AuthGate";
-import { isKidDevice, registerDevice, unlockWithPin } from "@/lib/data/kids";
+import { isKidDevice, registerDevice, registerFriendDevice, unlockWithPin, type RegisterResult } from "@/lib/data/kids";
+import { isFriendCode, isPin } from "@/lib/friendCode";
 import { CheckIcon, CloseIcon } from "@/components/icons";
 import { strings } from "@/lib/strings";
 import { useIsKidDevice, useKidDisplayName } from "@/lib/useKidDevice";
@@ -16,7 +17,7 @@ export function KidLoginScreen() {
   // server, so deciding the phase in the render body mismatched hydration.
   const registered = useIsKidDevice();
   const kidName = useKidDisplayName();
-  const [override, setOverride] = useState<"register" | "pin" | null>(null);
+  const [override, setOverride] = useState<"register" | "friendPin" | "pin" | null>(null);
   const phase = override ?? (registered ? "pin" : "register");
   const setPhase = setOverride;
   const [code, setCode] = useState("");
@@ -27,11 +28,33 @@ export function KidLoginScreen() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     if (busy || code.trim().length < 6) return;
-    setBusy(true);
     setMessage(null);
+    // a friend's family chooses the secret code before the tablet is bound
+    if (isFriendCode(code)) {
+      setPin("");
+      setPhase("friendPin");
+      return;
+    }
+    setBusy(true);
     const result = await registerDevice(code.trim()).catch(
       () => ({ status: "network" }) as const
     );
+    showRegisterResult(result);
+  }
+
+  async function handleFriendPin(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || !isPin(pin)) return;
+    setBusy(true);
+    setMessage(null);
+    const result = await registerFriendDevice(code.trim(), pin).catch(
+      () => ({ status: "network" }) as const
+    );
+    if (result.status === "invalid") setPhase("register");
+    showRegisterResult(result);
+  }
+
+  function showRegisterResult(result: RegisterResult) {
     if (result.status === "ok") {
       setPhase("pin");
       setPin("");
@@ -98,7 +121,32 @@ export function KidLoginScreen() {
         {strings.kidLogin.title}
       </h1>
 
-      {phase === "register" ? (
+      {phase === "friendPin" ? (
+        <>
+          <h2 className="mt-4 text-center text-lg font-semibold">{strings.kidLogin.friendPinTitle}</h2>
+          <p className="mb-6 text-center text-sm text-ink-soft">{strings.kidLogin.friendPinHint}</p>
+          <form onSubmit={(e) => void handleFriendPin(e)} className="space-y-4">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              maxLength={6}
+              autoFocus
+              aria-label={strings.kidLogin.friendPinTitle}
+              className="w-full rounded-2xl border-2 border-line px-4 py-4 text-center text-2xl font-bold tracking-[0.4em] focus:border-sea focus:outline-none"
+              dir="ltr"
+            />
+            <button
+              type="submit"
+              disabled={busy || !isPin(pin)}
+              className="w-full rounded-2xl bg-sea py-4 text-lg font-bold text-on-sea hover:bg-sea-deep disabled:opacity-50"
+            >
+              {strings.kidLogin.connect}
+            </button>
+          </form>
+        </>
+      ) : phase === "register" ? (
         <>
           <h2 className="mt-4 text-center text-lg font-semibold">
             {strings.kidLogin.codeTitle}
