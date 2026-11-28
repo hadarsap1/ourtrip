@@ -9,7 +9,8 @@
 //   - backup-stale  : the weekly backup has not landed → owners (migration
 //                     00026; see the incident note in backup-weekly)
 //   - hourly (cron, 1.11): in the family's LOCAL time - 09:00 cancellation +
-//                     visa deadlines, 19:00 tomorrow digest, 20:00 evening
+//                     visa deadlines, 19:00 tomorrow digest (silent when
+//                     tomorrow is empty and nothing is pending), 20:00 evening
 //                     journal. Quiet hours 22:00-07:00. Policy lives in
 //                     _shared/notifyPolicy.ts (tested).
 //   - leave-now (cron every 15 min, 1.11): the next placed item's leave-by
@@ -40,6 +41,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   addDays,
   cancelDeadline,
+  buildTomorrowDigest,
   inQuietHours,
   isReminderDay,
   leaveNowDue,
@@ -614,30 +616,26 @@ async function sendDeadlines(tripId: string, today: string): Promise<number> {
 
 async function sendTomorrowDigest(tripId: string, today: string): Promise<number> {
   const tomorrow = addDays(today, 1);
-  const { data: day } = await service
-    .from("itinerary_days")
-    .select("id, location_name")
-    .eq("trip_id", tripId)
-    .eq("date", tomorrow)
-    .maybeSingle();
-  if (!day) return 0; // before the trip, or a day not planned yet
-  const [{ data: items }, { data: bookings }] = await Promise.all([
-    service.from("itinerary_items").select("title, start_time").eq("day_id", day.id).neq("status", "cancelled").order("start_time"),
-    service.from("bookings").select("title, type").eq("trip_id", tripId).eq("start_date", tomorrow).neq("status", "cancelled"),
+  const [{ data: day }, { data: bookings }, { data: visas }, { data: days }] = await Promise.all([
+    service.from("itinerary_days").select("id, location_name").eq("trip_id", tripId).eq("date", tomorrow).maybeSingle(),
+    service.from("bookings").select("title, type, start_date, end_date, details").eq("trip_id", tripId).neq("status", "cancelled"),
+    service.from("visa_requirements").select("country_code, requirement_type, status, max_days, title_he").eq("trip_id", tripId),
+    service.from("itinerary_days").select("date, country_code").eq("trip_id", tripId),
   ]);
-  const list = items ?? [];
-  const first = list.find((i) => i.start_time);
-  const parts = [
-    list.length > 0 ? `${list.length} פעילויות` : "יום פנוי",
-    first ? `הראשונה ב-${hm(first.start_time as string)} (${first.title})` : null,
-    ...(bookings ?? []).map((b) => (b.type === "flight" ? `טיסה: ${b.title}` : b.type === "hotel" ? `צ'ק-אין: ${b.title}` : b.title)),
-  ].filter(Boolean);
-  return pushToMembers(await ownerIds(tripId), {
-    title: `🗓️ מחר${day.location_name ? ` ב${day.location_name}` : ""}`,
-    body: parts.join(" · "),
-    url: "/itinerary",
-    tag: `digest-${tomorrow}`,
+  const { data: items } = day
+    ? await service.from("itinerary_items").select("title, start_time").eq("day_id", day.id).neq("status", "cancelled").order("start_time")
+    : { data: [] };
+  // Silent when tomorrow is empty and nothing ahead needs handling.
+  const digest = buildTomorrowDigest({
+    today,
+    locationName: day?.location_name ?? null,
+    items: items ?? [],
+    bookings: bookings ?? [],
+    visas: visas ?? [],
+    days: days ?? [],
   });
+  if (!digest) return 0;
+  return pushToMembers(await ownerIds(tripId), { ...digest, url: "/itinerary", tag: `digest-${tomorrow}` });
 }
 
 async function sendEveningJournal(tripId: string, today: string): Promise<number> {

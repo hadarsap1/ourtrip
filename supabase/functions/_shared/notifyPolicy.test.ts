@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  buildTomorrowDigest,
+  digestActions,
   cancelDeadline,
   countryStretches,
   inQuietHours,
@@ -91,5 +93,44 @@ describe("notification policy (1.11)", () => {
     expect(visaRemindersDue("2027-01-01", rows, days)).toEqual([{ country: "TH", title: "פטור", kind: "stay", date: "2027-01-08" }]);
     // VN 90 days fits the 40-day stretch → no stay reminder
     expect(visaRemindersDue("2026-11-20", rows, days)).toEqual([]);
+  });
+});
+
+describe("19:00 tomorrow digest", () => {
+  const base = { today: "2026-12-01", locationName: "האנוי", items: [], bookings: [], visas: [], days: [] };
+
+  it("stays silent on an empty day with nothing pending", () => {
+    expect(buildTomorrowDigest(base)).toBeNull();
+  });
+
+  it("ignores a cancellation deadline far away", () => {
+    const b = { title: "מלון", type: "hotel", start_date: "2026-12-20", end_date: "2026-12-22", details: { free_cancel_until: "2026-12-10" } };
+    expect(buildTomorrowDigest({ ...base, bookings: [b] })).toBeNull();
+  });
+
+  it("sends when tomorrow has activities", () => {
+    const d = buildTomorrowDigest({ ...base, items: [{ title: "שוק", start_time: "09:30:00" }] });
+    expect(d?.title).toBe("🗓️ מחר בהאנוי");
+    expect(d?.body).toBe("1 פעילויות · הראשונה ב-09:30 (שוק)");
+  });
+
+  it("sends for a flight or a hotel check-out tomorrow", () => {
+    const flight = { title: "VN123", type: "flight", start_date: "2026-12-02", end_date: null, details: {} };
+    const hotel = { title: "Hanoi Inn", type: "hotel", start_date: "2026-11-28", end_date: "2026-12-02", details: {} };
+    expect(buildTomorrowDigest({ ...base, bookings: [flight, hotel] })?.body).toBe("טיסה: VN123 · צ'ק-אאוט: Hanoi Inn");
+  });
+
+  it("sends on an empty day when something ahead needs handling", () => {
+    const b = { title: "מלון בסאפה", type: "hotel", start_date: "2026-12-10", end_date: "2026-12-12", details: { free_cancel_until: "2026-12-03" } };
+    const d = buildTomorrowDigest({ ...base, bookings: [b] });
+    expect(d?.title).toBe("⏳ יש משהו לטפל בו");
+    expect(d?.body).toBe("⏳ ביטול חינם עד 03/12: מלון בסאפה");
+  });
+
+  it("flags a visa still to do for a country entered within a week", () => {
+    const visas = [{ country_code: "KH", requirement_type: "visa", status: "todo", max_days: 30, title_he: "ויזה לקמבודיה" }];
+    const days = [{ date: "2026-12-06", country_code: "KH" }];
+    expect(digestActions({ today: base.today, bookings: [], visas, days })).toEqual(["ויזה לקמבודיה - עדיין פתוח, נכנסים ב-06/12"]);
+    expect(digestActions({ today: base.today, bookings: [], visas: [{ ...visas[0], status: "done" }], days })).toEqual([]);
   });
 });

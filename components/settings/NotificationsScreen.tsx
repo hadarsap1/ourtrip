@@ -12,6 +12,7 @@ import {
   type PushState,
 } from "@/lib/push";
 import {
+  CalendarIcon,
   CameraIcon,
   HeartIcon,
   MessagesIcon,
@@ -81,6 +82,10 @@ export function NotificationsScreen() {
           <li className="flex items-center gap-2">
             <PlaneIcon className="h-4 w-4 shrink-0 text-sea" />
             {s.whatCheckin}
+          </li>
+          <li className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 shrink-0 text-sea" />
+            {s.whatTomorrow}
           </li>
           <li className="flex items-center gap-2">
             <MessagesIcon className="h-4 w-4 shrink-0 text-sea" />
