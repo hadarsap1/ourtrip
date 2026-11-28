@@ -219,7 +219,9 @@ async function countGuests(supabase: Client, tripId: string): Promise<number> {
       .from("guests_allowlist")
       .select("*", { count: "exact", head: true })
       .eq("trip_id", tripId)
-      .is("revoked_at", null);
+      .is("revoked_at", null)
+      // friends (00110) are counted nowhere as guests to manage
+      .not("email", "like", "%@kids.ourtrip.app");
     return count ?? 0;
   } catch {
     return 0;

@@ -3510,3 +3510,36 @@ Each was checked against the latest migration that touches it:
 | Error log leaves the device | ✅ by code (IndexedDB only, no request; parents read it in settings) |
 | SOS strip shown to a guest | ✅ by code (owners and kids only); the page itself is RoleGate'd and owner/kid by RLS |
 | Kid photo chips change who sees what | ✅ display only; no write, no policy change |
+
+## Friend channel (28/11/2026, migration 00110, function friend-auth)
+
+Policies: `friend_links_owner_select` (no writes; `code_hash` not granted),
+`friend_messages_owner_select`, `friend_messages_owner_delete`,
+`friend_messages_member_select`, `friend_messages_member_insert` (no update
+grant); `friend_reads` has RLS and no policy. `current_member_id()` resolves a
+friend only while the link is live and a device is bound. `friend_redeem` is
+service_role only. Offline: online only, the screen shows the load-failed notice.
+
+| Check | Result |
+|---|---|
+| Code works once, not after expiry; a signed-in user cannot redeem | ✅ probe 110, local Postgres |
+| Friend is a guest: no money, documents, devices or links | ✅ probe 110 + local PostgREST with the friend's token |
+| Friend and kid write only in their own chat and only in their own name; nobody edits | ✅ probe 110 |
+| Other kid, ordinary guest, stranger: nothing; anon in the matrix | ✅ probes 110, 90 |
+| Parents read and delete, never write; still read after cutting off | ✅ probe 110 + local end-to-end |
+| Cut off: friend loses member, photos and chat; kid loses the chat | ✅ probe 110 + local end-to-end |
+| Full RLS suite, tsc, lint, vitest, build | ✅ local |
+| Realtime across two sessions | ❌ not verified: no Realtime in the local stack |
+| friend-auth, push-send, backup-weekly deployed; 00110 applied to production | ❌ not done, waits for Hadar's go-ahead |
+
+Review follow-up (28/11/2026, no schema change):
+
+| Check | Result |
+|---|---|
+| `check` action spends nothing and reveals only live / not live; a wrong code counts against the shared cap (00108) like a wrong redeem | ✅ by code (same read and `kid_register_failed` as redeem, returns before any write) |
+| Lost redeem race (two tablets, one code) counts as a wrong code | ✅ by code |
+| Orphaned auth user on a failed cleanup is logged by id | ✅ by code (`orphan_auth_user`) |
+| Friend code drawn uniformly over the alphabet | ✅ by code (rejection sampling, bytes ≥ 248 dropped) |
+| Friend's PIN typed twice, hidden | ✅ by code |
+| Another chat's DELETE no longer reloads this chat | ✅ by code (dropped in place only if the id is loaded here) |
+| Realtime across two sessions | ❌ still not verified: no Docker daemon in the review container either. Manual check before merge: kid tablet + friend tablet in one chat, send each way, a parent deletes one message, both screens update without a reload |

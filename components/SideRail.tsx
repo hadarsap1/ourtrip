@@ -10,7 +10,7 @@ import {
   type NavItem,
 } from "@/components/navItems";
 import { strings } from "@/lib/strings";
-import { useIsKidDevice } from "@/lib/useKidDevice";
+import { useDeviceRole } from "@/lib/useKidDevice";
 import { useMember } from "@/lib/useMember";
 import { useUnreadWall } from "@/lib/useUnreadWall";
 
@@ -69,8 +69,8 @@ function RailRow({
 export function SideRail() {
   const pathname = usePathname();
   const { member } = useMember();
-  const isKid = useIsKidDevice();
-  const role = member?.role ?? (isKid ? "kid" : "owner");
+  const deviceRole = useDeviceRole();
+  const role = member?.role ?? deviceRole;
   const unread = useUnreadWall();
 
   if (pathname === "/kid-login" || pathname === "/login" || pathname === "/auth/confirm" || pathname.startsWith("/s/") || pathname.startsWith("/join/") || pathname.startsWith("/email-off/")) return null;

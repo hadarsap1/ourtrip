@@ -111,6 +111,11 @@ verify_jwt = false
 [functions.booking-paste]
 verify_jwt = true
 
+# Pre-auth like kid-auth (00110): a friend's tablet redeems a one-time code
+# before it has any JWT. create-code re-checks the owner role in-function.
+[functions.friend-auth]
+verify_jwt = false
+
 # Open by design (00075): a guest asks for a sign-in link before signing in.
 # claim_guest_login_link decides who gets one (approved guests only, once a
 # minute) and the reply is the same either way.
@@ -127,6 +132,11 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.recommend-diag]
+verify_jwt = true
+
+# Retired diagnostic, inert (410). Committed 28/11/2026 because it was deployed
+# and existed nowhere in this repo; the source matches production exactly.
+[functions.email-diag]
 verify_jwt = true
 
 # "View as a guest / a kid" (00068): parents only, checked in-function on top

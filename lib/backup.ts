@@ -61,6 +61,10 @@ export const EXCLUDED_TABLES = [
   "guest_join_requests",
   "google_photos",
   "message_reads",
+  // friends' access and private chats (00110): not part of the exported trip
+  "friend_links",
+  "friend_messages",
+  "friend_reads",
   "fx_rates",
 ];
 

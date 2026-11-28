@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { KidFactCard } from "@/components/facts/KidFactCard";
 import {
+  PersonIcon,
   BulbIcon,
   CoinIcon,
   JarIcon,
@@ -27,6 +28,7 @@ import { FLAG_DEFAULTS, isEnabled } from "@/lib/flags";
 import { formatTime, todayISO } from "@/lib/format";
 import { readQuery, writeQuery } from "@/lib/offline/queryCache";
 import { strings } from "@/lib/strings";
+import { useFriendChannels } from "@/lib/useFriendChannels";
 import { passportStamps, stampTilt, type Stamp } from "@/lib/tripStats";
 import type { ItineraryItem, Member } from "@/lib/types";
 
@@ -85,6 +87,8 @@ export function KidHome({
   albumFresh: number;
 }) {
   const k = strings.kidHome;
+  // friends' private chats (00110): the tile shows once a friend is connected
+  const friends = useFriendChannels(true);
   const stamps = useStamps(tripId);
   const items: ItineraryItem[] = data?.items.filter((i) => i.status !== "cancelled") ?? [];
   const country = data?.day?.country_code ?? null;
@@ -105,6 +109,10 @@ export function KidHome({
     { href: "/podcast", Icon: MicIcon, label: k.tilePodcast, bg: "bg-cat-shop" },
     { href: "/facts", Icon: BulbIcon, label: k.tileFacts, bg: "bg-cat-ins" },
   ];
+  if (friends.length > 0) {
+    const unread = friends.reduce((sum, c) => sum + c.unread, 0);
+    big.unshift({ href: "/friends", Icon: PersonIcon, label: strings.friends.tile, badge: unread, bg: "bg-cat-activity" });
+  }
   const small: { href: string; Icon: typeof RouteIcon; label: string }[] = [
     { href: "/itinerary", Icon: RouteIcon, label: k.tileRoute },
     { href: "/jar", Icon: JarIcon, label: strings.jar.navLabel },

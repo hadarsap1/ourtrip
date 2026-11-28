@@ -14,10 +14,12 @@ import { listEpisodes } from "@/lib/data/podcast";
 import { latestStory, listStoryStamps } from "@/lib/data/stories";
 import { listMembers } from "@/lib/data/trip";
 import { formatDate } from "@/lib/format";
+import { isFriendEmail } from "@/lib/friends";
 import { countSince, newLabel, pickQuote, takeLastVisit } from "@/lib/guestVisit";
 import { familyClock } from "@/lib/inTrip";
 import { kidTagText } from "@/lib/kidTag";
 import { strings } from "@/lib/strings";
+import { useFriendChannels } from "@/lib/useFriendChannels";
 import type { JarQuote, Member, Post, Reaction } from "@/lib/types";
 
 type Loaded = {
@@ -61,6 +63,9 @@ export function GuestHome({
   albumFresh: number;
   unreadWall: number;
 }) {
+  // a kid's friend (00110) has a private chat; every other guest gets none,
+  // so they never ask
+  const friends = useFriendChannels(isFriendEmail(member.email));
   const g = strings.guestHome;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   // bumped by "try again" on the partial-load line
@@ -163,6 +168,23 @@ export function GuestHome({
             />
           }
         />
+
+        {friends.map((c) => (
+          <Link
+            key={c.link_id}
+            href="/friends"
+            className="flex min-h-16 items-center justify-between gap-3 rounded-[20px] bg-green px-4 py-3 text-on-green shadow-card active:opacity-90"
+          >
+            <span className="min-w-0 truncate text-lg font-extrabold">
+              {strings.friends.guestHomeCta.replace("{name}", c.kid_name)}
+            </span>
+            {c.unread > 0 && (
+              <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-surface px-1.5 text-sm font-extrabold text-ink">
+                {c.unread > 9 ? "9+" : c.unread}
+              </span>
+            )}
+          </Link>
+        ))}
 
         {fresh.length > 0 && (
           <div className="flex flex-wrap gap-2">
