@@ -3592,3 +3592,6 @@ itself is unchanged (online only, as 00110).
 | A cut-off chat tells nobody | ✅ probe 112 |
 | Full RLS suite (767 PASS, 0 FAIL), rollback applies, tsc, lint, vitest (860), build | ✅ local |
 | Push on a real tablet under a Family Link limit | ❌ not verified: needs the family's tablet and the migration + push-send deployed |
+| 00112 applied to production | ✅ 28/11/2026 (Supabase migration `friend_message_push`); verified: cron job `push-friend-messages` and trigger `friend_messages_notify` present, `claim_friend_pushes` not executable by anon or authenticated, `friend_push_state` not readable by authenticated, RLS on `friend_push_settings`; a dry claim on the live trip returns nothing (no live friend chat yet) |
+| `push-send` v28 deployed (`verify_jwt = false` as before) | ✅ a `friend-messages` call through `pg_net` with the cron secret: 200 `{"ok":true,"sent":"quiet"}` (family's quiet hours at the time) |
+| `backup-weekly` not redeployed | ❌ its table list now names the two new tables; until redeployed the weekly backup skips them (both hold only settings and push marks) |
