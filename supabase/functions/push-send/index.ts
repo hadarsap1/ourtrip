@@ -53,27 +53,17 @@ import { leaveByMinutes, minutesOfTime, originFor, placeOf, travelMinutes } from
 import { canReadWallMessage, type WallReader } from "../_shared/wallAudience.ts";
 import { guestQuietNow, guestUpdateRecipients } from "../_shared/guestUpdates.ts";
 import { feedbackPayloadFor, type FeedbackItem } from "../_shared/feedbackPush.ts";
+import { cronSecretOk } from "../_shared/cronAuth.ts";
 
 // Since 00052 the secret is generated and kept in the database (it never
 // passes through a file or a dashboard): the jobs send it, and this asks the
 // database whether the header matches. A CRON_SECRET function secret, if one
 // is ever set, is checked instead. Fails CLOSED: no header, a wrong one, or a
-// failed lookup is a 401.
+// lookup that errors twice is a 401 (one retry: _shared/cronAuth.ts, QA 24/11).
 async function cronAuthorized(req: Request): Promise<boolean> {
-  const got = req.headers.get("x-cron-secret") ?? "";
-  if (!got) return false;
-  const expected = Deno.env.get("CRON_SECRET");
-  if (expected) {
-    if (got.length !== expected.length) return false;
-    let diff = 0;
-    for (let i = 0; i < got.length; i++) {
-      diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
-    }
-    return diff === 0;
-  }
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data, error } = await db.rpc("cron_secret_matches", { p_secret: got });
-  return !error && data === true;
+  return cronSecretOk(req.headers.get("x-cron-secret"), Deno.env.get("CRON_SECRET"), (p_secret) =>
+    db.rpc("cron_secret_matches", { p_secret }));
 }
 
 function json(body: unknown, status = 200): Response {
