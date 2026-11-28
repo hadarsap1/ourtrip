@@ -134,6 +134,11 @@ verify_jwt = true
 [functions.recommend-diag]
 verify_jwt = true
 
+# Retired diagnostic, inert (410). Committed 28/11/2026 because it was deployed
+# and existed nowhere in this repo; the source matches production exactly.
+[functions.email-diag]
+verify_jwt = true
+
 # "View as a guest / a kid" (00068): parents only, checked in-function on top
 # of the JWT. Mints a session for the trip's test member.
 [functions.preview-session]
