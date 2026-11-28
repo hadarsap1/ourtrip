@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LoadFailed } from "@/components/LoadFailed";
+import { ChatPushInvite } from "@/components/friends/ChatPushInvite";
+import { FriendAlertCard } from "@/components/friends/FriendAlertCard";
 import { FriendChat } from "@/components/friends/FriendChat";
 import { FriendsAdmin } from "@/components/friends/FriendsAdmin";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -32,6 +34,15 @@ export function FriendsScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set after the fetch
     if (member) void load();
   }, [member, load]);
+
+  // a tap on a new-message notification opens that chat (00112)
+  useEffect(() => {
+    const chat = new URLSearchParams(window.location.search).get("chat");
+    if (!chat) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from the address
+    setOpenId(chat);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   if (memberLoading || !member) {
     return <p className="pt-8 text-center text-ink-soft">{strings.common.loading}</p>;
@@ -64,6 +75,8 @@ export function FriendsScreen() {
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-4 px-4 pt-5 pb-8 sm:max-w-2xl">
       <PageHeader title={f.title} />
+
+      {!isParent && <ChatPushInvite />}
 
       {loadFailed ? (
         <LoadFailed onRetry={load} />
@@ -106,6 +119,7 @@ export function FriendsScreen() {
         </ul>
       )}
 
+      {isParent && <FriendAlertCard tripId={member.trip_id} />}
       {isParent && <FriendsAdmin tripId={member.trip_id} onChange={() => void load()} />}
     </div>
   );

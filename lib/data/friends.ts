@@ -147,3 +147,27 @@ export async function revokeFriend(linkId: string): Promise<void> {
   if (error) throw new Error(error.message);
   if (!data) throw new Error("not allowed");
 }
+
+/** The parents' minutes before a kid's unread message is told to them by push
+ *  (00112). No row yet = the default. Owners only (RLS). */
+export const FRIEND_ALERT_DEFAULT_MINUTES = 15;
+
+export async function getFriendAlertMinutes(tripId: string): Promise<number> {
+  const { data, error } = await requireClient()
+    .from("friend_push_settings")
+    .select("parent_alert_minutes")
+    .eq("trip_id", tripId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.parent_alert_minutes ?? FRIEND_ALERT_DEFAULT_MINUTES;
+}
+
+export async function setFriendAlertMinutes(tripId: string, minutes: number): Promise<void> {
+  const { error } = await requireClient()
+    .from("friend_push_settings")
+    .upsert(
+      { trip_id: tripId, parent_alert_minutes: minutes, updated_at: new Date().toISOString() },
+      { onConflict: "trip_id" }
+    );
+  if (error) throw new Error(error.message);
+}

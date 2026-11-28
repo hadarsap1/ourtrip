@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { askConfirm } from "@/components/ConfirmSheet";
 import { LoadFailed } from "@/components/LoadFailed";
+import { ChatPushInvite } from "@/components/friends/ChatPushInvite";
 import { ChevronForwardIcon, TrashIcon } from "@/components/icons";
 import { Composer } from "@/components/ui/Composer";
 import {
@@ -15,6 +16,7 @@ import {
   type FriendMessage,
 } from "@/lib/data/friends";
 import { formatShortDate } from "@/lib/format";
+import { clearNotifications } from "@/lib/push";
 import { strings } from "@/lib/strings";
 import type { Member } from "@/lib/types";
 
@@ -53,6 +55,8 @@ export function FriendChat({
       setMessages(await listFriendMessages(channel.link_id));
       setLoadFailed(false);
       void markFriendRead(channel.link_id).catch(() => {});
+      // read here: its notification on this tablet goes (00112)
+      void clearNotifications(`friend-${channel.link_id}`);
     } catch {
       setLoadFailed(true);
     }
@@ -136,6 +140,7 @@ export function FriendChat({
         <h1 className="ot-title min-w-0 truncate">{title}</h1>
       </header>
       <p className="rounded-xl bg-sun-tint px-3 py-2 text-sm font-medium text-sun-deep">{privacy}</p>
+      {!isParent && <ChatPushInvite />}
 
       <div className="flex flex-1 flex-col justify-end gap-2">
         {loadFailed && <LoadFailed onRetry={load} />}

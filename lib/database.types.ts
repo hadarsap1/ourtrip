@@ -1403,6 +1403,32 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_push_settings: {
+        Row: {
+          parent_alert_minutes: number
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          parent_alert_minutes?: number
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          parent_alert_minutes?: number
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_push_settings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friend_reads: {
         Row: {
           link_id: string

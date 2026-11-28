@@ -3568,3 +3568,27 @@ and kid. Offline: online only, as 00110.
 | Realtime across two sessions | ❌ not verified: no Realtime in the local stack (as 00110) |
 | Admin screen at 390px | ❌ not verified in a browser: the screen needs a live Supabase |
 | 00111 applied to production | ✅ 28/11/2026 (Supabase migration `friend_many_kids`); verified: new functions not executable by anon, `friend_links_member_id_key` gone, open-pair index present |
+
+## Friend chat by push (28/11/2026, migration 00112)
+
+Policies: `friend_push_settings` - owners select/insert/update their trip's row
+only (`member_trip_as('owner')`), column grants limit writes to the minutes;
+kids, guests and friends see no row and their writes change nothing.
+`friend_push_state` - RLS on, no policies, revoked from anon and
+authenticated: only `claim_friend_pushes()` touches it. `claim_friend_pushes()`
+is security definer, executable by `service_role` only (push-send). No push
+carries a message's text. Offline: push needs the network by nature; the chat
+itself is unchanged (online only, as 00110).
+
+| Check | Result |
+|---|---|
+| Owner, kid, guest and friend cannot claim pushes or read the push state | ✅ probe 112, local Postgres |
+| Kid, guest and friend cannot set the minutes, see the setting, or change it by update | ✅ probe 112 |
+| Minutes below 5 refused | ✅ probe 112 |
+| Kid told of new messages by the friend's name; told once; then only of the newer one | ✅ probe 112 |
+| Parents told once per wave (several messages = one push); not again until the kid opened the chat | ✅ probe 112 |
+| Never the parents about a message the friend has not read | ✅ probe 112 |
+| The parents' minutes are honoured (60: not yet at 40; 30: due) | ✅ probe 112 |
+| A cut-off chat tells nobody | ✅ probe 112 |
+| Full RLS suite (767 PASS, 0 FAIL), rollback applies, tsc, lint, vitest (860), build | ✅ local |
+| Push on a real tablet under a Family Link limit | ❌ not verified: needs the family's tablet and the migration + push-send deployed |
