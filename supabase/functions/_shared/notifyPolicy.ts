@@ -152,3 +152,81 @@ export function visaRemindersDue(today: string, rows: VisaRow[], days: DayRow[])
   }
   return out;
 }
+
+// ---- 19:00 tomorrow digest ----
+//
+// Sent only when there is something to say: an activity or booking tomorrow,
+// or something ahead that still needs handling. An empty day with nothing
+// pending sends nothing - "יום פנוי" alone is not worth a buzz.
+
+/** How far ahead the digest looks for things that still need handling. */
+export const DIGEST_CANCEL_WINDOW = 3; // free cancellation ends within N days
+export const DIGEST_VISA_WINDOW = 7; // a visa/arrival card still "todo", entry within N days
+export const DIGEST_STAY_WINDOW = 3; // max-stay limit within N days
+
+export type DigestItem = { title: string; start_time: string | null };
+export type DigestBooking = { title: string; type: string; start_date: string | null; end_date: string | null; details: unknown };
+export type DigestInput = {
+  today: string;
+  locationName: string | null;
+  items: DigestItem[];
+  bookings: DigestBooking[]; // non-cancelled bookings of the trip
+  visas: VisaRow[];
+  days: DayRow[];
+};
+
+const within = (today: string, date: string, n: number) => {
+  const d = daysBetween(today, date);
+  return d >= 0 && d <= n;
+};
+const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
+/** Things ahead that need a parent's hand, soonest first. */
+export function digestActions(input: Omit<DigestInput, "items" | "locationName">): string[] {
+  const { today, bookings, visas, days } = input;
+  const out: { date: string; text: string }[] = [];
+  for (const b of bookings) {
+    const until = cancelDeadline(b.details);
+    if (until && within(today, until, DIGEST_CANCEL_WINDOW)) out.push({ date: until, text: `ביטול חינם עד ${ddmm(until)}: ${b.title}` });
+  }
+  const stretches = countryStretches(days);
+  for (const r of visas) {
+    const s = stretches.get(r.country_code);
+    if (!s || r.status === "not_needed") continue;
+    if (r.status === "todo" && (r.requirement_type === "visa" || r.requirement_type === "arrival_card") && within(today, s.first, DIGEST_VISA_WINDOW)) {
+      out.push({ date: s.first, text: `${r.title_he} - עדיין פתוח, נכנסים ב-${ddmm(s.first)}` });
+    }
+    if (r.max_days && today >= s.first && today <= s.last) {
+      const limit = addDays(s.first, r.max_days - 1);
+      const text = `${r.title_he} - היום האחרון המותר ${ddmm(limit)}`;
+      if (limit <= s.last && within(today, limit, DIGEST_STAY_WINDOW) && !out.some((o) => o.text === text)) out.push({ date: limit, text });
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date)).map((o) => o.text);
+}
+
+/** The digest push, or null when tomorrow is empty and nothing is pending. */
+export function buildTomorrowDigest(input: DigestInput): { title: string; body: string } | null {
+  const tomorrow = addDays(input.today, 1);
+  const first = input.items.find((i) => i.start_time);
+  const bookingLines = input.bookings.flatMap((b) => {
+    const lines: string[] = [];
+    if (b.start_date === tomorrow) lines.push(b.type === "flight" ? `טיסה: ${b.title}` : b.type === "hotel" ? `צ'ק-אין: ${b.title}` : b.title);
+    if (b.type === "hotel" && b.end_date === tomorrow && b.start_date !== tomorrow) lines.push(`צ'ק-אאוט: ${b.title}`);
+    return lines;
+  });
+  const actions = digestActions(input);
+  if (input.items.length === 0 && bookingLines.length === 0 && actions.length === 0) return null;
+
+  const parts = [
+    input.items.length > 0 ? `${input.items.length} פעילויות` : null,
+    first ? `הראשונה ב-${(first.start_time as string).slice(0, 5)} (${first.title})` : null,
+    ...bookingLines,
+    ...actions.map((a) => `⏳ ${a}`),
+  ].filter(Boolean);
+  const scheduled = input.items.length > 0 || bookingLines.length > 0;
+  return {
+    title: scheduled ? `🗓️ מחר${input.locationName ? ` ב${input.locationName}` : ""}` : "⏳ יש משהו לטפל בו",
+    body: parts.join(" · "),
+  };
+}
