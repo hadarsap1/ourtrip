@@ -99,10 +99,17 @@ export async function disablePush(): Promise<void> {
  *  cleared (00104, public/sw.js). Best effort - no Badging API, no worker or
  *  a blocked call changes nothing on screen. */
 export async function clearFeedbackBadge(): Promise<void> {
+  return clearNotifications("feedback");
+}
+
+/** The screen a notification was about is open: that notification goes, and
+ *  the number on the app icon is what is left (a friend chat, 00112). Best
+ *  effort, as above. */
+export async function clearNotifications(tag: string): Promise<void> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
   try {
     const reg = await navigator.serviceWorker.getRegistration();
-    const showing = reg ? await reg.getNotifications({ tag: "feedback" }) : [];
+    const showing = reg ? await reg.getNotifications({ tag }) : [];
     for (const n of showing) n.close();
     const others = reg ? await reg.getNotifications() : [];
     const left = others.reduce(

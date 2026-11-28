@@ -17,6 +17,14 @@
 //                     time falls in the coming 15 minutes → owners.
 //   Kill switch for both: set NOTIFY_V2=off on the function.
 //   - friend-connected (00110): a friend's tablet used its code → owners.
+//   - friend-messages (00112): a new message in a friend chat → the other
+//                     side ("a new message from X", never the words), and
+//                     ONE push to the owners when a message to a kid waits
+//                     unread for the parents' minutes (default 15). Called by
+//                     the insert trigger and a 5-minute sweep; what is due is
+//                     claimed once in claim_friend_pushes(). Held 22:00-07:00
+//                     in the family's local time. Kill switch:
+//                     NOTIFY_FRIENDS=off.
 //   - guest-updates (00100): a new update or podcast episode → the guests
 //                     who may see it and turned push on. Called by the
 //                     publish triggers and a 15-minute sweep; each item is
@@ -56,6 +64,7 @@ import { canReadWallMessage, type WallReader } from "../_shared/wallAudience.ts"
 import { guestQuietNow, guestUpdateRecipients } from "../_shared/guestUpdates.ts";
 import { feedbackPayloadFor, type FeedbackItem } from "../_shared/feedbackPush.ts";
 import { cronSecretOk } from "../_shared/cronAuth.ts";
+import { friendMessagePayload, friendParentsPayload, type FriendPushRow } from "../_shared/friendPush.ts";
 
 // Since 00052 the secret is generated and kept in the database (it never
 // passes through a file or a dashboard): the jobs send it, and this asks the
@@ -447,6 +456,27 @@ async function handleFriendConnected(linkId: string): Promise<number> {
   });
 }
 
+/** Friend chats (00112): the other side hears of a new message, the parents
+ *  of a kid's message left unread. The database decides what is due and marks
+ *  it told in the same step, so the trigger and the sweep never both send. */
+async function handleFriendMessages(): Promise<number | string> {
+  const tripId = await activeTripId();
+  if (!tripId) return 0;
+  // nothing is claimed in quiet hours, so the 07:00 sweep sends what waited
+  if (inQuietHours((await familyLocalNow(tripId)).minutes)) return "quiet";
+  const { data, error } = await service.rpc("claim_friend_pushes", { p_trip_id: tripId });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as FriendPushRow[];
+
+  let sent = 0;
+  for (const r of rows) {
+    if (r.kind === "message") sent += await pushToMembers([r.member_id], friendMessagePayload(r));
+  }
+  const parents = friendParentsPayload(rows, new Date());
+  if (parents) sent += await pushToMembers(await ownerIds(tripId), parents);
+  return sent;
+}
+
 /** The weekly backup has gone stale. Sent by check_backup_freshness (00026),
  *  which exists because a failing backup is otherwise completely silent -
  *  cron reports success for a merely-queued request. Owners only. */
@@ -740,6 +770,10 @@ Deno.serve(async (req) => {
       case "friend-connected": {
         if (!body.link_id) return json({ ok: false, error: "missing link_id" }, 400);
         return json({ ok: true, sent: await handleFriendConnected(body.link_id) });
+      }
+      case "friend-messages": {
+        if (Deno.env.get("NOTIFY_FRIENDS") === "off") return json({ ok: true, skipped: "NOTIFY_FRIENDS=off" });
+        return json({ ok: true, sent: await handleFriendMessages() });
       }
       case "daily": {
         return json({ ok: true, ...(await handleDaily()) });

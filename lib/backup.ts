@@ -65,6 +65,8 @@ export const EXCLUDED_TABLES = [
   "friend_links",
   "friend_messages",
   "friend_reads",
+  "friend_push_settings",
+  "friend_push_state",
   "fx_rates",
 ];
 

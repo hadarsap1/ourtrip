@@ -2173,6 +2173,19 @@ export const strings = {
     openChat: "לשיחה",
     deleteConfirm: "למחוק את ההודעה?",
     delete: "מחיקת ההודעה",
+    // a new message by push, so nobody opens the app only to check (00112)
+    pushTitle: "רוצים לדעת כשמגיעה הודעה?",
+    pushBody: "הטאבלט יקפיץ התראה, ככה לא צריך להיכנס כל פעם לבדוק",
+    pushEnable: "הפעלת התראות",
+    pushWorking: "מפעילים...",
+    pushLater: "לא עכשיו",
+    pushDenied: "ההתראות חסומות בטאבלט הזה - אפשר לפתוח אותן בהגדרות של הטאבלט",
+    pushFailed: "לא הצלחנו להפעיל התראות - מנסים שוב",
+    alertTitle: "התראה כשהודעה לא נקראה",
+    alertHint: "כשהודעה לאחד הילדים מחכה ולא נקראה, תגיע אליכם התראה אחת (גם אם יש כמה הודעות). אז אפשר להחליט אם להוסיף זמן מסך.",
+    alertAfter: "אחרי כמה זמן",
+    alertMinutes: "{n} דק'",
+    alertSaved: "נשמר",
   },
 
   kidHome: {
